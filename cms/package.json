@@ -1,0 +1,22 @@
+{
+  "name": "foolish-cms",
+  "version": "1.0.0",
+  "description": "Payload CMS for The Foolish Butcher",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "cross-env PAYLOAD_CONFIG_PATH=src/payload.config.ts nodemon",
+    "build": "payload build",
+    "start": "cross-env PAYLOAD_CONFIG_PATH=dist/payload.config.js node dist/server.js",
+    "generate:types": "payload generate:types",
+    "generate:graphQLSchema": "payload generate:graphQLSchema"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0",
+    "nodemon": "^3.1.14"
+  }
+}
