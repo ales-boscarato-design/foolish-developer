@@ -60,7 +60,7 @@ export default function CheckoutPage() {
   const handlePayment = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/revolut/create-order', {
+      const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,9 +73,6 @@ export default function CheckoutPage() {
       const data = await res.json()
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl
-      } else if (data.publicId) {
-        // Widget Revolut embedded
-        router.push(`/checkout/payment?token=${data.publicId}`)
       } else {
         alert('Errore nel creare l\'ordine. Riprova.')
       }
@@ -214,7 +211,7 @@ export default function CheckoutPage() {
             </button>
 
             <p className="text-xs text-center" style={{ color: 'var(--muted-fg)' }}>
-              Pagamento sicuro · Revolut Pay · Apple Pay · Google Pay
+              Pagamento sicuro · Stripe · Carta · Apple Pay · Google Pay
             </p>
           </div>
         </div>
