@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Outfit } from 'next/font/google'
 import './globals.css'
 import { Nav } from '@/components/Nav'
 import { CartProvider } from '@/components/CartProvider'
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' })
 
 export const metadata: Metadata = {
   title: 'The Foolish Butcher — Pelle sintetica artigianale per tattoo e PMU',
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="it" className={inter.variable}>
+    <html lang="it" className={outfit.variable}>
       <body className="min-h-screen flex flex-col">
         <CartProvider>
           <Nav />
