@@ -44,7 +44,6 @@ export default buildConfig({
     pool: {
       connectionString: process.env.DATABASE_URI || '',
     },
-    schemaName: 'foolish_cms',
     push: true,
   }),
   serverURL: process.env.PAYLOAD_PUBLIC_URL || 'http://localhost:3001',
