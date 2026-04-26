@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { Truck, ShieldCheck, MessageSquare, Package, ArrowRight } from 'lucide-react'
 import { getProducts, getLimitedProducts } from '@/lib/cms'
 import { ProductCard } from '@/components/ProductCard'
-import { HeroInk } from '@/components/HeroInk'
 
 /* ─── Marquee cinetico — puro CSS, nessun JS ──────────────────────── */
 function Marquee() {
@@ -189,9 +188,6 @@ export default async function HomePage() {
           className="hidden md:flex flex-col justify-between p-12 relative overflow-hidden border-l"
           style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}
         >
-          {/* Ink parallax scroll */}
-          <HeroInk />
-
           {/* Cerchio ink — decorazione geometrica */}
           <div
             className="absolute top-[-80px] right-[-80px] w-[380px] h-[380px] rounded-full border"
@@ -325,7 +321,7 @@ export default async function HomePage() {
             <p className="text-xs uppercase tracking-[0.3em] mb-6" style={{ color: 'var(--accent)' }}>
               Il processo
             </p>
-            <h2 className="font-display text-[clamp(48px,8vw,100px)] leading-none tracking-tight max-w-4xl">
+            <h2 className="font-display text-[clamp(36px,8vw,100px)] leading-none tracking-tight max-w-4xl">
               OGNI PELLE È<br />
               <span style={{ color: 'var(--accent)' }}>UN PEZZO UNICO.</span>
             </h2>
@@ -400,7 +396,7 @@ export default async function HomePage() {
         <p className="text-xs uppercase tracking-[0.3em] mb-6" style={{ color: 'var(--accent)' }}>
           Da noi in Italia, per te, ovunque.
         </p>
-        <h2 className="font-display text-[clamp(52px,9vw,120px)] leading-none mb-10 max-w-3xl">
+        <h2 className="font-display text-[clamp(38px,9vw,120px)] leading-none mb-10 max-w-3xl">
           FATTA COME SERVE.<br />
           <span style={{ color: 'var(--accent)' }}>CON CARATTERE.</span>
         </h2>
