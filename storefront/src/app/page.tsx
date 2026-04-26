@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Truck, ShieldCheck, MessageSquare, Package, ArrowRight } from 'lucide-react'
 import { getProducts, getLimitedProducts } from '@/lib/cms'
 import { ProductCard } from '@/components/ProductCard'
-import { InkDrop } from '@/components/InkDrop'
+import { HeroInk } from '@/components/HeroInk'
 
 /* ─── Marquee cinetico — puro CSS, nessun JS ──────────────────────── */
 function Marquee() {
@@ -189,8 +189,8 @@ export default async function HomePage() {
           className="hidden md:flex flex-col justify-between p-12 relative overflow-hidden border-l"
           style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}
         >
-          {/* Goccia d'inchiostro animata */}
-          <InkDrop />
+          {/* Ink parallax scroll */}
+          <HeroInk />
 
           {/* Cerchio ink — decorazione geometrica */}
           <div
@@ -201,16 +201,6 @@ export default async function HomePage() {
             className="absolute bottom-[20%] left-[-40px] w-[120px] h-[120px] rounded-full"
             style={{ backgroundColor: 'var(--accent)', opacity: 0.08 }}
           />
-
-          {/* Badge "Se ritardiamo..." */}
-          <div className="relative z-10 self-end">
-            <div
-              className="text-xs border px-4 py-2 tracking-wide"
-              style={{ borderColor: 'var(--border)', color: 'var(--muted-fg)' }}
-            >
-              Se ritardiamo, ti ricompensiamo.
-            </div>
-          </div>
 
           {/* Quote manifesto in fondo */}
           <blockquote className="relative z-10">
@@ -251,8 +241,8 @@ export default async function HomePage() {
         />
         <TrustBadge
           Icon={MessageSquare}
-          title="Supporto vero"
-          body="Scrivi. Rispondiamo noi — non un bot. Anche di notte, spesso."
+          title="Supporto rapido"
+          body="Scrivi. Un nanobot risponde subito — per le cose complesse ci siamo noi."
         />
         <TrustBadge
           Icon={Package}
