@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
-import { Outfit } from 'next/font/google'
+import { Outfit, Bebas_Neue } from 'next/font/google'
 import './globals.css'
 import { Nav } from '@/components/Nav'
 import { CartProvider } from '@/components/CartProvider'
 
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' })
+const bebas = Bebas_Neue({ weight: '400', subsets: ['latin'], variable: '--font-bebas' })
 
 export const metadata: Metadata = {
   title: 'The Foolish Butcher — Pelle sintetica artigianale per tattoo e PMU',
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="it" className={outfit.variable}>
+    <html lang="it" className={`${outfit.variable} ${bebas.variable}`}>
       <body className="min-h-screen flex flex-col">
         <CartProvider>
           <Nav />

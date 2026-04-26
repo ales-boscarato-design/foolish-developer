@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0a;
+  --background: #080808;
   --foreground: #f0ede8;
   --accent: #c8a97e;
   --accent-dark: #a8895e;
-  --muted: #1a1a1a;
-  --muted-fg: #666;
-  --border: #1f1f1f;
-  --card: #111;
+  --muted: #111111;
+  --muted-fg: #555;
+  --border: #1e1e1e;
+  --card: #0f0f0f;
   --limited: #c0392b;
 }
 
@@ -22,6 +22,10 @@
   --color-limited: var(--limited);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -29,24 +33,69 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-html {
-  scroll-behavior: smooth;
+/* Grain texture overlay — fixed, pointer-events-none, mai su scroll container */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
 }
-
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(24px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-up {
-  animation: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-fade-up-delay-1 { animation-delay: 0.1s; }
-.animate-fade-up-delay-2 { animation-delay: 0.2s; }
-.animate-fade-up-delay-3 { animation-delay: 0.3s; }
-.animate-fade-up-delay-4 { animation-delay: 0.45s; }
 
 * {
   border-color: var(--border);
+}
+
+/* Display font — Bebas Neue */
+.font-display {
+  font-family: var(--font-bebas), 'Impact', sans-serif;
+  letter-spacing: 0.02em;
+}
+
+/* Fade-up staggerati */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-up { animation: fade-up 0.75s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fade-up-d1 { animation-delay: 0.08s; }
+.animate-fade-up-d2 { animation-delay: 0.18s; }
+.animate-fade-up-d3 { animation-delay: 0.30s; }
+.animate-fade-up-d4 { animation-delay: 0.44s; }
+.animate-fade-up-d5 { animation-delay: 0.56s; }
+
+/* Marquee infinito — hardware accelerated via transform */
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 28s linear infinite;
+  will-change: transform;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* Ink line — separatore decorativo */
+.ink-line {
+  width: 40px;
+  height: 2px;
+  background: var(--accent);
+  display: block;
+}
+
+/* Stat display */
+.stat-number {
+  font-family: var(--font-bebas), sans-serif;
+  letter-spacing: 0.02em;
+  line-height: 1;
 }
