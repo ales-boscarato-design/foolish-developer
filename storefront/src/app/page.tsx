@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Truck, ShieldCheck, MessageSquare, Package, ArrowRight } from 'lucide-react'
 import { getProducts, getLimitedProducts } from '@/lib/cms'
 import { ProductCard } from '@/components/ProductCard'
+import { InkDrop } from '@/components/InkDrop'
 
 /* ─── Marquee cinetico — puro CSS, nessun JS ──────────────────────── */
 function Marquee() {
@@ -188,6 +189,9 @@ export default async function HomePage() {
           className="hidden md:flex flex-col justify-between p-12 relative overflow-hidden border-l"
           style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}
         >
+          {/* Goccia d'inchiostro animata */}
+          <InkDrop />
+
           {/* Cerchio ink — decorazione geometrica */}
           <div
             className="absolute top-[-80px] right-[-80px] w-[380px] h-[380px] rounded-full border"
