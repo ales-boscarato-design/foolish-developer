@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { getLimitedProducts } from '@/lib/cms'
 import { ProductCard } from '@/components/ProductCard'
 import { redirect } from 'next/navigation'
