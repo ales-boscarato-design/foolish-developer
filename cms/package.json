@@ -4,19 +4,31 @@
   "description": "Payload CMS for The Foolish Butcher",
   "license": "UNLICENSED",
   "private": true,
-  "type": "module",
   "scripts": {
-    "dev": "cross-env PAYLOAD_CONFIG_PATH=src/payload.config.ts nodemon",
-    "build": "payload build",
-    "start": "cross-env PAYLOAD_CONFIG_PATH=dist/payload.config.js node dist/server.js",
-    "generate:types": "payload generate:types",
-    "generate:graphQLSchema": "payload generate:graphQLSchema"
+    "dev": "next dev --port 3001",
+    "build": "next build",
+    "start": "next start --port 3001",
+    "generate:types": "payload generate:types"
   },
   "engines": {
     "node": ">=20.9.0"
   },
+  "dependencies": {
+    "@payloadcms/db-postgres": "^3.33.0",
+    "@payloadcms/email-nodemailer": "^3.33.0",
+    "@payloadcms/next": "^3.33.0",
+    "@payloadcms/richtext-lexical": "^3.33.0",
+    "graphql": "^16.9.0",
+    "next": "15.2.9",
+    "payload": "^3.33.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "sharp": "^0.32.6"
+  },
   "devDependencies": {
-    "cross-env": "^10.1.0",
-    "nodemon": "^3.1.14"
+    "@types/node": "^22.5.5",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "5.6.3"
   }
 }
