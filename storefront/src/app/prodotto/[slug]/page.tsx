@@ -7,11 +7,6 @@ interface Props {
   params: Promise<{ slug: string }>
 }
 
-export async function generateStaticParams() {
-  const products = await getProducts()
-  return products.map((p) => ({ slug: p.slug }))
-}
-
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params
   const product = await getProductBySlug(slug)
