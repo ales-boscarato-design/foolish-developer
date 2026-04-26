@@ -3,8 +3,6 @@ import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-
 export async function POST(req: NextRequest) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET
   if (!secret) {
@@ -15,6 +13,7 @@ export async function POST(req: NextRequest) {
   const rawBody = await req.text()
   const signature = req.headers.get('stripe-signature') ?? ''
 
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
   let event: Stripe.Event
   try {
     event = stripe.webhooks.constructEvent(rawBody, signature, secret)

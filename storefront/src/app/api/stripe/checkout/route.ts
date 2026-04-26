@@ -3,8 +3,6 @@ import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-
 const STOREFRONT_URL = process.env.STOREFRONT_URL || 'http://localhost:3000'
 
 interface CartItem {
@@ -20,6 +18,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Stripe non configurato' }, { status: 503 })
   }
 
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
   const { items, shippingCost, customer } = await req.json()
   const orderRef = `FOOLISH-${Date.now()}`
 
