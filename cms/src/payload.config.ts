@@ -18,8 +18,6 @@ export default buildConfig({
     user: 'users',
     meta: {
       titleSuffix: '— Foolish Butcher',
-      favicon: '/favicon.ico',
-      ogImage: '/og.jpg',
     },
   },
   collections: [
