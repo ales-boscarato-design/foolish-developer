@@ -7,6 +7,7 @@ export async function register() {
       console.log('[Payload] Database initialized (push complete)')
     } catch (err) {
       console.error('[Payload] Database init failed:', err)
+      throw err
     }
   }
 }
