@@ -5,6 +5,7 @@ import { Truck, ShieldCheck, MessageSquare, Package, ArrowRight } from 'lucide-r
 import { getProducts, getLimitedProducts } from '@/lib/cms'
 import { ProductCard } from '@/components/ProductCard'
 import { ManifestoPinned } from '@/components/ManifestoPinned'
+import { SplitText } from '@/components/SplitText'
 
 /* ─── Marquee cinetico — puro CSS, nessun JS ──────────────────────── */
 function Marquee() {
@@ -121,19 +122,21 @@ export default async function HomePage() {
             Tattoo &amp; PMU Practice Skin — Made in Italy
           </p>
 
-          <h1 className="animate-fade-up animate-fade-up-d1 font-display leading-none mb-8">
-            <span
+          <h1 className="font-display leading-none mb-8">
+            <SplitText
+              text="QUESTA"
               className="block text-[clamp(80px,13vw,160px)]"
               style={{ color: 'var(--foreground)' }}
-            >
-              QUESTA
-            </span>
-            <span
+              delay={0.15}
+              stagger={0.06}
+            />
+            <SplitText
+              text="È PELLE."
               className="block text-[clamp(80px,13vw,160px)]"
               style={{ color: 'var(--accent)' }}
-            >
-              È PELLE.
-            </span>
+              delay={0.55}
+              stagger={0.06}
+            />
           </h1>
 
           <div
@@ -346,8 +349,20 @@ export default async function HomePage() {
           Da noi in Italia, per te, ovunque.
         </p>
         <h2 className="font-display text-[clamp(38px,9vw,120px)] leading-none mb-10 max-w-3xl">
-          FATTA COME SERVE.<br />
-          <span style={{ color: 'var(--accent)' }}>CON CARATTERE.</span>
+          <SplitText
+            text="FATTA COME SERVE."
+            className="block"
+            stagger={0.04}
+            whileInView
+          />
+          <SplitText
+            text="CON CARATTERE."
+            className="block"
+            style={{ color: 'var(--accent)' }}
+            stagger={0.04}
+            delay={0.25}
+            whileInView
+          />
         </h2>
         <Link
           href="/tattoo"

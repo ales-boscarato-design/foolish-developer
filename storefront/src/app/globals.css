@@ -99,3 +99,20 @@ body::after {
   letter-spacing: 0.02em;
   line-height: 1;
 }
+
+/* Limited badge — pulse organico per urgency */
+@keyframes limited-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(192, 57, 43, 0.55);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(192, 57, 43, 0);
+    transform: scale(1.04);
+  }
+}
+
+.limited-pulse {
+  animation: limited-pulse 2.4s ease-in-out infinite;
+  transform-origin: center;
+}

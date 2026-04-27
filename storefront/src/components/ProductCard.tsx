@@ -38,7 +38,7 @@ export function ProductCard({ product, showLimitedBadge }: ProductCardProps) {
 
         {/* Badge limited */}
         {(showLimitedBadge || product.limitedStock) && (
-          <span className="absolute top-2 left-2 bg-[var(--limited)] text-white text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wide">
+          <span className="limited-pulse absolute top-2 left-2 bg-[var(--limited)] text-white text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wide">
             Limitato
           </span>
         )}
