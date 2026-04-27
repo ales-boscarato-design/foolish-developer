@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { Truck, ShieldCheck, MessageSquare, Package, ArrowRight } from 'lucide-react'
 import { getProducts, getLimitedProducts } from '@/lib/cms'
 import { ProductCard } from '@/components/ProductCard'
@@ -187,19 +188,28 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* Colonna destra — pannello scuro */}
+        {/* Colonna destra — hero image */}
         <div
-          className="hidden md:flex flex-col justify-between p-12 relative overflow-hidden border-l"
-          style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}
+          className="hidden md:flex flex-col justify-end p-12 relative overflow-hidden border-l"
+          style={{ borderColor: 'var(--border)' }}
         >
-          {/* Cerchio ink — decorazione geometrica */}
-          <div
-            className="absolute top-[-80px] right-[-80px] w-[380px] h-[380px] rounded-full border"
-            style={{ borderColor: 'var(--border)', borderWidth: '40px' }}
+          {/* Prodotto */}
+          <Image
+            src="/Hero/tattoo-practice-skin-foolish.png"
+            alt="Foolish practice skin — foglio di pelle sintetica"
+            fill
+            sizes="40vw"
+            className="object-cover object-center"
+            priority
           />
+
+          {/* Scrim gradiente — leggibilità blockquote */}
           <div
-            className="absolute bottom-[20%] left-[-40px] w-[120px] h-[120px] rounded-full"
-            style={{ backgroundColor: 'var(--accent)', opacity: 0.08 }}
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(to top, rgba(8,8,8,0.85) 0%, rgba(8,8,8,0.35) 40%, transparent 70%)',
+            }}
           />
 
           {/* Quote manifesto in fondo */}

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { ShoppingBag, Menu, X } from 'lucide-react'
 import { useCart } from '@/lib/cart'
@@ -22,10 +23,17 @@ export function Nav() {
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
         <Link
           href="/"
-          className="font-bold tracking-tight text-base sm:text-lg hover:text-[var(--accent)] transition-colors"
+          className="flex items-center opacity-90 hover:opacity-100 transition-opacity"
           onClick={() => setOpen(false)}
         >
-          THE FOOLISH BUTCHER
+          <Image
+            src="/logo%20foolish/logo.png"
+            alt="The Foolish Butcher"
+            width={140}
+            height={36}
+            className="h-8 w-auto"
+            priority
+          />
         </Link>
 
         {/* Desktop nav */}
