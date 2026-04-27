@@ -113,11 +113,38 @@ export default async function HomePage() {
           HERO — Split asimmetrico, headline Bebas Neue
       ════════════════════════════════════════════════ */}
       <section
-        className="grid grid-cols-1 md:grid-cols-[60%_40%] min-h-[100dvh] border-b"
+        className="grid grid-cols-1 md:grid-cols-[60%_40%] min-h-[100dvh] border-b relative"
         style={{ borderColor: 'var(--border)' }}
       >
+        {/* Mobile hero image — visibile solo su mobile, a destra con scrim sinistra */}
+        <div className="md:hidden absolute inset-0 pointer-events-none" aria-hidden>
+          <Image
+            src="/Hero/tattoo-practice-skin-foolish.png"
+            alt=""
+            fill
+            sizes="100vw"
+            className="object-contain"
+            style={{
+              objectPosition: 'right center',
+              transform: 'scale(1.08) translateX(8%)',
+              transformOrigin: 'right center',
+              filter: 'drop-shadow(-10px 10px 30px rgba(0,0,0,0.9))',
+              opacity: 0.72,
+            }}
+            priority
+          />
+          {/* Scrim: testo a sinistra leggibile, prodotto visibile a destra */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(to right, var(--background) 15%, rgba(8,8,8,0.75) 50%, rgba(8,8,8,0.25) 100%)',
+            }}
+          />
+        </div>
+
         {/* Colonna sinistra — testo */}
-        <div className="flex flex-col justify-center px-8 md:px-16 lg:px-24 py-24 md:py-0">
+        <div className="flex flex-col justify-center px-8 md:px-16 lg:px-24 py-24 md:py-0 relative z-10">
 
           <p className="animate-fade-up text-xs tracking-[0.3em] uppercase mb-10" style={{ color: 'var(--muted-fg)' }}>
             Tattoo &amp; PMU Practice Skin — Made in Italy
