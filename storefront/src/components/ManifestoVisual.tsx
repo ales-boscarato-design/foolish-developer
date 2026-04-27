@@ -19,29 +19,42 @@ interface Props {
  */
 export function ManifestoVisual({ kind, src, alt }: Props) {
   return (
-    <div
-      className="absolute inset-y-0 right-0 w-full md:w-[60%] pointer-events-none"
-      aria-hidden={!alt}
-      style={{
-        maskImage:
-          'linear-gradient(to right, transparent 0%, black 35%, black 100%)',
-        WebkitMaskImage:
-          'linear-gradient(to right, transparent 0%, black 35%, black 100%)',
-      }}
-    >
-      {src ? (
-        <Image
-          src={src}
-          alt={alt ?? ''}
-          fill
-          sizes="(max-width: 768px) 100vw, 60vw"
-          className="object-cover opacity-40"
-          priority={false}
-        />
-      ) : (
-        <PlaceholderArt kind={kind} />
-      )}
-    </div>
+    <>
+      <div
+        className="absolute inset-y-0 right-0 w-full md:w-[60%] pointer-events-none"
+        aria-hidden={!alt}
+        style={{
+          maskImage:
+            'linear-gradient(to right, transparent 0%, black 35%, black 100%)',
+          WebkitMaskImage:
+            'linear-gradient(to right, transparent 0%, black 35%, black 100%)',
+        }}
+      >
+        {src ? (
+          <Image
+            src={src}
+            alt={alt ?? ''}
+            fill
+            sizes="(max-width: 768px) 100vw, 60vw"
+            className="object-cover opacity-40"
+            priority={false}
+          />
+        ) : (
+          <PlaceholderArt kind={kind} />
+        )}
+      </div>
+      {/* Mobile scrim — staccare il testo dall'immagine per leggibilità.
+          Dark solido a sinistra dove vive il testo, sfuma a destra per
+          mantenere parte dell'atmosfera visiva. */}
+      <div
+        className="absolute inset-0 md:hidden pointer-events-none"
+        aria-hidden
+        style={{
+          background:
+            'linear-gradient(to right, var(--background) 0%, var(--background) 35%, rgba(8,8,8,0.75) 65%, rgba(8,8,8,0.45) 100%)',
+        }}
+      />
+    </>
   )
 }
 
