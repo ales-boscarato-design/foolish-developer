@@ -25,29 +25,29 @@ export function ManifestoPinned({ visuals }: { visuals?: VisualSources } = {}) {
     offset: ['start start', 'end end'],
   })
 
-  // Layer 1 — headline
+  // Layer 1 — headline (più respiro, fade out più tardo)
   const l1Opacity = useTransform(
     scrollYProgress,
-    [0, 0.06, 0.3, 0.4],
+    [0, 0.05, 0.38, 0.48],
     [0, 1, 1, 0],
   )
-  const l1Y = useTransform(scrollYProgress, [0, 0.4], [40, -50])
+  const l1Y = useTransform(scrollYProgress, [0, 0.48], [40, -50])
 
   // Layer 2 — "non compra, la fa"
   const l2Opacity = useTransform(
     scrollYProgress,
-    [0.28, 0.4, 0.6, 0.7],
+    [0.44, 0.54, 0.7, 0.78],
     [0, 1, 1, 0],
   )
-  const l2Y = useTransform(scrollYProgress, [0.28, 0.7], [60, -50])
+  const l2Y = useTransform(scrollYProgress, [0.44, 0.78], [60, -50])
 
   // Layer 3 — flock + stats
   const l3Opacity = useTransform(
     scrollYProgress,
-    [0.58, 0.7, 0.95, 1],
+    [0.74, 0.82, 0.97, 1],
     [0, 1, 1, 1],
   )
-  const l3Y = useTransform(scrollYProgress, [0.58, 1], [60, 0])
+  const l3Y = useTransform(scrollYProgress, [0.74, 1], [60, 0])
 
   // Progress bar laterale
   const progressScale = useTransform(scrollYProgress, [0, 1], [0, 1])
@@ -59,7 +59,7 @@ export function ManifestoPinned({ visuals }: { visuals?: VisualSources } = {}) {
       style={{
         borderColor: 'var(--border)',
         backgroundColor: 'var(--muted)',
-        height: '300vh',
+        height: '400vh',
       }}
     >
       <div className="sticky top-0 h-screen flex items-center px-8 md:px-16 overflow-hidden">

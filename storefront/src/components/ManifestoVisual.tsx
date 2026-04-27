@@ -36,7 +36,11 @@ export function ManifestoVisual({ kind, src, alt }: Props) {
             alt={alt ?? ''}
             fill
             sizes="(max-width: 768px) 100vw, 60vw"
-            className="object-cover opacity-40"
+            className={`object-cover opacity-40 ${
+              kind === 'flock'
+                ? 'object-[30%_50%] md:object-center'
+                : 'object-center'
+            }`}
             priority={false}
           />
         ) : (
