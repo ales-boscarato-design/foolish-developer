@@ -3,6 +3,7 @@ import { Outfit, Bebas_Neue } from 'next/font/google'
 import './globals.css'
 import { Nav } from '@/components/Nav'
 import { CartProvider } from '@/components/CartProvider'
+import { InkThread } from '@/components/InkThread'
 
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' })
 const bebas = Bebas_Neue({ weight: '400', subsets: ['latin'], variable: '--font-bebas' })
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="it" className={`${outfit.variable} ${bebas.variable}`}>
       <body className="min-h-screen flex flex-col">
         <CartProvider>
+          <InkThread />
           <Nav />
           <main className="flex-1">{children}</main>
           <footer className="border-t border-[var(--border)] py-8 px-4 text-center text-sm text-[var(--muted-fg)]">
