@@ -315,7 +315,12 @@ export default async function HomePage() {
       {/* ════════════════════════════════════════════════
           MANIFESTO PRODUZIONE — Sticky scroll-driven storytelling
       ════════════════════════════════════════════════ */}
-      <ManifestoPinned />
+      <ManifestoPinned visuals={{
+  unique: '/manifesto/unique.png',
+  crafted: '/manifesto/crafted.png',
+  flock: '/manifesto/flock.png',
+}} />
+
 
       {/* ════════════════════════════════════════════════
           SEZIONE PMU — layout speculare
