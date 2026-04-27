@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Product } from '@/lib/cms'
+import { TiltCard } from './TiltCard'
 
 interface ProductCardProps {
   product: Product
@@ -14,9 +15,10 @@ export function ProductCard({ product, showLimitedBadge }: ProductCardProps) {
   const allUnavailable = product.variants.every((v) => v.stockStatus === 'unavailable')
 
   return (
+    <TiltCard className="h-full">
     <Link
       href={`/prodotto/${product.slug}`}
-      className="group block bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden hover:border-[var(--accent)] transition-all duration-200"
+      className="group block bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden hover:border-[var(--accent)] transition-all duration-200 h-full"
     >
       {/* Immagine */}
       <div className="aspect-square bg-[var(--muted)] relative overflow-hidden">
@@ -67,5 +69,6 @@ export function ProductCard({ product, showLimitedBadge }: ProductCardProps) {
         </div>
       </div>
     </Link>
+    </TiltCard>
   )
 }

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Truck, ShieldCheck, MessageSquare, Package, ArrowRight } from 'lucide-react'
 import { getProducts, getLimitedProducts } from '@/lib/cms'
 import { ProductCard } from '@/components/ProductCard'
+import { ManifestoPinned } from '@/components/ManifestoPinned'
 
 /* ─── Marquee cinetico — puro CSS, nessun JS ──────────────────────── */
 function Marquee() {
@@ -309,61 +310,9 @@ export default async function HomePage() {
       </section>
 
       {/* ════════════════════════════════════════════════
-          MANIFESTO PRODUZIONE — Editorial full-width
+          MANIFESTO PRODUZIONE — Sticky scroll-driven storytelling
       ════════════════════════════════════════════════ */}
-      <section
-        className="border-b px-8 md:px-16 py-24"
-        style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}
-      >
-        <div className="max-w-7xl mx-auto">
-          {/* Headline */}
-          <div className="mb-16">
-            <p className="text-xs uppercase tracking-[0.3em] mb-6" style={{ color: 'var(--accent)' }}>
-              Il processo
-            </p>
-            <h2 className="font-display text-[clamp(36px,8vw,100px)] leading-none tracking-tight max-w-4xl">
-              OGNI PELLE È<br />
-              <span style={{ color: 'var(--accent)' }}>UN PEZZO UNICO.</span>
-            </h2>
-          </div>
-
-          {/* Grid: copy + stats */}
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_280px] gap-12 items-start border-t pt-12" style={{ borderColor: 'var(--border)' }}>
-            <div>
-              <p className="text-base leading-relaxed mb-4" style={{ color: 'var(--muted-fg)' }}>
-                Foolish non compra la pelle, la fa. Dall'inizio. A mano. Da un silicone puro al platino,
-                trasformato in superficie grazie a un processo proprietario che non troverai altrove.
-              </p>
-              <p className="text-base leading-relaxed" style={{ color: 'var(--muted-fg)' }}>
-                Il colore? Non è stampato. È vivo.
-              </p>
-            </div>
-            <div>
-              <p className="text-base leading-relaxed" style={{ color: 'var(--muted-fg)' }}>
-                Usiamo flock: microfili di nylon sospesi che durante la catalisi si fissano a profondità
-                diverse. Nuance inaspettate, discromie reali, texture che cambiano a ogni prodotto.
-                Esattamente come la pelle dei tuoi clienti.
-              </p>
-            </div>
-
-            {/* Stats verticali */}
-            <div className="border-l pl-10 space-y-8" style={{ borderColor: 'var(--border)' }}>
-              <div>
-                <p className="stat-number text-5xl mb-1" style={{ color: 'var(--accent)' }}>100%</p>
-                <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--muted-fg)' }}>Produzione manuale</p>
-              </div>
-              <div>
-                <p className="stat-number text-5xl mb-1" style={{ color: 'var(--accent)' }}>0</p>
-                <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--muted-fg)' }}>Pelli identiche</p>
-              </div>
-              <div>
-                <p className="stat-number text-5xl mb-1" style={{ color: 'var(--accent)' }}>IT</p>
-                <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--muted-fg)' }}>Chieri, Torino — Italia</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <ManifestoPinned />
 
       {/* ════════════════════════════════════════════════
           SEZIONE PMU — layout speculare
