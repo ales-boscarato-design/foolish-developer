@@ -2,6 +2,13 @@
 
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
+import { ManifestoVisual } from './ManifestoVisual'
+
+interface VisualSources {
+  unique?: string
+  crafted?: string
+  flock?: string
+}
 
 /**
  * Sezione manifesto con scroll-driven storytelling.
@@ -11,7 +18,7 @@ import { motion, useScroll, useTransform } from 'framer-motion'
  *   0.30 - 0.70  →  "Foolish non compra la pelle. La fa."
  *   0.60 - 1.00  →  Copy flock + stats animati
  */
-export function ManifestoPinned() {
+export function ManifestoPinned({ visuals }: { visuals?: VisualSources } = {}) {
   const ref = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -56,6 +63,38 @@ export function ManifestoPinned() {
       }}
     >
       <div className="sticky top-0 h-screen flex items-center px-8 md:px-16 overflow-hidden">
+        {/* ── VISUAL LAYERS — uno per ogni narrative step ── */}
+        <motion.div
+          className="absolute inset-0"
+          style={{ opacity: l1Opacity }}
+        >
+          <ManifestoVisual
+            kind="unique"
+            src={visuals?.unique}
+            alt={visuals?.unique ? 'Foglio di pelle sintetica unico' : undefined}
+          />
+        </motion.div>
+        <motion.div
+          className="absolute inset-0"
+          style={{ opacity: l2Opacity }}
+        >
+          <ManifestoVisual
+            kind="crafted"
+            src={visuals?.crafted}
+            alt={visuals?.crafted ? 'Produzione manuale del silicone' : undefined}
+          />
+        </motion.div>
+        <motion.div
+          className="absolute inset-0"
+          style={{ opacity: l3Opacity }}
+        >
+          <ManifestoVisual
+            kind="flock"
+            src={visuals?.flock}
+            alt={visuals?.flock ? 'Microfili di nylon flock' : undefined}
+          />
+        </motion.div>
+
         <div className="max-w-7xl mx-auto w-full relative">
           {/* Eyebrow fisso */}
           <p

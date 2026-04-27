@@ -116,3 +116,18 @@ body::after {
   animation: limited-pulse 2.4s ease-in-out infinite;
   transform-origin: center;
 }
+
+/* Reduced motion — disabilita tutte le animazioni decorative continue */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .marquee-track,
+  .limited-pulse,
+  .animate-fade-up {
+    animation: none !important;
+  }
+}

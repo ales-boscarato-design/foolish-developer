@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, type Variants } from 'framer-motion'
+import { motion, useReducedMotion, type Variants } from 'framer-motion'
 
 interface Props {
   text: string
@@ -27,6 +27,15 @@ export function SplitText({
   duration = 0.75,
   whileInView = false,
 }: Props) {
+  const reduced = useReducedMotion()
+  if (reduced) {
+    return (
+      <span className={className} style={style}>
+        {text}
+      </span>
+    )
+  }
+
   const chars = Array.from(text)
 
   const container: Variants = {

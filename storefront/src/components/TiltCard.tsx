@@ -4,6 +4,7 @@ import { useRef } from 'react'
 import {
   motion,
   useMotionValue,
+  useReducedMotion,
   useSpring,
   useTransform,
 } from 'framer-motion'
@@ -23,6 +24,7 @@ export function TiltCard({
   intensity?: number
 }) {
   const ref = useRef<HTMLDivElement>(null)
+  const reduced = useReducedMotion()
   const x = useMotionValue(0)
   const y = useMotionValue(0)
 
@@ -42,6 +44,10 @@ export function TiltCard({
   function handleLeave() {
     x.set(0)
     y.set(0)
+  }
+
+  if (reduced) {
+    return <div className={className}>{children}</div>
   }
 
   return (

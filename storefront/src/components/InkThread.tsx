@@ -2,6 +2,7 @@
 
 import {
   motion,
+  useReducedMotion,
   useScroll,
   useSpring,
   useTransform,
@@ -17,6 +18,12 @@ import {
  * - A fine pagina: splash con raggi che esplodono dalla posizione finale.
  */
 export function InkThread() {
+  const reduced = useReducedMotion()
+  if (reduced) return null
+  return <InkThreadInner />
+}
+
+function InkThreadInner() {
   const { scrollYProgress } = useScroll()
 
   // Spring sullo scroll progress — toglie ogni jitter da scroll lineare
