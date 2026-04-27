@@ -138,13 +138,13 @@ export default async function HomePage() {
             className="absolute inset-0"
             style={{
               background:
-                'linear-gradient(to right, var(--background) 15%, rgba(8,8,8,0.75) 50%, rgba(8,8,8,0.25) 100%)',
+                'linear-gradient(to right, var(--background) 15%, rgba(8,8,8,0.75) 40%, transparent 80%)',
             }}
           />
         </div>
 
         {/* Colonna sinistra — testo */}
-        <div className="flex flex-col justify-center px-8 md:px-16 lg:px-24 py-24 md:py-0 relative z-10">
+        <div className="flex flex-col justify-start md:justify-center px-8 md:px-16 lg:px-24 pt-8 pb-16 md:py-0 relative z-10">
 
           <p className="animate-fade-up text-xs tracking-[0.3em] uppercase mb-10" style={{ color: 'var(--muted-fg)' }}>
             Tattoo &amp; PMU Practice Skin — Made in Italy

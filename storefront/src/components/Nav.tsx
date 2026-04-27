@@ -26,9 +26,9 @@ export function Nav() {
   const p = useSpring(rawP, { stiffness: 80, damping: 22, mass: 0.55 })
 
   // Altezza barra: 130 → 60
-  const barHeight = useTransform(p, [0, 1], [130, 60])
-  // Logo height: 58 → 28
-  const logoH = useTransform(p, [0, 1], [58, 28])
+  const barHeight = useTransform(p, [0, 1], [140, 60])
+  // Logo height: 72 → 30
+  const logoH = useTransform(p, [0, 1], [72, 30])
   // Background: trasparente → opaco
   const bgOpacity = useTransform(p, [0, 1], [0, 0.96])
   // Border + elementi extra: appaiono dopo metà transizione

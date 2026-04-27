@@ -55,7 +55,7 @@ export function ManifestoVisual({ kind, src, alt }: Props) {
         aria-hidden
         style={{
           background:
-            'linear-gradient(to right, var(--background) 0%, var(--background) 35%, rgba(8,8,8,0.75) 65%, rgba(8,8,8,0.45) 100%)',
+            'linear-gradient(to right, var(--background) 0%, var(--background) 35%, rgba(8,8,8,0.75) 55%, rgba(8,8,8,0.45) 90%)',
         }}
       />
     </>
