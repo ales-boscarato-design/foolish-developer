@@ -29,9 +29,9 @@ export function Nav() {
           <Image
             src="/logo%20foolish/logo.png"
             alt="The Foolish Butcher"
-            width={140}
-            height={36}
-            className="h-8 w-auto"
+            width={160}
+            height={42}
+            className="h-10 w-auto"
             priority
           />
         </Link>

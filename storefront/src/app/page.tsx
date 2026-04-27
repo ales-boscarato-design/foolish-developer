@@ -190,40 +190,48 @@ export default async function HomePage() {
 
         {/* Colonna destra — hero image */}
         <div
-          className="hidden md:flex flex-col justify-end p-12 relative overflow-hidden border-l"
-          style={{ borderColor: 'var(--border)' }}
+          className="hidden md:block relative border-l"
+          style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}
         >
-          {/* Prodotto */}
+          {/* Prodotto: object-contain (no crop), scale+translateY per "uscire" dal frame */}
           <Image
             src="/Hero/tattoo-practice-skin-foolish.png"
             alt="Foolish practice skin — foglio di pelle sintetica"
             fill
-            sizes="40vw"
-            className="object-cover object-center"
+            sizes="44vw"
+            className="object-contain"
+            style={{
+              objectPosition: 'center 48%',
+              filter: 'drop-shadow(-18px 28px 48px rgba(0,0,0,0.85))',
+              transform: 'scale(1.16) translateY(-5%)',
+              transformOrigin: 'center center',
+            }}
             priority
           />
 
-          {/* Scrim gradiente — leggibilità blockquote */}
+          {/* Scrim solo in basso — leggibilità blockquote */}
           <div
-            className="absolute inset-0"
+            className="absolute inset-x-0 bottom-0 h-[45%] z-[1]"
             style={{
               background:
-                'linear-gradient(to top, rgba(8,8,8,0.85) 0%, rgba(8,8,8,0.35) 40%, transparent 70%)',
+                'linear-gradient(to top, rgba(8,8,8,0.88) 0%, rgba(8,8,8,0.5) 50%, transparent 100%)',
             }}
           />
 
-          {/* Quote manifesto in fondo */}
-          <blockquote className="relative z-10">
-            <p
-              className="font-display text-3xl leading-snug mb-5"
-              style={{ color: 'var(--foreground)' }}
-            >
-              "NON IMITA<br />LA PELLE:<br />LA INTERPRETA."
-            </p>
-            <footer className="text-xs tracking-[0.2em] uppercase" style={{ color: 'var(--muted-fg)' }}>
-              Alessandro · The Foolish Butcher
-            </footer>
-          </blockquote>
+          {/* Quote manifesto — non troppo in basso */}
+          <div className="absolute bottom-[20%] left-12 right-8 z-10">
+            <blockquote>
+              <p
+                className="font-display text-3xl leading-snug mb-4"
+                style={{ color: 'var(--foreground)' }}
+              >
+                "NON IMITA<br />LA PELLE:<br />LA INTERPRETA."
+              </p>
+              <footer className="text-xs tracking-[0.2em] uppercase" style={{ color: 'var(--muted-fg)' }}>
+                Alessandro · The Foolish Butcher
+              </footer>
+            </blockquote>
+          </div>
         </div>
       </section>
 
