@@ -23,8 +23,8 @@ export function SplitText({
   className,
   style,
   delay = 0,
-  stagger = 0.035,
-  duration = 0.75,
+  stagger = 0.022,
+  duration = 0.42,
   whileInView = false,
 }: Props) {
   const reduced = useReducedMotion()
@@ -48,12 +48,14 @@ export function SplitText({
     },
   }
 
+  // "Punch" — lettere arrivano da sopra con skew, snap secco, no soft fade
   const child: Variants = {
-    hidden: { y: 32, opacity: 0 },
+    hidden: { y: -28, skewX: -16, opacity: 0 },
     visible: {
       y: 0,
+      skewX: 0,
       opacity: 1,
-      transition: { duration, ease: [0.16, 1, 0.3, 1] },
+      transition: { duration, ease: [0.6, 0, 0.1, 1] },
     },
   }
 
