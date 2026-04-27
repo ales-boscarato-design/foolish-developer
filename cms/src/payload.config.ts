@@ -18,7 +18,9 @@ export default buildConfig({
     user: 'users',
     meta: {
       titleSuffix: '— Foolish Butcher',
+      description: 'Pannello di controllo The Foolish Butcher',
     },
+    theme: 'dark',
   },
   collections: [
     Products,
