@@ -30,9 +30,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <InkThread />
           <Nav />
           <main className="flex-1">{children}</main>
-          <footer className="border-t border-[var(--border)] py-8 px-4 text-center text-sm text-[var(--muted-fg)]">
-            <p>© {new Date().getFullYear()} The Foolish Butcher — Chieri (TO), Italia</p>
-            <p className="mt-1">P.IVA IT12345678901 · Tutti i prezzi IVA inclusa</p>
+          <footer className="border-t border-[var(--border)] py-10 px-4 text-center text-sm text-[var(--muted-fg)] space-y-2">
+            <p>© 2012–{new Date().getFullYear()} The Foolish Butcher · Tutti i diritti riservati</p>
+            <p>P.IVA IT12475480013 · Tutti i prezzi IVA inclusa · Chieri (TO), Italia</p>
+            <p className="flex justify-center gap-4 flex-wrap">
+              <a href="/contatti" className="hover:text-[var(--fg)] transition-colors">Contatti</a>
+              <a href="/termini" className="hover:text-[var(--fg)] transition-colors">Termini e condizioni</a>
+              <a href="/privacy" className="hover:text-[var(--fg)] transition-colors">Privacy policy</a>
+            </p>
           </footer>
         </CartProvider>
       </body>

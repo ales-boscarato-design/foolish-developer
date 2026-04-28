@@ -304,7 +304,7 @@ export default async function HomePage() {
         <TrustBadge
           Icon={Package}
           title="Free shipping"
-          body="Italia da 55 € · Europa da 164 € · Mondo da 250 €"
+          body="Italia da 50 € · Europa da 150 € · Mondo da 250 €"
         />
       </section>
 
