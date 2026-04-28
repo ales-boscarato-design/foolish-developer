@@ -31,7 +31,7 @@ Nanobot (Railway EU — già live)
 Next.js storefront (Railway EU)
   - vetrina pubblica: thefoolishbutcher.com (nuovo)
   - SSR + ISR per performance
-  - Revolut embedded checkout
+  - Stripe embedded checkout
        ↓ webhook ORDER_COMPLETED
 Nanobot → Telegram cliente
        ↓
@@ -98,7 +98,7 @@ Prodotto singolo. Prezzo: **25,00€**
 | CMS / Admin | Payload CMS 2.x | Self-hosted Railway, TypeScript |
 | Storefront | Next.js 14+ (App Router) | SSR + ISR, Railway |
 | Database CMS | Postgres Railway (schema `foolish_cms`) | Separato da `foolish.*` ordini |
-| Pagamenti | Revolut Merchant API + widget JS | Webhook HMAC SHA-256 |
+| Pagamenti | Stripe Checkout | Webhook HMAC SHA-256 |
 | Media | Cloudflare R2 | Già usato per foto fogli |
 | Comunicazioni | Telegram (nanobot già live) | WhatsApp Phase 3 |
 | Deploy | Railway EU | Tutto nello stesso cluster |
@@ -129,8 +129,8 @@ products
 orders
   - (mirror di foolish.orders già esistente — Payload legge/scrive, nanobot legge/scrive)
   - source: 'storefront'
-  - revolut_order_id
-  - revolut_status
+  - stripe_session_id
+  - stripe_payment_status
   - customer_telegram_id
   - pipeline_state (FSM Phase 1 già definita)
 
@@ -153,7 +153,7 @@ customers
 /tattoo              → griglia prodotti sezione tattoo
 /pmu                 → griglia prodotti sezione pmu
 /limited             → stock limitato — colorazioni rare, visibile solo se ci sono prodotti attivi
-/prodotto/[slug]     → pagina prodotto con varianti + checkout Revolut
+/prodotto/[slug]     → pagina prodotto con varianti + checkout Stripe
 /ordine/[id]         → stato ordine (link in messaggio Telegram al cliente)
 /grazie              → post-pagamento (prima comunicazione Telegram parte da qui)
 ```
@@ -178,8 +178,8 @@ Cliente sceglie variante
         ↓
 Checkout: nome, email, indirizzo spedizione
         ↓
-Revolut embedded checkout (widget JS)
-  - carta, Apple Pay, Google Pay, Revolut Pay
+Stripe Checkout (hosted)
+  - carta, Apple Pay, Google Pay
         ↓
 ORDER_COMPLETED webhook → nanobot
         ↓
@@ -231,7 +231,7 @@ Da aggiungere a `nanobot/agent/tools/`:
 
 ### Primo acquisto (cliente senza Telegram collegato)
 ```
-Ordine confermato → email automatica Revolut (ricevuta pagamento)
+Ordine confermato → email automatica Stripe (ricevuta pagamento)
         +
 Nanobot invia link onboarding:
 "Ciao, sono Alessandro di The Foolish Butcher.
@@ -274,8 +274,8 @@ WhatsApp: Phase 3, da implementare solo quando base Telegram è consolidata.
 1. Deploy Payload CMS su Railway con collections `products`, `orders`, `customers`
 2. Seed prodotti (7 SKU + varianti) nel CMS
 3. Next.js storefront: homepage + pagine sezione + pagina prodotto
-4. Revolut checkout integrato e testato
-5. Webhook Revolut → nanobot → Telegram Alessandro
+4. Stripe checkout integrato e testato
+5. Webhook Stripe → nanobot → Telegram Alessandro
 
 ### Phase 2b — Integrazione nanobot (1 settimana)
 1. Tool Telegram per gestione prodotti via chat
@@ -299,14 +299,13 @@ PAYLOAD_SECRET=<random 32 char>
 PAYLOAD_PUBLIC_URL=https://admin.thefoolishbutcher.com
 DATABASE_URI=postgresql://...  # schema foolish_cms
 
-# Revolut
-REVOLUT_API_KEY=<merchant API key>
-REVOLUT_WEBHOOK_SECRET=<HMAC secret>
-REVOLUT_MODE=sandbox  # → live al lancio
+# Stripe
+STRIPE_SECRET_KEY=<sk_live_...>
+STRIPE_WEBHOOK_SECRET=<whsec_...>
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=<pk_live_...>
 
 # Next.js
 NEXT_PUBLIC_PAYLOAD_URL=https://admin.thefoolishbutcher.com
-NEXT_PUBLIC_REVOLUT_PUBLIC_KEY=<pk_...>
 STOREFRONT_URL=https://thefoolishbutcher.com
 ```
 
