@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Truck, ShieldCheck, MessageSquare, Package, ArrowRight } from 'lucide-react'
@@ -100,6 +101,7 @@ function SectionLabel({
 
 /* ─── HOME PAGE ───────────────────────────────────────────────────── */
 export default async function HomePage() {
+  const t = await getTranslations('home')
   const [tattooProducts, pmuProducts, limitedProducts] = await Promise.all([
     getProducts('tattoo'),
     getProducts('pmu'),
@@ -288,23 +290,23 @@ export default async function HomePage() {
       >
         <TrustBadge
           Icon={ShieldCheck}
-          title="Pagamenti criptati"
-          body="Nessun dato salvato. Non tracciamo nessun dato sensibile."
+          title={t('badges.payments.title')}
+          body={t('badges.payments.body')}
         />
         <TrustBadge
           Icon={Truck}
-          title="Spedizione tracciata"
-          body="Veloce. Se c'è ritardo, ti mandiamo un foglio in più."
+          title={t('badges.shippingSpeed.title')}
+          body={t('badges.shippingSpeed.body')}
         />
         <TrustBadge
           Icon={MessageSquare}
-          title="Supporto rapido"
-          body="Scrivi. Un nanobot risponde subito — per le cose complesse ci siamo noi."
+          title={t('badges.support.title')}
+          body={t('badges.support.body')}
         />
         <TrustBadge
           Icon={Package}
-          title="Free shipping"
-          body="Italia da 50 € · Europa da 150 € · Mondo da 250 €"
+          title={t('badges.freeShipping.title')}
+          body={t('badges.freeShipping.body')}
         />
       </section>
 
@@ -355,8 +357,8 @@ export default async function HomePage() {
             <div className="md:sticky md:top-24">
               <SectionLabel
                 eyebrow="Sezione"
-                title="TATTOO"
-                copy="T-Sheet Skin DBL e DuoSkin. Due facce, zero compromessi. Ogni foglio prodotto a mano, nessuno uguale all'altro."
+                title={t('cards.tattoo.title')}
+                copy={t('cards.tattoo.copy')}
                 href="/tattoo"
               />
             </div>
@@ -393,8 +395,8 @@ export default async function HomePage() {
             <div className="md:sticky md:top-24">
               <SectionLabel
                 eyebrow="Sezione"
-                title="PMU"
-                copy="Kit viso, supporti e accessori per chi pratica Permanent Make-up sul serio."
+                title={t('cards.pmu.title')}
+                copy={t('cards.pmu.copy')}
                 href="/pmu"
                 align="right"
               />

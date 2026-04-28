@@ -1,44 +1,24 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useCart } from '@/lib/cart'
 import { calculateShipping, freeShippingRemaining } from '@/lib/shipping'
 import { Trash2 } from 'lucide-react'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
 
-const EU_COUNTRY_OPTIONS = [
-  { code: 'IT', name: 'Italia' },
-  { code: 'DE', name: 'Germania' },
-  { code: 'FR', name: 'Francia' },
-  { code: 'ES', name: 'Spagna' },
-  { code: 'NL', name: 'Paesi Bassi' },
-  { code: 'BE', name: 'Belgio' },
-  { code: 'AT', name: 'Austria' },
-  { code: 'CH', name: 'Svizzera' },
-  { code: 'PL', name: 'Polonia' },
-  { code: 'PT', name: 'Portogallo' },
-  { code: 'SE', name: 'Svezia' },
-  { code: 'DK', name: 'Danimarca' },
-  { code: 'NO', name: 'Norvegia' },
-  { code: 'US', name: 'USA' },
-  { code: 'GB', name: 'Regno Unito' },
-  { code: 'CA', name: 'Canada' },
-  { code: 'AU', name: 'Australia' },
-  { code: 'JP', name: 'Giappone' },
-  { code: 'BR', name: 'Brasile' },
-  { code: 'OTHER', name: 'Altro paese' },
+const COUNTRY_CODES = [
+  'IT','DE','FR','ES','NL','BE','AT','CH','PL','PT','SE','DK','NO',
+  'US','GB','CA','AU','JP','BR','OTHER',
 ]
 
 export default function CheckoutPage() {
-  const { items, remove, updateQty, total, clear } = useCart()
-  const router = useRouter()
+  const t = useTranslations('checkout')
+  const { items, remove, updateQty, total } = useCart()
   const [country, setCountry] = useState('IT')
-  const [step, setStep] = useState<'cart' | 'shipping' | 'payment'>('cart')
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
-    name: '', email: '', phone: '',
-    address: '', city: '', postalCode: '',
+    name: '', email: '', address: '', city: '', postalCode: '',
   })
 
   const cartTotal = total()
@@ -49,9 +29,9 @@ export default function CheckoutPage() {
   if (items.length === 0) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-24 text-center">
-        <p className="text-xl font-medium mb-4">Il carrello è vuoto.</p>
+        <p className="text-xl font-medium mb-4">{t('empty')}</p>
         <a href="/" className="text-sm underline" style={{ color: 'var(--accent)' }}>
-          Torna alla vetrina →
+          {t('backToShop')}
         </a>
       </div>
     )
@@ -74,18 +54,20 @@ export default function CheckoutPage() {
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl
       } else {
-        alert('Errore nel creare l\'ordine. Riprova.')
+        alert(t('errorOrder'))
       }
     } catch {
-      alert('Errore di rete. Riprova.')
+      alert(t('errorNetwork'))
     } finally {
       setLoading(false)
     }
   }
 
+  const fields = ['name', 'email', 'address', 'city', 'postalCode'] as const
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
-      <h1 className="text-2xl font-bold mb-8">Carrello</h1>
+      <h1 className="text-2xl font-bold mb-8">{t('title')}</h1>
 
       <div className="grid md:grid-cols-[1fr_320px] gap-8">
 
@@ -95,7 +77,7 @@ export default function CheckoutPage() {
           {remaining > 0 && (
             <div className="rounded-lg p-3 mb-6 text-sm" style={{ backgroundColor: 'var(--muted)' }}>
               <div className="flex justify-between mb-2">
-                <span>Aggiungi <strong>{remaining.toFixed(2)}€</strong> per la spedizione gratuita</span>
+                <span dangerouslySetInnerHTML={{ __html: t('freeShippingAdd', { amount: remaining.toFixed(2) }) }} />
                 <span style={{ color: 'var(--muted-fg)' }}>{country}</span>
               </div>
               <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border)' }}>
@@ -111,7 +93,7 @@ export default function CheckoutPage() {
           )}
           {remaining === 0 && (
             <div className="rounded-lg p-3 mb-6 text-sm font-medium" style={{ backgroundColor: 'var(--muted)', color: '#4caf50' }}>
-              ✓ Spedizione gratuita applicata
+              {t('freeShippingApplied')}
             </div>
           )}
 
@@ -147,7 +129,7 @@ export default function CheckoutPage() {
 
           {/* Form dati */}
           <div className="mt-8 space-y-4">
-            <h2 className="font-semibold text-lg">Dati spedizione</h2>
+            <h2 className="font-semibold text-lg">{t('shippingTitle')}</h2>
 
             <select
               value={country}
@@ -155,16 +137,16 @@ export default function CheckoutPage() {
               className="w-full px-3 py-2 rounded border text-sm"
               style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
             >
-              {EU_COUNTRY_OPTIONS.map((c) => (
-                <option key={c.code} value={c.code}>{c.name}</option>
+              {COUNTRY_CODES.map((code) => (
+                <option key={code} value={code}>{t(`countries.${code}`)}</option>
               ))}
             </select>
 
-            {(['name', 'email', 'address', 'city', 'postalCode'] as const).map((field) => (
+            {fields.map((field) => (
               <input
                 key={field}
                 type={field === 'email' ? 'email' : 'text'}
-                placeholder={{ name: 'Nome e cognome', email: 'Email', address: 'Indirizzo', city: 'Città', postalCode: 'CAP' }[field]}
+                placeholder={t(`fields.${field}`)}
                 value={form[field]}
                 onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
                 className="w-full px-3 py-2 rounded border text-sm"
@@ -177,28 +159,28 @@ export default function CheckoutPage() {
         {/* Riepilogo ordine */}
         <div className="sticky top-20 h-fit">
           <div className="rounded-lg border p-5 space-y-3" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}>
-            <h2 className="font-semibold">Riepilogo</h2>
+            <h2 className="font-semibold">{t('summaryTitle')}</h2>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span style={{ color: 'var(--muted-fg)' }}>Prodotti</span>
+                <span style={{ color: 'var(--muted-fg)' }}>{t('labelProducts')}</span>
                 <span>{cartTotal.toFixed(2)}€</span>
               </div>
               <div className="flex justify-between">
-                <span style={{ color: 'var(--muted-fg)' }}>Spedizione ({country})</span>
-                <span>{shipping.isFree ? <span style={{ color: '#4caf50' }}>Gratuita</span> : `${shipping.cost.toFixed(2)}€`}</span>
+                <span style={{ color: 'var(--muted-fg)' }}>{t('labelShipping', { country })}</span>
+                <span>{shipping.isFree ? <span style={{ color: '#4caf50' }}>{t('labelFree')}</span> : `${shipping.cost.toFixed(2)}€`}</span>
               </div>
               {!shipping.isFree && (
                 <p className="text-xs" style={{ color: 'var(--muted-fg)' }}>
-                  Gratuita sopra {shipping.freeAbove}€
+                  {t('labelFreeAbove', { amount: shipping.freeAbove })}
                 </p>
               )}
             </div>
             <div className="border-t pt-3" style={{ borderColor: 'var(--border)' }}>
               <div className="flex justify-between font-bold">
-                <span>Totale</span>
+                <span>{t('labelTotal')}</span>
                 <span style={{ color: 'var(--accent)' }}>{grandTotal.toFixed(2)}€</span>
               </div>
-              <p className="text-xs mt-1" style={{ color: 'var(--muted-fg)' }}>IVA inclusa</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--muted-fg)' }}>{t('vatIncluded')}</p>
             </div>
 
             <button
@@ -207,11 +189,11 @@ export default function CheckoutPage() {
               className="w-full py-3 rounded font-semibold text-sm transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ backgroundColor: 'var(--accent)', color: 'black' }}
             >
-              {loading ? 'Attendere...' : `Paga ${grandTotal.toFixed(2)}€`}
+              {loading ? t('loading') : t('pay', { amount: grandTotal.toFixed(2) })}
             </button>
 
             <p className="text-xs text-center" style={{ color: 'var(--muted-fg)' }}>
-              Pagamento sicuro · Stripe · Carta · Apple Pay · Google Pay
+              {t('securePayment')}
             </p>
           </div>
         </div>

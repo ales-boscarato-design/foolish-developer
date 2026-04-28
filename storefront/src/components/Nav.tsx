@@ -1,18 +1,49 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
 import { ShoppingBag, Menu, X } from 'lucide-react'
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion'
 import { useCart } from '@/lib/cart'
+import { Link, usePathname, useRouter } from '@/i18n/navigation'
+import { useLocale } from 'next-intl'
+import { routing } from '@/i18n/routing'
 
 const links = [
-  { href: '/tattoo', label: 'Tattoo', accent: false },
-  { href: '/pmu', label: 'PMU', accent: false },
-  { href: '/limited', label: '🔥 Limited', accent: true },
+  { href: '/tattoo' as const, label: 'Tattoo', accent: false },
+  { href: '/pmu' as const, label: 'PMU', accent: false },
+  { href: '/limited' as const, label: '🔥 Limited', accent: true },
 ]
+
+const LOCALE_LABELS: Record<string, string> = {
+  it: 'IT', en: 'EN', fr: 'FR', es: 'ES', de: 'DE',
+}
+
+function LocaleSwitcher({ className }: { className?: string }) {
+  const locale = useLocale()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  return (
+    <div className={`flex items-center gap-1 text-xs ${className ?? ''}`}>
+      {routing.locales.map((l, i) => (
+        <span key={l} className="flex items-center">
+          {i > 0 && <span className="mx-0.5 opacity-20">·</span>}
+          <button
+            onClick={() => router.replace(pathname, { locale: l })}
+            className={`transition-colors ${
+              l === locale
+                ? 'text-[var(--accent)] font-semibold'
+                : 'text-[var(--muted-fg)] hover:text-[var(--foreground)]'
+            }`}
+          >
+            {LOCALE_LABELS[l]}
+          </button>
+        </span>
+      ))}
+    </div>
+  )
+}
 
 export function Nav() {
   const pathname = usePathname()
@@ -21,20 +52,14 @@ export function Nav() {
 
   const { scrollY, scrollYProgress } = useScroll()
 
-  // 0 = top, 1 = scrolled (transizione nei primi 110px)
   const rawP = useTransform(scrollY, [0, 110], [0, 1])
   const p = useSpring(rawP, { stiffness: 80, damping: 22, mass: 0.55 })
 
-  // Altezza barra: 130 → 60
   const barHeight = useTransform(p, [0, 1], [140, 60])
-  // Logo height: 100 → 30
   const logoH = useTransform(p, [0, 1], [150, 30])
-  // Background: trasparente → opaco
   const bgOpacity = useTransform(p, [0, 1], [0, 0.96])
-  // Border + elementi extra: appaiono dopo metà transizione
   const borderOpacity = useTransform(p, [0.3, 1], [0, 1])
 
-  // Linea progress lettura (accent, bottom del nav)
   const readP = useSpring(scrollYProgress, { stiffness: 80, damping: 28 })
 
   return (
@@ -46,38 +71,21 @@ export function Nav() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       >
-        {/* Layer background — si opacizza con lo scroll */}
         <motion.div
           className="absolute inset-0 backdrop-blur-md"
-          style={{
-            opacity: bgOpacity,
-            backgroundColor: 'var(--background)',
-          }}
+          style={{ opacity: bgOpacity, backgroundColor: 'var(--background)' }}
         />
-
-        {/* Bordo inferiore — appare con lo scroll */}
         <motion.div
           className="absolute inset-x-0 bottom-0 h-px"
-          style={{
-            opacity: borderOpacity,
-            backgroundColor: 'var(--border)',
-          }}
+          style={{ opacity: borderOpacity, backgroundColor: 'var(--border)' }}
         />
-
-        {/* Linea progress lettura (accent, sopra il bordo) */}
         <motion.div
           className="absolute inset-x-0 bottom-0 h-px origin-left"
-          style={{
-            scaleX: readP,
-            backgroundColor: 'var(--accent)',
-            zIndex: 1,
-          }}
+          style={{ scaleX: readP, backgroundColor: 'var(--accent)', zIndex: 1 }}
         />
 
-        {/* Contenuto nav */}
         <div className="relative h-full max-w-6xl mx-auto px-6 flex items-center justify-between">
 
-          {/* Logo */}
           <Link
             href="/"
             className="flex-shrink-0 opacity-90 hover:opacity-100 transition-opacity"
@@ -95,7 +103,7 @@ export function Nav() {
             </motion.div>
           </Link>
 
-          {/* Desktop nav — stagger su mount */}
+          {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-6 text-sm">
             {links.map((l, i) => (
               <motion.div
@@ -118,13 +126,14 @@ export function Nav() {
             ))}
           </nav>
 
-          {/* Cart + hamburger */}
+          {/* Cart + locale switcher + hamburger */}
           <motion.div
-            className="flex items-center gap-1"
+            className="flex items-center gap-3"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.45, duration: 0.4 }}
           >
+            <LocaleSwitcher className="hidden md:flex" />
             <Link
               href="/checkout"
               className="relative p-2 hover:text-[var(--accent)] transition-colors"
@@ -147,7 +156,7 @@ export function Nav() {
         </div>
       </motion.header>
 
-      {/* Mobile drawer — anchored a 60px (altezza sticky) */}
+      {/* Mobile drawer */}
       {open && (
         <nav
           className="fixed inset-x-0 z-40 border-b md:hidden"
@@ -170,6 +179,19 @@ export function Nav() {
               {l.label}
             </Link>
           ))}
+          <Link
+            href="/contatti"
+            onClick={() => setOpen(false)}
+            className={`block px-6 py-4 text-sm font-medium tracking-wide border-b transition-colors hover:text-[var(--accent)] ${
+              pathname === '/contatti' ? 'text-[var(--accent)]' : 'text-[var(--muted-fg)]'
+            }`}
+            style={{ borderColor: 'var(--border)' }}
+          >
+            Contatti
+          </Link>
+          <div className="px-6 py-4 flex items-center gap-1">
+            <LocaleSwitcher />
+          </div>
         </nav>
       )}
     </>

@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { ShoppingBag, Check } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import type { Product, ProductVariant } from '@/lib/cms'
 import { useCart } from '@/lib/cart'
 
 export function ProductDetail({ product }: { product: Product }) {
+  const t = useTranslations('product')
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(product.variants[0])
   const [added, setAdded] = useState(false)
   const [activeImage, setActiveImage] = useState(0)
@@ -39,12 +41,12 @@ export function ProductDetail({ product }: { product: Product }) {
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-sm" style={{ color: 'var(--muted-fg)' }}>
-                Foto in arrivo
+                {t('noImage')}
               </div>
             )}
             {product.limitedStock && (
               <span className="absolute top-3 left-3 text-white text-xs font-bold px-2 py-1 rounded uppercase tracking-wide" style={{ backgroundColor: 'var(--limited)' }}>
-                Limitato
+                {t('limited')}
               </span>
             )}
           </div>
@@ -88,7 +90,7 @@ export function ProductDetail({ product }: { product: Product }) {
           {/* Selezione variante */}
           <div className="mb-6">
             <p className="text-sm font-medium mb-3">
-              Variante: <span style={{ color: 'var(--accent)' }}>{selectedVariant.label}</span>
+              {t('variantLabel')}: <span style={{ color: 'var(--accent)' }}>{selectedVariant.label}</span>
             </p>
             <div className="flex flex-wrap gap-2">
               {product.variants.map((v) => (
@@ -114,7 +116,7 @@ export function ProductDetail({ product }: { product: Product }) {
             </div>
             {selectedVariant.dimensions && (
               <p className="text-xs mt-2" style={{ color: 'var(--muted-fg)' }}>
-                {selectedVariant.dimensions} · {selectedVariant.thicknessMm}mm spessore
+                {selectedVariant.dimensions} · {t('thickness', { value: selectedVariant.thicknessMm ?? '' })}
               </p>
             )}
           </div>
@@ -125,12 +127,12 @@ export function ProductDetail({ product }: { product: Product }) {
               <span className="text-3xl font-bold" style={{ color: 'var(--accent)' }}>
                 {selectedVariant.price.toFixed(2)}€
               </span>
-              <span className="text-xs" style={{ color: 'var(--muted-fg)' }}>IVA inclusa</span>
+              <span className="text-xs" style={{ color: 'var(--muted-fg)' }}>{t('vatIncluded')}</span>
             </div>
 
             {selectedVariant.limitedQty && (
               <p className="text-sm mb-3 font-medium" style={{ color: 'var(--limited)' }}>
-                ⚠️ Ultimi {selectedVariant.limitedQty} disponibili
+                {t('lastItems', { qty: selectedVariant.limitedQty })}
               </p>
             )}
 
@@ -144,11 +146,11 @@ export function ProductDetail({ product }: { product: Product }) {
               }}
             >
               {added ? (
-                <><Check size={18} /> Aggiunto al carrello</>
+                <><Check size={18} /> {t('added')}</>
               ) : selectedVariant.stockStatus === 'unavailable' ? (
-                'Non disponibile'
+                t('unavailable')
               ) : (
-                <><ShoppingBag size={18} /> Aggiungi al carrello</>
+                <><ShoppingBag size={18} /> {t('addToCart')}</>
               )}
             </button>
           </div>
