@@ -144,7 +144,7 @@ export default async function HomePage() {
         </div>
 
         {/* Colonna sinistra — testo */}
-        <div className="flex flex-col justify-start md:justify-center px-8 md:px-16 lg:px-24 pt-8 pb-16 md:py-0 relative z-10">
+        <div className="flex flex-col justify-start px-8 md:px-16 lg:px-24 pt-8 md:pt-14 pb-16 md:pb-20 relative z-10">
 
           <p className="animate-fade-up text-xs tracking-[0.3em] uppercase mb-10" style={{ color: 'var(--muted-fg)' }}>
             Tattoo &amp; PMU Practice Skin — Made in Italy
@@ -218,7 +218,7 @@ export default async function HomePage() {
         {/* Colonna destra — hero image */}
         <div
           className="hidden md:block relative border-l"
-          style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}
+          style={{ borderColor: 'var(--border)', backgroundColor: 'var(--background)' }}
         >
           {/* Prodotto: object-contain (no crop), scale+translateY per "uscire" dal frame */}
           <Image
