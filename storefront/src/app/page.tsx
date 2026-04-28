@@ -146,7 +146,13 @@ export default async function HomePage() {
         {/* Colonna sinistra — testo */}
         <div className="flex flex-col justify-start px-8 md:px-16 lg:px-24 pt-8 md:pt-14 pb-16 md:pb-20 relative z-10">
 
-          <p className="animate-fade-up text-xs tracking-[0.3em] uppercase mb-10" style={{ color: 'var(--muted-fg)' }}>
+          <p
+            className="animate-fade-up text-xs tracking-[0.3em] uppercase mb-10"
+            style={{
+              color: 'rgba(240, 237, 232, 0.55)',
+              textShadow: '0 1px 8px rgba(0,0,0,0.9)',
+            }}
+          >
             Tattoo &amp; PMU Practice Skin — Made in Italy
           </p>
 
@@ -174,7 +180,13 @@ export default async function HomePage() {
             <p className="text-lg leading-snug font-medium">
               Non è pubblicità.
             </p>
-            <p className="text-base leading-relaxed" style={{ color: 'var(--muted-fg)' }}>
+            <p
+              className="text-base leading-relaxed"
+              style={{
+                color: 'rgba(240, 237, 232, 0.7)',
+                textShadow: '0 1px 10px rgba(0,0,0,0.95)',
+              }}
+            >
               È testata da chi la usa, non da chi la vende.<br />
               Non ti insegna a forzare: ti insegna a tatuare.<br />
               Il colore che vedi è quello che hai messo.
