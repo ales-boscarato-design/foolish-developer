@@ -11,7 +11,7 @@ import { useCart } from '@/lib/cart'
 const links = [
   { href: '/tattoo', label: 'Tattoo', accent: false },
   { href: '/pmu', label: 'PMU', accent: false },
-  { href: '/limited', label: 'Limited', accent: true },
+  { href: '/limited', label: '🔥 Limited', accent: true },
 ]
 
 export function Nav() {
@@ -27,8 +27,8 @@ export function Nav() {
 
   // Altezza barra: 130 → 60
   const barHeight = useTransform(p, [0, 1], [140, 60])
-  // Logo height: 80 → 30
-  const logoH = useTransform(p, [0, 1], [80, 30])
+  // Logo height: 100 → 30
+  const logoH = useTransform(p, [0, 1], [100, 30])
   // Background: trasparente → opaco
   const bgOpacity = useTransform(p, [0, 1], [0, 0.96])
   // Border + elementi extra: appaiono dopo metà transizione
