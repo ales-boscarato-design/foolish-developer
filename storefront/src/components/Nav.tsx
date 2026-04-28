@@ -28,7 +28,7 @@ export function Nav() {
   // Altezza barra: 130 → 60
   const barHeight = useTransform(p, [0, 1], [140, 60])
   // Logo height: 100 → 30
-  const logoH = useTransform(p, [0, 1], [120, 30])
+  const logoH = useTransform(p, [0, 1], [150, 30])
   // Background: trasparente → opaco
   const bgOpacity = useTransform(p, [0, 1], [0, 0.96])
   // Border + elementi extra: appaiono dopo metà transizione
