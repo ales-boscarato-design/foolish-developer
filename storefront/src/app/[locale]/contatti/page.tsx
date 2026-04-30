@@ -36,7 +36,7 @@ export default async function ContattiPage() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            @foolishbot
+            @nanobot_foolish_bot
           </a>
           <p className="text-sm text-[var(--muted-fg)] mt-1">{t('telegramNote')}</p>
         </div>
