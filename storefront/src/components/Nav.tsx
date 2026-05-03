@@ -22,13 +22,11 @@ const LOCALE_LABELS: Record<string, string> = {
 function LocaleSwitcher({ className }: { className?: string }) {
   const locale = useLocale()
   const router = useRouter()
+  const pathname = usePathname()
 
   const handleLocaleChange = (newLocale: string) => {
     if (newLocale === locale) return
-    const segments = window.location.pathname.split('/').filter(Boolean)
-    const pathWithoutLocale = segments.slice(1).join('/') || ''
-    const newPath = newLocale === 'it' ? `/${pathWithoutLocale}` : `/${newLocale}/${pathWithoutLocale}`
-    router.push(newPath)
+    router.push(pathname, { locale: newLocale })
   }
 
   return (
