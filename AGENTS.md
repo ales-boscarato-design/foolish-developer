@@ -6,13 +6,13 @@
 foolish-storefront/
 ├── storefront/          # Next.js 16 + next-intl storefront (thefoolishbutcher.com)
 ├── cms/                 # Payload CMS 2.x + Postgres (admin.thefoolishbutcher.com)
-├── nanobot/             # LangGraph orchestration (Railway, production)
+├── nanobot/             # LangGraph orchestration (Railway, production) — NOT in this repo
 ├── CLAUDE.md            # nanobot backend brief
 ├── FOOLISH_STOREFRONT.md # Phase 2 storefront brief
-└── scripts/            # deployment helpers
+└── scripts/            # deployment helpers (translate.py only)
 ```
 
-When this AGENTS.md conflicts with any `CLAUDE.md`, the `CLAUDE.md` takes precedence.
+When this AGENTS.md conflicts with `CLAUDE.md`, the `CLAUDE.md` takes precedence.
 
 ---
 
@@ -22,38 +22,52 @@ When this AGENTS.md conflicts with any `CLAUDE.md`, the `CLAUDE.md` takes preced
 - **Run dev:** `cd storefront && npm run dev` → `http://localhost:3000`
 - **Build:** `cd storefront && npm run build`
 - **Lint:** `cd storefront && npm run lint`
-- **Entry pages:** `storefront/src/app/[locale]/page.tsx` (dynamic locale segment)
-- **Global layout:** `storefront/src/app/[locale]/layout.tsx`
+- **TypeScript:** strict mode
 
 ## Translations (next-intl)
 
 - **Config:** `storefront/src/i18n/routing.ts` — locales: `['it','en','fr','es','de']`, default: `'it'`
-- **Message files:** `storefront/messages/{locale}.json`
-- **Only `it.json` exists.** Adding a new locale = create `storefront/messages/{locale}.json` + restart dev
+- **Locale prefix mode:** `always` (not `as-needed`) — every route has locale prefix
+- **Message files:** `storefront/messages/{locale}.json` — all 5 exist
 - **Request config:** `storefront/src/i18n/request.ts`
-- **Navigation helpers:** `storefront/src/i18n/navigation.ts` — exports `Link, redirect, useRouter, usePathname` with locale-aware routing
-- **Locale prefix mode:** `as-needed` — `/it` → `/`, `/en` → `/en`
+- **Navigation helpers:** `storefront/src/i18n/navigation.ts` — exports `Link, redirect, useRouter, usePathname`
 - **Component usage:** `<NextIntlClientProvider>` wraps children in `[locale]/layout.tsx`
-- Adding copy = edit the right `messages/{locale}.json` file
+- **Adding copy:** edit the right `messages/{locale}.json` file
+
+## Pages (storefront/src/app/[locale]/)
+
+```
+page.tsx              → homepage
+tattoo/page.tsx      → tattoo section
+pmu/page.tsx         → PMU section
+limited/page.tsx     → limited stock (only visible when populated)
+prodotto/[slug]/     → product detail + Stripe checkout
+checkout/page.tsx    → checkout page
+grazie/page.tsx      → post-payment confirmation
+ordine/              → order status (customer-facing, empty dir — not yet built)
+contatti/page.tsx
+privacy/page.tsx
+termini/page.tsx
+```
 
 ## CMS
 
 - **Stack:** Payload CMS 2.x (TypeScript), Postgres (`foolish_cms` schema)
-- **Run dev:** `cd cms && npm run dev` (default port 3000, configure `PORT` env)
+- **Run dev:** `cd cms && npm run dev` → port **3001** (not 3000)
 - **Collections:** `products`, `orders`, `customers`
-- **Payload reads/writes same Postgres** as nanobot Phase 1 pipeline — both write to `foolish.*` and `foolish_cms.*`
+- **Payload and nanobot write to same Postgres** — `foolish.*` (orders/sheets) + `foolish_cms.*` (CMS)
 
 ## Deployment
 
-- Storefront: Vercel (frontend) — trigger deploy from `storefront/` directory
-- CMS: Railway EU — trigger from `cms/` directory
-- Nanobot: Railway EU — separate service
-- Environment variables: managed per-service on Railway/Vercel (not in repo)
+- **Storefront:** Vercel — trigger from `storefront/` directory
+- **CMS:** Railway EU — trigger from `cms/` directory
+- **Nanobot:** Railway EU — separate repo/service
+- **Env vars:** managed per-service on Railway/Vercel (not in repo)
+- **No secrets in repo** — use env vars or `.env.local` (gitignored)
 
 ## Key conventions
 
-- No secrets in repo — use env vars or `.env.local` (gitignored)
-- Payload admin: only Alessandro
-- Customer communication: Italian primary (next-intl `it.json`)
-- Phase 2 brief: `FOOLISH_STOREFRONT.md`
-- Backend brief: `CLAUDE.md` (nanobot business line)
+- **Payload admin:** only Alessandro
+- **Customer communication:** Italian primary (next-intl `it.json`)
+- **Phase 2 brief:** `FOOLISH_STOREFRONT.md`
+- **Backend brief:** `CLAUDE.md` (nanobot business line, takes precedence over this file)
