@@ -1,0 +1,140 @@
+{
+  "nav": {
+    "openMenu": "Menü öffnen",
+    "closeMenu": "Menü schließen"
+  },
+  "footer": {
+    "copyright": "© 2012–{year} The Foolish Butcher · Alle Rechte vorbehalten",
+    "vat": "P.IVA IT12475480013 · Alle Preise inkl. MwSt. · Chieri (TO), Italien",
+    "contacts": "Kontakte",
+    "terms": "AGB",
+    "privacy": "Datenschutz"
+  },
+  "checkout": {
+    "title": "Warenkorb",
+    "empty": "Dein Warenkorb ist leer.",
+    "backToShop": "Zurück zum Shop →",
+    "freeShippingAdd": "Füge {amount}€ hinzu für kostenlosen Versand",
+    "freeShippingApplied": "✓ Kostenloser Versand angewendet",
+    "shippingTitle": "Versanddaten",
+    "summaryTitle": "Zusammenfassung",
+    "labelProducts": "Produkte",
+    "labelShipping": "Versand ({country})",
+    "labelFree": "Kostenlos",
+    "labelFreeAbove": "Kostenlos ab {amount}€",
+    "labelTotal": "Gesamt",
+    "vatIncluded": "MwSt. inkl.",
+    "pay": "{amount}€ bezahlen",
+    "loading": "Bitte warten...",
+    "securePayment": "Sichere Zahlung · Stripe · Karte · Apple Pay · Google Pay",
+    "errorOrder": "Fehler beim Erstellen der Bestellung. Bitte erneut versuchen.",
+    "errorNetwork": "Netzwerkfehler. Bitte erneut versuchen.",
+    "fields": {
+      "name": "Vollständiger Name",
+      "email": "E-Mail",
+      "address": "Adresse",
+      "city": "Stadt",
+      "postalCode": "Postleitzahl"
+    },
+    "countries": {
+      "IT": "Italien",
+      "DE": "Deutschland",
+      "FR": "Frankreich",
+      "ES": "Spanien",
+      "NL": "Niederlande",
+      "BE": "Belgien",
+      "AT": "Österreich",
+      "CH": "Schweiz",
+      "PL": "Polen",
+      "PT": "Portugal",
+      "SE": "Schweden",
+      "DK": "Dänemark",
+      "NO": "Norwegen",
+      "US": "USA",
+      "GB": "Vereinigtes Königreich",
+      "CA": "Kanada",
+      "AU": "Australien",
+      "JP": "Japan",
+      "BR": "Brasilien",
+      "OTHER": "Anderes Land"
+    }
+  },
+  "grazie": {
+    "title": "Bestellung erhalten.",
+    "subtitle": "Ich habe deine Bestellung erhalten. Du erhältst eine Bestätigung per E-Mail.",
+    "subtitleLine2": "Ich schreibe dir persönlich, wenn deine Folien fertig sind.",
+    "telegramTitle": "Erhalte direkte Updates auf Telegram",
+    "telegramBody": "Ich benachrichtige dich, wenn die Folien fertig sind, schicke dir Fotos von dem, was du bekommst, und sende dir die Tracking-Nummer sobald versandt.",
+    "telegramCta": "Auf Telegram verbinden",
+    "backToShop": "← Zurück zum Shop"
+  },
+  "product": {
+    "noImage": "Foto folgt",
+    "limited": "Limitiert",
+    "variantLabel": "Variante",
+    "vatIncluded": "MwSt. inkl.",
+    "lastItems": "⚠️ Nur noch {qty} verfügbar",
+    "addToCart": "In den Warenkorb",
+    "added": "In den Warenkorb gelegt",
+    "unavailable": "Nicht verfügbar",
+    "thickness": "{value}mm Stärke"
+  },
+  "sections": {
+    "label": "Abschnitt",
+    "tattoo": {
+      "meta": "Tattoo Practice — The Foolish Butcher",
+      "title": "Tattoo Practice",
+      "description": "Artisanale Synthetik-Haut für Lernende und Lehrende. Jedes Blatt wird von Hand gefertigt — keine zwei sind gleich."
+    },
+    "pmu": {
+      "meta": "Permanent Make-up — The Foolish Butcher",
+      "title": "Permanent Make-up",
+      "description": "Hyperrealistische Träger für die Permanent-Make-up-Praxis. Textur echt anmutend wie echte Haut."
+    },
+    "limited": {
+      "meta": "🔥 Limitiert — The Foolish Butcher",
+      "badge": "🔥 Limitiert verfügbar",
+      "title": "Seltene Farbgebungen",
+      "description": "Sonderposten und seltene Farbgebungen. Wenn sie weg sind, sind sie weg."
+    }
+  },
+  "home": {
+    "badges": {
+      "payments": {
+        "title": "Verschlüsselte Zahlungen",
+        "body": "Keine Daten gespeichert. Wir verfolgen keine sensiblen Daten."
+      },
+      "shippingSpeed": {
+        "title": "Versicherter Versand",
+        "body": "Schnell. Bei Verzögerung schicken wir dir ein Extra-Blatt."
+      },
+      "support": {
+        "title": "Schneller Support",
+        "body": "Schreib uns. Wir antworten sofort."
+      },
+      "freeShipping": {
+        "title": "Kostenloser Versand",
+        "body": "Italien ab 50 € · Europa ab 150 € · Welt ab 250 €"
+      }
+    },
+    "cards": {
+      "tattoo": {
+        "title": "TATTOO",
+        "copy": "T-Sheet Skin DBL und DuoSkin. Zwei Seiten, keine Kompromisse. Jedes Blatt von Hand gefertigt, keine zwei gleich."
+      },
+      "pmu": {
+        "title": "PMU",
+        "copy": "Gesichtskits, Träger und Zubehör für ernsthafte Permanent-Make-up-Praktiker."
+      }
+    }
+  },
+  "contatti": {
+    "meta": "Kontakte — The Foolish Butcher",
+    "title": "Kontakte",
+    "intro": "Für Fragen zu Bestellungen, Produkten oder Versand schreib uns direkt — wir antworten innerhalb von 24 Stunden, oft viel schneller.",
+    "emailLabel": "E-Mail",
+    "telegramLabel": "Telegram",
+    "telegramNote": "Der schnellste Weg, Updates zu deiner Bestellung zu erhalten.",
+    "sedeLabel": "Standort"
+  }
+}

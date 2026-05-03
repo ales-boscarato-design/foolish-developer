@@ -1,0 +1,140 @@
+{
+  "nav": {
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
+  },
+  "footer": {
+    "copyright": "© 2012–{year} The Foolish Butcher · All rights reserved",
+    "vat": "P.IVA IT12475480013 · All prices VAT included · Chieri (TO), Italy",
+    "contacts": "Contacts",
+    "terms": "Terms and conditions",
+    "privacy": "Privacy policy"
+  },
+  "checkout": {
+    "title": "Cart",
+    "empty": "Your cart is empty.",
+    "backToShop": "Back to shop →",
+    "freeShippingAdd": "Add {amount}€ for free shipping",
+    "freeShippingApplied": "✓ Free shipping applied",
+    "shippingTitle": "Shipping details",
+    "summaryTitle": "Summary",
+    "labelProducts": "Products",
+    "labelShipping": "Shipping ({country})",
+    "labelFree": "Free",
+    "labelFreeAbove": "Free over {amount}€",
+    "labelTotal": "Total",
+    "vatIncluded": "VAT included",
+    "pay": "Pay {amount}€",
+    "loading": "Please wait...",
+    "securePayment": "Secure payment · Stripe · Card · Apple Pay · Google Pay",
+    "errorOrder": "Error creating order. Please retry.",
+    "errorNetwork": "Network error. Please retry.",
+    "fields": {
+      "name": "Full name",
+      "email": "Email",
+      "address": "Address",
+      "city": "City",
+      "postalCode": "Postal code"
+    },
+    "countries": {
+      "IT": "Italy",
+      "DE": "Germany",
+      "FR": "France",
+      "ES": "Spain",
+      "NL": "Netherlands",
+      "BE": "Belgium",
+      "AT": "Austria",
+      "CH": "Switzerland",
+      "PL": "Poland",
+      "PT": "Portugal",
+      "SE": "Sweden",
+      "DK": "Denmark",
+      "NO": "Norway",
+      "US": "USA",
+      "GB": "United Kingdom",
+      "CA": "Canada",
+      "AU": "Australia",
+      "JP": "Japan",
+      "BR": "Brazil",
+      "OTHER": "Other country"
+    }
+  },
+  "grazie": {
+    "title": "Order received.",
+    "subtitle": "I've received your order. You'll receive a confirmation by email.",
+    "subtitleLine2": "I'll personally message you when your sheets are ready.",
+    "telegramTitle": "Get direct updates on Telegram",
+    "telegramBody": "I'll notify you when the sheets are ready, send you photos of what you're receiving, and send you tracking as soon as it's shipped.",
+    "telegramCta": "Connect on Telegram",
+    "backToShop": "← Back to shop"
+  },
+  "product": {
+    "noImage": "Photo coming soon",
+    "limited": "Limited",
+    "variantLabel": "Variant",
+    "vatIncluded": "VAT included",
+    "lastItems": "⚠️ Last {qty} available",
+    "addToCart": "Add to cart",
+    "added": "Added to cart",
+    "unavailable": "Not available",
+    "thickness": "{value}mm thickness"
+  },
+  "sections": {
+    "label": "Section",
+    "tattoo": {
+      "meta": "Tattoo Practice — The Foolish Butcher",
+      "title": "Tattoo Practice",
+      "description": "Artisanal synthetic skin for learners and teachers. Every sheet is hand-made — no two are alike."
+    },
+    "pmu": {
+      "meta": "Permanent Make-up — The Foolish Butcher",
+      "title": "Permanent Make-up",
+      "description": "Hyperrealistic supports for permanent makeup practice. Texture faithful to real skin."
+    },
+    "limited": {
+      "meta": "🔥 Limited Stock — The Foolish Butcher",
+      "badge": "🔥 Limited availability",
+      "title": "Rare colorations",
+      "description": "Special batches and rare colorations. When they're gone, they're gone."
+    }
+  },
+  "home": {
+    "badges": {
+      "payments": {
+        "title": "Encrypted payments",
+        "body": "No data stored. We don't track any sensitive data."
+      },
+      "shippingSpeed": {
+        "title": "Tracked shipping",
+        "body": "Fast. If there's a delay, we send you an extra sheet."
+      },
+      "support": {
+        "title": "Quick support",
+        "body": "Write to us. We reply right away."
+      },
+      "freeShipping": {
+        "title": "Free shipping",
+        "body": "Italy from 50 € · Europe from 150 € · World from 250 €"
+      }
+    },
+    "cards": {
+      "tattoo": {
+        "title": "TATTOO",
+        "copy": "T-Sheet Skin DBL and DuoSkin. Two faces, zero compromises. Every sheet hand-made, no two alike."
+      },
+      "pmu": {
+        "title": "PMU",
+        "copy": "Face kits, supports and accessories for serious permanent makeup practitioners."
+      }
+    }
+  },
+  "contatti": {
+    "meta": "Contacts — The Foolish Butcher",
+    "title": "Contacts",
+    "intro": "For questions about orders, products or shipping just write — we reply within 24 hours, often much faster.",
+    "emailLabel": "Email",
+    "telegramLabel": "Telegram",
+    "telegramNote": "The fastest way to receive updates on your order.",
+    "sedeLabel": "Location"
+  }
+}
