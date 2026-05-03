@@ -6,6 +6,7 @@ import { useCart } from '@/lib/cart'
 import { calculateShipping, freeShippingRemaining } from '@/lib/shipping'
 import { Trash2 } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 
 const COUNTRY_CODES = [
   'IT','DE','FR','ES','NL','BE','AT','CH','PL','PT','SE','DK','NO',
@@ -30,9 +31,9 @@ export default function CheckoutPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-24 text-center">
         <p className="text-xl font-medium mb-4">{t('empty')}</p>
-        <a href="/" className="text-sm underline" style={{ color: 'var(--accent)' }}>
+        <Link href="/" className="text-sm underline" style={{ color: 'var(--accent)' }}>
           {t('backToShop')}
-        </a>
+        </Link>
       </div>
     )
   }
@@ -52,7 +53,7 @@ export default function CheckoutPage() {
       })
       const data = await res.json()
       if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl
+        window.location.assign(data.checkoutUrl)
       } else {
         alert(t('errorOrder'))
       }

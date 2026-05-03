@@ -30,8 +30,8 @@ export default function TerminiPage() {
       <section className="space-y-2">
         <h2 className="text-base font-semibold text-[var(--fg)]">3. Prezzi e pagamenti</h2>
         <p>
-          Tutti i prezzi sono espressi in Euro (€) IVA inclusa. Il pagamento avviene tramite Stripe
-          (carta di credito/debito, Apple Pay, Google Pay). L'ordine si considera confermato al completamento
+          Tutti i prezzi sono espressi in Euro (&#8364;) IVA inclusa. Il pagamento avviene tramite Stripe
+          (carta di credito/debito, Apple Pay, Google Pay). L&#8217;ordine si considera confermato al completamento
           del pagamento.
         </p>
       </section>
@@ -39,7 +39,7 @@ export default function TerminiPage() {
       <section className="space-y-2">
         <h2 className="text-base font-semibold text-[var(--fg)]">4. Spedizione</h2>
         <p>
-          Le spedizioni avvengono dall'Italia entro 3–5 giorni lavorativi dalla conferma dell'ordine,
+          Le spedizioni avvengono dall&#8217;Italia entro 3&#8211;5 giorni lavorativi dalla conferma dell&#8217;ordine,
           salvo periodi di alta domanda comunicati esplicitamente.
         </p>
         <ul className="list-disc pl-5 space-y-1">
@@ -53,7 +53,7 @@ export default function TerminiPage() {
         <h2 className="text-base font-semibold text-[var(--fg)]">5. Diritto di recesso</h2>
         <p>
           Ai sensi del D.Lgs. 206/2005, il consumatore ha diritto di recedere dal contratto entro 14 giorni
-          dalla ricezione del prodotto, senza necessità di fornire motivazione, a condizione che il prodotto
+          dalla ricezione del prodotto, senza necessit&#224; di fornire motivazione, a condizione che il prodotto
           sia integro e non utilizzato. Per avviare il recesso scrivere a{' '}
           <a href="mailto:info@thefoolishbutcher.com" className="underline">info@thefoolishbutcher.com</a>.
         </p>

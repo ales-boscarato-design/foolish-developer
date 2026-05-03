@@ -266,7 +266,7 @@ export default async function HomePage() {
                 className="font-display text-3xl leading-snug mb-4"
                 style={{ color: 'var(--foreground)' }}
               >
-                "NON IMITA<br />LA PELLE:<br />LA INTERPRETA."
+                &ldquo;NON IMITA<br />LA PELLE:<br />LA INTERPRETA.&rdquo;
               </p>
               <footer className="text-xs tracking-[0.2em] uppercase" style={{ color: 'var(--muted-fg)' }}>
                 Alessandro · The Foolish Butcher

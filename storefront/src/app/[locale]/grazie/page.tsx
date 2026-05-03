@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server'
+import Link from 'next/link'
 
 export async function generateMetadata() {
   const t = await getTranslations('grazie')
@@ -29,7 +30,7 @@ export default async function GraziePage() {
           {t('telegramCta')}
         </a>
       </div>
-      <a href="/" className="text-sm hover:underline" style={{ color: 'var(--muted-fg)' }}>{t('backToShop')}</a>
+      <Link href="/" className="text-sm hover:underline" style={{ color: 'var(--muted-fg)' }}>{t('backToShop')}</Link>
     </div>
   )
 }

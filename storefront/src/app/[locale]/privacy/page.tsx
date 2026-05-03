@@ -46,24 +46,24 @@ export default function PrivacyPage() {
       <section className="space-y-2">
         <h2 className="text-base font-semibold text-[var(--fg)]">Base giuridica</h2>
         <p>
-          Il trattamento è necessario all'esecuzione del contratto di vendita (art. 6.1.b GDPR)
-          e all'adempimento di obblighi legali (art. 6.1.c GDPR).
+          Il trattamento &#232; necessario all&#8217;esecuzione del contratto di vendita (art. 6.1.b GDPR)
+          e all&#8217;adempimento di obblighi legali (art. 6.1.c GDPR).
         </p>
       </section>
 
       <section className="space-y-2">
         <h2 className="text-base font-semibold text-[var(--fg)]">Conservazione</h2>
         <p>
-          I dati sono conservati per il tempo necessario all'evasione dell'ordine e,
+          I dati sono conservati per il tempo necessario all&#8217;evasione dell&#8217;ordine e,
           per gli obblighi fiscali, per 10 anni ai sensi della normativa italiana vigente.
         </p>
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-base font-semibold text-[var(--fg)]">Diritti dell'interessato</h2>
+        <h2 className="text-base font-semibold text-[var(--fg)]">Diritti dell&#8217;interessato</h2>
         <p>
-          Ai sensi del GDPR (artt. 15–22) hai diritto di accedere, rettificare, cancellare i tuoi dati,
-          opporti al trattamento e richiedere la portabilità. Scrivi a{' '}
+          Ai sensi del GDPR (artt. 15&#8211;22) hai diritto di accedere, rettificare, cancellare i tuoi dati,
+          opporti al trattamento e richiedere la portabilit&#224;. Scrivi a{' '}
           <a href="mailto:info@thefoolishbutcher.com" className="underline">info@thefoolishbutcher.com</a>.
         </p>
       </section>

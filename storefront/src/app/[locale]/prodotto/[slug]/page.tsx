@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { notFound } from 'next/navigation'
-import { getProductBySlug, getProducts } from '@/lib/cms'
+import { getProductBySlug } from '@/lib/cms'
 import { ProductDetail } from '@/components/ProductDetail'
 
 interface Props {
