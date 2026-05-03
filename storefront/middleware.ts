@@ -11,12 +11,14 @@ export default function middleware(request: NextRequest) {
     const [hostname] = forwardedHost.split(':')
     headers.set('x-forwarded-host', hostname)
   }
-  const cleanRequest = new NextRequest(request.url, {
+  const url = new URL(request.url)
+  url.port = ''
+  const cleanReq = new NextRequest(url.toString(), {
     method: request.method,
     headers,
     body: request.body,
   })
-  return intlMiddleware(cleanRequest)
+  return intlMiddleware(cleanReq)
 }
 
 export const config = {

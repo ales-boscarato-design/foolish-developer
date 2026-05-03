@@ -1,0 +1,29 @@
+# Next.js build artifacts
+.next/
+.cache/
+
+# Dependencies (installed in Docker build stage)
+node_modules/
+
+# Development files
+.git
+.gitignore
+.env*
+*.md
+CLAUDE.md
+AGENTS.md
+FOOLISH_STOREFRONT.md
+
+# IDE
+.claude/
+.cvs/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log
+npm-debug.log*
