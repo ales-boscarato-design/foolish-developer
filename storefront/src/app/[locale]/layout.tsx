@@ -5,7 +5,7 @@ import { Nav } from '@/components/Nav'
 import { CartProvider } from '@/components/CartProvider'
 import { InkThread } from '@/components/InkThread'
 import { NextIntlClientProvider } from 'next-intl'
-import { getMessages, getLocale } from 'next-intl/server'
+import { getMessages } from 'next-intl/server'
 import { routing } from '@/i18n/routing'
 import { notFound } from 'next/navigation'
 import { Footer } from '@/components/Footer'
@@ -24,10 +24,6 @@ export const metadata: Metadata = {
     siteName: 'The Foolish Butcher',
     type: 'website',
   },
-}
-
-export function generateStaticParams() {
-  return routing.locales.map((locale) => ({ locale }))
 }
 
 export default async function LocaleLayout({
