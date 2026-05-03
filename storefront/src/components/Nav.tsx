@@ -24,13 +24,18 @@ function LocaleSwitcher({ className }: { className?: string }) {
   const router = useRouter()
   const pathname = usePathname()
 
+  const handleLocaleChange = (newLocale: string) => {
+    if (newLocale === locale) return
+    router.push(pathname, { locale: newLocale })
+  }
+
   return (
     <div className={`flex items-center gap-1 text-xs ${className ?? ''}`}>
       {routing.locales.map((l, i) => (
         <span key={l} className="flex items-center">
           {i > 0 && <span className="mx-0.5 opacity-20">·</span>}
           <button
-            onClick={() => router.replace(pathname, { locale: l })}
+            onClick={() => handleLocaleChange(l)}
             className={`transition-colors ${
               l === locale
                 ? 'text-[var(--accent)] font-semibold'
