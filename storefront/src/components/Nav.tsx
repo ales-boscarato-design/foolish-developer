@@ -13,7 +13,7 @@ import { routing } from '@/i18n/routing'
 const links = [
   { href: '/tattoo' as const, labelKey: 'tattoo' as const, accent: false },
   { href: '/pmu' as const, labelKey: 'pmu' as const, accent: false },
-  { href: '/limited' as const, labelKey: 'limited' as const, accent: true },
+  { href: '/account' as const, labelKey: 'account' as const, accent: false },
 ]
 
 const LOCALE_LABELS: Record<string, string> = {
@@ -51,7 +51,11 @@ function LocaleSwitcher({ className }: { className?: string }) {
   )
 }
 
-export function Nav() {
+interface NavProps {
+  hasLimitedProducts?: boolean
+}
+
+export function Nav({ hasLimitedProducts = true }: NavProps) {
   const t = useTranslations('nav')
   const pathname = usePathname()
   const itemCount = useCart((s) => s.itemCount())
@@ -131,6 +135,24 @@ export function Nav() {
                 </Link>
               </motion.div>
             ))}
+            {hasLimitedProducts && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 + links.length * 0.08, duration: 0.4, ease: 'easeOut' }}
+              >
+                <Link
+                  href="/limited"
+                  className={`tracking-wide transition-colors hover:text-[var(--accent)] ${
+                    pathname.startsWith('/limited')
+                      ? 'text-[var(--accent)] font-medium'
+                      : 'text-[var(--muted-fg)]'
+                  } !text-[var(--limited)] hover:!text-[var(--limited)]`}
+                >
+                  {t('limited')}
+                </Link>
+              </motion.div>
+            )}
           </nav>
 
           {/* Cart + locale switcher + hamburger */}
@@ -186,6 +208,18 @@ export function Nav() {
               {t(l.labelKey)}
             </Link>
           ))}
+          {hasLimitedProducts && (
+            <Link
+              href="/limited"
+              onClick={() => setOpen(false)}
+              className={`block px-6 py-4 text-sm font-medium tracking-wide border-b transition-colors hover:text-[var(--accent)] ${
+                pathname.startsWith('/limited') ? 'text-[var(--accent)]' : 'text-[var(--muted-fg)]'
+              } !text-[var(--limited)] hover:!text-[var(--limited)]`}
+              style={{ borderColor: 'var(--border)' }}
+            >
+              {t('limited')}
+            </Link>
+          )}
           <Link
             href="/contatti"
             onClick={() => setOpen(false)}

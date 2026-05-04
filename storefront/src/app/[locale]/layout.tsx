@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Outfit, Bebas_Neue } from 'next/font/google'
 import '../globals.css'
-import { Nav } from '@/components/Nav'
+import { NavWrapper } from '@/components/NavWrapper'
 import { CartProvider } from '@/components/CartProvider'
 import { InkThread } from '@/components/InkThread'
 import { NextIntlClientProvider } from 'next-intl'
@@ -45,7 +45,7 @@ export default async function LocaleLayout({
         <NextIntlClientProvider messages={messages}>
           <CartProvider>
             <InkThread />
-            <Nav />
+            <NavWrapper />
             <main className="flex-1">{children}</main>
             <Footer />
           </CartProvider>

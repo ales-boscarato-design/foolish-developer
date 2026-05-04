@@ -92,7 +92,7 @@ const products = [
   },
   {
     name: 'Viso Iperrealistico per PMU',
-    slug: 'viso-iperrrealistico-pmu',
+    slug: 'viso-iperrealistico-pmu',
     section: 'pmu',
     active: true,
     order: 4,
