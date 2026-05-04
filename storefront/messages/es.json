@@ -113,10 +113,10 @@
         "HECHO A MANO",
         "CHIERI, TURÍN",
         "DESDE 2012",
-        "CADA PIEL ÚNICA",
-        "EL COLOR QUE VES ES EL QUE PUSISTE",
-        "NO IMITA LA PIEL: LA INTERPRETA",
-        "HECHA COMO DEBE SER"
+        "CADA PIEL ES ÚNICA",
+        "EL COLOR QUE VES ES TUYO",
+        "NO IMITA LA PIEL. INTERPRETA.",
+        "HECHA PARA SERVIR"
       ]
     },
     "hero": {
@@ -125,7 +125,7 @@
       "headline2": "ES PIEL.",
       "notAdLabel": "No es publicidad.",
       "notAdLine1": "La prueban quienes la usan, no quienes la venden.",
-      "notAdLine2": "No te enseña a forzar: te enseña a tatuar.",
+      "notAdLine2": "No te enseña a forzar. Te enseña a tatuar.",
       "notAdLine3": "El color que ves es el que has puesto.",
       "ctaShop": "Entra en la tienda",
       "ctaPmu": "Descubre PMU",
@@ -133,35 +133,35 @@
       "statsFounded": "Año de fundación",
       "statsProduced": "Pieles idénticas producidas",
       "imageAlt": "Foolish practice skin — hoja de piel sintética",
-      "quote": "NO IMITA\nLA PIEL:\nLA INTERPRETA.",
+      "quote": "NO IMITA\nLA PIEL.\nINTERPRETA.",
       "quoteAuthor": "Alessandro · The Foolish Butcher"
     },
     "manifesto": {
       "eyebrow": "El proceso",
       "layer1Headline1": "CADA PIEL ES",
-      "layer1Headline2": "UNA PIEZA ÚNICA.",
+      "layer1Headline2": "ÚNICA.",
       "layer2Headline1": "Foolish no compra la piel.",
       "layer2Headline2": "La hace.",
-      "layer2Copy": "Desde cero. A mano. Desde un silicona pura de platino, transformada en superficie gracias a un proceso propietario que no encontrarás en ningún otro lugar.",
-      "layer3Headline1": "Microfibras de nylon,",
+      "layer2Copy": "Desde cero. A mano. Silicona pura de platino transformada en superficie gracias a un proceso propietario que no encontrarás en ningún otro lugar.",
+      "layer3Headline1": "Microfibras de nylon",
       "layer3Headline2": "suspendidas en silicona.",
-      "layer3Copy": "Se fijan a diferentes profundidades durante la catalisis. Matices inesperados, discromías reales, texturas que cambian en cada pieza. El color no está impreso. Está vivo.",
-      "statsManual": "Producción manual",
-      "statsIdentical": "Pieles idénticas",
+      "layer3Copy": "Se fijan a diferentes profundidades durante la catalisis. Matices inesperados. Discromías reales. Texturas que cambian pieza a pieza. El color no está impreso. Está vivo.",
+      "statsManual": "100% artesanal",
+      "statsIdentical": "Cero pieles idénticas",
       "statsLocation": "Chieri, Turín",
       "altUnique": "Hoja de piel sintética única",
-      "altCrafted": "Producción manual del silicona",
+      "altCrafted": "Producción artesanal del silicona",
       "altFlock": "Microfibras de nylon flock"
     },
     "limited": {
       "badge": "Stock limitado",
-      "headline": "COLORACIONES RARAS — DISPONIBLES AHORA",
+      "headline": "COLORACIONES RARAS — DISPONIBLES",
       "cta": "Ver todos"
     },
     "finale": {
       "subtitle": "Desde nosotros en Italia, para ti, en cualquier lugar.",
-      "headline1": "HECHA COMO DEBE SER.",
-      "headline2": "CON CARÁCTER.",
+      "headline1": "HECHA PARA SERVIR.",
+      "headline2": "CON PERSONALIDAD.",
       "cta": "Entra en la tienda"
     },
     "seeAll": "Ver todos",

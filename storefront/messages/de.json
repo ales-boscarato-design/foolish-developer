@@ -110,13 +110,13 @@
   "home": {
     "marquee": {
       "items": [
-        "VON HAND GEMACHT",
+        "HANDGEMACHT",
         "CHIERI, TURIN",
         "SEIT 2012",
-        "JEDE HAUT EINZIGARTIG",
-        "DIE FARBE, DIE DU SIEST, IST DIE, DIE DU EINGESETZT HAST",
-        "SIE IMITIERT HAUT NICHT: SIE INTERPRETIERT SIE",
-        "GEMACHT WIE GEBRAUCHT"
+        "JEDE HAUT IST EINZIGARTIG",
+        "DIE FARBE, DIE DU SIEST, IST DEINE",
+        "SIE COPIERT KEINE HAUT. SIE INTERPRETIERT SIE.",
+        "RICHTIG GEMACHT"
       ]
     },
     "hero": {
@@ -124,8 +124,8 @@
       "headline1": "DIESE",
       "headline2": "IST HAUT.",
       "notAdLabel": "Das ist keine Werbung.",
-      "notAdLine1": "Sie wird von denen getestet, die sie benutzen, nicht von denen, die sie verkaufen.",
-      "notAdLine2": "Sie lehrt dich nicht zu forcieren: sie lehrt dich zu tatowieren.",
+      "notAdLine1": "Getestet von denen, die sie benutzen — nicht von denen, die sie verkaufen.",
+      "notAdLine2": "Sie bringt dir nicht bei zu forcieren. Sie bringt dir bei zu tatowieren.",
       "notAdLine3": "Die Farbe, die du siehst, ist die, die du eingesetzt hast.",
       "ctaShop": "In den Shop eintreten",
       "ctaPmu": "PMU entdecken",
@@ -133,24 +133,24 @@
       "statsFounded": "Gründungsjahr",
       "statsProduced": "Identische Häute hergestellt",
       "imageAlt": "Foolish practice skin — synthetisches Hautblatt",
-      "quote": "SIE IMITIERT NICHT\nHAUT:\nSIE INTERPRETIERT SIE.",
+      "quote": "SIE COPIERT NICHT\nHAUT.\nSIE INTERPRETIERT SIE.",
       "quoteAuthor": "Alessandro · The Foolish Butcher"
     },
     "manifesto": {
       "eyebrow": "Der Prozess",
       "layer1Headline1": "JEDE HAUT IST",
-      "layer1Headline2": "EIN EINZIGARTIGES STÜCK.",
+      "layer1Headline2": "EINZIGARTIG.",
       "layer2Headline1": "Foolish kauft keine Haut.",
       "layer2Headline2": "Sie stellen sie her.",
-      "layer2Copy": "Von Grund auf. Per Hand. Aus reinem Platin-Silikon, umgewandelt in eine Oberfläche durch einen proprietären Prozess, den Sie nirgendwo anders finden werden.",
-      "layer3Headline1": "Nylon-Mikrofasern,",
+      "layer2Copy": "Von Grund auf. Per Hand. Reines Platin-Silikon, umgewandelt in eine Oberfläche durch einen Prozess, den es nirgendwo anders gibt.",
+      "layer3Headline1": "Nylon-Mikrofasern",
       "layer3Headline2": "in Silikon suspendiert.",
-      "layer3Copy": "Sie fixieren sich in verschiedenen Tiefen während der Katalyse. Unerwartete Nuancen, echte Verfärbungen, Texturen, die sich bei jedem Stück verändern. Die Farbe ist nicht gedruckt. Sie ist lebendig.",
-      "statsManual": "Handgefertigte Produktion",
-      "statsIdentical": "Identische Häute",
+      "layer3Copy": "Sie fixieren sich in verschiedenen Tiefen während der Katalyse. Unerwartete Nuancen. Echte Verfärbungen. Texturen, die sich bei jedem Stück verändern. Die Farbe ist nicht gedruckt. Sie lebt.",
+      "statsManual": "100% handgefertigt",
+      "statsIdentical": "Null identische Häute",
       "statsLocation": "Chieri, Turin",
       "altUnique": "Einzigartiges synthetisches Hautblatt",
-      "altCrafted": "Manuelle Silikonproduktion",
+      "altCrafted": "Handgefertigte Silikonproduktion",
       "altFlock": "Nylon-Mikrofasern flock"
     },
     "limited": {
@@ -160,8 +160,8 @@
     },
     "finale": {
       "subtitle": "Von uns in Italien, für dich, überall.",
-      "headline1": "GEMACHT WIE GEBRAUCHT.",
-      "headline2": "MIT CHARAKTER.",
+      "headline1": "RICHTIG GEMACHT.",
+      "headline2": "MIT KANTE.",
       "cta": "In den Shop eintreten"
     },
     "seeAll": "Alle ansehen",

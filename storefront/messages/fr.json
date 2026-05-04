@@ -94,16 +94,11 @@
       "description": "Peau synthétique artisanale pour apprenants et enseignants. Chaque feuille est fabricada à la main — aucune ne se ressemble.",
       "label": "Tatouage"
     },
-    "pmu": {
+"pmu": {
       "meta": "Permanent Make-up — The Foolish Butcher",
       "title": "Permanent Make-up",
       "description": "Supports hyperréalistes pour la pratique du maquillage permanent. Texture fidèle à la peau réelle.",
       "label": "PMU"
-    },
-    "pmu": {
-      "meta": "Permanent Make-up — The Foolish Butcher",
-      "title": "Permanent Make-up",
-      "description": "Supports hyperréalistes pour la pratique du maquillage permanent. Texture fidèle à la peau réelle."
     },
     "limited": {
       "meta": "🔥 Stock Limité — The Foolish Butcher",
@@ -118,56 +113,56 @@
         "FAIT À LA MAIN",
         "CHIERI, TURIN",
         "DEPUIS 2012",
-        "CHAQUE PEAU UNIQUE",
+        "CHAQUE PEAU EST UNIQUE",
         "LA COULEUR QUE VOUS VOYEZ EST CELLE QUE VOUS AVEZ MISE",
-        "ELLE N'IMITE PAS LA PEAU : ELLE L'INTERPRÈTE",
-        "FAITE COMME IL FAUT"
+        "ELLE NE COPIE PAS LA PEAU. ELLE L'INTERPRÈTE.",
+        "CONSTRUITE POUR DURER"
       ]
     },
     "hero": {
       "subtitle": "Tattoo & PMU Practice Skin — Fait en Italie",
       "headline1": "CETTE",
       "headline2": "C'EST DE LA PEAU.",
-      "notAdLabel": "Ce n'est pas de la publicité.",
-      "notAdLine1": "C'est testé par ceux qui l'utilisent, pas par ceux qui la vendent.",
-      "notAdLine2": "Elle ne vous apprend pas à forcer : elle vous apprend à tatouer.",
+      "notAdLabel": "Pas de pub.",
+      "notAdLine1": "Testé par ceux qui s'en servent, pas par ceux qui la vendent.",
+      "notAdLine2": "Elle ne vous apprend pas à forcer. Elle vous apprend à tatouer.",
       "notAdLine3": "La couleur que vous voyez est celle que vous avez mise.",
-      "ctaShop": "Entrer dans la boutique",
-      "ctaPmu": "Découvrir PMU",
+      "ctaShop": "Entrez dans la boutique",
+      "ctaPmu": "Explorer PMU",
       "statsRating": "Note moyenne · 13 avis",
       "statsFounded": "Année de fondation",
       "statsProduced": "Peaux identiques produites",
       "imageAlt": "Foolish practice skin — feuille de peau synthétique",
-      "quote": "ELLE N'IMITE PAS\nLA PEAU :\nELLE L'INTERPRÈTE.",
+      "quote": "ELLE NE COPIE PAS\nLA PEAU.\nELLE L'INTERPRÈTE.",
       "quoteAuthor": "Alessandro · The Foolish Butcher"
     },
     "manifesto": {
       "eyebrow": "Le processus",
       "layer1Headline1": "CHAQUE PEAU EST",
-      "layer1Headline2": "UNE PIÈCE UNIQUE.",
+      "layer1Headline2": "UNIQUE.",
       "layer2Headline1": "Foolish n'achète pas la peau.",
       "layer2Headline2": "Ils la font.",
-      "layer2Copy": "Du début. À la main. À partir d'un silicone pur au platine, transformé en surface grâce à un processus propriétaire que vous ne trouverez nulle part ailleurs.",
-      "layer3Headline1": "Microfibres de nylon,",
+      "layer2Copy": "Du début. À la main. En silicone pur platine, transformé en surface par un processus propriétaire introuvable ailleurs.",
+      "layer3Headline1": "Microfibres de nylon",
       "layer3Headline2": "suspendues dans le silicone.",
-      "layer3Copy": "Elles se fixent à différentes profondeurs pendant la catalyse. Nuances inattendues, discolorations réelles, textures qui changent à chaque pièce. La couleur n'est pas imprimée. Elle est vivante.",
-      "statsManual": "Production manuelle",
-      "statsIdentical": "Peaux identiques",
+      "layer3Copy": "Elles se fixent à des profondeurs différentes pendant la catalyse. Des nuances inattendues. De vraies discolorations. Des textures qui changent pièce après pièce. La couleur n'est pas imprimée. Elle est vivante.",
+      "statsManual": "100% artisanal",
+      "statsIdentical": "Zéro peau identique",
       "statsLocation": "Chieri, Turin",
       "altUnique": "Feuille de peau synthétique unique",
-      "altCrafted": "Production manuelle du silicone",
+      "altCrafted": "Production artisanale du silicone",
       "altFlock": "Microfibres de nylon flock"
     },
     "limited": {
       "badge": "Stock limité",
-      "headline": "COLORIS RARES — DISPONIBLES MAINTENANT",
+      "headline": "DERNIERS COLORIS — DISPONIBLES",
       "cta": "Voir tout"
     },
     "finale": {
       "subtitle": "De chez nous en Italie, pour vous, partout.",
-      "headline1": "FAITE COMME IL FAUT.",
-      "headline2": "AVEC CARACTÈRE.",
-      "cta": "Entrer dans la boutique"
+      "headline1": "CONSTRUITE POUR DURER.",
+      "headline2": "QUI A DU CARACTÈRE.",
+      "cta": "Entrez dans la boutique"
     },
     "seeAll": "Voir tout",
     "badges": {
