@@ -1,17 +1,16 @@
 /**
  * Generate API token for storefront read access to orders.
- * Run: npx ts-node --esm src/generate-api-token.ts
+ * Run with env vars: PAYLOAD_SECRET and DATABASE_URL
+ * npx ts-node --esm generate-api-token.ts
  */
 import payload from 'payload'
+import config from './src/payload.config.js'
 
 const API_EMAIL = 'api-storefront@foolishbutcher.com'
 const API_KEY = 'foolish_storefront_read_key_2026'
 
 async function generateToken() {
-  await payload.init({
-    secret: process.env.PAYLOAD_SECRET!,
-    local: true,
-  })
+  await payload.init({ config })
 
   // Try to find existing API user
   const existing = await payload.find({
