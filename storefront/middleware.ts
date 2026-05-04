@@ -2,7 +2,10 @@ import { NextRequest } from 'next/server'
 import createNextIntlMiddleware from 'next-intl/middleware'
 import { routing } from './src/i18n/routing'
 
-const intlMiddleware = createNextIntlMiddleware(routing)
+const intlMiddleware = createNextIntlMiddleware({
+    ...routing,
+    localeDetection: true,
+  })
 
 export default function middleware(request: NextRequest) {
   const headers = new Headers(request.headers)
