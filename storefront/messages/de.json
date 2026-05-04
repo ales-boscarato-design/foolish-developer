@@ -136,6 +136,23 @@
       "quote": "SIE IMITIERT NICHT\nHAUT:\nSIE INTERPRETIERT SIE.",
       "quoteAuthor": "Alessandro · The Foolish Butcher"
     },
+    "manifesto": {
+      "eyebrow": "Der Prozess",
+      "layer1Headline1": "JEDE HAUT IST",
+      "layer1Headline2": "EIN EINZIGARTIGES STÜCK.",
+      "layer2Headline1": "Foolish kauft keine Haut.",
+      "layer2Headline2": "Sie stellen sie her.",
+      "layer2Copy": "Von Grund auf. Per Hand. Aus reinem Platin-Silikon, umgewandelt in eine Oberfläche durch einen proprietären Prozess, den Sie nirgendwo anders finden werden.",
+      "layer3Headline1": "Nylon-Mikrofasern,",
+      "layer3Headline2": "in Silikon suspendiert.",
+      "layer3Copy": "Sie fixieren sich in verschiedenen Tiefen während der Katalyse. Unerwartete Nuancen, echte Verfärbungen, Texturen, die sich bei jedem Stück verändern. Die Farbe ist nicht gedruckt. Sie ist lebendig.",
+      "statsManual": "Handgefertigte Produktion",
+      "statsIdentical": "Identische Häute",
+      "statsLocation": "Chieri, Turin",
+      "altUnique": "Einzigartiges synthetisches Hautblatt",
+      "altCrafted": "Manuelle Silikonproduktion",
+      "altFlock": "Nylon-Mikrofasern flock"
+    },
     "limited": {
       "badge": "Limitiert",
       "headline": "SELTENE FARBGEBUNGEN — JETZT VERFÜGBAR",
