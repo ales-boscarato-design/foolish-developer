@@ -59,11 +59,34 @@ termini/page.tsx
 
 ## Deployment
 
-- **Storefront:** Vercel — trigger from `storefront/` directory
-- **CMS:** Railway EU — trigger from `cms/` directory
+- **Storefront:** Railway EU — Dockerfile-based deployment (`builder: DOCKERFILE`, `dockerfilePath: storefront/Dockerfile`)
+- **CMS:** Railway EU — Dockerfile-based deployment
 - **Nanobot:** Railway EU — separate repo/service
 - **Env vars:** managed per-service on Railway/Vercel (not in repo)
 - **No secrets in repo** — use env vars or `.env.local` (gitignored)
+
+## Railway domain port — critical setting
+
+**The domain `targetPort` in Railway MUST be 443, not the container port (8080).**
+
+Railway terminates TLS at the edge. If the domain port is set to 8080 (container port), the redirect URL after locale switching will incorrectly include `:8080`. If the domain port is set to 443, redirects work correctly with no port appended.
+
+To verify/configure:
+```bash
+railway environment config --json | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps(d['services']['ab2a4592-aa29-44cf-a134-569a8eea9c87']['networking'], indent=2))"
+```
+
+The correct config: `"port": 443` on the service domain.
+
+## Locale redirect bug (2026-05-04) — resolved
+
+**Symptom:** After switching from IT to another language and back, redirects appended `:8080` to the domain (e.g., `https://foolish-storefront-production.up.railway.app:8080/it/tattoo`), causing crashes.
+
+**Root cause:** Railway domain `targetPort` was set to `8080` (the container's internal port) instead of `443` (standard HTTPS). Railway's CDN/Edge uses this port when constructing redirect URLs in the `location` header. next-intl's middleware correctly computes the redirect URL, but the Edge appends the domain's `targetPort`.
+
+**Fix:** Changed the Railway domain port from 8080 to 443 via `railway environment edit --json`. No code change needed in middleware or routing.
+
+**If the bug returns:** Check `railway environment config` and ensure the service domain has `"port": 443`, not `8080`.
 
 ## Key conventions
 
