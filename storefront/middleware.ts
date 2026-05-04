@@ -6,19 +6,21 @@ const intlMiddleware = createNextIntlMiddleware(routing)
 
 export default function middleware(request: NextRequest) {
   const headers = new Headers(request.headers)
+
   const forwardedHost = headers.get('x-forwarded-host')
-  if (forwardedHost && forwardedHost.includes(':')) {
-    const [hostname] = forwardedHost.split(':')
-    headers.set('x-forwarded-host', hostname)
+  if (forwardedHost) {
+    if (forwardedHost.includes(':')) {
+      headers.set('x-forwarded-host', forwardedHost.split(':')[0])
+    }
+  } else {
+    headers.set('x-forwarded-host', request.headers.get('host')?.split(':')[0] ?? '')
   }
-  const url = new URL(request.url)
-  url.port = ''
-  const cleanReq = new NextRequest(url.toString(), {
-    method: request.method,
-    headers,
-    body: request.body,
-  })
-  return intlMiddleware(cleanReq)
+
+  if (!headers.get('x-forwarded-port')) {
+    headers.set('x-forwarded-port', '443')
+  }
+
+  return intlMiddleware(request)
 }
 
 export const config = {
