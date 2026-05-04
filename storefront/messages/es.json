@@ -1,7 +1,12 @@
 {
   "nav": {
     "openMenu": "Abrir menú",
-    "closeMenu": "Cerrar menú"
+    "closeMenu": "Cerrar menú",
+    "tattoo": "Tatuaje",
+    "pmu": "PMU",
+    "limited": "🔥 Limitado",
+    "contatti": "Contactos",
+    "logoAlt": "The Foolish Butcher"
   },
   "footer": {
     "copyright": "© 2012–{year} The Foolish Butcher · Todos los derechos reservados",
@@ -77,19 +82,23 @@
     "addToCart": "Añadir al carrito",
     "added": "Añadido al carrito",
     "unavailable": "No disponible",
-    "thickness": "{value}mm grosor"
+    "thickness": "{value}mm grosor",
+    "sectionTattoo": "Tatuaje",
+    "sectionPmu": "PMU"
   },
   "sections": {
     "label": "Sección",
     "tattoo": {
       "meta": "Tattoo Practice — The Foolish Butcher",
       "title": "Tattoo Practice",
-      "description": "Piel sintética artesanal para aprendices y profesores. Cada hoja se fabrica a mano — ninguna es igual a otra."
+      "description": "Piel sintética artesanal para aprendices y profesores. Cada hoja se fabrica a mano — ninguna es igual a otra.",
+      "label": "Tatuaje"
     },
     "pmu": {
       "meta": "Permanent Make-up — The Foolish Butcher",
       "title": "Permanent Make-up",
-      "description": "Soportes hiperrealistas para la práctica del maquillaje permanente. Textura fiel a la piel real."
+      "description": "Soportes hiperrealistas para la práctica del maquillaje permanente. Textura fiel a la piel real.",
+      "label": "PMU"
     },
     "limited": {
       "meta": "🔥 Stock Limitado — The Foolish Butcher",
@@ -98,7 +107,47 @@
       "description": "Lotes especiales y coloraciones raras. Cuando se acaban, se acaban."
     }
   },
-  "home": {
+"home": {
+    "marquee": {
+      "items": [
+        "HECHO A MANO",
+        "CHIERI, TURÍN",
+        "DESDE 2012",
+        "CADA PIEL ÚNICA",
+        "EL COLOR QUE VES ES EL QUE PUSISTE",
+        "NO IMITA LA PIEL: LA INTERPRETA",
+        "HECHA COMO DEBE SER"
+      ]
+    },
+    "hero": {
+      "subtitle": "Tattoo & PMU Practice Skin — Hecho en Italia",
+      "headline1": "ESTA",
+      "headline2": "ES PIEL.",
+      "notAdLabel": "No es publicidad.",
+      "notAdLine1": "La prueban quienes la usan, no quienes la venden.",
+      "notAdLine2": "No te enseña a forzar: te enseña a tatuar.",
+      "notAdLine3": "El color que ves es el que has puesto.",
+      "ctaShop": "Entra en la tienda",
+      "ctaPmu": "Descubre PMU",
+      "statsRating": "Valoración media · 13 reseñas",
+      "statsFounded": "Año de fundación",
+      "statsProduced": "Pieles idénticas producidas",
+      "imageAlt": "Foolish practice skin — hoja de piel sintética",
+      "quote": "NO IMITA\nLA PIEL:\nLA INTERPRETA.",
+      "quoteAuthor": "Alessandro · The Foolish Butcher"
+    },
+    "limited": {
+      "badge": "Stock limitado",
+      "headline": "COLORACIONES RARAS — DISPONIBLES AHORA",
+      "cta": "Ver todos"
+    },
+    "finale": {
+      "subtitle": "Desde nosotros en Italia, para ti, en cualquier lugar.",
+      "headline1": "HECHA COMO DEBE SER.",
+      "headline2": "CON CARÁCTER.",
+      "cta": "Entra en la tienda"
+    },
+    "seeAll": "Ver todos",
     "badges": {
       "payments": {
         "title": "Pagos cifrados",
@@ -124,7 +173,7 @@
       },
       "pmu": {
         "title": "PMU",
-        "copy": "Kits de rostro, soportes y accesorios para praticantes serios de maquillaje permanente."
+        "copy": "Kits de rostro, soportes y accesorios para practicantes serios de maquillaje permanente."
       }
     }
   },
@@ -135,6 +184,66 @@
     "emailLabel": "Email",
     "telegramLabel": "Telegram",
     "telegramNote": "La forma más rápida de recibir actualizaciones sobre tu pedido.",
-    "sedeLabel": "Ubicación"
+    "sedeLabel": "Ubicación",
+    "companyName": "The Foolish Butcher",
+    "location": "Chieri (TO), Italia",
+    "vat": "P.IVA IT12475480013"
+  },
+  "privacy": {
+    "meta": "Política de privacidad — The Foolish Butcher",
+    "title": "Política de privacidad",
+    "lastUpdated": "Última actualización: mayo 2025",
+    "dataController": "Responsable del tratamiento",
+    "collectedData": "Datos recopilados",
+    "collectedDataIntro": "Durante la compra recopilamos:",
+    "dataItems": {
+      "name": "Nombre completo",
+      "email": "Dirección de email",
+      "shipping": "Dirección de envío",
+      "telegramId": "ID de Telegram (opcional, para notificaciones del pedido)"
+    },
+    "paymentData": "Los datos de pago son gestionados exclusivamente por Stripe Inc. y no pasan ni se almacenan en nuestros servidores.",
+    "purposes": "Finalidades del tratamiento",
+    "purposesList": {
+      "orderManagement": "Gestión y procesamiento de pedidos",
+      "shippingUpdates": "Comunicaciones sobre el estado del envío",
+      "afterSales": "Asistencia posventa",
+      "taxCompliance": "Cumplimiento fiscal y contable"
+    },
+    "legalBasis": "Base jurídica",
+    "legalBasisText": "El tratamiento es necesario para la ejecución del contrato de venta (art. 6.1.b RGPD) y para el cumplimiento de obligaciones legales (art. 6.1.c RGPD).",
+    "retention": "Conservación",
+    "retentionText": "Los datos se conservan durante el tiempo necesario para gestionar el pedido y, por obligaciones fiscales, durante 10 años según la normativa italiana.",
+    "dataSubjectRights": "Derechos del interesado",
+    "dataSubjectRightsText": "En virtud del RGPD (arts. 15–22) tienes derecho a acceder, rectificar, borrar tus datos, oponerte al tratamiento y solicitar la portabilidad. Escribe a {email}.",
+    "cookies": "Cookies",
+    "cookiesText": "Este sitio no utiliza cookies de perfilación ni de seguimiento de terceros. Solo se utilizan cookies técnicas necesarias para el funcionamiento del carrito."
+  },
+  "termini": {
+    "meta": "Términos y condiciones — The Foolish Butcher",
+    "title": "Términos y condiciones",
+    "lastUpdated": "Última actualización: mayo 2025",
+    "seller": "1. Vendedor",
+    "sellerText": "The Foolish Butcher, con sede en Chieri (TO), Italia · NIF IT12475480013 · {email}",
+    "products": "2. Productos",
+    "productsText": "Los productos vendidos son artículos artesanales para la práctica del tatuaje y el maquillaje permanente (PMU). Cada pieza se produce manualmente — las variaciones de color, textura y degradado son características intrínsecas del proceso de producción, no defectos.",
+    "pricing": "3. Precios y pagos",
+    "pricingText": "Todos los precios están en Euros (€) IVA incluido. El pago se realiza a través de Stripe (tarjeta de crédito/débito, Apple Pay, Google Pay). El pedido se considera confirmado al completar el pago.",
+    "shipping": "4. Envío",
+    "shippingText": "Los envíos se realizan desde Italia en un plazo de 3 a 5 días laborables desde la confirmación del pedido, excepto en períodos de alta demanda comunicados explícitamente.",
+    "shippingRates": {
+      "italy": "Italia: 7,65€ · gratis a partir de 50€",
+      "europe": "Europa: 14,99€ · gratis a partir de 150€",
+      "world": "Resto del mundo: 37,95€ · gratis a partir de 250€"
+    },
+    "withdrawal": "5. Derecho de desistimiento",
+    "withdrawalText1": "En virtud del D.Lgs. 206/2005, el consumidor tiene derecho a desistir del contrato en un plazo de 14 días desde la recepción del producto, sin necesidad de justificación, siempre que el producto esté intacto y sin usar. Para ejercer el desistimiento, escriba a {email}.",
+    "withdrawalText2": "El derecho de desistimiento no se aplica a productos personalizados o fabricados a medida.",
+    "warranty": "6. Garantía",
+    "warrantyText": "Los productos están cubiertos por la garantía legal de conformidad de 2 años prevista por la normativa italiana y europea (D.Lgs. 206/2005). Para informar de defectos de conformidad, contacte con {email} en un plazo de 2 meses desde su descubrimiento.",
+    "liability": "7. Responsabilidad",
+    "liabilityText": "Los productos están destinados exclusivamente a la práctica en materiales sintéticos. El vendedor declina toda responsabilidad por uso indebido o uso en tejido humano.",
+    "jurisdiction": "8. Foro competente",
+    "jurisdictionText": "El Tribunal de Turín es competente para cualquier controversia. Se aplica la ley italiana."
   }
 }

@@ -10,16 +10,9 @@ import { ManifestoPinned } from '@/components/ManifestoPinned'
 import { SplitText } from '@/components/SplitText'
 
 /* ─── Marquee cinetico — puro CSS, nessun JS ──────────────────────── */
-function Marquee() {
-  const items = [
-    'FATTO A MANO',
-    'CHIERI, TORINO',
-    'DAL 2012',
-    'OGNI PELLE IRRIPETIBILE',
-    'IL COLORE CHE VEDI È QUELLO CHE HAI MESSO',
-    'NON IMITA LA PELLE: LA INTERPRETA',
-    'FATTA COME SERVE',
-  ]
+async function Marquee() {
+  const t = await getTranslations('home')
+  const items = t.raw('marquee.items') as string[]
   const text = items.join('  ·  ') + '  ·  '
 
   return (
@@ -70,12 +63,14 @@ function SectionLabel({
   title,
   copy,
   href,
+  cta,
   align = 'left',
 }: {
   eyebrow: string
   title: string
   copy: string
   href: string
+  cta: string
   align?: 'left' | 'right'
 }) {
   return (
@@ -93,7 +88,7 @@ function SectionLabel({
         className="inline-flex items-center gap-2 text-xs tracking-widest uppercase hover:gap-3 transition-all duration-200"
         style={{ color: 'var(--accent)' }}
       >
-        Vedi tutti <ArrowRight size={12} strokeWidth={2} />
+        {cta} <ArrowRight size={12} strokeWidth={2} />
       </Link>
     </div>
   )
@@ -155,19 +150,19 @@ export default async function HomePage() {
               textShadow: '0 1px 8px rgba(0,0,0,0.9)',
             }}
           >
-            Tattoo &amp; PMU Practice Skin — Made in Italy
+            {t('hero.subtitle')}
           </p>
 
           <h1 className="font-display leading-none mb-8">
             <SplitText
-              text="QUESTA"
+              text={t('hero.headline1')}
               className="block text-[clamp(80px,13vw,160px)]"
               style={{ color: 'var(--foreground)' }}
               delay={0.15}
               stagger={0.06}
             />
             <SplitText
-              text="È PELLE."
+              text={t('hero.headline2')}
               className="block text-[clamp(80px,13vw,160px)]"
               style={{ color: 'var(--accent)' }}
               delay={0.55}
@@ -180,7 +175,7 @@ export default async function HomePage() {
             style={{ borderColor: 'var(--accent)' }}
           >
             <p className="text-lg leading-snug font-medium">
-              Non è pubblicità.
+              {t('hero.notAdLabel')}
             </p>
             <p
               className="text-base leading-relaxed"
@@ -189,9 +184,9 @@ export default async function HomePage() {
                 textShadow: '0 1px 10px rgba(0,0,0,0.95)',
               }}
             >
-              È testata da chi la usa, non da chi la vende.<br />
-              Non ti insegna a forzare: ti insegna a tatuare.<br />
-              Il colore che vedi è quello che hai messo.
+              {t('hero.notAdLine1')}<br />
+              {t('hero.notAdLine2')}<br />
+              {t('hero.notAdLine3')}
             </p>
           </div>
 
@@ -201,14 +196,14 @@ export default async function HomePage() {
               className="px-8 py-4 font-semibold text-sm tracking-widest uppercase transition-all duration-200 active:scale-[0.98]"
               style={{ backgroundColor: 'var(--accent)', color: '#080808' }}
             >
-              Entra nel negozio
+              {t('hero.ctaShop')}
             </Link>
             <Link
               href="/pmu"
               className="px-8 py-4 font-semibold text-sm tracking-widest uppercase border transition-colors duration-200 hover:border-[var(--accent)]"
               style={{ borderColor: 'var(--border)' }}
             >
-              Scopri PMU
+              {t('hero.ctaPmu')}
             </Link>
           </div>
 
@@ -216,15 +211,15 @@ export default async function HomePage() {
           <div className="animate-fade-up animate-fade-up-d4 flex gap-8">
             <div>
               <p className="stat-number text-3xl" style={{ color: 'var(--accent)' }}>5.0</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--muted-fg)' }}>Rating medio · 13 recensioni</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--muted-fg)' }}>{t('hero.statsRating')}</p>
             </div>
             <div>
               <p className="stat-number text-3xl" style={{ color: 'var(--accent)' }}>2012</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--muted-fg)' }}>Anno di fondazione</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--muted-fg)' }}>{t('hero.statsFounded')}</p>
             </div>
             <div>
               <p className="stat-number text-3xl" style={{ color: 'var(--accent)' }}>0</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--muted-fg)' }}>Pelli identiche prodotte</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--muted-fg)' }}>{t('hero.statsProduced')}</p>
             </div>
           </div>
         </div>
@@ -237,7 +232,7 @@ export default async function HomePage() {
           {/* Prodotto: object-contain (no crop), scale+translateY per "uscire" dal frame */}
           <Image
             src="/Hero/tattoo-practice-skin-foolish.png"
-            alt="Foolish practice skin — foglio di pelle sintetica"
+            alt={t('hero.imageAlt')}
             fill
             sizes="44vw"
             className="object-contain"
@@ -262,14 +257,13 @@ export default async function HomePage() {
           {/* Quote manifesto — non troppo in basso */}
           <div className="absolute bottom-[20%] left-12 right-8 z-10">
             <blockquote>
-              <p
+              <div
                 className="font-display text-3xl leading-snug mb-4"
                 style={{ color: 'var(--foreground)' }}
-              >
-                &ldquo;NON IMITA<br />LA PELLE:<br />LA INTERPRETA.&rdquo;
-              </p>
+                dangerouslySetInnerHTML={{ __html: `&ldquo;${t('hero.quote').split('\n').join('<br/>')}&rdquo;` }}
+              />
               <footer className="text-xs tracking-[0.2em] uppercase" style={{ color: 'var(--muted-fg)' }}>
-                Alessandro · The Foolish Butcher
+                {t('hero.quoteAuthor')}
               </footer>
             </blockquote>
           </div>
@@ -325,10 +319,10 @@ export default async function HomePage() {
                   className="text-xs font-bold tracking-[0.25em] uppercase mb-2"
                   style={{ color: 'var(--limited)' }}
                 >
-                  Stock limitato
+                  {t('limited.badge')}
                 </p>
                 <h2 className="font-display text-4xl leading-none">
-                  COLORAZIONI RARE — DISPONIBILI ORA
+                  {t('limited.headline')}
                 </h2>
               </div>
               <Link
@@ -336,7 +330,7 @@ export default async function HomePage() {
                 className="inline-flex items-center gap-2 text-xs tracking-widest uppercase shrink-0 hover:gap-3 transition-all duration-200"
                 style={{ color: 'var(--accent)' }}
               >
-                Vedi tutti <ArrowRight size={12} strokeWidth={2} />
+                {t('limited.cta')} <ArrowRight size={12} strokeWidth={2} />
               </Link>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -356,10 +350,11 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-12 items-start">
             <div className="md:sticky md:top-24">
               <SectionLabel
-                eyebrow="Sezione"
+                eyebrow={t('sections.label')}
                 title={t('cards.tattoo.title')}
                 copy={t('cards.tattoo.copy')}
                 href="/tattoo"
+                cta={t('seeAll')}
               />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -394,10 +389,11 @@ export default async function HomePage() {
             </div>
             <div className="md:sticky md:top-24">
               <SectionLabel
-                eyebrow="Sezione"
+                eyebrow={t('sections.label')}
                 title={t('cards.pmu.title')}
                 copy={t('cards.pmu.copy')}
                 href="/pmu"
+                cta={t('seeAll')}
                 align="right"
               />
             </div>
@@ -410,17 +406,17 @@ export default async function HomePage() {
       ════════════════════════════════════════════════ */}
       <section className="px-8 md:px-16 py-28 flex flex-col items-start max-w-7xl mx-auto">
         <p className="text-xs uppercase tracking-[0.3em] mb-6" style={{ color: 'var(--accent)' }}>
-          Da noi in Italia, per te, ovunque.
+          {t('finale.subtitle')}
         </p>
         <h2 className="font-display text-[clamp(38px,9vw,120px)] leading-none mb-10 max-w-3xl">
           <SplitText
-            text="FATTA COME SERVE."
+            text={t('finale.headline1')}
             className="block"
             stagger={0.04}
             whileInView
           />
           <SplitText
-            text="CON CARATTERE."
+            text={t('finale.headline2')}
             className="block"
             style={{ color: 'var(--accent)' }}
             stagger={0.04}
@@ -433,7 +429,7 @@ export default async function HomePage() {
           className="inline-flex items-center gap-3 px-10 py-4 font-semibold text-sm tracking-widest uppercase transition-all duration-200 active:scale-[0.98] group"
           style={{ backgroundColor: 'var(--accent)', color: '#080808' }}
         >
-          Entra nel negozio
+          {t('finale.cta')}
           <ArrowRight
             size={14}
             strokeWidth={2.5}

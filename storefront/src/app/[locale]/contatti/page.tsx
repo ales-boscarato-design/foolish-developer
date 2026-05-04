@@ -43,9 +43,9 @@ export default async function ContattiPage() {
 
         <div>
           <p className="text-xs uppercase tracking-widest text-[var(--muted-fg)] mb-1">{t('sedeLabel')}</p>
-          <p>The Foolish Butcher</p>
-          <p className="text-[var(--muted-fg)]">Chieri (TO), Italia</p>
-          <p className="text-[var(--muted-fg)]">P.IVA IT12475480013</p>
+          <p>{t('companyName')}</p>
+          <p className="text-[var(--muted-fg)]">{t('location')}</p>
+          <p className="text-[var(--muted-fg)]">{t('vat')}</p>
         </div>
       </section>
     </div>

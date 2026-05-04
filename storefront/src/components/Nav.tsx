@@ -4,15 +4,16 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { ShoppingBag, Menu, X } from 'lucide-react'
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion'
+import { useTranslations } from 'next-intl'
 import { useCart } from '@/lib/cart'
 import { Link, usePathname, useRouter } from '@/i18n/navigation'
 import { useLocale } from 'next-intl'
 import { routing } from '@/i18n/routing'
 
 const links = [
-  { href: '/tattoo' as const, label: 'Tattoo', accent: false },
-  { href: '/pmu' as const, label: 'PMU', accent: false },
-  { href: '/limited' as const, label: '🔥 Limited', accent: true },
+  { href: '/tattoo' as const, labelKey: 'tattoo' as const, accent: false },
+  { href: '/pmu' as const, labelKey: 'pmu' as const, accent: false },
+  { href: '/limited' as const, labelKey: 'limited' as const, accent: true },
 ]
 
 const LOCALE_LABELS: Record<string, string> = {
@@ -51,6 +52,7 @@ function LocaleSwitcher({ className }: { className?: string }) {
 }
 
 export function Nav() {
+  const t = useTranslations('nav')
   const pathname = usePathname()
   const itemCount = useCart((s) => s.itemCount())
   const [open, setOpen] = useState(false)
@@ -99,7 +101,7 @@ export function Nav() {
             <motion.div style={{ height: logoH }}>
               <Image
                 src="/logo%20foolish/logo.png"
-                alt="The Foolish Butcher"
+                alt={t('logoAlt')}
                 width={240}
                 height={64}
                 className="h-full w-auto object-contain object-left"
@@ -125,7 +127,7 @@ export function Nav() {
                       : 'text-[var(--muted-fg)]'
                   } ${l.accent ? '!text-[var(--limited)] hover:!text-[var(--limited)]' : ''}`}
                 >
-                  {l.label}
+                  {t(l.labelKey)}
                 </Link>
               </motion.div>
             ))}
@@ -152,7 +154,7 @@ export function Nav() {
             </Link>
             <button
               className="md:hidden p-2 hover:text-[var(--accent)] transition-colors"
-              aria-label={open ? 'Chiudi menu' : 'Apri menu'}
+              aria-label={open ? t('closeMenu') : t('openMenu')}
               onClick={() => setOpen((v) => !v)}
             >
               {open ? <X size={20} /> : <Menu size={20} />}
@@ -181,7 +183,7 @@ export function Nav() {
               } ${l.accent ? '!text-[var(--limited)] hover:!text-[var(--limited)]' : ''}`}
               style={{ borderColor: 'var(--border)' }}
             >
-              {l.label}
+              {t(l.labelKey)}
             </Link>
           ))}
           <Link
@@ -192,7 +194,7 @@ export function Nav() {
             }`}
             style={{ borderColor: 'var(--border)' }}
           >
-            Contatti
+            {t('contatti')}
           </Link>
           <div className="px-6 py-4 flex items-center gap-1">
             <LocaleSwitcher />

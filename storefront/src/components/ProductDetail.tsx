@@ -71,7 +71,7 @@ export function ProductDetail({ product }: { product: Product }) {
         <div className="flex flex-col">
           <div className="mb-1">
             <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
-              {product.section === 'tattoo' ? 'Tattoo' : 'PMU'}
+              {product.section === 'tattoo' ? t('sectionTattoo') : t('sectionPmu')}
             </span>
           </div>
           <h1 className="text-3xl font-bold mb-3">{product.name}</h1>
