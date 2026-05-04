@@ -29,7 +29,9 @@ export default buildConfig({
     Media,
     {
       slug: 'users',
-      auth: true,
+      auth: {
+        useAPIKey: true,
+      },
       admin: {
         useAsTitle: 'email',
         group: 'Sistema',
