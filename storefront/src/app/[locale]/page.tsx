@@ -8,6 +8,7 @@ import { getProducts, getLimitedProducts } from '@/lib/cms'
 import { ProductCard } from '@/components/ProductCard'
 import { ManifestoPinned } from '@/components/ManifestoPinned'
 import { SplitText } from '@/components/SplitText'
+import { BentoGrid, BentoItem } from '@/components/BentoGrid'
 
 /* ─── Marquee cinetico — puro CSS, nessun JS ──────────────────────── */
 async function Marquee() {
@@ -304,9 +305,9 @@ export default async function HomePage() {
         />
       </section>
 
-      {/* ════════════════════════════════════════════════
-          LIMITED STOCK
-      ════════════════════════════════════════════════ */}
+{/* ════════════════════════════════════════════════
+          LIMITED STOCK — Bento grid asymmetrico
+       ════════════════════════════════════════════════ */}
       {limitedProducts.length > 0 && (
         <section
           className="border-b px-8 md:px-16 py-14"
@@ -333,18 +334,25 @@ export default async function HomePage() {
                 {t('limited.cta')} <ArrowRight size={12} strokeWidth={2} />
               </Link>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {limitedProducts.slice(0, 4).map((p) => (
-                <ProductCard key={p.id} product={p} showLimitedBadge />
+            <BentoGrid className="grid-cols-2 md:grid-cols-4">
+              {limitedProducts[0] && (
+                <BentoItem span="col-2-row-2" delay={0}>
+                  <ProductCard product={limitedProducts[0]} showLimitedBadge className="h-full min-h-[280px] md:min-h-[400px]" />
+                </BentoItem>
+              )}
+              {limitedProducts.slice(1, 4).map((p, i) => (
+                <BentoItem key={p.id} delay={(i + 1) * 0.08}>
+                  <ProductCard product={p} showLimitedBadge />
+                </BentoItem>
               ))}
-            </div>
+            </BentoGrid>
           </div>
         </section>
       )}
 
       {/* ════════════════════════════════════════════════
-          SEZIONE TATTOO
-      ════════════════════════════════════════════════ */}
+          SEZIONE TATTOO — Bento asymmetric grid
+       ════════════════════════════════════════════════ */}
       <section className="border-b" style={{ borderColor: 'var(--border)' }}>
         <div className="max-w-7xl mx-auto px-8 md:px-16 py-20">
           <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-12 items-start">
@@ -357,11 +365,21 @@ export default async function HomePage() {
                 cta={t('seeAll')}
               />
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {tattooProducts.slice(0, 6).map((p) => (
-                <ProductCard key={p.id} product={p} />
+            <BentoGrid className="grid-cols-2 md:grid-cols-3">
+              <BentoItem span="col-2-row-2" delay={0}>
+                {tattooProducts[0] && <ProductCard product={tattooProducts[0]} className="h-full min-h-[360px] md:min-h-[480px]" />}
+              </BentoItem>
+              {tattooProducts.slice(1, 3).map((p, i) => (
+                <BentoItem key={p.id} delay={i * 0.08}>
+                  <ProductCard product={p} />
+                </BentoItem>
               ))}
-            </div>
+              {tattooProducts.slice(3, 6).map((p, i) => (
+                <BentoItem key={p.id} delay={(i + 2) * 0.06}>
+                  <ProductCard product={p} />
+                </BentoItem>
+              ))}
+            </BentoGrid>
           </div>
         </div>
       </section>
@@ -376,17 +394,19 @@ export default async function HomePage() {
 }} />
 
 
-      {/* ════════════════════════════════════════════════
-          SEZIONE PMU — layout speculare
-      ════════════════════════════════════════════════ */}
+{/* ════════════════════════════════════════════════
+          SEZIONE PMU — Bento speculare, label a destra
+       ════════════════════════════════════════════════ */}
       <section className="border-b" style={{ borderColor: 'var(--border)' }}>
         <div className="max-w-7xl mx-auto px-8 md:px-16 py-20">
           <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-12 items-start">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {pmuProducts.slice(0, 4).map((p) => (
-                <ProductCard key={p.id} product={p} />
+            <BentoGrid className="grid-cols-2 md:grid-cols-4">
+              {pmuProducts.slice(0, 4).map((p, i) => (
+                <BentoItem key={p.id} delay={i * 0.07}>
+                  <ProductCard product={p} />
+                </BentoItem>
               ))}
-            </div>
+            </BentoGrid>
             <div className="md:sticky md:top-24">
               <SectionLabel
                 eyebrow={t('sections.label')}

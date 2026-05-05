@@ -28,18 +28,24 @@ export async function GET(req: NextRequest) {
     const total = session.amount_total ? session.amount_total / 100 : 0
 
     const rawLineItems = session.line_items?.data ?? []
-    const lineItems = rawLineItems as Array<{ description?: string; quantity?: number; amount_total?: number }>
+    const lineItems = rawLineItems as Array<{ description?: string; quantity?: number; amount?: number; amount_total?: number; price?: { unit_amount?: number } }>
     const items = lineItems
       .filter((li) => !li.description?.toLowerCase().includes('spedizione') && !li.description?.toLowerCase().includes('shipping'))
-      .map((li) => ({
-        name: li.description ?? 'Prodotto',
-        quantity: li.quantity ?? 1,
-        unitAmount: 0,
-      }))
+      .map((li) => {
+        const qty = li.quantity ?? 1
+        const unitAmount = li.price?.unit_amount != null
+          ? li.price.unit_amount / 100
+          : (li.amount_total ?? li.amount ?? 0) / 100 / qty
+        return {
+          name: li.description ?? 'Prodotto',
+          quantity: qty,
+          unitAmount,
+        }
+      })
 
     const shippingCost = lineItems
       .filter((li) => li.description?.toLowerCase().includes('spedizione') || li.description?.toLowerCase().includes('shipping'))
-      .reduce((sum, li) => sum + ((li.amount_total ?? 0) / 100), 0)
+      .reduce((sum, li) => sum + ((li.amount_total ?? li.amount ?? 0) / 100), 0)
 
     return NextResponse.json({
       orderRef,

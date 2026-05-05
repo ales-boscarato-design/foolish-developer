@@ -25,3 +25,4 @@ npm-debug.log*
 # build artifacts
 tsconfig.tsbuildinfo
 **/src/app/**/admin/importMap.js
+AGENTS.md

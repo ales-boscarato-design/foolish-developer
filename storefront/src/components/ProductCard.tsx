@@ -6,19 +6,20 @@ import { TiltCard } from './TiltCard'
 interface ProductCardProps {
   product: Product
   showLimitedBadge?: boolean
+  className?: string
 }
 
-export function ProductCard({ product, showLimitedBadge }: ProductCardProps) {
+export function ProductCard({ product, showLimitedBadge, className = '' }: ProductCardProps) {
   const lowestPrice = Math.min(...product.variants.map((v) => v.price))
   const hasMultipleVariants = product.variants.length > 1
   const firstImage = product.images[0]?.image
   const allUnavailable = product.variants.every((v) => v.stockStatus === 'unavailable')
 
   return (
-    <TiltCard className="h-full">
+    <TiltCard className={`h-full ${className}`}>
     <Link
       href={`/prodotto/${product.slug}`}
-      className="group block bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden hover:border-[var(--accent)] transition-all duration-200 h-full"
+      className="group block bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden hover:border-[var(--accent)] transition-all duration-200 h-full relative"
     >
       {/* Immagine */}
       <div className="aspect-square bg-[var(--muted)] relative overflow-hidden">

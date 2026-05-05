@@ -10,7 +10,7 @@ import Link from 'next/link'
 
 const COUNTRY_CODES = [
   'IT','DE','FR','ES','NL','BE','AT','CH','PL','PT','SE','DK','NO',
-  'US','GB','CA','AU','JP','BR','OTHER',
+  'US','GB','CA','AU','JP','BR',
 ]
 
 export default function CheckoutPage() {

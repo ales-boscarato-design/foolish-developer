@@ -50,8 +50,7 @@ export async function POST(req: NextRequest) {
     customer_email: customer.email,
     billing_address_collection: 'auto',
     shipping_address_collection: {
-      allowed_countries: ['IT', 'DE', 'FR', 'ES', 'NL', 'BE', 'AT', 'CH', 'PL', 'PT',
-                          'SE', 'DK', 'NO', 'GB', 'US', 'CA', 'AU', 'JP', 'BR'],
+      allowed_countries: ['IT','DE','FR','ES','NL','BE','AT','CH','PL','PT','SE','DK','NO','US','GB','CA','AU','JP','BR'],
     },
     success_url: `${STOREFRONT_URL}/grazie?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${STOREFRONT_URL}/checkout`,
@@ -59,8 +58,15 @@ export async function POST(req: NextRequest) {
       order_ref: orderRef,
       customer_name: customer.name,
       customer_country: customer.country,
+      customer_address: `${customer.address}|${customer.city}|${customer.postalCode}`,
       items_json: JSON.stringify(
-        items.map((i: CartItem) => ({ sku: i.sku, qty: i.quantity })),
+        items.map((i: CartItem) => ({
+          sku: i.sku,
+          qty: i.quantity,
+          name: i.productName,
+          variantLabel: i.variantLabel,
+          price: i.price,
+        })),
       ),
     },
   })
