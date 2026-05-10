@@ -13,11 +13,12 @@ export interface CartItem {
   price: number
   quantity: number
   image?: string
+  selectedAttrs: Record<string, string>
 }
 
 interface CartState {
   items: CartItem[]
-  add: (product: Product, variant: ProductVariant, qty?: number) => void
+  add: (product: Product, variant: ProductVariant, selectedAttrs?: Record<string, string>, qty?: number) => void
   remove: (sku: string) => void
   updateQty: (sku: string, qty: number) => void
   clear: () => void
@@ -30,16 +31,9 @@ export const useCart = create<CartState>()(
     (set, get) => ({
       items: [],
 
-      add: (product, variant, qty = 1) => {
+      add: (product, variant, selectedAttrs: Record<string, string> = {}, qty = 1) => {
         set((state) => {
-          const existing = state.items.find((i) => i.sku === variant.sku)
-          if (existing) {
-            return {
-              items: state.items.map((i) =>
-                i.sku === variant.sku ? { ...i, quantity: i.quantity + qty } : i,
-              ),
-            }
-          }
+          const cartKey = `${variant.sku}-${JSON.stringify(selectedAttrs)}`
           const newItem: CartItem = {
             productId: product.id,
             productName: product.name,
@@ -49,6 +43,17 @@ export const useCart = create<CartState>()(
             price: variant.price,
             quantity: qty,
             image: product.images[0]?.image?.sizes?.thumbnail?.url ?? product.images[0]?.image?.url,
+            selectedAttrs,
+          }
+          const existing = state.items.find((i) => i.sku === variant.sku && JSON.stringify(i.selectedAttrs) === cartKey)
+          if (existing) {
+            return {
+              items: state.items.map((i) =>
+                i.sku === variant.sku && JSON.stringify(i.selectedAttrs) === cartKey
+                  ? { ...i, quantity: i.quantity + qty }
+                  : i,
+              ),
+            }
           }
           return { items: [...state.items, newItem] }
         })

@@ -5,14 +5,32 @@
 const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'http://localhost:3001'
 const CMS_API = `${CMS_URL}/api`
 
+export interface ProductAttributeOption {
+  value: string
+  label: string
+}
+
+export interface ProductAttribute {
+  name: string
+  label: string
+  options: ProductAttributeOption[]
+}
+
+export interface ProductVariantCombination {
+  texture?: string
+  colore?: string
+  spessore?: string
+}
+
 export interface ProductVariant {
   sku: string
   label: string
   price: number
-  dimensions?: string
-  thicknessMm?: number
   stockStatus: 'available' | 'low' | 'unavailable'
   limitedQty?: number
+  dimensions?: string
+  thicknessMm?: number
+  validCombinations: ProductVariantCombination[]
 }
 
 export interface ProductImage {
@@ -32,7 +50,9 @@ export interface Product {
   description?: unknown // Lexical rich text
   uniqueNote?: string
   images: ProductImage[]
+  basePrice: number
   variants: ProductVariant[]
+  attributes: ProductAttribute[]
 }
 
 async function fetchAPI<T>(path: string, params?: Record<string, string>): Promise<T> {

@@ -8,7 +8,7 @@ export const Products: CollectionConfig = {
     group: 'Catalogo',
   },
   access: {
-    read: () => true, // pubblico per storefront
+    read: () => true,
   },
   fields: [
     {
@@ -23,7 +23,7 @@ export const Products: CollectionConfig = {
       required: true,
       unique: true,
       label: 'Slug (URL)',
-      admin: { description: 'Es. t-sheet-dbl — solo minuscole e trattini' },
+      admin: { description: 'Es. foglio-pelle-tattoo — solo minuscole e trattini' },
     },
     {
       name: 'section',
@@ -52,7 +52,7 @@ export const Products: CollectionConfig = {
       type: 'number',
       defaultValue: 0,
       label: 'Ordine di visualizzazione',
-      admin: { description: 'Numero più basso = appare prima' },
+      admin: { description: 'Numero piu basso = appare prima' },
     },
     {
       name: 'shortDescription',
@@ -68,10 +68,9 @@ export const Products: CollectionConfig = {
     {
       name: 'uniqueNote',
       type: 'textarea',
-      label: 'Nota artigianalità',
+      label: 'Nota artigianalita',
       admin: {
-        description: 'Testo che sottolinea l\'unicità artigianale. Es: "Non avrai mai due ordini con la stessa pelle."',
-        condition: (_, siblingData) => siblingData?.slug?.includes('dbl'),
+        description: 'Testo che sottolinea unicita artigianale. Es: "Non avrai mai due ordini con la stessa pelle."',
       },
     },
     {
@@ -93,49 +92,50 @@ export const Products: CollectionConfig = {
         },
       ],
     },
+
+    // PREZZO BASE — formato entry (quello piu piccolo/economico)
+    {
+      name: 'basePrice',
+      type: 'number',
+      required: true,
+      label: 'Prezzo base (EUR, IVA inclusa)',
+      admin: { description: 'Prezzo del formato piu piccolo/entry. Le varianti hanno prezzi specifici.' },
+    },
+
+    // VARIANTI — formati con prezzo proprio
     {
       name: 'variants',
       type: 'array',
-      label: 'Varianti',
+      label: 'Varianti (formati)',
       minRows: 1,
+      admin: { description: 'Ogni riga = un formato disponibile (A5, A4, XXL). Ogni variante ha il suo prezzo.' },
       fields: [
         {
           name: 'sku',
           type: 'text',
           required: true,
           label: 'SKU',
-          admin: { description: 'Es. DBL-A4, DUOSKIN-A4-PELLE' },
+          admin: { description: 'Es. FP-A5, FP-A4, FP-XXL' },
         },
         {
           name: 'label',
           type: 'text',
           required: true,
           label: 'Etichetta',
-          admin: { description: 'Es. "A4", "A5 — Pelle", "Rotolo"' },
+          admin: { description: 'Es. "A5", "A4", "XXL"' },
         },
         {
           name: 'price',
           type: 'number',
           required: true,
-          label: 'Prezzo (€ IVA inclusa)',
+          label: 'Prezzo (EUR, IVA inclusa)',
           min: 0,
-        },
-        {
-          name: 'dimensions',
-          type: 'text',
-          label: 'Dimensioni',
-          admin: { description: 'Es. "30×20 cm"' },
-        },
-        {
-          name: 'thicknessMm',
-          type: 'number',
-          label: 'Spessore (mm)',
         },
         {
           name: 'stockStatus',
           type: 'select',
           defaultValue: 'available',
-          label: 'Disponibilità',
+          label: 'Disponibilita',
           options: [
             { label: 'Disponibile', value: 'available' },
             { label: 'Ultimi pezzi', value: 'low' },
@@ -145,8 +145,93 @@ export const Products: CollectionConfig = {
         {
           name: 'limitedQty',
           type: 'number',
-          label: 'Quantità limitata (opzionale)',
+          label: 'Quantita limitata (opzionale)',
           admin: { description: 'Mostra "X pezzi rimasti" se compilato' },
+        },
+        {
+          name: 'dimensions',
+          type: 'text',
+          label: 'Dimensioni',
+          admin: { description: 'Es. "30x20 cm"' },
+        },
+        {
+          name: 'thicknessMm',
+          type: 'number',
+          label: 'Spessore (mm)',
+        },
+
+        // COMBINAZIONI VALIDE — quali mix attributi sono acquistabili per questa variante
+        // Se vuoto = tutti i valori sono disponibili
+        // Se popolato = solo queste combinazioni sono acquistabili
+        {
+          name: 'validCombinations',
+          type: 'array',
+          label: 'Combinazioni valida (opzionale)',
+          admin: { description: 'Se vuoto, tutte le combinazioni sono disponibili. Se popolato, solo queste combinazioni sono acquistabili.' },
+          fields: [
+            {
+              name: 'texture',
+              type: 'text',
+              label: 'Texture',
+            },
+            {
+              name: 'colore',
+              type: 'text',
+              label: 'Colore',
+            },
+            {
+              name: 'spessore',
+              type: 'text',
+              label: 'Spessore',
+            },
+          ],
+        },
+      ],
+    },
+
+    // ATTRIBUTI — personalizzazioni che NON modificano il prezzo
+    {
+      name: 'attributes',
+      type: 'array',
+      label: 'Attributi personalizzazione',
+      admin: { description: 'Es: texture, colore, spessore. NON modificano il prezzo.' },
+      fields: [
+        {
+          name: 'name',
+          type: 'text',
+          required: true,
+          label: 'Nome tecnico',
+          admin: { description: 'Es: texture, colore, spessore — usa solo lettere minuscole e trattini' },
+        },
+        {
+          name: 'label',
+          type: 'text',
+          required: true,
+          label: 'Etichetta visibile',
+          admin: { description: 'Es: "Texture", "Colore", "Spessore"' },
+        },
+        {
+          name: 'options',
+          type: 'array',
+          required: true,
+          label: 'Opzioni disponibili',
+          minRows: 1,
+          fields: [
+            {
+              name: 'value',
+              type: 'text',
+              required: true,
+              label: 'Valore tecnico',
+              admin: { description: 'Es: liscia, ruvida, naturale, 4mm' },
+            },
+            {
+              name: 'label',
+              type: 'text',
+              required: true,
+              label: 'Etichetta visibile',
+              admin: { description: 'Es: "Liscia", "Ruvida", "Naturale", "4mm"' },
+            },
+          ],
         },
       ],
     },

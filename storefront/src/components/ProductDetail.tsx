@@ -1,22 +1,63 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Image from 'next/image'
 import { ShoppingBag, Check } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import type { Product, ProductVariant } from '@/lib/cms'
+import type { Product, ProductVariant, ProductAttribute, ProductVariantCombination } from '@/lib/cms'
 import { useCart } from '@/lib/cart'
+
+function isOptionAvailable(
+  optionValue: string,
+  attributeName: string,
+  selectedAttrs: Record<string, string>,
+  validCombinations: ProductVariantCombination[]
+): boolean {
+  if (validCombinations.length === 0) return true
+
+  return validCombinations.some((comb) => {
+    const attrValue = comb[attributeName as keyof ProductVariantCombination]
+    if (attrValue !== optionValue) return false
+
+    for (const [otherAttr, otherVal] of Object.entries(selectedAttrs)) {
+      if (otherAttr === attributeName) continue
+      const combVal = comb[otherAttr as keyof ProductVariantCombination]
+      if (combVal !== undefined && combVal !== otherVal) return false
+    }
+    return true
+  })
+}
 
 export function ProductDetail({ product }: { product: Product }) {
   const t = useTranslations('product')
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(product.variants[0])
+  const [selectedAttrs, setSelectedAttrs] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {}
+    for (const attr of product.attributes) {
+      if (attr.options.length > 0) init[attr.name] = attr.options[0].value
+    }
+    return init
+  })
   const [added, setAdded] = useState(false)
   const [activeImage, setActiveImage] = useState(0)
   const addToCart = useCart((s) => s.add)
 
+  const handleVariantSelect = (v: ProductVariant) => {
+    setSelectedVariant(v)
+    const reset: Record<string, string> = {}
+    for (const attr of product.attributes) {
+      if (attr.options.length > 0) reset[attr.name] = attr.options[0].value
+    }
+    setSelectedAttrs(reset)
+  }
+
+  const handleAttrSelect = (attrName: string, value: string) => {
+    setSelectedAttrs((prev) => ({ ...prev, [attrName]: value }))
+  }
+
   const handleAdd = () => {
     if (selectedVariant.stockStatus === 'unavailable') return
-    addToCart(product, selectedVariant)
+    addToCart(product, selectedVariant, selectedAttrs)
     setAdded(true)
     setTimeout(() => setAdded(false), 1800)
   }
@@ -80,14 +121,14 @@ export function ProductDetail({ product }: { product: Product }) {
             <p className="mb-4" style={{ color: 'var(--muted-fg)' }}>{product.shortDescription}</p>
           )}
 
-          {/* Nota artigianalità */}
+          {/* Nota artigianalita */}
           {product.uniqueNote && (
             <div className="rounded-lg p-4 mb-5 text-sm border-l-2" style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--accent)' }}>
               <p style={{ color: 'var(--foreground)' }}>{product.uniqueNote}</p>
             </div>
           )}
 
-          {/* Selezione variante */}
+          {/* Selezione Variante (formato) */}
           <div className="mb-6">
             <p className="text-sm font-medium mb-3">
               {t('variantLabel')}: <span style={{ color: 'var(--accent)' }}>{selectedVariant.label}</span>
@@ -96,7 +137,7 @@ export function ProductDetail({ product }: { product: Product }) {
               {product.variants.map((v) => (
                 <button
                   key={v.sku}
-                  onClick={() => setSelectedVariant(v)}
+                  onClick={() => handleVariantSelect(v)}
                   disabled={v.stockStatus === 'unavailable'}
                   className={`px-3 py-2 text-sm rounded border transition-all ${
                     selectedVariant.sku === v.sku
@@ -107,19 +148,32 @@ export function ProductDetail({ product }: { product: Product }) {
                   }`}
                 >
                   {v.label}
-                  {v.dimensions && <span className="text-xs ml-1" style={{ color: 'var(--muted-fg)' }}>({v.dimensions})</span>}
+                  <span className="text-xs ml-1 font-normal" style={{ color: 'var(--muted-fg)' }}>
+                    {v.price.toFixed(2)}€
+                  </span>
                   {v.stockStatus === 'low' && (
                     <span className="ml-1 text-xs" style={{ color: 'var(--limited)' }}>•</span>
                   )}
                 </button>
               ))}
             </div>
-            {selectedVariant.dimensions && (
-              <p className="text-xs mt-2" style={{ color: 'var(--muted-fg)' }}>
-                {selectedVariant.dimensions} · {t('thickness', { value: selectedVariant.thicknessMm ?? '' })}
-              </p>
-            )}
           </div>
+
+          {/* Selettore Attributi */}
+          {product.attributes.length > 0 && (
+            <div className="mb-6 space-y-4">
+              {product.attributes.map((attr) => (
+                <AttributeSelector
+                  key={attr.name}
+                  attribute={attr}
+                  selectedValue={selectedAttrs[attr.name]}
+                  validCombinations={selectedVariant.validCombinations}
+                  selectedAttrs={selectedAttrs}
+                  onSelect={(value) => handleAttrSelect(attr.name, value)}
+                />
+              ))}
+            </div>
+          )}
 
           {/* Prezzo + CTA */}
           <div className="mt-auto">
@@ -155,6 +209,44 @@ export function ProductDetail({ product }: { product: Product }) {
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+interface AttributeSelectorProps {
+  attribute: ProductAttribute
+  selectedValue: string
+  validCombinations: ProductVariantCombination[]
+  selectedAttrs: Record<string, string>
+  onSelect: (value: string) => void
+}
+
+function AttributeSelector({ attribute, selectedValue, validCombinations, selectedAttrs, onSelect }: AttributeSelectorProps) {
+  return (
+    <div>
+      <p className="text-sm font-medium mb-2">{attribute.label}</p>
+      <div className="flex flex-wrap gap-2">
+        {attribute.options.map((opt) => {
+          const available = isOptionAvailable(opt.value, attribute.name, selectedAttrs, validCombinations)
+          const isSelected = selectedValue === opt.value
+          return (
+            <button
+              key={opt.value}
+              onClick={() => available && onSelect(opt.value)}
+              disabled={!available}
+              className={`px-3 py-1.5 text-sm rounded border transition-all ${
+                isSelected
+                  ? 'border-[var(--accent)] bg-[var(--accent)] text-black'
+                  : !available
+                  ? 'opacity-30 cursor-not-allowed border-[var(--border)]'
+                  : 'border-[var(--border)] hover:border-[var(--accent)]'
+              }`}
+            >
+              {opt.label}
+            </button>
+          )
+        })}
       </div>
     </div>
   )
