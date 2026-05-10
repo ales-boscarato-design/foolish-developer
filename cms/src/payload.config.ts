@@ -46,7 +46,7 @@ export default buildConfig({
     pool: {
       connectionString: process.env.DATABASE_URL || '',
     },
-    push: process.env.NODE_ENV !== 'production',
+    push: true,
   }),
   serverURL: process.env.PAYLOAD_PUBLIC_URL || 'http://localhost:3001',
   cors: [
