@@ -47,7 +47,21 @@ export interface Product {
   limitedStock: boolean
   order: number
   shortDescription?: string
-  description?: unknown // Lexical rich text
+  description?: {
+    root: {
+      type: string
+      children: Array<{
+        type: string
+        version?: number
+        [key: string]: unknown
+      }>
+      direction: 'ltr' | 'rtl' | null
+      format: string
+      indent: number
+      version: number
+    }
+    [key: string]: unknown
+  } | null
   uniqueNote?: string
   images: ProductImage[]
   basePrice: number
