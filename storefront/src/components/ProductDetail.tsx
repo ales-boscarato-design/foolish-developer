@@ -6,7 +6,7 @@ import { ShoppingBag, Check } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import type { Product, ProductVariant, ProductAttribute, ProductVariantCombination } from '@/lib/cms'
 import { useCart } from '@/lib/cart'
-import { renderDescription } from '@/lib/lexical'
+import { RichText } from './RichText'
 
 function isOptionAvailable(
   optionValue: string,
@@ -123,21 +123,9 @@ export function ProductDetail({ product }: { product: Product }) {
           )}
 
           {/* Descrizione completa (rich text) */}
-          {product.description && (() => {
-            const html = renderDescription(product.description)
-            if (!html) return null
-            return (
-              <div
-                className="mb-6"
-                style={{
-                  color: 'var(--foreground)',
-                  lineHeight: 1.7,
-                  fontSize: '0.9375rem',
-                }}
-                dangerouslySetInnerHTML={{ __html: html }}
-              />
-            )
-          })()}
+          {product.description && (
+            <RichText content={product.description} />
+          )}
 
           {/* Nota artigianalita */}
           {product.uniqueNote && (
