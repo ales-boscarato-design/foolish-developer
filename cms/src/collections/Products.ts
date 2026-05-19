@@ -238,6 +238,90 @@ export const Products: CollectionConfig = {
             },
           ],
         },
+      // FEATURE HIGHLIGHTS — 4 card sulla pagina prodotto
+    {
+      name: 'featureHighlights',
+      type: 'array',
+      label: 'Feature highlights (pagina prodotto)',
+      admin: { description: '4 card che spiegano perche scegliere questo prodotto. Se vuoto, vengono usati i default.' },
+      maxRows: 4,
+      fields: [
+        {
+          name: 'icon',
+          type: 'select',
+          required: true,
+          label: 'Icona',
+          options: [
+            { label: 'Sparkles (fatto a mano)', value: 'sparkles' },
+            { label: 'Shield (sicurezza)', value: 'shield' },
+            { label: 'Star (qualita)', value: 'star' },
+            { label: 'Truck (spedizione)', value: 'truck' },
+          ],
+        },
+        {
+          name: 'title',
+          type: 'text',
+          required: true,
+          label: 'Titolo',
+        },
+        {
+          name: 'description',
+          type: 'text',
+          required: true,
+          label: 'Descrizione',
+        },
+      ],
+    },
+
+    // USAGE STEPS — 3 step "come si usa"
+    {
+      name: 'usageSteps',
+      type: 'array',
+      label: 'Come si usa (3 step)',
+      admin: { description: '3 step guidati per l utilizzo del prodotto. Se vuoto, viene usato il default.' },
+      maxRows: 3,
+      fields: [
+        {
+          name: 'step',
+          type: 'text',
+          required: true,
+          label: 'Numero step',
+          admin: { description: 'Es: 01, 02, 03' },
+        },
+        {
+          name: 'title',
+          type: 'text',
+          required: true,
+          label: 'Titolo',
+        },
+        {
+          name: 'description',
+          type: 'text',
+          required: true,
+          label: 'Descrizione',
+        },
+      ],
+    },
+
+    // WHATS IN THE BOX
+    {
+      name: 'whatsInTheBox',
+      type: 'array',
+      label: 'Contenuto confezione',
+      admin: { description: 'Lista di cosa contiene la confezione. Se vuoto, viene usato il default.' },
+      fields: [
+        {
+          name: 'label',
+          type: 'text',
+          required: true,
+          label: 'Etichetta',
+        },
+        {
+          name: 'description',
+          type: 'text',
+          required: true,
+          label: 'Descrizione',
+        },
       ],
     },
   ],

@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { ShoppingBag, Check, Star, Shield, Truck, Sparkles, Info } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion'
-import type { Product, ProductVariant, ProductAttribute, ProductVariantCombination } from '@/lib/cms'
+import type { Product, ProductVariant, ProductAttribute, ProductVariantCombination, FeatureHighlight } from '@/lib/cms'
 import { useCart } from '@/lib/cart'
 import { RichText } from './RichText'
 
@@ -108,14 +108,38 @@ function AttributeSelector({ attribute, selectedValue, validCombinations, select
 }
 
 // ─── Feature highlight card ──────────────────────────────────────────────────
+const ICON_MAP: Record<FeatureHighlight['icon'], React.ReactNode> = {
+  sparkles: <Sparkles size={20} style={{ color: 'var(--accent)' }} />,
+  shield: <Shield size={20} style={{ color: 'var(--accent)' }} />,
+  star: <Star size={20} style={{ color: 'var(--accent)' }} />,
+  truck: <Truck size={20} style={{ color: 'var(--accent)' }} />,
+}
+
+const DEFAULT_HIGHLIGHTS: FeatureHighlight[] = [
+  { icon: 'sparkles', title: 'Fatto a mano', description: 'Ogni foglio è unico, prodotto artigianalmente in Italia' },
+  { icon: 'shield', title: 'Atossico', description: 'Silicone sintetico, sicuro per la pelle' },
+  { icon: 'star', title: 'Texture realistica', description: 'Floccatura che replica fedelmente la pelle vera' },
+  { icon: 'truck', title: 'Spedizione rapida', description: 'Prepariamo e spediamo entro 48h dall ordine' },
+]
+
+const DEFAULT_USAGE_STEPS = [
+  { step: '01', title: 'Prepara la pelle', description: 'Pulisci e asciuga la superficie di lavoro. Fissa con nastro medico o pinzette.' },
+  { step: '02', title: 'Tatua senza fretta', description: 'Usa aghi classici. La texture flockata trattiene l inchiostro come una pelle vera.' },
+  { step: '03', title: 'Conserva e riutilizza', description: 'Dopo l uso, pulisci con alcol. I fogli possono essere usati più volte.' },
+]
+
+const DEFAULT_WHATS_IN_THE_BOX = [
+  { label: 'Foglio sintetico', description: '1x foglio nelle dimensioni selezionate' },
+  { label: 'Scheda tecnica', description: 'Codice seriale, specifiche materiale, istruzioni utilizzo' },
+  { label: 'Certificato', description: 'Attestazione materiale atossico e origine italiana' },
+]
+
 interface FeatureCardProps {
-  icon: React.ReactNode
-  title: string
-  description: string
+  highlight: FeatureHighlight
   delay?: number
 }
 
-function FeatureCard({ icon, title, description, delay = 0 }: FeatureCardProps) {
+function FeatureCard({ highlight, delay = 0 }: FeatureCardProps) {
   return (
     <motion.div
       variants={itemVariants}
@@ -124,10 +148,10 @@ function FeatureCard({ icon, title, description, delay = 0 }: FeatureCardProps) 
       whileHover={{ y: -4 }}
     >
       <div className="w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: 'var(--muted)' }}>
-        {icon}
+        {ICON_MAP[highlight.icon]}
       </div>
-      <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--foreground)' }}>{title}</h3>
-      <p className="text-xs leading-relaxed" style={{ color: 'var(--muted-fg)' }}>{description}</p>
+      <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--foreground)' }}>{highlight.title}</h3>
+      <p className="text-xs leading-relaxed" style={{ color: 'var(--muted-fg)' }}>{highlight.description}</p>
     </motion.div>
   )
 }
@@ -400,30 +424,9 @@ export function ProductDetail({ product }: { product: Product }) {
             Perché sceglierlo
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <FeatureCard
-              icon={<Sparkles size={20} style={{ color: 'var(--accent)' }} />}
-              title="Fatto a mano"
-              description="Ogni foglio è unico, prodotto artigianalmente in Italia"
-              delay={0}
-            />
-            <FeatureCard
-              icon={<Shield size={20} style={{ color: 'var(--accent)' }} />}
-              title="Atossico"
-              description="Silicone alimentare sintetico, sicuro per la pelle"
-              delay={0.08}
-            />
-            <FeatureCard
-              icon={<Star size={20} style={{ color: 'var(--accent)' }} />}
-              title="Texture realistica"
-              description="Floccatura che replica fedelmente la pelle vera"
-              delay={0.16}
-            />
-            <FeatureCard
-              icon={<Truck size={20} style={{ color: 'var(--accent)' }} />}
-              title="Spedizione rapida"
-              description="Prepariamo e spediamo entro 48h dall'ordine"
-              delay={0.24}
-            />
+            {(product.featureHighlights?.length ? product.featureHighlights : DEFAULT_HIGHLIGHTS).map((highlight, i) => (
+              <FeatureCard key={i} highlight={highlight} delay={i * 0.08} />
+            ))}
           </div>
         </motion.section>
 
@@ -437,11 +440,7 @@ export function ProductDetail({ product }: { product: Product }) {
             Come si usa
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { step: '01', title: 'Prepara la pelle', desc: 'Pulisci e asciuga la superficie di lavoro. La pelle sintetica va fissata con nastro medico o pinzette.' },
-              { step: '02', title: 'Tatua senza fretta', desc: "Usa aghi classici. La texture flockata trattiene l'inchiostro come una pelle vera — nessuna differenza nel gesto." },
-              { step: '03', title: 'Conserva e riutilizza', desc: "Dopo l'uso, pulisci con alcol. I fogli possono essere usati più volte a seconda della tecnica." },
-            ].map((item) => (
+            {(product.usageSteps?.length ? product.usageSteps : DEFAULT_USAGE_STEPS).map((item) => (
               <motion.div
                 key={item.step}
                 variants={itemVariants}
@@ -453,7 +452,7 @@ export function ProductDetail({ product }: { product: Product }) {
                   {item.step}
                 </span>
                 <h3 className="text-base font-semibold mb-3" style={{ color: 'var(--foreground)' }}>{item.title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--muted-fg)' }}>{item.desc}</p>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--muted-fg)' }}>{item.description}</p>
               </motion.div>
             ))}
           </div>
@@ -469,18 +468,14 @@ export function ProductDetail({ product }: { product: Product }) {
             style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}
           >
             <div className="space-y-4">
-              {[
-                { label: 'Foglio sintetico', desc: `1x ${product.name} — dimensioni selezionate` },
-                { label: 'Scheda tecnica', desc: 'Codice seriale, specifiche materiale, istruzioni utilizzo' },
-                { label: 'Certificato', desc: 'Attestazione materiale atossico e origine italiana' },
-              ].map((item, i) => (
+              {(product.whatsInTheBox?.length ? product.whatsInTheBox : DEFAULT_WHATS_IN_THE_BOX).map((item, i) => (
                 <div key={i} className="flex items-start gap-4">
                   <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: 'var(--accent)' }}>
                     <Check size={12} color="black" />
                   </div>
                   <div>
                     <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>{item.label}</span>
-                    <p className="text-sm mt-0.5" style={{ color: 'var(--muted-fg)' }}>{item.desc}</p>
+                    <p className="text-sm mt-0.5" style={{ color: 'var(--muted-fg)' }}>{item.description}</p>
                   </div>
                 </div>
               ))}

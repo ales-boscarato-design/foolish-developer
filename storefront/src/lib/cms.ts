@@ -39,6 +39,23 @@ export interface ProductImage {
   alt?: string
 }
 
+export interface FeatureHighlight {
+  icon: 'sparkles' | 'shield' | 'star' | 'truck'
+  title: string
+  description: string
+}
+
+export interface UsageStep {
+  step: string
+  title: string
+  description: string
+}
+
+export interface WhatsInTheBox {
+  label: string
+  description: string
+}
+
 export interface Product {
   id: string
   name: string
@@ -68,6 +85,9 @@ export interface Product {
   basePrice: number
   variants: ProductVariant[]
   attributes: ProductAttribute[]
+  featureHighlights?: FeatureHighlight[]
+  usageSteps?: UsageStep[]
+  whatsInTheBox?: WhatsInTheBox[]
 }
 
 async function fetchAPI<T>(path: string, params?: Record<string, string>): Promise<T> {
