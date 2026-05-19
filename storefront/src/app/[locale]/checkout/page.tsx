@@ -110,6 +110,15 @@ export default function CheckoutPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm">{item.productName}</p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--muted-fg)' }}>{item.variantLabel}</p>
+                  {Object.keys(item.selectedAttrs).length > 0 && (
+                    <div className="text-xs mt-1 space-y-0.5">
+                      {Object.entries(item.selectedAttrs).map(([key, val]) => (
+                        <p key={key} style={{ color: 'var(--muted-fg)' }}>
+                          <span className="capitalize">{key.replace(/_/g, ' ')}</span>: <span className="capitalize">{val.replace(/-/g, ' ')}</span>
+                        </p>
+                      ))}
+                    </div>
+                  )}
                   <div className="flex items-center gap-3 mt-2">
                     <div className="flex items-center gap-1 border rounded" style={{ borderColor: 'var(--border)' }}>
                       <button className="w-7 h-7 flex items-center justify-center text-sm" onClick={() => updateQty(item.sku, item.quantity - 1)}>−</button>
