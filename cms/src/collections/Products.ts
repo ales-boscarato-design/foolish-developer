@@ -191,6 +191,7 @@ export const Products: CollectionConfig = {
             },
           ],
         },
+      ],
     },
 
     // ATTRIBUTI — personalizzazioni che NON modificano il prezzo
