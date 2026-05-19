@@ -46,7 +46,8 @@ export default buildConfig({
     pool: {
       connectionString: process.env.DATABASE_URL || '',
     },
-    push: false,
+    push: true,
+    migrationDir: path.resolve(dirname, 'migrations'),
   }),
   serverURL: process.env.PAYLOAD_PUBLIC_URL || 'http://localhost:3001',
   cors: [

@@ -131,14 +131,14 @@ export interface Product {
   id: number;
   name: string;
   /**
-   * Es. t-sheet-dbl — solo minuscole e trattini
+   * Es. foglio-pelle-tattoo — solo minuscole e trattini
    */
   slug: string;
   section: 'tattoo' | 'pmu';
   active?: boolean | null;
   limitedStock?: boolean | null;
   /**
-   * Numero più basso = appare prima
+   * Numero piu basso = appare prima
    */
   order?: number | null;
   /**
@@ -161,7 +161,7 @@ export interface Product {
     [k: string]: unknown;
   } | null;
   /**
-   * Testo che sottolinea l'unicità artigianale. Es: "Non avrai mai due ordini con la stessa pelle."
+   * Testo che sottolinea unicita artigianale. Es: "Non avrai mai due ordini con la stessa pelle."
    */
   uniqueNote?: string | null;
   images?:
@@ -171,27 +171,73 @@ export interface Product {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Prezzo del formato piu piccolo/entry. Le varianti hanno prezzi specifici.
+   */
+  basePrice: number;
+  /**
+   * Ogni riga = un formato disponibile (A5, A4, XXL). Ogni variante ha il suo prezzo.
+   */
   variants?:
     | {
         /**
-         * Es. DBL-A4, DUOSKIN-A4-PELLE
+         * Es. FP-A5, FP-A4, FP-XXL
          */
         sku: string;
         /**
-         * Es. "A4", "A5 — Pelle", "Rotolo"
+         * Es. "A5", "A4", "XXL"
          */
         label: string;
         price: number;
-        /**
-         * Es. "30×20 cm"
-         */
-        dimensions?: string | null;
-        thicknessMm?: number | null;
         stockStatus?: ('available' | 'low' | 'unavailable') | null;
         /**
          * Mostra "X pezzi rimasti" se compilato
          */
         limitedQty?: number | null;
+        /**
+         * Es. "30x20 cm"
+         */
+        dimensions?: string | null;
+        thicknessMm?: number | null;
+        /**
+         * Se vuoto, tutte le combinazioni sono disponibili. Se popolato, solo queste combinazioni sono acquistabili.
+         */
+        validCombinations?:
+          | {
+              texture?: string | null;
+              colore?: string | null;
+              spessore?: string | null;
+              stencil?: string | null;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Es: texture, colore, spessore. NON modificano il prezzo.
+   */
+  attributes?:
+    | {
+        /**
+         * Es: texture, colore, spessore — usa solo lettere minuscole e trattini
+         */
+        name: string;
+        /**
+         * Es: "Texture", "Colore", "Spessore"
+         */
+        label: string;
+        options: {
+          /**
+           * Es: liscia, ruvida, naturale, 4mm
+           */
+          value: string;
+          /**
+           * Es: "Liscia", "Ruvida", "Naturale", "4mm"
+           */
+          label: string;
+          id?: string | null;
+        }[];
         id?: string | null;
       }[]
     | null;
@@ -453,16 +499,40 @@ export interface ProductsSelect<T extends boolean = true> {
         alt?: T;
         id?: T;
       };
+  basePrice?: T;
   variants?:
     | T
     | {
         sku?: T;
         label?: T;
         price?: T;
-        dimensions?: T;
-        thicknessMm?: T;
         stockStatus?: T;
         limitedQty?: T;
+        dimensions?: T;
+        thicknessMm?: T;
+        validCombinations?:
+          | T
+          | {
+              texture?: T;
+              colore?: T;
+              spessore?: T;
+              stencil?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  attributes?:
+    | T
+    | {
+        name?: T;
+        label?: T;
+        options?:
+          | T
+          | {
+              value?: T;
+              label?: T;
+              id?: T;
+            };
         id?: T;
       };
   updatedAt?: T;
