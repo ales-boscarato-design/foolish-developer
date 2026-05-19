@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
 import { ShoppingBag, Check } from 'lucide-react'
 import { useTranslations } from 'next-intl'
@@ -14,10 +14,7 @@ function isOptionAvailable(
   selectedAttrs: Record<string, string>,
   validCombinations: ProductVariantCombination[]
 ): boolean {
-  // If no validCombinations defined, all options are available
   if (validCombinations.length === 0) return true
-
-  // If validCombinations has only null entries, treat as unconstrained (allow all)
   const hasConstraints = validCombinations.some((comb) =>
     Object.values(comb).some((v) => v !== null && v !== undefined)
   )
@@ -25,10 +22,8 @@ function isOptionAvailable(
 
   return validCombinations.some((comb) => {
     const attrValue = comb[attributeName as keyof ProductVariantCombination]
-    // null means "any value is allowed" for this attribute in this combination
     if (attrValue === null || attrValue === undefined) return true
     if (attrValue !== optionValue) return false
-
     for (const [otherAttr, otherVal] of Object.entries(selectedAttrs)) {
       if (otherAttr === attributeName) continue
       const combVal = comb[otherAttr as keyof ProductVariantCombination]
@@ -76,12 +71,20 @@ export function ProductDetail({ product }: { product: Product }) {
   const firstImage = product.images[activeImage]?.image
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-12">
-      <div className="grid md:grid-cols-2 gap-10">
+    <div className="max-w-6xl mx-auto px-4 py-8">
+      {/* Breadcrumb */}
+      <div className="mb-6">
+        <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
+          {product.section === 'tattoo' ? t('sectionTattoo') : t('sectionPmu')}
+        </span>
+      </div>
 
-        {/* Immagini */}
-        <div>
-          <div className="aspect-square rounded-lg overflow-hidden relative" style={{ backgroundColor: 'var(--muted)' }}>
+      {/* Main grid: image left, info right */}
+      <div className="grid lg:grid-cols-[1fr_400px] gap-8 mb-12">
+
+        {/* Immagine */}
+        <div className="relative">
+          <div className="aspect-square rounded-xl overflow-hidden relative" style={{ backgroundColor: 'var(--muted)' }}>
             {firstImage?.url ? (
               <Image
                 src={firstImage.url}
@@ -89,7 +92,7 @@ export function ProductDetail({ product }: { product: Product }) {
                 fill
                 className="object-cover"
                 priority
-                sizes="(max-width: 768px) 100vw, 50vw"
+                sizes="(max-width: 1024px) 100vw, 60vw"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-sm" style={{ color: 'var(--muted-fg)' }}>
@@ -97,18 +100,18 @@ export function ProductDetail({ product }: { product: Product }) {
               </div>
             )}
             {product.limitedStock && (
-              <span className="absolute top-3 left-3 text-white text-xs font-bold px-2 py-1 rounded uppercase tracking-wide" style={{ backgroundColor: 'var(--limited)' }}>
+              <span className="absolute top-4 left-4 text-white text-xs font-bold px-3 py-1.5 rounded uppercase tracking-wide" style={{ backgroundColor: 'var(--limited)' }}>
                 {t('limited')}
               </span>
             )}
           </div>
           {product.images.length > 1 && (
-            <div className="flex gap-2 mt-3">
+            <div className="flex gap-3 mt-4">
               {product.images.map((img, i) => (
                 <button
                   key={i}
                   onClick={() => setActiveImage(i)}
-                  className={`w-16 h-16 rounded overflow-hidden border-2 transition-colors ${i === activeImage ? 'border-[var(--accent)]' : 'border-[var(--border)]'}`}
+                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${i === activeImage ? 'border-[var(--accent)] shadow-md' : 'border-[var(--border)] hover:border-[var(--accent)]'}`}
                 >
                   <div className="w-full h-full relative">
                     <Image src={img.image.url} alt="" fill className="object-cover" sizes="64px" />
@@ -119,54 +122,43 @@ export function ProductDetail({ product }: { product: Product }) {
           )}
         </div>
 
-        {/* Info prodotto */}
-        <div className="flex flex-col">
-          <div className="mb-1">
-            <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
-              {product.section === 'tattoo' ? t('sectionTattoo') : t('sectionPmu')}
-            </span>
-          </div>
-          <h1 className="text-3xl font-bold mb-3">{product.name}</h1>
+        {/* Info prodotto - sticky right column */}
+        <div className="lg:sticky lg:top-8 lg:self-start">
 
-          {product.shortDescription && (
-            <p className="mb-4" style={{ color: 'var(--muted-fg)' }}>{product.shortDescription}</p>
-          )}
-
-          {/* Descrizione completa (rich text) */}
-          {product.description && (
-            <RichText content={product.description} />
-          )}
-
-          {/* Nota artigianalita */}
-          {product.uniqueNote && (
-            <div className="rounded-lg p-4 mb-5 text-sm border-l-2" style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--accent)' }}>
-              <p style={{ color: 'var(--foreground)' }}>{product.uniqueNote}</p>
-            </div>
-          )}
-
-          {/* Selezione Variante (formato) */}
+          {/* Nome + short description */}
           <div className="mb-6">
-            <p className="text-sm font-medium mb-3">
-              {t('variantLabel')}: <span style={{ color: 'var(--accent)' }}>{selectedVariant.label}</span>
-            </p>
+            <h1 className="text-3xl lg:text-4xl font-bold mb-3 leading-tight">{product.name}</h1>
+            {product.shortDescription && (
+              <p className="text-base" style={{ color: 'var(--muted-fg)' }}>{product.shortDescription}</p>
+            )}
+          </div>
+
+          {/* Prezzo */}
+          <div className="flex items-baseline gap-3 mb-6">
+            <span className="text-3xl font-bold" style={{ color: 'var(--accent)' }}>
+              {selectedVariant.price.toFixed(2)}€
+            </span>
+            <span className="text-xs" style={{ color: 'var(--muted-fg)' }}>{t('vatIncluded')}</span>
+          </div>
+
+          {/* Varianti */}
+          <div className="mb-6">
+            <p className="text-sm font-medium mb-3">{t('variantLabel')}</p>
             <div className="flex flex-wrap gap-2">
               {product.variants.map((v) => (
                 <button
                   key={v.sku}
                   onClick={() => handleVariantSelect(v)}
                   disabled={v.stockStatus === 'unavailable'}
-                  className={`px-3 py-2 text-sm rounded border transition-all ${
+                  className={`px-4 py-2.5 text-sm rounded-lg border transition-all ${
                     selectedVariant.sku === v.sku
-                      ? 'border-[var(--accent)] text-[var(--accent)]'
+                      ? 'border-[var(--accent)] bg-[var(--accent)] text-black font-semibold'
                       : v.stockStatus === 'unavailable'
-                      ? 'opacity-30 cursor-not-allowed'
+                      ? 'opacity-30 cursor-not-allowed border-[var(--border)]'
                       : 'border-[var(--border)] hover:border-[var(--accent)]'
                   }`}
                 >
                   {v.label}
-                  <span className="text-xs ml-1 font-normal" style={{ color: 'var(--muted-fg)' }}>
-                    {v.price.toFixed(2)}€
-                  </span>
                   {v.stockStatus === 'low' && (
                     <span className="ml-1 text-xs" style={{ color: 'var(--limited)' }}>•</span>
                   )}
@@ -175,7 +167,7 @@ export function ProductDetail({ product }: { product: Product }) {
             </div>
           </div>
 
-          {/* Selettore Attributi */}
+          {/* Attributi */}
           {product.attributes.length > 0 && (
             <div className="mb-6 space-y-4">
               {product.attributes.map((attr) => (
@@ -191,41 +183,50 @@ export function ProductDetail({ product }: { product: Product }) {
             </div>
           )}
 
-          {/* Prezzo + CTA */}
-          <div className="mt-auto">
-            <div className="flex items-baseline gap-2 mb-4">
-              <span className="text-3xl font-bold" style={{ color: 'var(--accent)' }}>
-                {selectedVariant.price.toFixed(2)}€
-              </span>
-              <span className="text-xs" style={{ color: 'var(--muted-fg)' }}>{t('vatIncluded')}</span>
+          {/* Nota artigianalità */}
+          {product.uniqueNote && (
+            <div className="rounded-lg p-4 mb-6 text-sm border-l-2" style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--accent)' }}>
+              <p style={{ color: 'var(--foreground)' }}>{product.uniqueNote}</p>
             </div>
+          )}
 
+          {/* CTA - always visible at bottom of sticky column */}
+          <div className="border-t pt-6" style={{ borderColor: 'var(--border)' }}>
             {selectedVariant.limitedQty && (
               <p className="text-sm mb-3 font-medium" style={{ color: 'var(--limited)' }}>
                 {t('lastItems', { qty: selectedVariant.limitedQty })}
               </p>
             )}
-
             <button
               onClick={handleAdd}
               disabled={selectedVariant.stockStatus === 'unavailable' || added}
-              className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 py-4 px-6 rounded-lg font-semibold text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 backgroundColor: added ? '#2d5a27' : 'var(--accent)',
                 color: 'black',
               }}
             >
               {added ? (
-                <><Check size={18} /> {t('added')}</>
+                <><Check size={20} /> {t('added')}</>
               ) : selectedVariant.stockStatus === 'unavailable' ? (
                 t('unavailable')
               ) : (
-                <><ShoppingBag size={18} /> {t('addToCart')}</>
+                <><ShoppingBag size={20} /> {t('addToCart')}</>
               )}
             </button>
           </div>
         </div>
       </div>
+
+      {/* Descrizione prodotto - full width section below */}
+      {product.description && (
+        <div className="border-t pt-8" style={{ borderColor: 'var(--border)' }}>
+          <h2 className="text-lg font-semibold mb-4">Descrizione</h2>
+          <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+            <RichText content={product.description} />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -251,9 +252,9 @@ function AttributeSelector({ attribute, selectedValue, validCombinations, select
               key={opt.value}
               onClick={() => available && onSelect(opt.value)}
               disabled={!available}
-              className={`px-3 py-1.5 text-sm rounded border transition-all ${
+              className={`px-3 py-1.5 text-sm rounded-lg border transition-all ${
                 isSelected
-                  ? 'border-[var(--accent)] bg-[var(--accent)] text-black'
+                  ? 'border-[var(--accent)] bg-[var(--accent)] text-black font-medium'
                   : !available
                   ? 'opacity-30 cursor-not-allowed border-[var(--border)]'
                   : 'border-[var(--border)] hover:border-[var(--accent)]'
