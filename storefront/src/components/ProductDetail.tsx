@@ -408,8 +408,8 @@ export function ProductDetail({ product }: { product: Product }) {
             />
             <FeatureCard
               icon={<Shield size={20} style={{ color: 'var(--accent)' }} />}
-              title="Naturale al 100%"
-              description="Silicone alimentare atossico, sicuro per la pelle"
+              title="Atossico"
+              description="Silicone alimentare sintetico, sicuro per la pelle"
               delay={0.08}
             />
             <FeatureCard
