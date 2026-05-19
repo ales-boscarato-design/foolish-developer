@@ -184,7 +184,11 @@ export const Products: CollectionConfig = {
               type: 'text',
               label: 'Spessore',
             },
-          ],
+            {
+              name: 'stencil',
+              type: 'text',
+              label: 'Stencil',
+            },
         },
       ],
     },

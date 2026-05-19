@@ -20,6 +20,7 @@ export interface ProductVariantCombination {
   texture?: string
   colore?: string
   spessore?: string
+  stencil?: string
 }
 
 export interface ProductVariant {

@@ -14,16 +14,26 @@ function isOptionAvailable(
   selectedAttrs: Record<string, string>,
   validCombinations: ProductVariantCombination[]
 ): boolean {
+  // If no validCombinations defined, all options are available
   if (validCombinations.length === 0) return true
+
+  // If validCombinations has only null entries, treat as unconstrained (allow all)
+  const hasConstraints = validCombinations.some((comb) =>
+    Object.values(comb).some((v) => v !== null && v !== undefined)
+  )
+  if (!hasConstraints) return true
 
   return validCombinations.some((comb) => {
     const attrValue = comb[attributeName as keyof ProductVariantCombination]
+    // null means "any value is allowed" for this attribute in this combination
+    if (attrValue === null || attrValue === undefined) return true
     if (attrValue !== optionValue) return false
 
     for (const [otherAttr, otherVal] of Object.entries(selectedAttrs)) {
       if (otherAttr === attributeName) continue
       const combVal = comb[otherAttr as keyof ProductVariantCombination]
-      if (combVal !== undefined && combVal !== otherVal) return false
+      if (combVal === null || combVal === undefined) continue
+      if (combVal !== otherVal) return false
     }
     return true
   })
