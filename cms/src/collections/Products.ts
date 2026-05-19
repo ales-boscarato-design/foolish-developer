@@ -189,8 +189,8 @@ export const Products: CollectionConfig = {
               type: 'text',
               label: 'Stencil',
             },
+          ],
         },
-      ],
     },
 
     // ATTRIBUTI — personalizzazioni che NON modificano il prezzo
