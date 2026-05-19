@@ -241,6 +241,41 @@ export interface Product {
         id?: string | null;
       }[]
     | null;
+  /**
+   * 4 card che spiegano perche scegliere questo prodotto. Se vuoto, vengono usati i default.
+   */
+  featureHighlights?:
+    | {
+        icon: 'sparkles' | 'shield' | 'star' | 'truck';
+        title: string;
+        description: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * 3 step guidati per l utilizzo del prodotto. Se vuoto, viene usato il default.
+   */
+  usageSteps?:
+    | {
+        /**
+         * Es: 01, 02, 03
+         */
+        step: string;
+        title: string;
+        description: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Lista di cosa contiene la confezione. Se vuoto, viene usato il default.
+   */
+  whatsInTheBox?:
+    | {
+        label: string;
+        description: string;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -533,6 +568,29 @@ export interface ProductsSelect<T extends boolean = true> {
               label?: T;
               id?: T;
             };
+        id?: T;
+      };
+  featureHighlights?:
+    | T
+    | {
+        icon?: T;
+        title?: T;
+        description?: T;
+        id?: T;
+      };
+  usageSteps?:
+    | T
+    | {
+        step?: T;
+        title?: T;
+        description?: T;
+        id?: T;
+      };
+  whatsInTheBox?:
+    | T
+    | {
+        label?: T;
+        description?: T;
         id?: T;
       };
   updatedAt?: T;
