@@ -238,7 +238,10 @@ export const Products: CollectionConfig = {
             },
           ],
         },
-      // FEATURE HIGHLIGHTS — 4 card sulla pagina prodotto
+      ],
+    },
+
+    // FEATURE HIGHLIGHTS — 4 card sulla pagina prodotto
     {
       name: 'featureHighlights',
       type: 'array',
