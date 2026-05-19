@@ -4,10 +4,33 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { ShoppingBag, Check } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import { motion, type Variants } from 'framer-motion'
 import type { Product, ProductVariant, ProductAttribute, ProductVariantCombination } from '@/lib/cms'
 import { useCart } from '@/lib/cart'
 import { RichText } from './RichText'
 
+// ─── Animation variants ─────────────────────────────────────────────────────
+const containerVariants: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.1 } },
+}
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
+}
+
+// ─── Skeleton shimmer ────────────────────────────────────────────────────────
+function ImageSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={`animate-pulse rounded-xl ${className}`}
+      style={{ backgroundColor: 'var(--muted)' }}
+    />
+  )
+}
+
+// ─── Check if option is available ───────────────────────────────────────────
 function isOptionAvailable(
   optionValue: string,
   attributeName: string,
@@ -34,6 +57,48 @@ function isOptionAvailable(
   })
 }
 
+// ─── Attribute selector ─────────────────────────────────────────────────────
+interface AttributeSelectorProps {
+  attribute: ProductAttribute
+  selectedValue: string
+  validCombinations: ProductVariantCombination[]
+  selectedAttrs: Record<string, string>
+  onSelect: (value: string) => void
+}
+
+function AttributeSelector({ attribute, selectedValue, validCombinations, selectedAttrs, onSelect }: AttributeSelectorProps) {
+  return (
+    <div>
+      <p className="text-sm font-medium mb-3" style={{ color: 'var(--muted-fg)' }}>{attribute.label}</p>
+      <div className="flex flex-wrap gap-2">
+        {attribute.options.map((opt) => {
+          const available = isOptionAvailable(opt.value, attribute.name, selectedAttrs, validCombinations)
+          const isSelected = selectedValue === opt.value
+          return (
+            <motion.button
+              key={opt.value}
+              onClick={() => available && onSelect(opt.value)}
+              disabled={!available}
+              whileHover={available ? { scale: 1.04 } : {}}
+              whileTap={available ? { scale: 0.96 } : {}}
+              className={`px-4 py-3 text-sm rounded-xl border transition-all min-h-[48px] min-w-[48px] ${
+                isSelected
+                  ? 'border-[var(--accent)] bg-[var(--accent)] text-black font-semibold shadow-lg'
+                  : !available
+                  ? 'opacity-30 cursor-not-allowed border-[var(--border)]'
+                  : 'border-[var(--border)] hover:border-[var(--accent)] hover:shadow-md'
+              }`}
+            >
+              {opt.label}
+            </motion.button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ─── Main component ──────────────────────────────────────────────────────────
 export function ProductDetail({ product }: { product: Product }) {
   const t = useTranslations('product')
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(product.variants[0])
@@ -46,10 +111,12 @@ export function ProductDetail({ product }: { product: Product }) {
   })
   const [added, setAdded] = useState(false)
   const [activeImage, setActiveImage] = useState(0)
+  const [imageLoaded, setImageLoaded] = useState(false)
   const addToCart = useCart((s) => s.add)
 
   const handleVariantSelect = (v: ProductVariant) => {
     setSelectedVariant(v)
+    setImageLoaded(false)
     const reset: Record<string, string> = {}
     for (const attr of product.attributes) {
       if (attr.options.length > 0) reset[attr.name] = attr.options[0].value
@@ -59,6 +126,7 @@ export function ProductDetail({ product }: { product: Product }) {
 
   const handleAttrSelect = (attrName: string, value: string) => {
     setSelectedAttrs((prev) => ({ ...prev, [attrName]: value }))
+    setImageLoaded(false)
   }
 
   const handleAdd = () => {
@@ -71,105 +139,133 @@ export function ProductDetail({ product }: { product: Product }) {
   const firstImage = product.images[activeImage]?.image
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <motion.div
+      className="max-w-6xl mx-auto px-4 py-8"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
       {/* Breadcrumb */}
-      <div className="mb-6">
+      <motion.div variants={itemVariants} className="mb-8">
         <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
           {product.section === 'tattoo' ? t('sectionTattoo') : t('sectionPmu')}
         </span>
-      </div>
+      </motion.div>
 
       {/* Main grid: image left, info right */}
-      <div className="grid lg:grid-cols-[1fr_400px] gap-8 mb-12">
+      <div className="grid lg:grid-cols-[1fr_420px] gap-8 mb-12 items-start">
 
-        {/* Immagine */}
-        <div className="relative">
-          <div className="aspect-square rounded-xl overflow-hidden relative" style={{ backgroundColor: 'var(--muted)' }}>
+        {/* Immagine — fade-up + skeleton */}
+        <motion.div variants={itemVariants} className="relative">
+          <div
+            className="aspect-square rounded-2xl overflow-hidden relative"
+            style={{ backgroundColor: 'var(--muted)' }}
+          >
+            {!imageLoaded && <ImageSkeleton className="absolute inset-0" />}
             {firstImage?.url ? (
               <Image
                 src={firstImage.url}
                 alt={firstImage.alt || product.name}
                 fill
-                className="object-cover"
+                className={`object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
                 priority
                 sizes="(max-width: 1024px) 100vw, 60vw"
+                onLoad={() => setImageLoaded(true)}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-sm" style={{ color: 'var(--muted-fg)' }}>
+              <div className="w-full h-full flex items-center justify-center" style={{ color: 'var(--muted-fg)' }}>
                 {t('noImage')}
               </div>
             )}
             {product.limitedStock && (
-              <span className="absolute top-4 left-4 text-white text-xs font-bold px-3 py-1.5 rounded uppercase tracking-wide" style={{ backgroundColor: 'var(--limited)' }}>
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="absolute top-4 left-4 text-white text-xs font-bold px-4 py-2 rounded-xl uppercase tracking-wide"
+                style={{ backgroundColor: 'var(--limited)' }}
+              >
                 {t('limited')}
-              </span>
+              </motion.span>
             )}
           </div>
+
+          {/* Dots indicator — replaces thumbnails */}
           {product.images.length > 1 && (
-            <div className="flex gap-3 mt-4">
-              {product.images.map((img, i) => (
+            <div className="flex gap-3 mt-6 justify-center">
+              {product.images.map((_, i) => (
                 <button
                   key={i}
-                  onClick={() => setActiveImage(i)}
-                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${i === activeImage ? 'border-[var(--accent)] shadow-md' : 'border-[var(--border)] hover:border-[var(--accent)]'}`}
-                >
-                  <div className="w-full h-full relative">
-                    <Image src={img.image.url} alt="" fill className="object-cover" sizes="64px" />
-                  </div>
-                </button>
+                  onClick={() => { setActiveImage(i); setImageLoaded(false) }}
+                  className="w-3 h-3 rounded-full transition-all min-h-[12px] min-w-[12px]"
+                  style={{
+                    backgroundColor: i === activeImage ? 'var(--accent)' : 'var(--border)',
+                    transform: i === activeImage ? 'scale(1.3)' : 'scale(1)',
+                  }}
+                  aria-label={`Immagine ${i + 1}`}
+                />
               ))}
             </div>
           )}
-        </div>
+        </motion.div>
 
-        {/* Info prodotto - sticky right column */}
-        <div className="lg:sticky lg:top-8 lg:self-start">
+        {/* Info prodotto — sticky right column */}
+        <motion.div variants={itemVariants} className="lg:sticky lg:top-8 lg:self-start space-y-6">
 
           {/* Nome + short description */}
-          <div className="mb-6">
-            <h1 className="text-3xl lg:text-4xl font-bold mb-3 leading-tight">{product.name}</h1>
+          <div>
+            <h1 className="text-4xl lg:text-5xl font-bold leading-tight font-artisan" style={{ color: 'var(--foreground)' }}>
+              {product.name}
+            </h1>
             {product.shortDescription && (
-              <p className="text-base" style={{ color: 'var(--muted-fg)' }}>{product.shortDescription}</p>
+              <p className="text-base mt-3" style={{ color: 'var(--muted-fg)' }}>{product.shortDescription}</p>
             )}
           </div>
 
           {/* Prezzo */}
-          <div className="flex items-baseline gap-3 mb-6">
-            <span className="text-3xl font-bold" style={{ color: 'var(--accent)' }}>
+          <div className="flex items-baseline gap-4">
+            <motion.span
+              className="text-4xl font-bold"
+              style={{ color: 'var(--accent)' }}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
               {selectedVariant.price.toFixed(2)}€
-            </span>
-            <span className="text-xs" style={{ color: 'var(--muted-fg)' }}>{t('vatIncluded')}</span>
+            </motion.span>
+            <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>{t('vatIncluded')}</span>
           </div>
 
-          {/* Varianti */}
-          <div className="mb-6">
-            <p className="text-sm font-medium mb-3">{t('variantLabel')}</p>
-            <div className="flex flex-wrap gap-2">
-              {product.variants.map((v) => (
-                <button
+          {/* Varianti — 48px touch targets */}
+          <div>
+            <p className="text-sm font-medium mb-3" style={{ color: 'var(--muted-fg)' }}>{t('variantLabel')}</p>
+            <div className="flex flex-wrap gap-3">
+              {product.variants.map((v, i) => (
+                <motion.button
                   key={v.sku}
                   onClick={() => handleVariantSelect(v)}
                   disabled={v.stockStatus === 'unavailable'}
-                  className={`px-4 py-2.5 text-sm rounded-lg border transition-all ${
+                  whileHover={v.stockStatus !== 'unavailable' ? { scale: 1.03 } : {}}
+                  whileTap={v.stockStatus !== 'unavailable' ? { scale: 0.97 } : {}}
+                  className={`px-5 py-3 text-sm rounded-xl border transition-all min-h-[48px] ${
                     selectedVariant.sku === v.sku
-                      ? 'border-[var(--accent)] bg-[var(--accent)] text-black font-semibold'
+                      ? 'border-[var(--accent)] bg-[var(--accent)] text-black font-semibold shadow-lg'
                       : v.stockStatus === 'unavailable'
                       ? 'opacity-30 cursor-not-allowed border-[var(--border)]'
-                      : 'border-[var(--border)] hover:border-[var(--accent)]'
+                      : 'border-[var(--border)] hover:border-[var(--accent)] hover:shadow-md'
                   }`}
                 >
                   {v.label}
                   {v.stockStatus === 'low' && (
-                    <span className="ml-1 text-xs" style={{ color: 'var(--limited)' }}>•</span>
+                    <span className="ml-2 text-xs" style={{ color: 'var(--limited)' }}>•</span>
                   )}
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
 
           {/* Attributi */}
           {product.attributes.length > 0 && (
-            <div className="mb-6 space-y-4">
+            <div className="space-y-5">
               {product.attributes.map((attr) => (
                 <AttributeSelector
                   key={attr.name}
@@ -185,86 +281,65 @@ export function ProductDetail({ product }: { product: Product }) {
 
           {/* Nota artigianalità */}
           {product.uniqueNote && (
-            <div className="rounded-lg p-4 mb-6 text-sm border-l-2" style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--accent)' }}>
-              <p style={{ color: 'var(--foreground)' }}>{product.uniqueNote}</p>
-            </div>
+            <motion.div
+              variants={itemVariants}
+              className="rounded-xl p-5 border-l-4"
+              style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--accent)' }}
+            >
+              <p className="text-sm font-artisan text-lg" style={{ color: 'var(--foreground)' }}>{product.uniqueNote}</p>
+            </motion.div>
           )}
 
-          {/* CTA - always visible at bottom of sticky column */}
+          {/* CTA — always visible, prominent */}
           <div className="border-t pt-6" style={{ borderColor: 'var(--border)' }}>
             {selectedVariant.limitedQty && (
-              <p className="text-sm mb-3 font-medium" style={{ color: 'var(--limited)' }}>
+              <motion.p
+                variants={itemVariants}
+                className="text-sm mb-3 font-semibold"
+                style={{ color: 'var(--limited)' }}
+              >
                 {t('lastItems', { qty: selectedVariant.limitedQty })}
-              </p>
+              </motion.p>
             )}
-            <button
+            <motion.button
               onClick={handleAdd}
               disabled={selectedVariant.stockStatus === 'unavailable' || added}
-              className="w-full flex items-center justify-center gap-2 py-4 px-6 rounded-lg font-semibold text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full flex items-center justify-center gap-3 py-4 px-8 rounded-2xl font-bold text-base transition-all min-h-[56px] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 backgroundColor: added ? '#2d5a27' : 'var(--accent)',
                 color: 'black',
               }}
             >
               {added ? (
-                <><Check size={20} /> {t('added')}</>
+                <><Check size={22} /> {t('added')}</>
               ) : selectedVariant.stockStatus === 'unavailable' ? (
                 t('unavailable')
               ) : (
-                <><ShoppingBag size={20} /> {t('addToCart')}</>
+                <><ShoppingBag size={22} /> {t('addToCart')}</>
               )}
-            </button>
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
       </div>
 
-      {/* Descrizione prodotto - full width section below */}
+      {/* Descrizione prodotto — full width section below */}
       {product.description && (
-        <div className="border-t pt-8" style={{ borderColor: 'var(--border)' }}>
-          <h2 className="text-lg font-semibold mb-4">Descrizione</h2>
-          <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+        <motion.div
+          variants={itemVariants}
+          className="border-t pt-10"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <h2 className="text-xl font-semibold mb-5 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>Descrizione</h2>
+          <div
+            className="rounded-2xl p-6 lg:p-8"
+            style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}
+          >
             <RichText content={product.description} />
           </div>
-        </div>
+        </motion.div>
       )}
-    </div>
-  )
-}
-
-interface AttributeSelectorProps {
-  attribute: ProductAttribute
-  selectedValue: string
-  validCombinations: ProductVariantCombination[]
-  selectedAttrs: Record<string, string>
-  onSelect: (value: string) => void
-}
-
-function AttributeSelector({ attribute, selectedValue, validCombinations, selectedAttrs, onSelect }: AttributeSelectorProps) {
-  return (
-    <div>
-      <p className="text-sm font-medium mb-2">{attribute.label}</p>
-      <div className="flex flex-wrap gap-2">
-        {attribute.options.map((opt) => {
-          const available = isOptionAvailable(opt.value, attribute.name, selectedAttrs, validCombinations)
-          const isSelected = selectedValue === opt.value
-          return (
-            <button
-              key={opt.value}
-              onClick={() => available && onSelect(opt.value)}
-              disabled={!available}
-              className={`px-3 py-1.5 text-sm rounded-lg border transition-all ${
-                isSelected
-                  ? 'border-[var(--accent)] bg-[var(--accent)] text-black font-medium'
-                  : !available
-                  ? 'opacity-30 cursor-not-allowed border-[var(--border)]'
-                  : 'border-[var(--border)] hover:border-[var(--accent)]'
-              }`}
-            >
-              {opt.label}
-            </button>
-          )
-        })}
-      </div>
-    </div>
+    </motion.div>
   )
 }

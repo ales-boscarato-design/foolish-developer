@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Outfit, Bebas_Neue } from 'next/font/google'
+import { Outfit, Bebas_Neue, Amatic_SC } from 'next/font/google'
 import '../globals.css'
 import { NavWrapper } from '@/components/NavWrapper'
 import { CartProvider } from '@/components/CartProvider'
@@ -12,6 +12,7 @@ import { Footer } from '@/components/Footer'
 
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' })
 const bebas = Bebas_Neue({ weight: '400', subsets: ['latin'], variable: '--font-bebas' })
+const amatic = Amatic_SC({ weight: '400', subsets: ['latin'], variable: '--font-amatic' })
 
 export const metadata: Metadata = {
   title: 'The Foolish Butcher — Pelle sintetica artigianale per tattoo e PMU',
@@ -40,7 +41,7 @@ export default async function LocaleLayout({
   const messages = await getMessages()
 
   return (
-    <html lang={locale} className={`${outfit.variable} ${bebas.variable}`}>
+    <html lang={locale} className={`${outfit.variable} ${bebas.variable} ${amatic.variable}`}>
       <body className="min-h-screen flex flex-col">
         <NextIntlClientProvider messages={messages}>
           <CartProvider>

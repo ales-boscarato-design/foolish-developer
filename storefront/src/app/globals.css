@@ -55,6 +55,12 @@ body::after {
   letter-spacing: 0.02em;
 }
 
+/* Artisan font — Amatic SC for headings */
+.font-artisan {
+  font-family: var(--font-amatic), cursive;
+  letter-spacing: 0.02em;
+}
+
 /* Fade-up staggerati */
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(28px); }
