@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #faf9f6;
-  --foreground: #1c1915;
+  --background: #080808;
+  --foreground: #f0ede8;
   --accent: #c8a97e;
   --accent-dark: #a8895e;
-  --muted: #f0ede8;
-  --muted-fg: #7a6f66;
-  --border: #e0d9d0;
-  --card: #ffffff;
+  --muted: #111111;
+  --muted-fg: #888077;
+  --border: #1e1e1e;
+  --card: #0f0f0f;
   --limited: #c0392b;
 }
 
@@ -40,7 +40,7 @@ body::after {
   inset: 0;
   pointer-events: none;
   z-index: 9999;
-  opacity: 0.05;
+  opacity: 0.035;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
   background-size: 200px 200px;
 }

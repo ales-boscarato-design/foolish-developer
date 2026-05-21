@@ -45,8 +45,8 @@ export default async function LocaleLayout({
   const messages = await getMessages()
 
   return (
-    <html lang={locale} className={`${outfit.variable} ${cormorant.variable}`}>
-      <body className="min-h-screen flex flex-col">
+    <html lang={locale} className={`${outfit.variable} ${cormorant.variable}`} suppressHydrationWarning>
+      <body className="min-h-screen flex flex-col" suppressHydrationWarning>
         <NextIntlClientProvider messages={messages}>
           <CartProvider>
             <InkThread />
