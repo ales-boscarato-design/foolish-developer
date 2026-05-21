@@ -185,7 +185,14 @@ export function ProductDetail({ product }: { product: Product }) {
     const el = addRef.current
     if (!el) return
     const observer = new IntersectionObserver(
-      ([entry]) => setShowStickyBar(!entry.isIntersecting),
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShowStickyBar(false)
+        } else {
+          // Show only when the button has scrolled above the viewport (not below it)
+          setShowStickyBar(entry.boundingClientRect.top < 0)
+        }
+      },
       { threshold: 0 }
     )
     observer.observe(el)
