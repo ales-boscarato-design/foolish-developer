@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #080808;
-  --foreground: #f0ede8;
+  --background: #faf9f6;
+  --foreground: #1c1915;
   --accent: #c8a97e;
   --accent-dark: #a8895e;
-  --muted: #111111;
-  --muted-fg: #555;
-  --border: #1e1e1e;
-  --card: #0f0f0f;
+  --muted: #f0ede8;
+  --muted-fg: #7a6f66;
+  --border: #e0d9d0;
+  --card: #ffffff;
   --limited: #c0392b;
 }
 
@@ -40,7 +40,7 @@ body::after {
   inset: 0;
   pointer-events: none;
   z-index: 9999;
-  opacity: 0.035;
+  opacity: 0.05;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
   background-size: 200px 200px;
 }
@@ -49,16 +49,19 @@ body::after {
   border-color: var(--border);
 }
 
-/* Display font — Bebas Neue */
+/* Display font — Cormorant Garamond italic per impatto editoriale */
 .font-display {
-  font-family: var(--font-bebas), 'Impact', sans-serif;
-  letter-spacing: 0.02em;
+  font-family: var(--font-cormorant), 'Georgia', serif;
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
-/* Artisan font — Amatic SC for headings */
+/* Artisan font — Cormorant Garamond regular per titoli di sezione */
 .font-artisan {
-  font-family: var(--font-amatic), cursive;
-  letter-spacing: 0.02em;
+  font-family: var(--font-cormorant), 'Georgia', serif;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 /* Fade-up staggerati */
@@ -101,8 +104,10 @@ body::after {
 
 /* Stat display */
 .stat-number {
-  font-family: var(--font-bebas), sans-serif;
-  letter-spacing: 0.02em;
+  font-family: var(--font-cormorant), serif;
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   line-height: 1;
 }
 
