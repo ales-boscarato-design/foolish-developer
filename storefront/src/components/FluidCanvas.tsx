@@ -83,7 +83,7 @@ void main(){
   gl_FragColor = vec4(v, 0.0, 1.0);
 }`
 
-// Luminous ink on dark — additive feel, bright where fluid accumulates
+// Subtle luminous ink — visible but never overwhelms text
 const DISPLAY_FRAG = `
 precision highp float;
 uniform sampler2D u_tex;
@@ -91,8 +91,8 @@ varying vec2 v_uv;
 void main(){
   vec3 c = texture2D(u_tex, v_uv).rgb;
   float lum = dot(c, vec3(0.25, 0.35, 0.40));
-  float a = clamp(lum * 4.0, 0.0, 0.88);
-  gl_FragColor = vec4(c * 1.15, a);
+  float a = clamp(lum * 2.2, 0.0, 0.38);
+  gl_FragColor = vec4(c * 0.9, a);
 }`
 
 // ── WebGL utilities ────────────────────────────────────────────────────────────
@@ -222,13 +222,13 @@ export function FluidCanvas() {
 
     const TX = [1 / SIM, 1 / SIM]
 
-    // Brand color palette — warm gold / cream / ember
+    // Brand color palette — muted warm gold, intentionally de-saturated
     type RGB = [number, number, number]
     const PALETTE: RGB[] = [
-      [0.78, 0.66, 0.49],  // brand gold  #c8a97d
-      [0.86, 0.76, 0.60],  // lighter gold
-      [0.60, 0.50, 0.36],  // deep amber
-      [0.92, 0.88, 0.80],  // warm cream  — catches like light on wet ink
+      [0.50, 0.42, 0.30],  // deep gold, dark
+      [0.55, 0.46, 0.34],  // muted amber
+      [0.38, 0.32, 0.22],  // very dark ember
+      [0.58, 0.52, 0.42],  // warm stone
     ]
 
     function splat(x: number, y: number, dx: number, dy: number, color: RGB, radius = 0.0018) {
@@ -258,14 +258,14 @@ export function FluidCanvas() {
       gl.uniform1i(advectP.locs['u_vel'], 0)
       gl.uniform1i(advectP.locs['u_src'], 1)
       gl.uniform1f(advectP.locs['u_dt'], dt)
-      gl.uniform1f(advectP.locs['u_diss'], 0.98)
+      gl.uniform1f(advectP.locs['u_diss'], 0.975)
       target(vel.write); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
       vel.swap()
 
-      // Advect dye
+      // Advect dye — faster dissipation so fluid fades before overwhelming text
       bindTex(vel.read.tex, 0); bindTex(dye.read.tex, 1)
       gl.uniform1i(advectP.locs['u_src'], 1)
-      gl.uniform1f(advectP.locs['u_diss'], 0.986)
+      gl.uniform1f(advectP.locs['u_diss'], 0.972)
       target(dye.write); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
       dye.swap()
 
@@ -318,10 +318,10 @@ export function FluidCanvas() {
       const scale = 0.22
       const x = 0.5 + scale * Math.cos(orbitT) / (1 + Math.sin(orbitT) ** 2)
       const y = 0.5 + (scale * 0.55) * Math.sin(orbitT) * Math.cos(orbitT) / (1 + Math.sin(orbitT) ** 2)
-      const dx = -Math.sin(orbitT) * 0.06
-      const dy =  Math.cos(orbitT) * 0.06
+      const dx = -Math.sin(orbitT) * 0.025
+      const dy =  Math.cos(orbitT) * 0.025
       const color = PALETTE[colorCycle % PALETTE.length]
-      splat(x, y, dx, dy, color, 0.0012)
+      splat(x, y, dx, dy, color, 0.0008)
     }
 
     // ── Mouse / touch ──────────────────────────────────────────────────────────
@@ -335,8 +335,8 @@ export function FluidCanvas() {
       const [x, y] = normPos(e.clientX, e.clientY)
       lastActive = Date.now()
       if (lastMouse.x >= 0) {
-        const dx = (x - lastMouse.x) * canvas.width * 0.4
-        const dy = (y - lastMouse.y) * canvas.height * 0.4
+        const dx = (x - lastMouse.x) * canvas.width * 0.25
+        const dy = (y - lastMouse.y) * canvas.height * 0.25
         if (Math.abs(dx) + Math.abs(dy) > 0.05) {
           colorCycle++
           splat(x, y, dx, dy, PALETTE[colorCycle % PALETTE.length])
@@ -347,19 +347,11 @@ export function FluidCanvas() {
 
     function onMouseLeave() { lastMouse = { x: -1, y: -1 } }
 
-    function onTouchMove(e: TouchEvent) {
-      lastActive = Date.now()
-      for (const t of Array.from(e.changedTouches)) {
-        const [x, y] = normPos(t.clientX, t.clientY)
-        colorCycle++
-        splat(x, y, 0, -0.25, PALETTE[colorCycle % PALETTE.length])
-      }
-      e.preventDefault()
-    }
+    // No touchmove listener — mobile gets the idle orbit animation only.
+    // Never preventDefault on touch events so native scroll (+ Lenis) works.
 
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('mouseleave', onMouseLeave)
-    window.addEventListener('touchmove', onTouchMove, { passive: false })
 
     // ── Animation loop ─────────────────────────────────────────────────────────
     let prevT = performance.now()
@@ -377,18 +369,8 @@ export function FluidCanvas() {
       rafId = requestAnimationFrame(loop)
     }
 
-    // Kick off with 3 ambient splats so there's already fluid on load
-    for (let i = 0; i < 3; i++) {
-      const a = (i / 3) * Math.PI * 2
-      splat(
-        0.5 + Math.cos(a) * 0.2,
-        0.5 + Math.sin(a) * 0.15,
-        Math.cos(a + 1) * 0.5,
-        Math.sin(a + 1) * 0.5,
-        PALETTE[i % PALETTE.length],
-        0.002,
-      )
-    }
+    // 1 gentle ambient splat on load — just enough to be visible
+    splat(0.5, 0.5, 0.08, 0.05, PALETTE[0], 0.001)
 
     rafId = requestAnimationFrame(loop)
 
@@ -403,7 +385,6 @@ export function FluidCanvas() {
       cancelAnimationFrame(rafId)
       window.removeEventListener('mousemove', onMouseMove)
       window.removeEventListener('mouseleave', onMouseLeave)
-      window.removeEventListener('touchmove', onTouchMove)
       window.removeEventListener('resize', onResize)
     }
   }, [])
@@ -417,7 +398,7 @@ export function FluidCanvas() {
         inset: 0,
         width: '100%',
         height: '100%',
-        zIndex: 1,
+        zIndex: 0,
         pointerEvents: 'none',
       }}
     />

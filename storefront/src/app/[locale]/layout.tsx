@@ -52,11 +52,9 @@ export default async function LocaleLayout({
           <NextIntlClientProvider messages={messages}>
             <CartProvider>
               <FluidCanvas />
-              <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-                <NavWrapper />
-                <main className="flex-1">{children}</main>
-                <Footer />
-              </div>
+              <NavWrapper />
+              <main className="flex-1">{children}</main>
+              <Footer />
             </CartProvider>
           </NextIntlClientProvider>
         </SmoothScrollProvider>
