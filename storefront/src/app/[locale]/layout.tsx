@@ -3,7 +3,8 @@ import { Outfit, Cormorant_Garamond } from 'next/font/google'
 import '../globals.css'
 import { NavWrapper } from '@/components/NavWrapper'
 import { CartProvider } from '@/components/CartProvider'
-import { InkThread } from '@/components/InkThread'
+import { FluidCanvas } from '@/components/FluidCanvas'
+import { SmoothScrollProvider } from '@/components/SmoothScrollProvider'
 import { NextIntlClientProvider } from 'next-intl'
 import { getMessages } from 'next-intl/server'
 import { routing } from '@/i18n/routing'
@@ -47,14 +48,18 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} className={`${outfit.variable} ${cormorant.variable}`} suppressHydrationWarning>
       <body className="min-h-screen flex flex-col" suppressHydrationWarning>
-        <NextIntlClientProvider messages={messages}>
-          <CartProvider>
-            <InkThread />
-            <NavWrapper />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </CartProvider>
-        </NextIntlClientProvider>
+        <SmoothScrollProvider>
+          <NextIntlClientProvider messages={messages}>
+            <CartProvider>
+              <FluidCanvas />
+              <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+                <NavWrapper />
+                <main className="flex-1">{children}</main>
+                <Footer />
+              </div>
+            </CartProvider>
+          </NextIntlClientProvider>
+        </SmoothScrollProvider>
       </body>
     </html>
   )
