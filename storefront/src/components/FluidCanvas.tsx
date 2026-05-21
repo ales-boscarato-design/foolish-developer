@@ -152,19 +152,22 @@ export function FluidCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
+    const _canvasRaw = canvasRef.current
+    if (!_canvasRaw) return
+    const canvas: HTMLCanvasElement = _canvasRaw
 
     canvas.width = window.innerWidth
     canvas.height = window.innerHeight
 
-    const gl = canvas.getContext('webgl', {
+    const _glRaw = canvas.getContext('webgl', {
       alpha: true,
       premultipliedAlpha: false,
       antialias: false,
       preserveDrawingBuffer: false,
-    }) as GL | null
-    if (!gl) return
+    })
+    if (!_glRaw) return
+    // Re-bind as non-nullable so TypeScript tracks it correctly in nested closures
+    const gl: GL = _glRaw as GL
 
     if (!gl.getExtension('OES_texture_float')) return
     gl.getExtension('OES_texture_float_linear')
