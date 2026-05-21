@@ -180,18 +180,17 @@ export function ProductDetail({ product }: { product: Product }) {
   const imageScale = useTransform(scrollYProgress, [0, 0.3], [1, 1.04])
   const imageY = useTransform(scrollYProgress, [0, 0.3], [0, -20])
 
-  // Sticky CTA bar on mobile
-  const { scrollY } = useScroll()
+  // Sticky CTA — appears exactly when the original button exits the viewport
   useEffect(() => {
-    const unsubscribe = scrollY.on('change', (y) => {
-      // Show sticky bar after scrolling past the add-to-cart button
-      if (addRef.current) {
-        const rect = addRef.current.getBoundingClientRect()
-        setShowStickyBar(y > rect.top + rect.height)
-      }
-    })
-    return unsubscribe
-  }, [scrollY])
+    const el = addRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowStickyBar(!entry.isIntersecting),
+      { threshold: 0 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   const handleVariantSelect = (v: ProductVariant) => {
     setSelectedVariant(v)
@@ -507,10 +506,10 @@ export function ProductDetail({ product }: { product: Product }) {
       <AnimatePresence>
         {showStickyBar && (
           <motion.div
-            initial={{ y: 100, opacity: 0 }}
+            initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ duration: 0.35, ease: 'easeOut' }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 28 }}
             className="fixed bottom-0 inset-x-0 z-50 lg:hidden border-t px-4 py-4"
             style={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)' }}
           >
