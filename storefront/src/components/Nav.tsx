@@ -81,6 +81,7 @@ export function Nav({ hasLimitedProducts = true }: NavProps) {
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        suppressHydrationWarning
       >
         <motion.div
           className="absolute inset-0 backdrop-blur-md"
@@ -185,12 +186,12 @@ export function Nav({ hasLimitedProducts = true }: NavProps) {
         </div>
       </motion.header>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer — top tracks header height so it never overlaps */}
       {open && (
-        <nav
-          className="fixed inset-x-0 z-40 border-b md:hidden"
+        <motion.nav
+          className="fixed inset-x-0 z-[49] border-b md:hidden"
           style={{
-            top: 60,
+            top: barHeight,
             backgroundColor: 'var(--background)',
             borderColor: 'var(--border)',
           }}
@@ -233,7 +234,7 @@ export function Nav({ hasLimitedProducts = true }: NavProps) {
           <div className="px-6 py-4 flex items-center gap-1">
             <LocaleSwitcher />
           </div>
-        </nav>
+        </motion.nav>
       )}
     </>
   )
