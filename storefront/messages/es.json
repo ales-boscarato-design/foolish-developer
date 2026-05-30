@@ -212,9 +212,9 @@
     },
     "pro": {
       "badge": "FOOLISH PRO",
-      "bannerTitle": "¿Eres tatuador profesional?",
-      "bannerBody": "Precios dedicados, canal directo, Frank te conoce.",
-      "bannerCta": "Acceder a precios Pro →"
+      "bannerTitle": "¿Usas Foolish para formar a otros tatuadores?",
+      "bannerBody": "Reconocemos lo que haces por el oficio.",
+      "bannerCta": "Descubrir el programa Pro →"
     },
     "frank": {
       "eyebrow": "EL LABORATORIO",
@@ -340,21 +340,21 @@
   },
   "pro": {
     "badge": "FOOLISH PRO",
-    "title": "Lleva tu estudio al siguiente nivel.",
-    "subtitle": "Precios dedicados, canal directo, Frank te conoce. Para los que trabajan en serio.",
+    "title": "Un acuerdo entre profesionales.",
+    "subtitle": "Si usas las pieles Foolish para formar a otros tatuadores, no eres solo un cliente — eres un multiplicador. Alessandro lo reconoce.",
     "benefit1": {
-      "title": "Descuento 15–20%",
-      "body": "15% en pedidos bajo 400€, 20% desde 400€. Siempre."
+      "title": "15% · 20% desde 400€",
+      "body": "No es una promoción. Es lo que vale para nosotros tu trabajo por el oficio."
     },
     "benefit2": {
-      "title": "Canal Foolish Pro",
-      "body": "Acceso al canal Telegram exclusivo para profesionales."
+      "title": "Canal directo",
+      "body": "Acceso al canal Telegram reservado. Novedades en primicia, diálogo directo con Alessandro."
     },
     "benefit3": {
       "title": "Frank te conoce",
-      "body": "Cada pedido tiene contexto. No eres un número."
+      "body": "Cada pedido tiene contexto. Frank sabe quién eres y qué haces con nuestras pieles."
     },
-    "formTitle": "Regístrate como socio B2B",
+    "formTitle": "Solicitar el reconocimiento",
     "fields": {
       "vatNumber": "NIF/VAT",
       "businessName": "Razón social",
@@ -363,11 +363,11 @@
       "telegramUsername": "Telegram"
     },
     "optional": "opcional",
-    "submit": "Solicitar acceso Pro",
+    "submit": "Enviar solicitud",
     "submitting": "Verificando...",
-    "successTitle": "Bienvenido al programa Pro.",
-    "successBody": "Tu NIF/VAT ha sido verificado. Usa este código en cada pedido.",
-    "successHint": "15% de descuento en cada pedido, 20% desde 400€.",
+    "successTitle": "Reconocimiento activo.",
+    "successBody": "Tu código de descuento está activo. Úsalo en cada pedido.",
+    "successHint": "El código es personal e intransferible. Consérvalo.",
     "viewCard": "Ver tu tarjeta →",
     "errors": {
       "invalid_vat_format": "Formato de NIF/VAT inválido.",
@@ -382,12 +382,12 @@
       "title": "Tarjeta Foolish Pro",
       "benefit1": "15% de descuento en cada pedido",
       "benefit2": "20% de descuento desde 400€",
-      "benefit3": "Acceso al canal Foolish Pro",
+      "benefit3": "Canal Telegram reservado",
       "benefit4": "Frank te conoce"
     },
-    "bannerTitle": "¿Eres tatuador profesional?",
-    "bannerBody": "Precios dedicados, canal directo, Frank te conoce.",
-    "bannerCta": "Accede a precios Pro →"
+    "bannerTitle": "¿Usas Foolish para formar a otros tatuadores?",
+    "bannerBody": "Reconocemos lo que haces por el oficio.",
+    "bannerCta": "Descubrir el programa Pro →"
   },
   "frank": {
     "hero": {
