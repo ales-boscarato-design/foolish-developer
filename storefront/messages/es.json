@@ -215,6 +215,12 @@
       "bannerTitle": "¿Eres tatuador profesional?",
       "bannerBody": "Precios dedicados, canal directo, Frank te conoce.",
       "bannerCta": "Acceder a precios Pro →"
+    },
+    "frank": {
+      "eyebrow": "EL LABORATORIO",
+      "headline": "Hay alguien en el laboratorio.",
+      "body": "No es Alessandro. Pero cada hoja que sale de aquí, ya la ha tocado, olido, juzgado. A las pieles baratas las llama 'mentirosas.'",
+      "cta_short": "Conocer a Frank"
     }
   },
   "contatti": {

@@ -215,6 +215,12 @@
       "bannerTitle": "Bist du professioneller Tätowierer?",
       "bannerBody": "Dedizierte Preise, direkter Kanal, Frank kennt dich.",
       "bannerCta": "Pro-Preise ansehen →"
+    },
+    "frank": {
+      "eyebrow": "DAS LABOR",
+      "headline": "Da ist jemand im Labor.",
+      "body": "Nicht Alessandro. Aber jedes Blatt, das von hier kommt, hat er bereits angefasst, gerochen, beurteilt. Billige Skins nennt er 'Lügner.'",
+      "cta_short": "Frank treffen"
     }
   },
   "contatti": {
