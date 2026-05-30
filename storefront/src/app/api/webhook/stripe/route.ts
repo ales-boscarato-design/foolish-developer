@@ -65,6 +65,16 @@ async function createOrderInCMS(session: Stripe.Checkout.Session): Promise<void>
     unitPrice: i.price,
   }))
 
+  // Check if order already exists (Stripe may retry webhooks)
+  const existing = await fetch(
+    `${cmsUrl}/api/orders?where[orderNumber][equals]=${encodeURIComponent(orderRef)}&limit=1`,
+    { headers: { 'x-storefront-secret': process.env.PAYLOAD_API_SECRET || '' } },
+  )
+  if (existing.ok) {
+    const existingData = await existing.json()
+    if (existingData.docs?.length > 0) return // already created, idempotent
+  }
+
   const res = await fetch(`${cmsUrl}/api/orders`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

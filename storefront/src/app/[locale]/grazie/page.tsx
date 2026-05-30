@@ -122,7 +122,7 @@ export default async function GraziePage({ searchParams }: GraziePageProps) {
         <p className="font-medium mb-2">{t('telegramTitle')}</p>
         <p className="text-sm mb-4" style={{ color: 'var(--muted-fg)' }}>{t('telegramBody')}</p>
         <a
-          href={`https://t.me/the_foolish_butcher_bot${orderRef ? `?start=order_${orderRef}` : ''}`}
+          href={`https://t.me/the_foolish_butcher_bot${session_id ? `?start=session_${session_id}` : ''}`}
           target="_blank" rel="noopener noreferrer"
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded font-semibold text-sm"
           style={{ backgroundColor: '#229ED9', color: 'white' }}

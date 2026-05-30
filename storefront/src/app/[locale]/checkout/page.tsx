@@ -228,7 +228,7 @@ export default function CheckoutPage() {
               </div>
               {promoType === 'percent_pro' && promoData && (
                 <div className="flex justify-between" style={{ color: '#4caf50' }}>
-                  <span>{t('promoProDiscount', { percent: promoData.discountPercent })}</span>
+                  <span>{t('promoProDiscount', { percent: promoData.discountPercent ?? 15 })}</span>
                   <span>−{promoData.discountAmount?.toFixed(2)}€</span>
                 </div>
               )}

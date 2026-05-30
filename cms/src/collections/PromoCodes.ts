@@ -29,7 +29,7 @@ export const PromoCodes: CollectionConfig = {
     {
       name: 'proMember',
       type: 'relationship',
-      relationTo: 'pro-members',
+      relationTo: 'pro-members' as 'users',
       required: false,
       label: 'Membro Pro',
     },
