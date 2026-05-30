@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
 
 const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://admin.thefoolishbutcher.com'
-const CMS_TOKEN = process.env.PAYLOAD_API_TOKEN || ''
+const CMS_SECRET = process.env.PAYLOAD_API_SECRET || ''
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'orderNumber and email are required' }, { status: 400 })
   }
 
-  if (!CMS_TOKEN) {
+  if (!CMS_SECRET) {
     return NextResponse.json({ error: 'CMS API token not configured' }, { status: 503 })
   }
 
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
       `${CMS_URL}/api/orders?where[orderNumber][equals]=${encodeURIComponent(orderNumber)}&where[customerEmail][equals]=${encodeURIComponent(email)}&depth=1`,
       {
         headers: {
-          Authorization: `users API-Key ${CMS_TOKEN}`,
+          'x-storefront-secret': CMS_SECRET,
           'Content-Type': 'application/json',
         },
         next: { revalidate: 0 },

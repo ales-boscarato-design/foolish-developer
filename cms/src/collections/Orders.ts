@@ -37,7 +37,12 @@ export const Orders: CollectionConfig = {
     group: 'Ordini',
   },
   access: {
-    read: ({ req }) => !!req.user, // solo admin
+    read: ({ req }) => {
+      if (req.user) return true
+      // Storefront può leggere con shared secret header
+      const secret = req.headers?.get?.('x-storefront-secret') ?? (req.headers as unknown as Record<string, string>)?.['x-storefront-secret']
+      return !!secret && secret === process.env.PAYLOAD_API_SECRET
+    },
     create: () => true,            // webhook può creare
     update: ({ req }) => !!req.user,
     delete: ({ req }) => !!req.user,
