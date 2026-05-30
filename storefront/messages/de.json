@@ -204,6 +204,12 @@
     },
     "sections": {
       "label": "Kollektion"
+    },
+    "pro": {
+      "badge": "FOOLISH PRO",
+      "bannerTitle": "Bist du professioneller Tätowierer?",
+      "bannerBody": "Dedizierte Preise, direkter Kanal, Frank kennt dich.",
+      "bannerCta": "Pro-Preise ansehen →"
     }
   },
   "contatti": {

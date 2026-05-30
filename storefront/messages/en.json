@@ -204,6 +204,12 @@
     },
     "sections": {
       "label": "Collection"
+    },
+    "pro": {
+      "badge": "FOOLISH PRO",
+      "bannerTitle": "Are you a professional tattoo artist?",
+      "bannerBody": "Dedicated pricing, direct channel, Frank knows you.",
+      "bannerCta": "Access Pro pricing →"
     }
   },
   "contatti": {
