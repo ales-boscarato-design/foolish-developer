@@ -1,7 +1,36 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, CollectionAfterChangeHook } from 'payload'
+
+const notifyNanobot: CollectionAfterChangeHook = async ({ doc, previousDoc, operation }) => {
+  const nanobotUrl = process.env.NANOBOT_WEBHOOK_URL
+  if (!nanobotUrl) return
+
+  // Notifica solo quando pipelineState cambia (o su create)
+  const stateChanged =
+    operation === 'create' ||
+    doc.pipelineState !== previousDoc?.pipelineState
+
+  if (!stateChanged) return
+
+  fetch(`${nanobotUrl}/hooks/foolish-order-state`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      orderNumber: doc.orderNumber,
+      pipelineState: doc.pipelineState,
+      previousState: previousDoc?.pipelineState ?? null,
+      customerEmail: doc.customerEmail,
+      trackingNumber: doc.trackingNumber ?? null,
+      trackingCarrier: doc.trackingCarrier ?? null,
+      productionEtaDays: doc.productionEtaDays ?? null,
+    }),
+  }).catch((err) => console.error('[Orders] nanobot notify failed:', err))
+}
 
 export const Orders: CollectionConfig = {
   slug: 'orders',
+  hooks: {
+    afterChange: [notifyNanobot],
+  },
   admin: {
     useAsTitle: 'orderNumber',
     defaultColumns: ['orderNumber', 'customerEmail', 'pipelineState', 'total', 'createdAt'],

@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
       `${CMS_URL}/api/orders?where[orderNumber][equals]=${encodeURIComponent(orderNumber)}&where[customerEmail][equals]=${encodeURIComponent(email)}&depth=1`,
       {
         headers: {
-          Authorization: `Bearer ${CMS_TOKEN}`,
+          Authorization: `users API-Key ${CMS_TOKEN}`,
           'Content-Type': 'application/json',
         },
         next: { revalidate: 0 },

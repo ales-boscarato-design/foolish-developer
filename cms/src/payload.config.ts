@@ -29,7 +29,9 @@ export default buildConfig({
     Media,
     {
       slug: 'users',
-      auth: true,
+      auth: {
+        useAPIKey: true,
+      },
       admin: {
         useAsTitle: 'email',
         group: 'Sistema',
@@ -38,6 +40,18 @@ export default buildConfig({
     },
   ],
   editor: lexicalEditor({}),
+  email: nodemailerAdapter({
+    defaultFromAddress: process.env.EMAIL_FROM || 'noreply@thefoolishbutcher.com',
+    defaultFromName: 'The Foolish Butcher',
+    transportOptions: {
+      host: process.env.SMTP_HOST || '',
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      auth: {
+        user: process.env.SMTP_USER || '',
+        pass: process.env.SMTP_PASS || '',
+      },
+    },
+  }),
   secret: process.env.PAYLOAD_SECRET || 'CHANGE_ME_IN_PRODUCTION',
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
