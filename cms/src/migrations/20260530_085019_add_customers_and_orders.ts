@@ -1,11 +1,31 @@
 import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres'
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
-  // Enum types
-  await db.execute(sql`CREATE TYPE IF NOT EXISTS enum_orders_source AS ENUM ('storefront', 'woocommerce', 'manual')`)
-  await db.execute(sql`CREATE TYPE IF NOT EXISTS enum_orders_pipeline_state AS ENUM ('received', 'eta_pending', 'eta_confirmed', 'in_production', 'matching_pending', 'matched', 'preview_sent', 'shipped', 'delivered', 'followup_done', 'closed')`)
-  await db.execute(sql`CREATE TYPE IF NOT EXISTS enum_customers_preferred_channel AS ENUM ('telegram', 'email')`)
-  await db.execute(sql`CREATE TYPE IF NOT EXISTS enum_customers_tags AS ENUM ('tatuatore', 'pmu', 'studente', 'professionista', 'vip')`)
+  // Enum types (PostgreSQL doesn't support IF NOT EXISTS for CREATE TYPE)
+  await db.execute(sql`
+    DO $$ BEGIN
+      CREATE TYPE enum_orders_source AS ENUM ('storefront', 'woocommerce', 'manual');
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$;
+  `)
+  await db.execute(sql`
+    DO $$ BEGIN
+      CREATE TYPE enum_orders_pipeline_state AS ENUM ('received', 'eta_pending', 'eta_confirmed', 'in_production', 'matching_pending', 'matched', 'preview_sent', 'shipped', 'delivered', 'followup_done', 'closed');
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$;
+  `)
+  await db.execute(sql`
+    DO $$ BEGIN
+      CREATE TYPE enum_customers_preferred_channel AS ENUM ('telegram', 'email');
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$;
+  `)
+  await db.execute(sql`
+    DO $$ BEGIN
+      CREATE TYPE enum_customers_tags AS ENUM ('tatuatore', 'pmu', 'studente', 'professionista', 'vip');
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$;
+  `)
 
   // Customers table
   await db.execute(sql`
