@@ -1,7 +1,6 @@
 import { buildConfig } from 'payload'
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
-import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -38,19 +37,6 @@ export default buildConfig({
     },
   ],
   editor: lexicalEditor({}),
-  email: nodemailerAdapter({
-    defaultFromAddress: process.env.EMAIL_FROM || 'noreply@thefoolishbutcher.com',
-    defaultFromName: 'The Foolish Butcher',
-    transportOptions: {
-      host: process.env.SMTP_HOST || '',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: parseInt(process.env.SMTP_PORT || '587') === 465,
-      auth: {
-        user: process.env.SMTP_USER || '',
-        pass: process.env.SMTP_PASS || '',
-      },
-    },
-  }),
   secret: process.env.PAYLOAD_SECRET || 'CHANGE_ME_IN_PRODUCTION',
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),

@@ -55,12 +55,31 @@ const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation
 </body>
 </html>`
 
+  const resendKey = process.env.RESEND_API_KEY
+  const fromAddress = process.env.EMAIL_FROM || 'noreply@thefoolishbutcher.com'
+  if (!resendKey) {
+    console.error('[Orders] RESEND_API_KEY not set — skipping confirmation email')
+    return
+  }
+
   try {
-    await req.payload.sendEmail({
-      to: doc.customerEmail,
-      subject: `Ordine ricevuto — ${doc.orderNumber}`,
-      html,
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: `The Foolish Butcher <${fromAddress}>`,
+        to: [doc.customerEmail],
+        subject: `Ordine ricevuto — ${doc.orderNumber}`,
+        html,
+      }),
     })
+    if (!res.ok) {
+      const text = await res.text()
+      console.error('[Orders] Resend API error:', res.status, text)
+    }
   } catch (err) {
     console.error('[Orders] sendOrderConfirmation failed:', err)
   }
