@@ -1,5 +1,71 @@
 import type { CollectionConfig, CollectionAfterChangeHook } from 'payload'
 
+const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation, req }) => {
+  if (operation !== 'create') return
+  if (!doc.customerEmail) return
+
+  const items: Array<{ name: string; variantLabel: string; quantity: number; unitPrice: number }> =
+    Array.isArray(doc.lineItems) ? doc.lineItems : []
+
+  const itemsHtml = items
+    .map(
+      (i) =>
+        `<tr>
+          <td style="padding:4px 8px">${i.name} — ${i.variantLabel}</td>
+          <td style="padding:4px 8px;text-align:center">${i.quantity}</td>
+          <td style="padding:4px 8px;text-align:right">${(i.unitPrice * i.quantity).toFixed(2)}€</td>
+        </tr>`,
+    )
+    .join('')
+
+  const shippingLine =
+    doc.shippingCost > 0
+      ? `<tr><td style="padding:4px 8px">Spedizione</td><td></td><td style="padding:4px 8px;text-align:right">${Number(doc.shippingCost).toFixed(2)}€</td></tr>`
+      : `<tr><td style="padding:4px 8px" colspan="3" style="color:#4caf50">Spedizione gratuita</td></tr>`
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif;color:#111;max-width:560px;margin:0 auto;padding:24px">
+  <h2 style="margin-bottom:4px">Ordine ricevuto.</h2>
+  <p style="color:#555;margin-top:0">Riferimento: <strong>${doc.orderNumber}</strong></p>
+
+  <p>Ciao ${doc.customerName ?? ''},<br>
+  Ho ricevuto il tuo ordine. Lo produco personalmente — ti scrivo appena è pronto con le foto di quello che ti mando.</p>
+
+  <table style="width:100%;border-collapse:collapse;margin:16px 0">
+    <thead>
+      <tr style="border-bottom:1px solid #eee">
+        <th style="text-align:left;padding:4px 8px">Prodotto</th>
+        <th style="padding:4px 8px">Qtà</th>
+        <th style="text-align:right;padding:4px 8px">Prezzo</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${itemsHtml}
+      ${shippingLine}
+      <tr style="border-top:1px solid #eee;font-weight:bold">
+        <td style="padding:8px 8px" colspan="2">Totale</td>
+        <td style="padding:8px 8px;text-align:right">${Number(doc.total).toFixed(2)}€</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p style="font-size:13px;color:#555">Alessandro<br>The Foolish Butcher</p>
+</body>
+</html>`
+
+  try {
+    await req.payload.sendEmail({
+      to: doc.customerEmail,
+      subject: `Ordine ricevuto — ${doc.orderNumber}`,
+      html,
+    })
+  } catch (err) {
+    console.error('[Orders] sendOrderConfirmation failed:', err)
+  }
+}
+
 const notifyNanobot: CollectionAfterChangeHook = async ({ doc, previousDoc, operation }) => {
   const nanobotUrl = process.env.NANOBOT_WEBHOOK_URL
   if (!nanobotUrl) return
@@ -29,7 +95,7 @@ const notifyNanobot: CollectionAfterChangeHook = async ({ doc, previousDoc, oper
 export const Orders: CollectionConfig = {
   slug: 'orders',
   hooks: {
-    afterChange: [notifyNanobot],
+    afterChange: [sendOrderConfirmation, notifyNanobot],
   },
   admin: {
     useAsTitle: 'orderNumber',
