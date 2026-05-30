@@ -422,6 +422,30 @@ export default async function HomePage() {
       </section>
 
       {/* ════════════════════════════════════════════════
+          FOOLISH PRO — Banner B2B
+      ════════════════════════════════════════════════ */}
+      <section className="border-b" style={{ borderColor: 'var(--border)' }}>
+        <div className="max-w-7xl mx-auto px-8 md:px-16 py-10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <span className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--accent)' }}>
+                {t('pro.badge')}
+              </span>
+              <p className="text-base font-semibold mt-1">{t('pro.bannerTitle')}</p>
+              <p className="text-sm mt-0.5" style={{ color: 'var(--muted-fg)' }}>{t('pro.bannerBody')}</p>
+            </div>
+            <a
+              href="/pro"
+              className="flex-shrink-0 px-5 py-2.5 rounded font-semibold text-sm border transition-opacity hover:opacity-80"
+              style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}
+            >
+              {t('pro.bannerCta')}
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════
           CTA FINALE — Chiusura forte
       ════════════════════════════════════════════════ */}
       <section className="px-8 md:px-16 py-28 flex flex-col items-start max-w-7xl mx-auto">
