@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
-  const { items, shippingCost, customer } = await req.json()
+  const { items, shippingCost, customer, discountAmount, discountLabel } = await req.json()
   const orderRef = `FOOLISH-${Date.now()}`
 
   const lineItems = [
@@ -39,6 +39,14 @@ export async function POST(req: NextRequest) {
         currency: 'eur',
         unit_amount: Math.round(shippingCost * 100),
         product_data: { name: 'Spedizione' },
+      },
+      quantity: 1,
+    }] : []),
+    ...(discountAmount && discountAmount > 0 ? [{
+      price_data: {
+        currency: 'eur',
+        unit_amount: -Math.round(discountAmount * 100),
+        product_data: { name: discountLabel || 'Sconto promozionale' },
       },
       quantity: 1,
     }] : []),

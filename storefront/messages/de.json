@@ -69,7 +69,9 @@
     "promoApply": "Anwenden",
     "promoFreeShipping": "✓ Kostenloser Versand angewendet",
     "promoInvalid": "Ungültiger Code",
-    "promoRemove": "Entfernen"
+    "promoRemove": "Entfernen",
+    "promoProDiscount": "Pro-Rabatt {percent}%",
+    "promoProActive": "✓ Pro-Rabatt {percent}% angewendet"
   },
   "grazie": {
     "title": "Bestellung erhalten.",
@@ -318,5 +320,53 @@
     "liabilityText": "Die Produkte sind ausschließlich für die Übung auf synthetischen Materialien bestimmt. Der Verkäufer übernimmt keine Haftung für unsachgemäßen Gebrauch oder Verwendung auf menschlichem Gewebe.",
     "jurisdiction": "8. Zuständiges Gericht",
     "jurisdictionText": "Für alle Streitigkeiten ist das Gericht Turin zuständig. Es gilt italienisches Recht."
+  },
+  "pro": {
+    "badge": "FOOLISH PRO",
+    "title": "Bringe dein Studio auf das nächste Level.",
+    "subtitle": "Sonderpreise, direkter Kanal, Frank kennt dich. Für alle, die es ernst nehmen.",
+    "benefit1": {
+      "title": "15–20% Rabatt",
+      "body": "15% bei Bestellungen unter 400€, 20% ab 400€. Immer."
+    },
+    "benefit2": {
+      "title": "Foolish Pro Kanal",
+      "body": "Zugang zum exklusiven Telegram-Kanal für Profis."
+    },
+    "benefit3": {
+      "title": "Frank kennt dich",
+      "body": "Jede Bestellung hat Kontext. Du bist keine Nummer."
+    },
+    "formTitle": "Als B2B-Partner registrieren",
+    "fields": {
+      "vatNumber": "USt-IdNr. / VAT",
+      "businessName": "Firmenname",
+      "contactName": "Vor- und Nachname",
+      "email": "E-Mail",
+      "telegramUsername": "Telegram"
+    },
+    "optional": "optional",
+    "submit": "Pro-Zugang beantragen",
+    "submitting": "Wird geprüft...",
+    "successTitle": "Willkommen im Pro-Programm.",
+    "successBody": "Deine USt-IdNr. wurde verifiziert. Nutze diesen Code bei jeder Bestellung.",
+    "successHint": "15% Rabatt auf jede Bestellung, 20% ab 400€.",
+    "viewCard": "Karte ansehen →",
+    "errors": {
+      "invalid_vat_format": "Ungültiges USt-IdNr.-Format.",
+      "vat_not_found": "USt-IdNr. nicht im EU-VIES-Register gefunden.",
+      "already_registered": "Diese USt-IdNr. ist bereits im Foolish Pro Programm registriert.",
+      "cms_error": "Vorübergehender Fehler. Bitte in einigen Minuten erneut versuchen.",
+      "generic": "Unerwarteter Fehler. Kontaktiere uns auf Telegram.",
+      "missing_fields": "Bitte alle Pflichtfelder ausfüllen.",
+      "invalid_email": "Ungültige E-Mail-Adresse."
+    },
+    "card": {
+      "title": "Foolish Pro Karte",
+      "benefit1": "15% Rabatt auf jede Bestellung",
+      "benefit2": "20% Rabatt ab 400€",
+      "benefit3": "Zugang zum Foolish Pro Kanal",
+      "benefit4": "Frank kennt dich"
+    }
   }
 }

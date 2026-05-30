@@ -69,7 +69,9 @@
     "promoApply": "Applica",
     "promoFreeShipping": "✓ Spedizione gratuita applicata",
     "promoInvalid": "Codice non valido",
-    "promoRemove": "Rimuovi"
+    "promoRemove": "Rimuovi",
+    "promoProDiscount": "Sconto Pro {percent}%",
+    "promoProActive": "✓ Sconto Pro {percent}% applicato"
   },
   "grazie": {
     "title": "Ordine ricevuto.",
@@ -318,5 +320,53 @@
     "liabilityText": "I prodotti sono destinati esclusivamente alla pratica su materiali sintetici. Il venditore declina ogni responsabilità per utilizzi impropri o su tessuto umano.",
     "jurisdiction": "8. Foro competente",
     "jurisdictionText": "Per qualsiasi controversia è competente il Foro di Torino. La legge applicabile è quella italiana."
+  },
+  "pro": {
+    "badge": "FOOLISH PRO",
+    "title": "Porta il tuo studio al livello successivo.",
+    "subtitle": "Prezzi dedicati, canale diretto, Frank ti conosce. Per chi lavora sul serio.",
+    "benefit1": {
+      "title": "Sconto 15–20%",
+      "body": "15% su ordini sotto 400€, 20% da 400€ in su. Sempre."
+    },
+    "benefit2": {
+      "title": "Canale Foolish Pro",
+      "body": "Accesso al canale Telegram riservato ai professionisti."
+    },
+    "benefit3": {
+      "title": "Frank ti conosce",
+      "body": "Ogni tuo ordine ha un contesto. Non sei un numero."
+    },
+    "formTitle": "Registrati come partner B2B",
+    "fields": {
+      "vatNumber": "P.IVA / VAT Number",
+      "businessName": "Ragione sociale",
+      "contactName": "Nome e cognome",
+      "email": "Email",
+      "telegramUsername": "Telegram"
+    },
+    "optional": "opzionale",
+    "submit": "Richiedi accesso Pro",
+    "submitting": "Verifica in corso...",
+    "successTitle": "Benvenuto nel programma Pro.",
+    "successBody": "La tua P.IVA è verificata. Usa questo codice ad ogni ordine.",
+    "successHint": "15% di sconto su ogni ordine, 20% da 400€ in su.",
+    "viewCard": "Vedi la tua tessera →",
+    "errors": {
+      "invalid_vat_format": "Formato P.IVA non valido. Per l'Italia: 11 cifre senza prefisso.",
+      "vat_not_found": "P.IVA non trovata nel registro EU VIES. Verifica il numero e riprova.",
+      "already_registered": "Questa P.IVA è già registrata al programma Foolish Pro.",
+      "cms_error": "Errore temporaneo. Riprova tra qualche minuto.",
+      "generic": "Errore imprevisto. Contattaci su Telegram.",
+      "missing_fields": "Compila tutti i campi obbligatori.",
+      "invalid_email": "Indirizzo email non valido."
+    },
+    "card": {
+      "title": "Tessera Foolish Pro",
+      "benefit1": "Sconto 15% su ogni ordine",
+      "benefit2": "Sconto 20% da 400€ in su",
+      "benefit3": "Accesso canale Foolish Pro",
+      "benefit4": "Frank ti conosce"
+    }
   }
 }

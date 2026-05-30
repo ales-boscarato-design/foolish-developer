@@ -69,7 +69,9 @@
     "promoApply": "Appliquer",
     "promoFreeShipping": "✓ Livraison gratuite appliquée",
     "promoInvalid": "Code invalide",
-    "promoRemove": "Supprimer"
+    "promoRemove": "Supprimer",
+    "promoProDiscount": "Réduction Pro {percent}%",
+    "promoProActive": "✓ Réduction Pro {percent}% appliquée"
   },
   "grazie": {
     "title": "Commande reçue.",
@@ -318,5 +320,53 @@
     "liabilityText": "Les produits sont destinés exclusivement à la pratique sur des matériaux synthétiques. Le vendeur décline toute responsabilité en cas d'utilisation impropre ou sur tissu humain.",
     "jurisdiction": "8. Tribunal compétent",
     "jurisdictionText": "Le Tribunal de Turin est compétent pour tout litige. La loi italienne s'applique."
+  },
+  "pro": {
+    "badge": "FOOLISH PRO",
+    "title": "Faites passer votre studio au niveau supérieur.",
+    "subtitle": "Prix dédiés, canal direct, Frank vous connaît. Pour ceux qui travaillent sérieusement.",
+    "benefit1": {
+      "title": "Réduction 15–20%",
+      "body": "15% sur les commandes sous 400€, 20% à partir de 400€. Toujours."
+    },
+    "benefit2": {
+      "title": "Canal Foolish Pro",
+      "body": "Accès au canal Telegram réservé aux professionnels."
+    },
+    "benefit3": {
+      "title": "Frank vous connaît",
+      "body": "Chaque commande a un contexte. Vous n'êtes pas un numéro."
+    },
+    "formTitle": "S'inscrire comme partenaire B2B",
+    "fields": {
+      "vatNumber": "N° TVA",
+      "businessName": "Raison sociale",
+      "contactName": "Nom et prénom",
+      "email": "Email",
+      "telegramUsername": "Telegram"
+    },
+    "optional": "optionnel",
+    "submit": "Demander l'accès Pro",
+    "submitting": "Vérification...",
+    "successTitle": "Bienvenue dans le programme Pro.",
+    "successBody": "Votre numéro TVA est vérifié. Utilisez ce code à chaque commande.",
+    "successHint": "15% de réduction sur chaque commande, 20% à partir de 400€.",
+    "viewCard": "Voir votre carte →",
+    "errors": {
+      "invalid_vat_format": "Format de numéro TVA invalide.",
+      "vat_not_found": "Numéro TVA non trouvé dans le registre EU VIES.",
+      "already_registered": "Ce numéro TVA est déjà inscrit au programme Foolish Pro.",
+      "cms_error": "Erreur temporaire. Réessayez dans quelques minutes.",
+      "generic": "Erreur inattendue. Contactez-nous sur Telegram.",
+      "missing_fields": "Veuillez remplir tous les champs obligatoires.",
+      "invalid_email": "Adresse email invalide."
+    },
+    "card": {
+      "title": "Carte Foolish Pro",
+      "benefit1": "15% de réduction sur chaque commande",
+      "benefit2": "20% de réduction à partir de 400€",
+      "benefit3": "Accès au canal Foolish Pro",
+      "benefit4": "Frank vous connaît"
+    }
   }
 }

@@ -69,7 +69,9 @@
     "promoApply": "Apply",
     "promoFreeShipping": "✓ Free shipping applied",
     "promoInvalid": "Invalid code",
-    "promoRemove": "Remove"
+    "promoRemove": "Remove",
+    "promoProDiscount": "Pro discount {percent}%",
+    "promoProActive": "✓ Pro discount {percent}% applied"
   },
   "grazie": {
     "title": "Order received.",
@@ -318,5 +320,53 @@
     "liabilityText": "Products are intended exclusively for practice on synthetic materials. The seller declines all responsibility for improper use or use on human tissue.",
     "jurisdiction": "8. Competent court",
     "jurisdictionText": "The Court of Turin has exclusive jurisdiction for any dispute. Italian law applies."
+  },
+  "pro": {
+    "badge": "FOOLISH PRO",
+    "title": "Take your studio to the next level.",
+    "subtitle": "Dedicated pricing, direct channel, Frank knows you. For those who work seriously.",
+    "benefit1": {
+      "title": "15–20% discount",
+      "body": "15% on orders under €400, 20% from €400 up. Always."
+    },
+    "benefit2": {
+      "title": "Foolish Pro channel",
+      "body": "Access to the exclusive Telegram channel for professionals."
+    },
+    "benefit3": {
+      "title": "Frank knows you",
+      "body": "Every order has context. You are not a number."
+    },
+    "formTitle": "Register as a B2B partner",
+    "fields": {
+      "vatNumber": "VAT Number",
+      "businessName": "Business name",
+      "contactName": "Full name",
+      "email": "Email",
+      "telegramUsername": "Telegram"
+    },
+    "optional": "optional",
+    "submit": "Request Pro access",
+    "submitting": "Verifying...",
+    "successTitle": "Welcome to the Pro program.",
+    "successBody": "Your VAT number is verified. Use this code on every order.",
+    "successHint": "15% discount on every order, 20% from €400 up.",
+    "viewCard": "View your card →",
+    "errors": {
+      "invalid_vat_format": "Invalid VAT format. For Italy: 11 digits without prefix.",
+      "vat_not_found": "VAT number not found in EU VIES registry. Please verify and try again.",
+      "already_registered": "This VAT number is already registered in the Foolish Pro program.",
+      "cms_error": "Temporary error. Please retry in a few minutes.",
+      "generic": "Unexpected error. Contact us on Telegram.",
+      "missing_fields": "Please fill in all required fields.",
+      "invalid_email": "Invalid email address."
+    },
+    "card": {
+      "title": "Foolish Pro Card",
+      "benefit1": "15% discount on every order",
+      "benefit2": "20% discount from €400 up",
+      "benefit3": "Access to Foolish Pro channel",
+      "benefit4": "Frank knows you"
+    }
   }
 }

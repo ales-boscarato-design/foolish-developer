@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
-// Env var format: '{"FREESHIP":"free_shipping","WELCOME10":"percent_10"}'
+const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1dda.up.railway.app'
+
 function getCodes(): Record<string, string> {
   try {
     return JSON.parse(process.env.PROMO_CODES || '{}')
@@ -11,18 +12,47 @@ function getCodes(): Record<string, string> {
   }
 }
 
+function calcProDiscount(total: number): { discountPercent: number; discountAmount: number } {
+  const discountPercent = total >= 400 ? 20 : 15
+  const discountAmount = parseFloat(((total * discountPercent) / 100).toFixed(2))
+  return { discountPercent, discountAmount }
+}
+
 export async function POST(req: NextRequest) {
-  const { code } = await req.json()
+  const body = await req.json()
+  const { code, total } = body as { code?: string; total?: number }
+
   if (!code || typeof code !== 'string') {
     return NextResponse.json({ valid: false })
   }
 
-  const codes = getCodes()
-  const type = codes[code.toUpperCase().trim()]
+  const normalizedCode = code.toUpperCase().trim()
 
-  if (!type) {
-    return NextResponse.json({ valid: false })
+  // 1. Check CMS PromoCodes
+  try {
+    const cmsRes = await fetch(
+      `${CMS_URL}/api/promo-codes?where[code][equals]=${encodeURIComponent(normalizedCode)}&where[active][equals]=true&depth=0&limit=1`,
+      { cache: 'no-store' },
+    )
+    if (cmsRes.ok) {
+      const cmsData = await cmsRes.json()
+      const cmsCode = cmsData.docs?.[0]
+      if (cmsCode) {
+        if (cmsCode.type === 'percent_pro') {
+          const cartTotal = typeof total === 'number' && total > 0 ? total : 0
+          const { discountPercent, discountAmount } = calcProDiscount(cartTotal)
+          return NextResponse.json({ valid: true, type: 'percent_pro', discountPercent, discountAmount })
+        }
+        return NextResponse.json({ valid: true, type: cmsCode.type })
+      }
+    }
+  } catch {
+    // CMS unreachable — fall through to env var
   }
 
+  // 2. Fallback: env var PROMO_CODES
+  const codes = getCodes()
+  const type = codes[normalizedCode]
+  if (!type) return NextResponse.json({ valid: false })
   return NextResponse.json({ valid: true, type })
 }

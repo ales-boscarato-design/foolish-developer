@@ -69,7 +69,9 @@
     "promoApply": "Aplicar",
     "promoFreeShipping": "✓ Envío gratuito aplicado",
     "promoInvalid": "Código inválido",
-    "promoRemove": "Quitar"
+    "promoRemove": "Quitar",
+    "promoProDiscount": "Descuento Pro {percent}%",
+    "promoProActive": "✓ Descuento Pro {percent}% aplicado"
   },
   "grazie": {
     "title": "Pedido recibido.",
@@ -318,5 +320,53 @@
     "liabilityText": "Los productos están destinados exclusivamente a la práctica en materiales sintéticos. El vendedor declina toda responsabilidad por uso indebido o uso en tejido humano.",
     "jurisdiction": "8. Foro competente",
     "jurisdictionText": "El Tribunal de Turín es competente para cualquier controversia. Se aplica la ley italiana."
+  },
+  "pro": {
+    "badge": "FOOLISH PRO",
+    "title": "Lleva tu estudio al siguiente nivel.",
+    "subtitle": "Precios dedicados, canal directo, Frank te conoce. Para los que trabajan en serio.",
+    "benefit1": {
+      "title": "Descuento 15–20%",
+      "body": "15% en pedidos bajo 400€, 20% desde 400€. Siempre."
+    },
+    "benefit2": {
+      "title": "Canal Foolish Pro",
+      "body": "Acceso al canal Telegram exclusivo para profesionales."
+    },
+    "benefit3": {
+      "title": "Frank te conoce",
+      "body": "Cada pedido tiene contexto. No eres un número."
+    },
+    "formTitle": "Regístrate como socio B2B",
+    "fields": {
+      "vatNumber": "NIF/VAT",
+      "businessName": "Razón social",
+      "contactName": "Nombre y apellidos",
+      "email": "Email",
+      "telegramUsername": "Telegram"
+    },
+    "optional": "opcional",
+    "submit": "Solicitar acceso Pro",
+    "submitting": "Verificando...",
+    "successTitle": "Bienvenido al programa Pro.",
+    "successBody": "Tu NIF/VAT ha sido verificado. Usa este código en cada pedido.",
+    "successHint": "15% de descuento en cada pedido, 20% desde 400€.",
+    "viewCard": "Ver tu tarjeta →",
+    "errors": {
+      "invalid_vat_format": "Formato de NIF/VAT inválido.",
+      "vat_not_found": "NIF/VAT no encontrado en el registro EU VIES.",
+      "already_registered": "Este NIF/VAT ya está registrado en el programa Foolish Pro.",
+      "cms_error": "Error temporal. Inténtalo de nuevo en unos minutos.",
+      "generic": "Error inesperado. Contáctanos en Telegram.",
+      "missing_fields": "Por favor rellena todos los campos obligatorios.",
+      "invalid_email": "Dirección de email inválida."
+    },
+    "card": {
+      "title": "Tarjeta Foolish Pro",
+      "benefit1": "15% de descuento en cada pedido",
+      "benefit2": "20% de descuento desde 400€",
+      "benefit3": "Acceso al canal Foolish Pro",
+      "benefit4": "Frank te conoce"
+    }
   }
 }

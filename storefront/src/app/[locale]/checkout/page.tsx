@@ -24,6 +24,7 @@ export default function CheckoutPage() {
   const [promoCode, setPromoCode] = useState('')
   const [promoStatus, setPromoStatus] = useState<'idle' | 'loading' | 'valid' | 'invalid'>('idle')
   const [promoType, setPromoType] = useState<string | null>(null)
+  const [promoData, setPromoData] = useState<{ discountPercent?: number; discountAmount?: number } | null>(null)
 
   const cartTotal = total()
   const baseShipping = calculateShipping(cartTotal, country)
@@ -31,7 +32,8 @@ export default function CheckoutPage() {
   const shipping = freeShippingByPromo
     ? { ...baseShipping, cost: 0, isFree: true }
     : baseShipping
-  const grandTotal = cartTotal + shipping.cost
+  const proDiscount = promoType === 'percent_pro' ? (promoData?.discountAmount ?? 0) : 0
+  const grandTotal = cartTotal + shipping.cost - proDiscount
   const remaining = freeShippingByPromo ? 0 : freeShippingRemaining(cartTotal, country)
 
   const applyPromo = async () => {
@@ -41,17 +43,24 @@ export default function CheckoutPage() {
       const res = await fetch('/api/promo/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: promoCode }),
+        body: JSON.stringify({ code: promoCode, total: cartTotal }),
       })
       const data = await res.json()
       if (data.valid) {
         setPromoType(data.type)
         setPromoStatus('valid')
+        if (data.type === 'percent_pro') {
+          setPromoData({ discountPercent: data.discountPercent, discountAmount: data.discountAmount })
+        } else {
+          setPromoData(null)
+        }
       } else {
         setPromoStatus('invalid')
+        setPromoData(null)
       }
     } catch {
       setPromoStatus('invalid')
+      setPromoData(null)
     }
   }
 
@@ -59,6 +68,7 @@ export default function CheckoutPage() {
     setPromoCode('')
     setPromoType(null)
     setPromoStatus('idle')
+    setPromoData(null)
   }
 
   if (items.length === 0) {
@@ -84,6 +94,8 @@ export default function CheckoutPage() {
           total: grandTotal,
           customer: { ...form, country },
           promoCode: promoStatus === 'valid' ? promoCode : undefined,
+          discountAmount: proDiscount > 0 ? proDiscount : undefined,
+          discountLabel: promoData?.discountPercent ? `Sconto Foolish Pro ${promoData.discountPercent}%` : undefined,
         }),
       })
       const data = await res.json()
@@ -214,6 +226,12 @@ export default function CheckoutPage() {
                 <span style={{ color: 'var(--muted-fg)' }}>{t('labelShipping', { country })}</span>
                 <span>{shipping.isFree ? <span style={{ color: '#4caf50' }}>{t('labelFree')}</span> : `${shipping.cost.toFixed(2)}€`}</span>
               </div>
+              {promoType === 'percent_pro' && promoData && (
+                <div className="flex justify-between" style={{ color: '#4caf50' }}>
+                  <span>{t('promoProDiscount', { percent: promoData.discountPercent })}</span>
+                  <span>−{promoData.discountAmount?.toFixed(2)}€</span>
+                </div>
+              )}
               {!shipping.isFree && (
                 <p className="text-xs" style={{ color: 'var(--muted-fg)' }}>
                   {t('labelFreeAbove', { amount: shipping.freeAbove })}
@@ -252,7 +270,11 @@ export default function CheckoutPage() {
                 </div>
               ) : (
                 <div className="flex items-center justify-between text-sm">
-                  <span style={{ color: '#4caf50' }}>{t('promoFreeShipping')}</span>
+                  <span style={{ color: '#4caf50' }}>
+                    {promoType === 'percent_pro'
+                      ? t('promoProActive', { percent: promoData?.discountPercent ?? 15 })
+                      : t('promoFreeShipping')}
+                  </span>
                   <button onClick={removePromo} className="text-xs underline" style={{ color: 'var(--muted-fg)' }}>{t('promoRemove')}</button>
                 </div>
               )}

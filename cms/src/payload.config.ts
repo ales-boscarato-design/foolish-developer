@@ -8,6 +8,8 @@ import { Products } from './collections/Products'
 import { Orders } from './collections/Orders'
 import { Customers } from './collections/Customers'
 import { Media } from './collections/Media'
+import { ProMembers } from './collections/ProMembers'
+import { PromoCodes } from './collections/PromoCodes'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -26,6 +28,8 @@ export default buildConfig({
     Orders,
     Customers,
     Media,
+    ProMembers,
+    PromoCodes,
     {
       slug: 'users',
       auth: true,
