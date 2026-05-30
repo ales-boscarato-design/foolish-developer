@@ -490,7 +490,7 @@ export default async function HomePage() {
         <p className="text-xs uppercase tracking-[0.3em] mb-6" style={{ color: 'var(--accent)' }}>
           {t('finale.subtitle')}
         </p>
-        <h2 className="font-display text-[clamp(38px,9vw,120px)] leading-none mb-10 max-w-3xl">
+        <h2 className="font-display text-[clamp(38px,9vw,120px)] leading-none mb-10 whitespace-nowrap">
           <SplitText
             text={t('finale.headline1')}
             className="block"
