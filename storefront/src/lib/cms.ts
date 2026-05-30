@@ -56,6 +56,15 @@ export interface WhatsInTheBox {
   description: string
 }
 
+export interface ProductComponent {
+  id: string
+  name: string
+  slug: string
+  basePrice: number
+  images: ProductImage[]
+  variants: ProductVariant[]
+}
+
 export interface Product {
   id: string
   name: string
@@ -88,6 +97,7 @@ export interface Product {
   featureHighlights?: FeatureHighlight[]
   usageSteps?: UsageStep[]
   whatsInTheBox?: WhatsInTheBox[]
+  components?: ProductComponent[]
 }
 
 async function fetchAPI<T>(path: string, params?: Record<string, string>): Promise<T> {
@@ -128,6 +138,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   const data = await fetchAPI<{ docs: Product[] }>('/products', {
     'where[slug][equals]': slug,
     limit: '1',
+    depth: '2',
   })
   return data.docs[0] ?? null
 }

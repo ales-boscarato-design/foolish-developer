@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { ShoppingBag, Check, Star, Shield, Truck, Sparkles, Info } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion'
-import type { Product, ProductVariant, ProductAttribute, ProductVariantCombination, FeatureHighlight } from '@/lib/cms'
+import type { Product, ProductVariant, ProductAttribute, ProductVariantCombination, FeatureHighlight, ProductComponent } from '@/lib/cms'
 import { useCart } from '@/lib/cart'
 import { RichText } from './RichText'
 
@@ -152,6 +152,59 @@ function FeatureCard({ highlight, delay = 0 }: FeatureCardProps) {
       </div>
       <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--foreground)' }}>{highlight.title}</h3>
       <p className="text-xs leading-relaxed" style={{ color: 'var(--muted-fg)' }}>{highlight.description}</p>
+    </motion.div>
+  )
+}
+
+// ─── Component product card ──────────────────────────────────────────────────
+function ComponentCard({ component }: { component: ProductComponent }) {
+  const addToCart = useCart((s) => s.add)
+  const [added, setAdded] = useState(false)
+  const firstVariant = component.variants[0]
+  const firstImage = component.images[0]?.image
+
+  const handleAdd = () => {
+    if (!firstVariant) return
+    addToCart(component as unknown as Product, firstVariant, {})
+    setAdded(true)
+    setTimeout(() => setAdded(false), 1800)
+  }
+
+  return (
+    <motion.div
+      variants={itemVariants}
+      className="rounded-2xl p-5 flex gap-4 items-center border"
+      style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
+      whileHover={{ y: -2 }}
+    >
+      {/* Immagine */}
+      <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative" style={{ backgroundColor: 'var(--muted)' }}>
+        {firstImage?.url ? (
+          <Image src={firstImage.url} alt={component.name} fill className="object-cover" sizes="64px" />
+        ) : (
+          <div className="w-full h-full" style={{ backgroundColor: 'var(--muted)' }} />
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold truncate" style={{ color: 'var(--foreground)' }}>{component.name}</p>
+        <p className="text-sm mt-0.5" style={{ color: 'var(--accent)' }}>
+          {firstVariant ? `${firstVariant.price.toFixed(2)}€` : `${component.basePrice.toFixed(2)}€`}
+        </p>
+      </div>
+
+      {/* CTA */}
+      <motion.button
+        onClick={handleAdd}
+        disabled={!firstVariant || added}
+        whileTap={{ scale: 0.95 }}
+        className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all min-h-[36px] disabled:opacity-50"
+        style={{ backgroundColor: added ? '#2d5a27' : 'var(--accent)', color: 'black' }}
+      >
+        {added ? <Check size={14} /> : <ShoppingBag size={14} />}
+        {added ? 'Aggiunto' : 'Aggiungi'}
+      </motion.button>
     </motion.div>
   )
 }
@@ -488,6 +541,23 @@ export function ProductDetail({ product }: { product: Product }) {
             </div>
           </div>
         </motion.section>
+
+        {/* Componenti acquistabili separatamente */}
+        {product.components && product.components.length > 0 && (
+          <motion.section variants={itemVariants} className="mb-14">
+            <h2 className="text-xl font-semibold mb-2 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
+              Acquista i componenti separatamente
+            </h2>
+            <p className="text-sm mb-6" style={{ color: 'var(--muted-fg)' }}>
+              Hai già qualcosa? Puoi acquistare solo i pezzi che ti mancano.
+            </p>
+            <div className="space-y-3">
+              {product.components.map((component) => (
+                <ComponentCard key={component.id} component={component} />
+              ))}
+            </div>
+          </motion.section>
+        )}
 
         {/* Descrizione prodotto — full width below */}
         {product.description && (

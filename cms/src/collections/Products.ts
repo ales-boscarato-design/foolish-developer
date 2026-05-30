@@ -306,6 +306,18 @@ export const Products: CollectionConfig = {
       ],
     },
 
+    // COMPONENTI — prodotti che compongono questo kit, acquistabili separatamente
+    {
+      name: 'components',
+      type: 'relationship',
+      relationTo: 'products',
+      hasMany: true,
+      label: 'Componenti acquistabili separatamente',
+      admin: {
+        description: 'Prodotti che compongono questo kit. Appariranno nella pagina prodotto con il loro prezzo e un tasto "Aggiungi al carrello".',
+      },
+    },
+
     // WHATS IN THE BOX
     {
       name: 'whatsInTheBox',
