@@ -21,11 +21,45 @@ export default function CheckoutPage() {
   const [form, setForm] = useState({
     name: '', email: '', address: '', city: '', postalCode: '',
   })
+  const [promoCode, setPromoCode] = useState('')
+  const [promoStatus, setPromoStatus] = useState<'idle' | 'loading' | 'valid' | 'invalid'>('idle')
+  const [promoType, setPromoType] = useState<string | null>(null)
 
   const cartTotal = total()
-  const shipping = calculateShipping(cartTotal, country)
+  const baseShipping = calculateShipping(cartTotal, country)
+  const freeShippingByPromo = promoType === 'free_shipping'
+  const shipping = freeShippingByPromo
+    ? { ...baseShipping, cost: 0, isFree: true }
+    : baseShipping
   const grandTotal = cartTotal + shipping.cost
-  const remaining = freeShippingRemaining(cartTotal, country)
+  const remaining = freeShippingByPromo ? 0 : freeShippingRemaining(cartTotal, country)
+
+  const applyPromo = async () => {
+    if (!promoCode.trim()) return
+    setPromoStatus('loading')
+    try {
+      const res = await fetch('/api/promo/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode }),
+      })
+      const data = await res.json()
+      if (data.valid) {
+        setPromoType(data.type)
+        setPromoStatus('valid')
+      } else {
+        setPromoStatus('invalid')
+      }
+    } catch {
+      setPromoStatus('invalid')
+    }
+  }
+
+  const removePromo = () => {
+    setPromoCode('')
+    setPromoType(null)
+    setPromoStatus('idle')
+  }
 
   if (items.length === 0) {
     return (
@@ -49,6 +83,7 @@ export default function CheckoutPage() {
           shippingCost: shipping.cost,
           total: grandTotal,
           customer: { ...form, country },
+          promoCode: promoStatus === 'valid' ? promoCode : undefined,
         }),
       })
       const data = await res.json()
@@ -191,6 +226,39 @@ export default function CheckoutPage() {
                 <span style={{ color: 'var(--accent)' }}>{grandTotal.toFixed(2)}€</span>
               </div>
               <p className="text-xs mt-1" style={{ color: 'var(--muted-fg)' }}>{t('vatIncluded')}</p>
+            </div>
+
+            {/* Promo code */}
+            <div className="border-t pt-3" style={{ borderColor: 'var(--border)' }}>
+              {promoStatus !== 'valid' ? (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder={t('promoPlaceholder')}
+                    value={promoCode}
+                    onChange={(e) => { setPromoCode(e.target.value); if (promoStatus === 'invalid') setPromoStatus('idle') }}
+                    onKeyDown={(e) => e.key === 'Enter' && applyPromo()}
+                    className="flex-1 px-3 py-1.5 rounded border text-sm"
+                    style={{ backgroundColor: 'var(--muted)', borderColor: promoStatus === 'invalid' ? '#f44336' : 'var(--border)', color: 'var(--foreground)' }}
+                  />
+                  <button
+                    onClick={applyPromo}
+                    disabled={promoStatus === 'loading' || !promoCode.trim()}
+                    className="px-3 py-1.5 rounded border text-sm font-medium transition-opacity disabled:opacity-40"
+                    style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                  >
+                    {promoStatus === 'loading' ? '…' : t('promoApply')}
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between text-sm">
+                  <span style={{ color: '#4caf50' }}>{t('promoFreeShipping')}</span>
+                  <button onClick={removePromo} className="text-xs underline" style={{ color: 'var(--muted-fg)' }}>{t('promoRemove')}</button>
+                </div>
+              )}
+              {promoStatus === 'invalid' && (
+                <p className="text-xs mt-1" style={{ color: '#f44336' }}>{t('promoInvalid')}</p>
+              )}
             </div>
 
             <button

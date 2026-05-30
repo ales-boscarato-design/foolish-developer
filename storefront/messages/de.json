@@ -63,7 +63,13 @@
       "JP": "Japan",
       "BR": "Brasilien",
       "OTHER": "Anderes Land"
-    }
+    },
+    "promoLabel": "Aktionscode",
+    "promoPlaceholder": "Code eingeben",
+    "promoApply": "Anwenden",
+    "promoFreeShipping": "✓ Kostenloser Versand angewendet",
+    "promoInvalid": "Ungültiger Code",
+    "promoRemove": "Entfernen"
   },
   "grazie": {
     "title": "Bestellung erhalten.",

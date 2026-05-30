@@ -63,7 +63,13 @@
       "JP": "Japón",
       "BR": "Brasil",
       "OTHER": "Otro país"
-    }
+    },
+    "promoLabel": "Código promocional",
+    "promoPlaceholder": "Ingresa el código",
+    "promoApply": "Aplicar",
+    "promoFreeShipping": "✓ Envío gratuito aplicado",
+    "promoInvalid": "Código inválido",
+    "promoRemove": "Quitar"
   },
   "grazie": {
     "title": "Pedido recibido.",
@@ -108,7 +114,7 @@
       "description": "Lotes especiales y coloraciones raras. Cuando se acaban, se acaban."
     }
   },
-"home": {
+  "home": {
     "marquee": {
       "items": [
         "HECHO A MANO",

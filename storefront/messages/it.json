@@ -1,5 +1,5 @@
 {
-"nav": {
+  "nav": {
     "openMenu": "Apri menu",
     "closeMenu": "Chiudi menu",
     "tattoo": "Tattoo",
@@ -63,7 +63,13 @@
       "JP": "Giappone",
       "BR": "Brasile",
       "OTHER": "Altro paese"
-    }
+    },
+    "promoLabel": "Codice promozionale",
+    "promoPlaceholder": "Inserisci codice",
+    "promoApply": "Applica",
+    "promoFreeShipping": "✓ Spedizione gratuita applicata",
+    "promoInvalid": "Codice non valido",
+    "promoRemove": "Rimuovi"
   },
   "grazie": {
     "title": "Ordine ricevuto.",

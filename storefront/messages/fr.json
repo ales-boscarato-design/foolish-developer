@@ -63,7 +63,13 @@
       "JP": "Japon",
       "BR": "Brésil",
       "OTHER": "Autre pays"
-    }
+    },
+    "promoLabel": "Code promo",
+    "promoPlaceholder": "Entrer le code",
+    "promoApply": "Appliquer",
+    "promoFreeShipping": "✓ Livraison gratuite appliquée",
+    "promoInvalid": "Code invalide",
+    "promoRemove": "Supprimer"
   },
   "grazie": {
     "title": "Commande reçue.",
@@ -87,7 +93,7 @@
     "sectionTattoo": "Tatouage",
     "sectionPmu": "PMU"
   },
-"sections": {
+  "sections": {
     "label": "Section",
     "tattoo": {
       "meta": "Tattoo Practice — The Foolish Butcher",
@@ -95,7 +101,7 @@
       "description": "Peau synthétique artisanale pour apprenants et enseignants. Chaque feuille est fabricada à la main — aucune ne se ressemble.",
       "label": "Tatouage"
     },
-"pmu": {
+    "pmu": {
       "meta": "Permanent Make-up — The Foolish Butcher",
       "title": "Permanent Make-up",
       "description": "Supports hyperréalistes pour la pratique du maquillage permanent. Texture fidèle à la peau réelle.",

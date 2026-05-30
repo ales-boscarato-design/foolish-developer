@@ -63,7 +63,13 @@
       "JP": "Japan",
       "BR": "Brazil",
       "OTHER": "Other country"
-    }
+    },
+    "promoLabel": "Promo code",
+    "promoPlaceholder": "Enter code",
+    "promoApply": "Apply",
+    "promoFreeShipping": "✓ Free shipping applied",
+    "promoInvalid": "Invalid code",
+    "promoRemove": "Remove"
   },
   "grazie": {
     "title": "Order received.",
