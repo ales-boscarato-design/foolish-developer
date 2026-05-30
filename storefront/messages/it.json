@@ -40,8 +40,13 @@
       "email": "Email",
       "address": "Indirizzo",
       "city": "Città",
-      "postalCode": "CAP"
+      "postalCode": "CAP",
+      "fiscalCode": "Codice Fiscale / P.IVA"
     },
+    "emailInvalid": "Email non valida o inesistente — controlla il dominio",
+    "postalCodeInvalid": "CAP non valido per il paese selezionato",
+    "billingTitle": "Indirizzo di fatturazione",
+    "billingSameAsShipping": "L'indirizzo di fatturazione coincide con quello di spedizione",
     "countries": {
       "IT": "Italia",
       "DE": "Germania",

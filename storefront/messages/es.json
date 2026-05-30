@@ -40,8 +40,13 @@
       "email": "Email",
       "address": "Dirección",
       "city": "Ciudad",
-      "postalCode": "Código postal"
+      "postalCode": "Código postal",
+      "fiscalCode": "NIF / CIF / VAT"
     },
+    "emailInvalid": "Email inválido o inexistente — comprueba el dominio",
+    "postalCodeInvalid": "Código postal inválido para el país seleccionado",
+    "billingTitle": "Dirección de facturación",
+    "billingSameAsShipping": "La dirección de facturación coincide con la de envío",
     "countries": {
       "IT": "Italia",
       "DE": "Alemania",

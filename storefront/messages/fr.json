@@ -40,8 +40,13 @@
       "email": "Email",
       "address": "Adresse",
       "city": "Ville",
-      "postalCode": "Code postal"
+      "postalCode": "Code postal",
+      "fiscalCode": "N° fiscal / TVA intracommunautaire"
     },
+    "emailInvalid": "Email invalide ou inexistante — vérifiez le domaine",
+    "postalCodeInvalid": "Code postal invalide pour le pays sélectionné",
+    "billingTitle": "Adresse de facturation",
+    "billingSameAsShipping": "L'adresse de facturation est identique à l'adresse de livraison",
     "countries": {
       "IT": "Italie",
       "DE": "Allemagne",

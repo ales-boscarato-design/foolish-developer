@@ -40,8 +40,13 @@
       "email": "E-Mail",
       "address": "Adresse",
       "city": "Stadt",
-      "postalCode": "Postleitzahl"
+      "postalCode": "Postleitzahl",
+      "fiscalCode": "Steuer-ID / USt-IdNr."
     },
+    "emailInvalid": "Ungültige oder nicht existierende E-Mail — bitte Domain prüfen",
+    "postalCodeInvalid": "Ungültige Postleitzahl für das gewählte Land",
+    "billingTitle": "Rechnungsadresse",
+    "billingSameAsShipping": "Rechnungsadresse ist identisch mit Lieferadresse",
     "countries": {
       "IT": "Italien",
       "DE": "Deutschland",
