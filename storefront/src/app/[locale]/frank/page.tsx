@@ -44,7 +44,7 @@ export default async function FrankPage() {
     <div style={{ backgroundColor: '#0a0806', color: '#e8dcc8' }}>
 
       {/* ── HERO ── */}
-      <section className="relative h-screen flex items-end overflow-hidden">
+      <section className="relative h-screen flex items-start overflow-hidden">
         {/* Video / poster background */}
         {HERO_VIDEO ? (
           <video
@@ -69,14 +69,14 @@ export default async function FrankPage() {
           />
         )}
 
-        {/* Gradient overlay — bottom fade */}
+        {/* Gradient overlay — top fade so text stays readable */}
         <div
           className="absolute inset-0"
-          style={{ background: 'linear-gradient(to bottom, transparent 30%, #0a0806 100%)' }}
+          style={{ background: 'linear-gradient(to bottom, #0a0806 0%, rgba(10,8,6,0.6) 40%, transparent 100%)' }}
         />
 
         {/* Title */}
-        <div className="relative z-10 max-w-7xl mx-auto px-8 md:px-16 pb-16 w-full">
+        <div className="relative z-10 max-w-7xl mx-auto px-8 md:px-16 pt-16 w-full">
           <p
             className="text-xs font-bold tracking-[0.4em] uppercase mb-4"
             style={{ color: '#c9a96e' }}
