@@ -382,5 +382,34 @@
     "bannerTitle": "Êtes-vous tatoueur professionnel?",
     "bannerBody": "Prix dédiés, canal direct, Frank vous connaît.",
     "bannerCta": "Accéder aux prix Pro →"
+  },
+  "frank": {
+    "hero": {
+      "eyebrow": "LE LABORATOIRE · CHIERI (TO)",
+      "sub": "Gardien du flock. Veilleur des discolorations. Ne dort jamais."
+    },
+    "lore": {
+      "eyebrow": "QUI EST FRANK",
+      "line1": "Frank n'est pas un personnage. Il est une conséquence.",
+      "line2": "Depuis 2012, quand le laboratoire a commencé à produire, quelqu'un devait surveiller. Quelqu'un avec les bonnes lunettes pour voir ce que les autres manquent. Avec la mauvaise patience pour tout le reste.",
+      "line3": "Cheveux noirs avec des mèches blanches. Barbe épaisse. Oreilles pointues. Tablier en cuir plein d'objets non identifiés. Une tasse de café qui ne se vide jamais — il l'appelle Caffè Turbo.",
+      "line4": "Il parle aux peaux. Les étudie comme des êtres vivants. Les peaux bon marché, il les appelle 'menteuses.' Ne pas les vendre ici, c'était son idée.",
+      "quote": "Si vous avez des questions sur votre commande — Frank répond. Il n'est pas gentil. Mais il est précis."
+    },
+    "obsessions": {
+      "eyebrow": "SES OBSESSIONS"
+    },
+    "cta": {
+      "eyebrow": "CONTACT DIRECT",
+      "title": "DES QUESTIONS?",
+      "body": "Frank répond. À toute heure. Il n'est pas gentil. Mais il est précis. Et il se souvient de chaque commande qui passe par le labo.",
+      "button": "Parler à Frank sur Telegram",
+      "note": "Réponse garantie sous 24h. Souvent bien avant."
+    },
+    "backToShop": "← Retour à la boutique",
+    "eyebrow": "LE LABORATOIRE",
+    "headline": "Il y a quelqu'un dans le labo.",
+    "body": "Pas Alessandro. Mais chaque feuille qui sort d'ici, il l'a déjà touchée, sentie, jugée. Les peaux bon marché, il les appelle 'menteuses.'",
+    "cta_short": "Rencontrer Frank"
   }
 }

@@ -382,5 +382,34 @@
     "bannerTitle": "Are you a professional tattoo artist?",
     "bannerBody": "Dedicated pricing, direct channel, Frank knows you.",
     "bannerCta": "Access Pro pricing →"
+  },
+  "frank": {
+    "hero": {
+      "eyebrow": "THE LABORATORY · CHIERI (TO)",
+      "sub": "Guardian of the flock. Keeper of discolorations. Never sleeps."
+    },
+    "lore": {
+      "eyebrow": "WHO IS FRANK",
+      "line1": "Frank is not a character. He is a consequence.",
+      "line2": "Since 2012, when the laboratory started producing, someone had to watch over things. Someone with the right glasses to see what others miss. With the wrong patience for everything else.",
+      "line3": "Black hair with white streaks. Thick beard. Pointed ears. Leather apron full of unidentified objects. A coffee mug that never empties — he calls it Caffè Turbo.",
+      "line4": "He talks to the skins. Studies them like living beings. He calls cheap skins 'liars.' Not selling them here was his idea.",
+      "quote": "If you have questions about your order — Frank answers. He's not nice. But he's precise."
+    },
+    "obsessions": {
+      "eyebrow": "HIS OBSESSIONS"
+    },
+    "cta": {
+      "eyebrow": "DIRECT CONTACT",
+      "title": "GOT QUESTIONS?",
+      "body": "Frank answers. At any hour. He's not nice. But he's precise. And he remembers every order that comes through the lab.",
+      "button": "Talk to Frank on Telegram",
+      "note": "Response guaranteed within 24 hours. Usually much sooner."
+    },
+    "backToShop": "← Back to shop",
+    "eyebrow": "THE LABORATORY",
+    "headline": "There's someone in the lab.",
+    "body": "Not Alessandro. But every sheet that comes out of here, he has already touched, smelled, judged. He calls cheap skins 'liars.'",
+    "cta_short": "Meet Frank"
   }
 }

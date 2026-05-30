@@ -382,5 +382,34 @@
     "bannerTitle": "Sei un tatuatore professionista?",
     "bannerBody": "Prezzi dedicati, canale diretto, Frank ti conosce.",
     "bannerCta": "Accedi ai prezzi Pro →"
+  },
+  "frank": {
+    "hero": {
+      "eyebrow": "IL LABORATORIO · CHIERI (TO)",
+      "sub": "Custode del flock. Guardiano delle discromie. Non dorme."
+    },
+    "lore": {
+      "eyebrow": "CHI È FRANK",
+      "line1": "Frank non è un personaggio. È una conseguenza.",
+      "line2": "Dal 2012, quando il laboratorio ha iniziato a produrre, qualcuno doveva stare a guardare. Qualcuno con gli occhiali giusti per vedere quello che gli altri non vedono. Con la pazienza sbagliata per tutto il resto.",
+      "line3": "Capelli neri con ciocche bianche. Barba folta. Orecchie a punta. Grembiule di cuoio con oggetti non identificati. Una tazza di caffè che non si svuota mai — la chiama Caffè Turbo.",
+      "line4": "Parla alle pelli. Le studia come fossero esseri viventi. Le pelli economiche le chiama 'bugiarde.' Non venderle qui è stata la sua idea.",
+      "quote": "Se hai domande sul tuo ordine — Frank risponde. Non è gentile. Ma è preciso."
+    },
+    "obsessions": {
+      "eyebrow": "LE SUE OSSESSIONI"
+    },
+    "cta": {
+      "eyebrow": "CONTATTO DIRETTO",
+      "title": "HAI DOMANDE?",
+      "body": "Frank risponde. A qualunque ora. Non è gentile. Ma è preciso. E ricorda ogni ordine che passa dal laboratorio.",
+      "button": "Parla con Frank su Telegram",
+      "note": "Risposta garantita entro 24 ore. Di solito molto prima."
+    },
+    "backToShop": "← Torna alla vetrina",
+    "eyebrow": "IL LABORATORIO",
+    "headline": "C'è qualcuno nel laboratorio.",
+    "body": "Non è Alessandro. Ma ogni foglio che esce da qui, lui lo ha già toccato, annusato, giudicato. Le pelli economiche le chiama 'bugiarde.'",
+    "cta_short": "Incontra Frank"
   }
 }

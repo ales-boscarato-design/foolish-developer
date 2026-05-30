@@ -382,5 +382,34 @@
     "bannerTitle": "Bist du professioneller Tätowierer?",
     "bannerBody": "Sonderpreise, direkter Kanal, Frank kennt dich.",
     "bannerCta": "Pro-Preise freischalten →"
+  },
+  "frank": {
+    "hero": {
+      "eyebrow": "DAS LABOR · CHIERI (TO)",
+      "sub": "Hüter des Flocks. Wächter der Verfärbungen. Schläft nie."
+    },
+    "lore": {
+      "eyebrow": "WER IST FRANK",
+      "line1": "Frank ist keine Figur. Er ist eine Konsequenz.",
+      "line2": "Seit 2012, als das Labor mit der Produktion begann, musste jemand aufpassen. Jemand mit den richtigen Brillen, um zu sehen, was andere übersehen. Mit der falschen Geduld für alles andere.",
+      "line3": "Schwarzes Haar mit weißen Strähnen. Dichter Bart. Spitze Ohren. Lederschürze voller unbekannter Gegenstände. Eine Kaffeetasse, die sich nie leert — er nennt sie Caffè Turbo.",
+      "line4": "Er spricht mit den Skins. Studiert sie wie lebende Wesen. Billige Skins nennt er 'Lügner.' Sie hier nicht zu verkaufen war seine Idee.",
+      "quote": "Wenn du Fragen zu deiner Bestellung hast — Frank antwortet. Er ist nicht nett. Aber er ist präzise."
+    },
+    "obsessions": {
+      "eyebrow": "SEINE OBSESSIONEN"
+    },
+    "cta": {
+      "eyebrow": "DIREKTKONTAKT",
+      "title": "FRAGEN?",
+      "body": "Frank antwortet. Zu jeder Stunde. Er ist nicht nett. Aber er ist präzise. Und er erinnert sich an jede Bestellung, die durch das Labor geht.",
+      "button": "Mit Frank auf Telegram sprechen",
+      "note": "Antwort garantiert innerhalb von 24 Stunden. Meistens viel früher."
+    },
+    "backToShop": "← Zurück zum Shop",
+    "eyebrow": "DAS LABOR",
+    "headline": "Da ist jemand im Labor.",
+    "body": "Nicht Alessandro. Aber jedes Blatt, das von hier kommt, hat er bereits angefasst, gerochen, beurteilt. Billige Skins nennt er 'Lügner.'",
+    "cta_short": "Frank treffen"
   }
 }

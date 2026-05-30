@@ -446,6 +446,44 @@ export default async function HomePage() {
       </section>
 
       {/* ════════════════════════════════════════════════
+          FRANK — Teaser atmosferico
+      ════════════════════════════════════════════════ */}
+      <section className="border-b" style={{ borderColor: 'var(--border)', backgroundColor: '#0a0806' }}>
+        <div className="max-w-7xl mx-auto px-8 md:px-16 py-16 grid md:grid-cols-[1fr_340px] gap-10 items-center">
+          <div>
+            <p className="text-xs font-bold tracking-[0.4em] uppercase mb-4" style={{ color: '#c9a96e' }}>
+              {t('frank.eyebrow')}
+            </p>
+            <h2 className="font-display text-5xl md:text-6xl leading-none mb-5" style={{ color: '#e8dcc8' }}>
+              {t('frank.headline')}
+            </h2>
+            <p className="text-sm leading-relaxed mb-8 max-w-sm" style={{ color: '#a89880' }}>
+              {t('frank.body')}
+            </p>
+            <a
+              href="/frank"
+              className="inline-flex items-center gap-2 text-sm font-semibold tracking-widest uppercase transition-opacity hover:opacity-70"
+              style={{ color: '#c9a96e' }}
+            >
+              {t('frank.cta_short')} →
+            </a>
+          </div>
+          <div className="relative aspect-[3/4] rounded overflow-hidden hidden md:block">
+            <img
+              src="/frank/frank-03.png"
+              alt="Frank nel laboratorio"
+              className="w-full h-full object-cover object-top"
+              style={{ filter: 'brightness(0.75) sepia(0.3)' }}
+            />
+            <div
+              className="absolute inset-0"
+              style={{ background: 'linear-gradient(to bottom, transparent 60%, #0a0806 100%)' }}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════
           CTA FINALE — Chiusura forte
       ════════════════════════════════════════════════ */}
       <section className="px-8 md:px-16 py-28 flex flex-col items-start max-w-7xl mx-auto">
