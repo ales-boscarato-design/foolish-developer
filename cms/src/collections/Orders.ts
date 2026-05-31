@@ -1,4 +1,12 @@
-import type { CollectionConfig, CollectionAfterChangeHook } from 'payload'
+import type { CollectionConfig, CollectionAfterChangeHook, CollectionBeforeChangeHook } from 'payload'
+import crypto from 'crypto'
+
+const generatePageToken: CollectionBeforeChangeHook = async ({ data, operation }) => {
+  if (operation === 'create' && !data.pageToken) {
+    data.pageToken = crypto.randomUUID()
+  }
+  return data
+}
 
 const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation, req }) => {
   if (operation !== 'create') return
@@ -50,6 +58,15 @@ const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation
       </tr>
     </tbody>
   </table>
+
+  <div style="margin:24px 0;padding:16px;background:#faf8f5;border-left:3px solid #c9a96e">
+    <p style="margin:0 0 8px;font-size:13px;color:#555">Segui il tuo ordine in tempo reale:</p>
+    <a href="https://thefoolishbutcher.com/ordine/${doc.pageToken}"
+       style="display:inline-block;padding:10px 20px;background:#1a1207;color:#fff;text-decoration:none;font-size:13px;border-radius:3px">
+      Apri la tua pagina ordine →
+    </a>
+    <p style="margin:8px 0 0;font-size:11px;color:#999">Trovi foto dei fogli, stato della spedizione e aggiornamenti.</p>
+  </div>
 
   <p style="font-size:13px;color:#555">Alessandro<br>The Foolish Butcher</p>
 </body>
@@ -114,6 +131,7 @@ const notifyNanobot: CollectionAfterChangeHook = async ({ doc, previousDoc, oper
 export const Orders: CollectionConfig = {
   slug: 'orders',
   hooks: {
+    beforeChange: [generatePageToken],
     afterChange: [sendOrderConfirmation, notifyNanobot],
   },
   admin: {
@@ -247,6 +265,58 @@ export const Orders: CollectionConfig = {
       name: 'notes',
       type: 'textarea',
       label: 'Note interne',
+    },
+    {
+      name: 'customerLocale',
+      type: 'text',
+      label: 'Lingua cliente (es. it, en, de)',
+      admin: { description: 'Codice ISO 639-1. Usato per localizzare la pagina cliente.' },
+    },
+    {
+      name: 'pageToken',
+      type: 'text',
+      unique: true,
+      label: 'Token pagina cliente',
+      admin: {
+        readOnly: true,
+        description: 'UUID generato automaticamente. Usato come URL sicuro per la pagina cliente.',
+      },
+    },
+    {
+      name: 'sheetPhotos',
+      type: 'array',
+      label: 'Foto fogli',
+      admin: { description: 'Foto dei fogli fisici abbinati a questo ordine.' },
+      fields: [
+        { name: 'url', type: 'text', required: true, label: 'URL foto' },
+        { name: 'caption', type: 'text', label: 'Didascalia (es. A4 — flock denso, discromia ocra)' },
+      ],
+    },
+    {
+      name: 'contentBlocks',
+      type: 'array',
+      label: 'Blocchi contenuto (pagina cliente)',
+      admin: { description: 'Frank popola questi blocchi: guide, offerte, annunci. Visibili nella pagina cliente.' },
+      fields: [
+        {
+          name: 'type',
+          type: 'select',
+          required: true,
+          label: 'Tipo',
+          options: [
+            { label: 'Guida tecnica', value: 'guide' },
+            { label: 'Annuncio produzione', value: 'announcement' },
+            { label: 'Offerta', value: 'offer' },
+            { label: 'Suggerimento', value: 'tip' },
+          ],
+        },
+        { name: 'title', type: 'text', required: true, label: 'Titolo' },
+        { name: 'body', type: 'textarea', required: true, label: 'Testo' },
+        { name: 'ctaLabel', type: 'text', label: 'Testo CTA (opzionale)' },
+        { name: 'ctaUrl', type: 'text', label: 'URL CTA (opzionale)' },
+        { name: 'active', type: 'checkbox', defaultValue: true, label: 'Visibile' },
+        { name: 'expiresAt', type: 'date', label: 'Scade il (opzionale)' },
+      ],
     },
   ],
   timestamps: true,
