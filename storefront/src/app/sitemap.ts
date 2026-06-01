@@ -9,6 +9,7 @@ const STATIC_ROUTES = [
   '/tattoo',
   '/pmu',
   '/limited',
+  '/sebo',
   '/contatti',
   '/privacy',
   '/termini',

@@ -17,17 +17,26 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://umami-production-8b53.up.railway.app",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://*.stripe.com",
       "font-src 'self'",
       "frame-src https://js.stripe.com https://hooks.stripe.com",
-      "connect-src 'self' https://api.stripe.com https://t.me",
+      "connect-src 'self' https://api.stripe.com https://t.me https://umami-production-8b53.up.railway.app",
     ].join('; '),
   },
 ]
 
+const LOCALES = ['it', 'en', 'fr', 'es', 'de']
+
 const nextConfig: NextConfig = {
+  async redirects() {
+    return LOCALES.map((locale) => ({
+      source: `/${locale}/frank`,
+      destination: `/${locale}/sebo`,
+      permanent: true,
+    }))
+  },
   async headers() {
     return [
       {

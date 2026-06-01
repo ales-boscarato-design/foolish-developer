@@ -220,7 +220,7 @@
       "eyebrow": "IL LABORATORIO",
       "headline": "C'è qualcuno nel laboratorio.",
       "body": "Non è Alessandro. Ma ogni foglio che esce da qui, lui lo ha già toccato, annusato, giudicato. Le pelli economiche le chiama 'bugiarde.'",
-      "cta_short": "Incontra Frank"
+      "cta_short": "Incontra Sebo"
     }
   },
   "contatti": {
@@ -351,8 +351,8 @@
       "body": "Accesso al canale Telegram riservato. Novità in anteprima, dialogo diretto con Alessandro."
     },
     "benefit3": {
-      "title": "Frank ti conosce",
-      "body": "Ogni ordine ha un contesto. Frank sa chi sei e cosa fai con le nostre pelli."
+      "title": "Il laboratorio ti conosce",
+      "body": "Ogni ordine ha un contesto. Sappiamo chi sei e cosa fai con le nostre pelli."
     },
     "formTitle": "Richiedi il riconoscimento",
     "fields": {
@@ -383,7 +383,7 @@
       "benefit1": "Sconto 15% su ogni ordine",
       "benefit2": "Sconto 20% da 400€ in su",
       "benefit3": "Canale Telegram riservato",
-      "benefit4": "Frank ti conosce"
+      "benefit4": "Il laboratorio ti conosce"
     },
     "bannerTitle": "Usi Foolish per formare altri tatuatori?",
     "bannerBody": "Riconosciamo quello che fai per il mestiere.",

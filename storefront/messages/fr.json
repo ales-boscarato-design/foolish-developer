@@ -220,7 +220,7 @@
       "eyebrow": "LE LABORATOIRE",
       "headline": "Il y a quelqu'un dans le labo.",
       "body": "Pas Alessandro. Mais chaque feuille qui sort d'ici, il l'a déjà touchée, sentie, jugée. Les peaux bon marché, il les appelle 'menteuses.'",
-      "cta_short": "Rencontrer Frank"
+      "cta_short": "Rencontrer Sebo"
     }
   },
   "contatti": {
@@ -351,8 +351,8 @@
       "body": "Accès au canal Telegram réservé. Nouveautés en avant-première, dialogue direct avec Alessandro."
     },
     "benefit3": {
-      "title": "Frank vous connaît",
-      "body": "Chaque commande a un contexte. Frank sait qui vous êtes et ce que vous faites avec nos peaux."
+      "title": "Le labo vous connaît",
+      "body": "Chaque commande a un contexte. Nous savons qui vous êtes et ce que vous faites avec nos peaux."
     },
     "formTitle": "Demander la reconnaissance",
     "fields": {
@@ -383,7 +383,7 @@
       "benefit1": "15% de réduction sur chaque commande",
       "benefit2": "20% de réduction à partir de 400€",
       "benefit3": "Canal Telegram réservé",
-      "benefit4": "Frank vous connaît"
+      "benefit4": "Le labo vous connaît"
     },
     "bannerTitle": "Utilisez-vous Foolish pour former d'autres tatoueurs ?",
     "bannerBody": "Nous reconnaissons ce que vous faites pour le métier.",

@@ -501,7 +501,7 @@ export default async function HomePage() {
               {t('frank.body')}
             </p>
             <a
-              href="/frank"
+              href="/sebo"
               className="inline-flex items-center gap-2 text-sm font-semibold tracking-widest uppercase transition-opacity hover:opacity-70"
               style={{ color: '#c9a96e' }}
             >
@@ -511,7 +511,7 @@ export default async function HomePage() {
           <div className="relative aspect-[3/4] rounded overflow-hidden hidden md:block">
             <img
               src="/frank/frank-03.png"
-              alt="Frank nel laboratorio"
+              alt="Sebo nel laboratorio"
               className="w-full h-full object-cover object-top"
               style={{ filter: 'brightness(0.75) sepia(0.3)' }}
             />
