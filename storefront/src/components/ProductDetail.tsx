@@ -221,6 +221,7 @@ export function ProductDetail({ product }: { product: Product }) {
     return init
   })
   const [added, setAdded] = useState(false)
+  const [qty, setQty] = useState(1)
   const [activeImage, setActiveImage] = useState(0)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [showStickyBar, setShowStickyBar] = useState(false)
@@ -252,9 +253,12 @@ export function ProductDetail({ product }: { product: Product }) {
     return () => observer.disconnect()
   }, [])
 
+  const maxQty = selectedVariant.limitedQty ?? 99
+
   const handleVariantSelect = (v: ProductVariant) => {
     setSelectedVariant(v)
     setImageLoaded(false)
+    setQty(1)
     const reset: Record<string, string> = {}
     for (const attr of product.attributes) {
       if (attr.options.length > 0) reset[attr.name] = attr.options[0].value
@@ -269,7 +273,7 @@ export function ProductDetail({ product }: { product: Product }) {
 
   const handleAdd = () => {
     if (selectedVariant.stockStatus === 'unavailable') return
-    addToCart(product, selectedVariant, selectedAttrs)
+    addToCart(product, selectedVariant, selectedAttrs, qty)
     setAdded(true)
     setTimeout(() => setAdded(false), 1800)
   }
@@ -440,6 +444,50 @@ export function ProductDetail({ product }: { product: Product }) {
                   {t('lastItems', { qty: selectedVariant.limitedQty })}
                 </motion.p>
               )}
+
+              {/* Quantity picker */}
+              {selectedVariant.stockStatus !== 'unavailable' && (
+                <motion.div variants={itemVariants} className="flex items-center gap-3 mb-4">
+                  <span className="text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>
+                    Quantità
+                  </span>
+                  <div
+                    className="flex items-center rounded-xl border overflow-hidden"
+                    style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setQty(q => Math.max(1, q - 1))}
+                      disabled={qty <= 1}
+                      className="w-10 h-10 flex items-center justify-center text-xl font-bold transition-opacity disabled:opacity-25 hover:opacity-70"
+                      style={{ color: 'var(--foreground)' }}
+                    >
+                      −
+                    </button>
+                    <span
+                      className="w-9 text-center font-bold text-base select-none"
+                      style={{ color: 'var(--foreground)' }}
+                    >
+                      {qty}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setQty(q => Math.min(maxQty, q + 1))}
+                      disabled={qty >= maxQty}
+                      className="w-10 h-10 flex items-center justify-center text-xl font-bold transition-opacity disabled:opacity-25 hover:opacity-70"
+                      style={{ color: 'var(--foreground)' }}
+                    >
+                      +
+                    </button>
+                  </div>
+                  {maxQty < 10 && (
+                    <span className="text-xs font-medium" style={{ color: 'var(--limited)' }}>
+                      max {maxQty}
+                    </span>
+                  )}
+                </motion.div>
+              )}
+
               <motion.button
                 onClick={handleAdd}
                 disabled={selectedVariant.stockStatus === 'unavailable' || added}
@@ -590,23 +638,47 @@ export function ProductDetail({ product }: { product: Product }) {
             className="fixed bottom-0 inset-x-0 z-50 lg:hidden border-t px-4 py-4"
             style={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)' }}
           >
-            <button
-              onClick={handleAdd}
-              disabled={selectedVariant.stockStatus === 'unavailable' || added}
-              className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl font-bold text-base transition-all min-h-[56px] shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{
-                backgroundColor: added ? '#2d5a27' : 'var(--accent)',
-                color: 'black',
-              }}
-            >
-              {added ? (
-                <><Check size={20} /> {t('added')}</>
-              ) : selectedVariant.stockStatus === 'unavailable' ? (
-                t('unavailable')
-              ) : (
-                <><ShoppingBag size={20} /> {t('addToCart')}</>
+            <div className="flex items-center gap-3">
+              {selectedVariant.stockStatus !== 'unavailable' && (
+                <div
+                  className="flex items-center rounded-xl border shrink-0 overflow-hidden"
+                  style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setQty(q => Math.max(1, q - 1))}
+                    disabled={qty <= 1}
+                    className="w-9 h-12 flex items-center justify-center text-lg font-bold disabled:opacity-25"
+                    style={{ color: 'var(--foreground)' }}
+                  >−</button>
+                  <span className="w-7 text-center font-bold text-sm select-none" style={{ color: 'var(--foreground)' }}>{qty}</span>
+                  <button
+                    type="button"
+                    onClick={() => setQty(q => Math.min(maxQty, q + 1))}
+                    disabled={qty >= maxQty}
+                    className="w-9 h-12 flex items-center justify-center text-lg font-bold disabled:opacity-25"
+                    style={{ color: 'var(--foreground)' }}
+                  >+</button>
+                </div>
               )}
-            </button>
+              <button
+                onClick={handleAdd}
+                disabled={selectedVariant.stockStatus === 'unavailable' || added}
+                className="flex-1 flex items-center justify-center gap-3 py-4 px-6 rounded-2xl font-bold text-base transition-all min-h-[56px] shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: added ? '#2d5a27' : 'var(--accent)',
+                  color: 'black',
+                }}
+              >
+                {added ? (
+                  <><Check size={20} /> {t('added')}</>
+                ) : selectedVariant.stockStatus === 'unavailable' ? (
+                  t('unavailable')
+                ) : (
+                  <><ShoppingBag size={20} /> {t('addToCart')}</>
+                )}
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
