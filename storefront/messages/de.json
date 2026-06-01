@@ -417,5 +417,55 @@
     "headline": "Da ist jemand im Labor.",
     "body": "Nicht Alessandro. Aber jedes Blatt, das von hier kommt, hat er bereits angefasst, gerochen, beurteilt. Billige Skins nennt er 'Lügner.'",
     "cta_short": "Frank treffen"
+  },
+  "sebo": {
+    "meta": {
+      "description": "Il Pellaio. Custode delle pelli vive. Le sente respirare, sudare, guarire. Non dorme: le veglia."
+    },
+    "hero": {
+      "eyebrow": "IL LABORATORIO · CHIERI (TO)",
+      "sub": "Il Pellaio. Parla alle pelli. Le sente respirare."
+    },
+    "lore": {
+      "eyebrow": "CHI È SEBO",
+      "p1": "Sebo non è un personaggio. È una conseguenza.",
+      "p2": "Dal 2012, da quando il laboratorio produce le sue pelli, qualcuno doveva restare a vegliarle. Sebo è quel qualcuno — anche se \"qualcuno\" è generoso. Un incrocio tra un nano e qualcosa di più antico: il familiare che ogni laboratorio artigianale vero si porta dentro.",
+      "p3": "Dodici anni di vapori del banco, di catalisi, di pelle respirata troppo a lungo. Non sa più dove finisce il laboratorio e dove comincia lui, e la testa gli gira sempre un po'. Lo chiamano Sebo perché lui È il sebo: l'unica cosa che alla pelle sintetica in silicone mancava davvero. Lui le completa, loro gli danno un senso.",
+      "p4": "Per Sebo le pelli sono vive. Respirano dai pori, sudano fuori l'inchiostro che non meritano di tenere, e guariscono — se le curi. Le pelli economiche le chiama \"morte\", \"bugiarde\": non venderle qui è stata una sua battaglia. \"Un cadavere non guarisce\", dice. \"La ferita gli resta aperta per sempre. La mia pelle si chiude.\"",
+      "quote": "Non si tatua, dice lui. Si venera. Pelle santa."
+    },
+    "obsessions": {
+      "eyebrow": "LE SUE OSSESSIONI",
+      "flock": {
+        "label": "IL FLOCK",
+        "quote": "Microfili di velluto tritato — rosso, blu, giallo — che cadono dove vogliono loro. Per questo nessuna pelle è uguale a un'altra. Mai. Chi le vuole tutte identiche tatui pure sul linoleum."
+      },
+      "discromie": {
+        "label": "LE DISCROMIE",
+        "quote": "Non sono difetti. Sono la firma. La pelle vera è disomogenea, viva. Chi liscia tutto non ha mai guardato un avambraccio da vicino."
+      },
+      "catalisi": {
+        "label": "LA CATALISI",
+        "quote": "Dodici ore. La pelle nasce piano e i flock si posano dove devono. Chi ha fretta non merita la pelle."
+      },
+      "pelleViva": {
+        "label": "LA PELLE VIVA",
+        "quote": "Respira. Suda fuori l'inchiostro che non merita. E guarisce, se la curi. Vuoi sapere se una pelle è viva? Falla guarire. Una vera si chiude. Un cadavere resta com'è."
+      }
+    },
+    "cta": {
+      "eyebrow": "IL BANCO È APERTO",
+      "title": "SEGUI O SCRIVI.",
+      "drops": {
+        "button": "Segui Sebo",
+        "note": "Ogni dodici ore un pensiero dal banco. Non aspettarti gentilezza. Aspettati ossessione."
+      },
+      "support": {
+        "button": "Scrivi al laboratorio",
+        "note": "Per ordini e spedizioni rispondiamo noi, dritti al punto."
+      }
+    },
+    "imageAlt": "Sebo nel laboratorio",
+    "backToShop": "← Torna alla vetrina"
   }
 }
