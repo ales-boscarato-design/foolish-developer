@@ -1,12 +1,28 @@
 export const dynamic = 'force-dynamic'
+import type { Metadata } from 'next'
 import { getTranslations, getLocale } from 'next-intl/server'
 import { getLimitedProducts } from '@/lib/cms'
 import { ProductCard } from '@/components/ProductCard'
 import { redirect } from 'next/navigation'
 
-export async function generateMetadata() {
+const BASE = 'https://thefoolishbutcher.com'
+const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
   const t = await getTranslations('sections.limited')
-  return { title: t('meta') }
+  const langs = Object.fromEntries(LOCALES.map(l => [l, `${BASE}/${l}/limited`]))
+  return {
+    title: t('meta'),
+    alternates: {
+      canonical: `${BASE}/${locale}/limited`,
+      languages: { ...langs, 'x-default': `${BASE}/it/limited` },
+    },
+  }
 }
 
 export default async function LimitedPage() {

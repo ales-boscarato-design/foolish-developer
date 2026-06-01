@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 
+import type { Metadata } from 'next'
 import { getTranslations, getLocale } from 'next-intl/server'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -9,6 +10,40 @@ import { ProductCard } from '@/components/ProductCard'
 import { ManifestoPinned } from '@/components/ManifestoPinned'
 import { SplitText } from '@/components/SplitText'
 import { BentoGrid, BentoItem } from '@/components/BentoGrid'
+
+const BASE = 'https://thefoolishbutcher.com'
+const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  const langs = Object.fromEntries(LOCALES.map(l => [l, `${BASE}/${l}`]))
+  return {
+    title: 'The Foolish Butcher — Pelle sintetica artigianale per tattoo e PMU',
+    alternates: {
+      canonical: `${BASE}/${locale}`,
+      languages: { ...langs, 'x-default': `${BASE}/it` },
+    },
+    openGraph: {
+      url: `${BASE}/${locale}`,
+      images: [{ url: '/og/home.jpg', width: 1200, height: 630, alt: 'The Foolish Butcher' }],
+    },
+  }
+}
+
+const orgSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'The Foolish Butcher',
+  url: BASE,
+  logo: `${BASE}/logo.png`,
+  sameAs: ['https://www.instagram.com/thefoolishbutcher'],
+  description:
+    'Artigiano italiano specializzato in pelle sintetica per la pratica del tattoo e PMU. Ogni foglio è fatto a mano.',
+}
 
 /* ─── Marquee cinetico — puro CSS, nessun JS ──────────────────────── */
 async function Marquee() {
@@ -107,6 +142,10 @@ export default async function HomePage() {
 
   return (
     <div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
+      />
 
       {/* ════════════════════════════════════════════════
           HERO — Split asimmetrico, headline Bebas Neue

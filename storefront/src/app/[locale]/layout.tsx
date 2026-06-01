@@ -11,6 +11,16 @@ import { routing } from '@/i18n/routing'
 import { notFound } from 'next/navigation'
 import { Footer } from '@/components/Footer'
 
+const BASE_URL = 'https://thefoolishbutcher.com'
+
+const descriptions: Record<string, string> = {
+  it: 'Pelle sintetica fatta a mano in Italia. Ogni foglio è unico — esattamente come la pelle dei tuoi clienti.',
+  en: 'Handmade synthetic practice skin from Italy. Every sheet is unique — just like the skin of your clients.',
+  fr: 'Peau synthétique artisanale faite main en Italie. Chaque feuille est unique — comme la peau de vos clients.',
+  es: 'Piel sintética artesanal hecha a mano en Italia. Cada hoja es única — igual que la piel de tus clientes.',
+  de: 'Handgefertigte synthetische Übungshaut aus Italien. Jedes Blatt ist einzigartig — genau wie die Haut deiner Kunden.',
+}
+
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' })
 const cormorant = Cormorant_Garamond({
   weight: ['300', '400', '500', '600', '700'],
@@ -19,17 +29,26 @@ const cormorant = Cormorant_Garamond({
   variable: '--font-cormorant',
 })
 
-export const metadata: Metadata = {
-  title: 'The Foolish Butcher — Pelle sintetica artigianale per tattoo e PMU',
-  description:
-    'Pelle sintetica fatta a mano in Italia. Ogni foglio è unico — esattamente come la pelle dei tuoi clienti.',
-  openGraph: {
-    title: 'The Foolish Butcher',
-    description: 'Artisanal synthetic skin for tattoo and PMU practice. Made in Italy.',
-    url: 'https://thefoolishbutcher.com',
-    siteName: 'The Foolish Butcher',
-    type: 'website',
-  },
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  return {
+    metadataBase: new URL(BASE_URL),
+    title: {
+      default: 'The Foolish Butcher — Pelle sintetica artigianale per tattoo e PMU',
+      template: '%s | The Foolish Butcher',
+    },
+    description: descriptions[locale] ?? descriptions.it,
+    openGraph: {
+      siteName: 'The Foolish Butcher',
+      type: 'website',
+      locale,
+    },
+    robots: { index: true, follow: true },
+  }
 }
 
 export default async function LocaleLayout({

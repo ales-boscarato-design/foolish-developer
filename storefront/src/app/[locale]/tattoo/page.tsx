@@ -1,11 +1,27 @@
 export const dynamic = 'force-dynamic'
+import type { Metadata } from 'next'
 import { getTranslations, getLocale } from 'next-intl/server'
 import { getProducts } from '@/lib/cms'
 import { ProductCard } from '@/components/ProductCard'
 
-export async function generateMetadata() {
+const BASE = 'https://thefoolishbutcher.com'
+const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
   const t = await getTranslations('sections.tattoo')
-  return { title: t('meta') }
+  const langs = Object.fromEntries(LOCALES.map(l => [l, `${BASE}/${l}/tattoo`]))
+  return {
+    title: t('meta'),
+    alternates: {
+      canonical: `${BASE}/${locale}/tattoo`,
+      languages: { ...langs, 'x-default': `${BASE}/it/tattoo` },
+    },
+  }
 }
 
 export default async function TattooPage() {
