@@ -155,6 +155,7 @@ export const Products: CollectionConfig = {
         {
           name: 'description',
           type: 'text',
+          localized: true,
           label: 'Descrizione variante (opzionale)',
           admin: { description: 'Appare sotto i bottoni variante quando il cliente seleziona questa. Es: "Stai per acquistare un foglio 30×20×4mm — il formato ideale per braccia e gambe."' },
         },
@@ -347,6 +348,7 @@ export const Products: CollectionConfig = {
           name: 'name',
           type: 'text',
           required: true,
+          localized: true,
           label: 'Nome pack',
           admin: { description: 'Es: "Starter Kit", "Pro Bundle"' },
         },
@@ -370,6 +372,7 @@ export const Products: CollectionConfig = {
         {
           name: 'badgeText',
           type: 'text',
+          localized: true,
           label: 'Badge (opzionale)',
           admin: { description: 'Es: "Più venduto", "Miglior valore" — appare come tag colorato sulla card' },
         },
