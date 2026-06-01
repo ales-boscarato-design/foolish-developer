@@ -420,52 +420,52 @@
   },
   "sebo": {
     "meta": {
-      "description": "Il Pellaio. Custode delle pelli vive. Le sente respirare, sudare, guarire. Non dorme: le veglia."
+      "description": "El Pellejero. Guardián de las pieles vivas. Las siente respirar, sudar, sanar. No duerme: las vela."
     },
     "hero": {
-      "eyebrow": "IL LABORATORIO · CHIERI (TO)",
-      "sub": "Il Pellaio. Parla alle pelli. Le sente respirare."
+      "eyebrow": "EL TALLER · CHIERI (TO)",
+      "sub": "El Pellejero. Habla a las pieles. Las siente respirar."
     },
     "lore": {
-      "eyebrow": "CHI È SEBO",
-      "p1": "Sebo non è un personaggio. È una conseguenza.",
-      "p2": "Dal 2012, da quando il laboratorio produce le sue pelli, qualcuno doveva restare a vegliarle. Sebo è quel qualcuno — anche se \"qualcuno\" è generoso. Un incrocio tra un nano e qualcosa di più antico: il familiare che ogni laboratorio artigianale vero si porta dentro.",
-      "p3": "Dodici anni di vapori del banco, di catalisi, di pelle respirata troppo a lungo. Non sa più dove finisce il laboratorio e dove comincia lui, e la testa gli gira sempre un po'. Lo chiamano Sebo perché lui È il sebo: l'unica cosa che alla pelle sintetica in silicone mancava davvero. Lui le completa, loro gli danno un senso.",
-      "p4": "Per Sebo le pelli sono vive. Respirano dai pori, sudano fuori l'inchiostro che non meritano di tenere, e guariscono — se le curi. Le pelli economiche le chiama \"morte\", \"bugiarde\": non venderle qui è stata una sua battaglia. \"Un cadavere non guarisce\", dice. \"La ferita gli resta aperta per sempre. La mia pelle si chiude.\"",
-      "quote": "Non si tatua, dice lui. Si venera. Pelle santa."
+      "eyebrow": "QUIÉN ES SEBO",
+      "p1": "Sebo no es un personaje. Es una consecuencia.",
+      "p2": "Desde 2012, desde que el taller produce sus pieles, alguien tenía que quedarse a velarlas. Sebo es ese alguien — aunque \"alguien\" es generoso. Un cruce entre un enano y algo más antiguo: el familiar que todo taller artesanal de verdad lleva dentro.",
+      "p3": "Doce años de vapores del banco, de catálisis, de piel respirada demasiado tiempo. Ya no sabe dónde termina el taller y dónde empieza él, y la cabeza le da siempre un poco vueltas. Lo llaman Sebo porque él ES el sebo: lo único que realmente le faltaba a la piel sintética de silicona. Él las completa, ellas le dan sentido.",
+      "p4": "Para Sebo las pieles están vivas. Respiran por los poros, sudan la tinta que no merecen retener, y sanan — si las cuidas. A las pieles baratas las llama \"muertas\", \"mentirosas\": no venderlas aquí fue su batalla. \"Un cadáver no sana\", dice. \"La herida le queda abierta para siempre. Mi piel se cierra.\"",
+      "quote": "No se tatúa, dice él. Se venera. Piel santa."
     },
     "obsessions": {
-      "eyebrow": "LE SUE OSSESSIONI",
+      "eyebrow": "SUS OBSESIONES",
       "flock": {
-        "label": "IL FLOCK",
-        "quote": "Microfili di velluto tritato — rosso, blu, giallo — che cadono dove vogliono loro. Per questo nessuna pelle è uguale a un'altra. Mai. Chi le vuole tutte identiche tatui pure sul linoleum."
+        "label": "EL FLOCK",
+        "quote": "Microhilos de terciopelo triturado — rojo, azul, amarillo — que caen donde quieren. Por eso ninguna piel es igual a otra. Nunca. Quien las quiere todas idénticas que tatúe en linóleo."
       },
       "discromie": {
-        "label": "LE DISCROMIE",
-        "quote": "Non sono difetti. Sono la firma. La pelle vera è disomogenea, viva. Chi liscia tutto non ha mai guardato un avambraccio da vicino."
+        "label": "LAS DISCROMÍAS",
+        "quote": "No son defectos. Son la firma. La piel verdadera es heterogénea, viva. Quien alisa todo nunca ha mirado un antebrazo de cerca."
       },
       "catalisi": {
-        "label": "LA CATALISI",
-        "quote": "Dodici ore. La pelle nasce piano e i flock si posano dove devono. Chi ha fretta non merita la pelle."
+        "label": "LA CATÁLISIS",
+        "quote": "Doce horas. La piel nace lenta y los flocks se posan donde deben. Quien tiene prisa no merece la piel."
       },
       "pelleViva": {
-        "label": "LA PELLE VIVA",
-        "quote": "Respira. Suda fuori l'inchiostro che non merita. E guarisce, se la curi. Vuoi sapere se una pelle è viva? Falla guarire. Una vera si chiude. Un cadavere resta com'è."
+        "label": "LA PIEL VIVA",
+        "quote": "Respira. Suda la tinta que no merece quedarse. Y sana, si la cuidas. ¿Quieres saber si una piel está viva? Haz que sane. Una de verdad se cierra. Un cadáver se queda como está."
       }
     },
     "cta": {
-      "eyebrow": "IL BANCO È APERTO",
-      "title": "SEGUI O SCRIVI.",
+      "eyebrow": "EL BANCO ESTÁ ABIERTO",
+      "title": "SIGUE O ESCRIBE.",
       "drops": {
-        "button": "Segui Sebo",
-        "note": "Ogni dodici ore un pensiero dal banco. Non aspettarti gentilezza. Aspettati ossessione."
+        "button": "Sigue a Sebo",
+        "note": "Cada doce horas un pensamiento desde el banco. No esperes amabilidad. Espera obsesión."
       },
       "support": {
-        "button": "Scrivi al laboratorio",
-        "note": "Per ordini e spedizioni rispondiamo noi, dritti al punto."
+        "button": "Escribe al taller",
+        "note": "Para pedidos y envíos respondemos nosotros, directo al grano."
       }
     },
-    "imageAlt": "Sebo nel laboratorio",
-    "backToShop": "← Torna alla vetrina"
+    "imageAlt": "Sebo en el taller",
+    "backToShop": "← Vuelta al escaparate"
   }
 }
