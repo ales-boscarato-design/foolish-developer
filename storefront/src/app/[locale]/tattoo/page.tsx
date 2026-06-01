@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic'
-import { getTranslations } from 'next-intl/server'
+import { getTranslations, getLocale } from 'next-intl/server'
 import { getProducts } from '@/lib/cms'
 import { ProductCard } from '@/components/ProductCard'
 
@@ -10,7 +10,8 @@ export async function generateMetadata() {
 
 export default async function TattooPage() {
   const t = await getTranslations('sections')
-  const products = await getProducts('tattoo')
+  const locale = await getLocale()
+  const products = await getProducts('tattoo', locale)
   return (
     <div className="max-w-6xl mx-auto px-4 py-12">
       <div className="mb-10">

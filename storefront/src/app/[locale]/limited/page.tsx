@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic'
-import { getTranslations } from 'next-intl/server'
+import { getTranslations, getLocale } from 'next-intl/server'
 import { getLimitedProducts } from '@/lib/cms'
 import { ProductCard } from '@/components/ProductCard'
 import { redirect } from 'next/navigation'
@@ -11,7 +11,8 @@ export async function generateMetadata() {
 
 export default async function LimitedPage() {
   const t = await getTranslations('sections.limited')
-  const products = await getLimitedProducts()
+  const locale = await getLocale()
+  const products = await getLimitedProducts(locale)
   if (products.length === 0) redirect('/')
   return (
     <div className="max-w-6xl mx-auto px-4 py-12">

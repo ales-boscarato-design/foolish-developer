@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { getTranslations } from 'next-intl/server'
+import { getTranslations, getLocale } from 'next-intl/server'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Truck, ShieldCheck, MessageSquare, Package, ArrowRight } from 'lucide-react'
@@ -98,10 +98,11 @@ function SectionLabel({
 /* ─── HOME PAGE ───────────────────────────────────────────────────── */
 export default async function HomePage() {
   const t = await getTranslations('home')
+  const locale = await getLocale()
   const [tattooProducts, pmuProducts, limitedProducts] = await Promise.all([
-    getProducts('tattoo'),
-    getProducts('pmu'),
-    getLimitedProducts(),
+    getProducts('tattoo', locale),
+    getProducts('pmu', locale),
+    getLimitedProducts(locale),
   ])
 
   return (

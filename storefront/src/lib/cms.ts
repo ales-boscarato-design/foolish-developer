@@ -100,11 +100,12 @@ export interface Product {
   components?: ProductComponent[]
 }
 
-async function fetchAPI<T>(path: string, params?: Record<string, string>): Promise<T> {
+async function fetchAPI<T>(path: string, params?: Record<string, string>, locale?: string): Promise<T> {
   const url = new URL(`${CMS_API}${path}`)
   if (params) {
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
   }
+  if (locale) url.searchParams.set('locale', locale)
   const res = await fetch(url.toString(), {
     next: { revalidate: 60 }, // ISR — rivalidate ogni 60s
     headers: { 'Content-Type': 'application/json' },
@@ -113,32 +114,32 @@ async function fetchAPI<T>(path: string, params?: Record<string, string>): Promi
   return res.json()
 }
 
-export async function getProducts(section?: 'tattoo' | 'pmu'): Promise<Product[]> {
+export async function getProducts(section?: 'tattoo' | 'pmu', locale = 'it'): Promise<Product[]> {
   const params: Record<string, string> = {
     'where[active][equals]': 'true',
     sort: 'order',
     limit: '100',
   }
   if (section) params['where[section][equals]'] = section
-  const data = await fetchAPI<{ docs: Product[] }>('/products', params)
+  const data = await fetchAPI<{ docs: Product[] }>('/products', params, locale)
   return data.docs
 }
 
-export async function getLimitedProducts(): Promise<Product[]> {
+export async function getLimitedProducts(locale = 'it'): Promise<Product[]> {
   const data = await fetchAPI<{ docs: Product[] }>('/products', {
     'where[active][equals]': 'true',
     'where[limitedStock][equals]': 'true',
     sort: 'order',
     limit: '20',
-  })
+  }, locale)
   return data.docs
 }
 
-export async function getProductBySlug(slug: string): Promise<Product | null> {
+export async function getProductBySlug(slug: string, locale = 'it'): Promise<Product | null> {
   const data = await fetchAPI<{ docs: Product[] }>('/products', {
     'where[slug][equals]': slug,
     limit: '1',
     depth: '2',
-  })
+  }, locale)
   return data.docs[0] ?? null
 }
