@@ -328,6 +328,48 @@ export const Products: CollectionConfig = {
       },
     },
 
+    // PACK — quantità predefinite con sconto
+    {
+      name: 'packs',
+      type: 'array',
+      label: 'Pack (acquista di più, risparmia)',
+      admin: {
+        description: 'Offerte bundle con sconto. Es: "3 fogli -10%". Appaiono come cards di upsell sulla pagina prodotto.',
+      },
+      fields: [
+        {
+          name: 'name',
+          type: 'text',
+          required: true,
+          label: 'Nome pack',
+          admin: { description: 'Es: "Starter Kit", "Pro Bundle"' },
+        },
+        {
+          name: 'quantity',
+          type: 'number',
+          required: true,
+          label: 'Quantità pezzi',
+          min: 2,
+          admin: { description: 'Quanti pezzi include il pack' },
+        },
+        {
+          name: 'discountPercent',
+          type: 'number',
+          required: true,
+          label: 'Sconto (%)',
+          min: 1,
+          max: 50,
+          admin: { description: 'Es: 10 = 10% di sconto sul prezzo unitario × quantità' },
+        },
+        {
+          name: 'badgeText',
+          type: 'text',
+          label: 'Badge (opzionale)',
+          admin: { description: 'Es: "Più venduto", "Miglior valore" — appare come tag colorato sulla card' },
+        },
+      ],
+    },
+
     // WHATS IN THE BOX
     {
       name: 'whatsInTheBox',

@@ -56,6 +56,14 @@ export interface WhatsInTheBox {
   description: string
 }
 
+export interface ProductPack {
+  id: string
+  name: string
+  quantity: number
+  discountPercent: number
+  badgeText?: string
+}
+
 export interface ProductComponent {
   id: string
   name: string
@@ -98,6 +106,7 @@ export interface Product {
   usageSteps?: UsageStep[]
   whatsInTheBox?: WhatsInTheBox[]
   components?: ProductComponent[]
+  packs?: ProductPack[]
 }
 
 async function fetchAPI<T>(path: string, params?: Record<string, string>, locale?: string): Promise<T> {

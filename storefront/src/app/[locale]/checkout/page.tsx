@@ -271,7 +271,17 @@ export default function CheckoutPage() {
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm">{item.productName}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-medium text-sm">{item.productName}</p>
+                    {item.packName && (
+                      <span
+                        className="text-xs font-bold px-1.5 py-0.5 rounded-full"
+                        style={{ backgroundColor: 'var(--accent)', color: 'black' }}
+                      >
+                        {item.packName}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--muted-fg)' }}>{item.variantLabel}</p>
                   {Object.keys(item.selectedAttrs).length > 0 && (
                     <div className="text-xs mt-1 space-y-0.5">
@@ -295,6 +305,11 @@ export default function CheckoutPage() {
                 </div>
                 <div className="text-right flex-shrink-0">
                   <span className="font-semibold text-sm">{(item.price * item.quantity).toFixed(2)}€</span>
+                  {item.originalUnitPrice && (
+                    <p className="text-xs line-through opacity-40" style={{ color: 'var(--foreground)' }}>
+                      {(item.originalUnitPrice * item.quantity).toFixed(2)}€
+                    </p>
+                  )}
                 </div>
               </div>
             ))}

@@ -9,6 +9,7 @@ import * as migration_20260601_100000_localize_products from './20260601_100000_
 import * as migration_20260601_120000_fix_localization_schema from './20260601_120000_fix_localization_schema';
 import * as migration_20260601_140000_add_missing_array_locales from './20260601_140000_add_missing_array_locales';
 import * as migration_20260601_160000_align_locales_to_payload_schema from './20260601_160000_align_locales_to_payload_schema';
+import * as migration_20260601_200000_add_product_packs from './20260601_200000_add_product_packs';
 
 export const migrations = [
   {
@@ -65,5 +66,10 @@ export const migrations = [
     up: migration_20260601_160000_align_locales_to_payload_schema.up,
     down: migration_20260601_160000_align_locales_to_payload_schema.down,
     name: '20260601_160000_align_locales_to_payload_schema',
+  },
+  {
+    up: migration_20260601_200000_add_product_packs.up,
+    down: migration_20260601_200000_add_product_packs.down,
+    name: '20260601_200000_add_product_packs',
   },
 ];

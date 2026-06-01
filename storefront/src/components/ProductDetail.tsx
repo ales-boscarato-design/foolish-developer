@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { ShoppingBag, Check, Star, Shield, Truck, Sparkles, Info } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion'
-import type { Product, ProductVariant, ProductAttribute, ProductVariantCombination, FeatureHighlight, ProductComponent } from '@/lib/cms'
+import type { Product, ProductVariant, ProductAttribute, ProductVariantCombination, FeatureHighlight, ProductComponent, ProductPack } from '@/lib/cms'
 import { useCart } from '@/lib/cart'
 import { RichText } from './RichText'
 
@@ -226,6 +226,7 @@ export function ProductDetail({ product }: { product: Product }) {
   const [imageLoaded, setImageLoaded] = useState(false)
   const [showStickyBar, setShowStickyBar] = useState(false)
   const addToCart = useCart((s) => s.add)
+  const addPackToCart = useCart((s) => s.addPack)
   const itemCount = useCart((s) => s.itemCount())
   const addRef = useRef<HTMLDivElement>(null)
 
@@ -274,6 +275,13 @@ export function ProductDetail({ product }: { product: Product }) {
   const handleAdd = () => {
     if (selectedVariant.stockStatus === 'unavailable') return
     addToCart(product, selectedVariant, selectedAttrs, qty)
+    setAdded(true)
+    setTimeout(() => setAdded(false), 1800)
+  }
+
+  const handleAddPack = (pack: ProductPack) => {
+    if (selectedVariant.stockStatus === 'unavailable') return
+    addPackToCart(product, selectedVariant, pack, selectedAttrs)
     setAdded(true)
     setTimeout(() => setAdded(false), 1800)
   }
@@ -524,6 +532,53 @@ export function ProductDetail({ product }: { product: Product }) {
             </div>
           </motion.div>
         </div>
+
+        {/* Pack upsell — solo se il prodotto ha pack definiti */}
+        {product.packs && product.packs.length > 0 && selectedVariant.stockStatus !== 'unavailable' && (
+          <motion.section variants={itemVariants} className="mb-14">
+            <h2 className="text-xl font-semibold mb-4 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
+              Acquista di più, risparmia
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {product.packs.map((pack) => {
+                const packTotal = selectedVariant.price * pack.quantity * (1 - pack.discountPercent / 100)
+                const savings = selectedVariant.price * pack.quantity - packTotal
+                return (
+                  <button
+                    key={pack.id}
+                    type="button"
+                    onClick={() => handleAddPack(pack)}
+                    className="relative text-left rounded-2xl border-2 p-4 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--card)' }}
+                  >
+                    {pack.badgeText && (
+                      <span
+                        className="absolute -top-2.5 left-4 text-xs font-bold px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: 'var(--accent)', color: 'black' }}
+                      >
+                        {pack.badgeText}
+                      </span>
+                    )}
+                    <p className="font-bold text-base mb-1" style={{ color: 'var(--foreground)' }}>
+                      × {pack.quantity} {pack.name}
+                    </p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl font-bold" style={{ color: 'var(--accent)' }}>
+                        {packTotal.toFixed(2)}€
+                      </span>
+                      <span className="text-sm line-through opacity-50" style={{ color: 'var(--foreground)' }}>
+                        {(selectedVariant.price * pack.quantity).toFixed(2)}€
+                      </span>
+                    </div>
+                    <p className="text-xs mt-1 font-medium" style={{ color: 'var(--accent)' }}>
+                      Risparmia {savings.toFixed(2)}€ ({pack.discountPercent}% di sconto)
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
+          </motion.section>
+        )}
 
         {/* Feature highlights — 4 cards */}
         <motion.section variants={itemVariants} className="mb-14">
