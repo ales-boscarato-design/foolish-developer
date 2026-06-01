@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl'
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion'
 import type { Product, ProductVariant, ProductAttribute, ProductVariantCombination, FeatureHighlight, ProductComponent, ProductPack } from '@/lib/cms'
 import { useCart } from '@/lib/cart'
+import { track } from '@/lib/analytics'
 import { RichText } from './RichText'
 
 // ─── Animation variants ─────────────────────────────────────────────────────
@@ -265,6 +266,7 @@ export function ProductDetail({ product }: { product: Product }) {
       if (attr.options.length > 0) reset[attr.name] = attr.options[0].value
     }
     setSelectedAttrs(reset)
+    track('variant_selected', { product: product.slug, variant: v.label, sku: v.sku, price: v.price })
   }
 
   const handleAttrSelect = (attrName: string, value: string) => {
@@ -277,6 +279,7 @@ export function ProductDetail({ product }: { product: Product }) {
     addToCart(product, selectedVariant, selectedAttrs, qty)
     setAdded(true)
     setTimeout(() => setAdded(false), 1800)
+    track('add_to_cart', { product: product.slug, variant: selectedVariant.label, sku: selectedVariant.sku, qty, price: selectedVariant.price })
   }
 
   const handleAddPack = (pack: ProductPack) => {
@@ -284,6 +287,7 @@ export function ProductDetail({ product }: { product: Product }) {
     addPackToCart(product, selectedVariant, pack, selectedAttrs)
     setAdded(true)
     setTimeout(() => setAdded(false), 1800)
+    track('pack_added', { product: product.slug, variant: selectedVariant.label, pack: pack.name, qty: pack.quantity, discount: pack.discountPercent })
   }
 
   const firstImage = product.images[activeImage]?.image

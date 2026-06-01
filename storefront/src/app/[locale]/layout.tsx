@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Outfit, Cormorant_Garamond } from 'next/font/google'
+import Script from 'next/script'
 import '../globals.css'
 import { NavWrapper } from '@/components/NavWrapper'
 import { CartProvider } from '@/components/CartProvider'
@@ -67,6 +68,13 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} className={`${outfit.variable} ${cormorant.variable}`} suppressHydrationWarning>
       <body className="min-h-screen flex flex-col" suppressHydrationWarning>
+        {process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID && (
+          <Script
+            src={`${process.env.NEXT_PUBLIC_UMAMI_URL ?? 'https://analytics.thefoolishbutcher.com'}/script.js`}
+            data-website-id={process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID}
+            strategy="afterInteractive"
+          />
+        )}
         <SmoothScrollProvider>
           <NextIntlClientProvider messages={messages}>
             <CartProvider>

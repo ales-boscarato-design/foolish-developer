@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { useCart } from '@/lib/cart'
+import { track } from '@/lib/analytics'
 import { calculateShipping, freeShippingRemaining } from '@/lib/shipping'
 import { Trash2, CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import Image from 'next/image'
@@ -207,6 +208,7 @@ export default function CheckoutPage() {
       })
       const data = await res.json()
       if (data.checkoutUrl) {
+        track('checkout_started', { total: grandTotal, items: items.length, country })
         window.location.assign(data.checkoutUrl)
       } else {
         alert(t('errorOrder'))
