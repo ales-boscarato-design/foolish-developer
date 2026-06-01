@@ -6,6 +6,7 @@ import * as migration_20260530_130000_add_products_components from './20260530_1
 import * as migration_20260530_180000_add_pro_members_promo_codes from './20260530_180000_add_pro_members_promo_codes';
 import * as migration_20260531_120000_add_order_customer_page from './20260531_120000_add_order_customer_page';
 import * as migration_20260601_100000_localize_products from './20260601_100000_localize_products';
+import * as migration_20260601_120000_fix_localization_schema from './20260601_120000_fix_localization_schema';
 
 export const migrations = [
   {
@@ -47,5 +48,10 @@ export const migrations = [
     up: migration_20260601_100000_localize_products.up,
     down: migration_20260601_100000_localize_products.down,
     name: '20260601_100000_localize_products',
+  },
+  {
+    up: migration_20260601_120000_fix_localization_schema.up,
+    down: migration_20260601_120000_fix_localization_schema.down,
+    name: '20260601_120000_fix_localization_schema',
   },
 ];
