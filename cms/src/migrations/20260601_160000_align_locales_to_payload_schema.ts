@@ -53,6 +53,15 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
     END $$;
   `)
 
+  // ── 2b. Converti _locale a text nelle temp tables (PRIMA del DROP TYPE CASCADE)
+  //       Così DROP TYPE CASCADE non droppa la colonna _locale dalle temp tables.
+  await db.execute(sql`DO $$ BEGIN ALTER TABLE _tmp_products_locales ALTER COLUMN _locale TYPE text; EXCEPTION WHEN undefined_table OR undefined_column THEN NULL; END $$;`)
+  await db.execute(sql`DO $$ BEGIN ALTER TABLE _tmp_fh_locales ALTER COLUMN _locale TYPE text; EXCEPTION WHEN undefined_table OR undefined_column THEN NULL; END $$;`)
+  await db.execute(sql`DO $$ BEGIN ALTER TABLE _tmp_us_locales ALTER COLUMN _locale TYPE text; EXCEPTION WHEN undefined_table OR undefined_column THEN NULL; END $$;`)
+  await db.execute(sql`DO $$ BEGIN ALTER TABLE _tmp_witb_locales ALTER COLUMN _locale TYPE text; EXCEPTION WHEN undefined_table OR undefined_column THEN NULL; END $$;`)
+  await db.execute(sql`DO $$ BEGIN ALTER TABLE _tmp_attr_locales ALTER COLUMN _locale TYPE text; EXCEPTION WHEN undefined_table OR undefined_column THEN NULL; END $$;`)
+  await db.execute(sql`DO $$ BEGIN ALTER TABLE _tmp_attropt_locales ALTER COLUMN _locale TYPE text; EXCEPTION WHEN undefined_table OR undefined_column THEN NULL; END $$;`)
+
   // ── 2. Elimina tabelle *_locales esistenti ─────────────────
   await db.execute(sql`DROP TABLE IF EXISTS products_attributes_options_locales CASCADE`)
   await db.execute(sql`DROP TABLE IF EXISTS products_attributes_locales CASCADE`)
