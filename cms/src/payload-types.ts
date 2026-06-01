@@ -71,6 +71,8 @@ export interface Config {
     orders: Order;
     customers: Customer;
     media: Media;
+    'pro-members': ProMember;
+    'promo-codes': PromoCode;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -83,6 +85,8 @@ export interface Config {
     orders: OrdersSelect<false> | OrdersSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    'pro-members': ProMembersSelect<false> | ProMembersSelect<true>;
+    'promo-codes': PromoCodesSelect<false> | PromoCodesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -92,10 +96,15 @@ export interface Config {
   db: {
     defaultIDType: number;
   };
-  fallbackLocale: null;
+  fallbackLocale:
+    | ('false' | 'none' | 'null')
+    | false
+    | null
+    | ('it' | 'en' | 'de' | 'fr' | 'es')
+    | ('it' | 'en' | 'de' | 'fr' | 'es')[];
   globals: {};
   globalsSelect: {};
-  locale: null;
+  locale: 'it' | 'en' | 'de' | 'fr' | 'es';
   widgets: {
     collections: CollectionsWidget;
   };
@@ -267,6 +276,10 @@ export interface Product {
       }[]
     | null;
   /**
+   * Prodotti che compongono questo kit. Appariranno nella pagina prodotto con il loro prezzo e un tasto "Aggiungi al carrello".
+   */
+  components?: (number | Product)[] | null;
+  /**
    * Lista di cosa contiene la confezione. Se vuoto, viene usato il default.
    */
   whatsInTheBox?:
@@ -375,6 +388,39 @@ export interface Order {
   trackingCarrier?: string | null;
   productionEtaDays?: number | null;
   notes?: string | null;
+  /**
+   * Codice ISO 639-1. Usato per localizzare la pagina cliente.
+   */
+  customerLocale?: string | null;
+  /**
+   * UUID generato automaticamente. Usato come URL sicuro per la pagina cliente.
+   */
+  pageToken?: string | null;
+  /**
+   * Foto dei fogli fisici abbinati a questo ordine.
+   */
+  sheetPhotos?:
+    | {
+        url: string;
+        caption?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Frank popola questi blocchi: guide, offerte, annunci. Visibili nella pagina cliente.
+   */
+  contentBlocks?:
+    | {
+        type: 'guide' | 'announcement' | 'offer' | 'tip';
+        title: string;
+        body: string;
+        ctaLabel?: string | null;
+        ctaUrl?: string | null;
+        active?: boolean | null;
+        expiresAt?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -399,6 +445,41 @@ export interface Customer {
    */
   notes?: string | null;
   tags?: ('tatuatore' | 'pmu' | 'studente' | 'professionista' | 'vip')[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pro-members".
+ */
+export interface ProMember {
+  id: number;
+  vatNumber: string;
+  businessName: string;
+  contactName: string;
+  email: string;
+  telegramId?: string | null;
+  discountCode: string;
+  status: 'active' | 'suspended';
+  channelInvited?: boolean | null;
+  totalSpent?: number | null;
+  orderCount?: number | null;
+  notes?: string | null;
+  joinedAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "promo-codes".
+ */
+export interface PromoCode {
+  id: number;
+  code: string;
+  type: 'free_shipping' | 'percent_pro';
+  active?: boolean | null;
+  proMember?: (number | null) | ProMember;
+  usageCount?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -466,6 +547,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'media';
         value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'pro-members';
+        value: number | ProMember;
+      } | null)
+    | ({
+        relationTo: 'promo-codes';
+        value: number | PromoCode;
       } | null)
     | ({
         relationTo: 'users';
@@ -586,6 +675,7 @@ export interface ProductsSelect<T extends boolean = true> {
         description?: T;
         id?: T;
       };
+  components?: T;
   whatsInTheBox?:
     | T
     | {
@@ -626,6 +716,27 @@ export interface OrdersSelect<T extends boolean = true> {
   trackingCarrier?: T;
   productionEtaDays?: T;
   notes?: T;
+  customerLocale?: T;
+  pageToken?: T;
+  sheetPhotos?:
+    | T
+    | {
+        url?: T;
+        caption?: T;
+        id?: T;
+      };
+  contentBlocks?:
+    | T
+    | {
+        type?: T;
+        title?: T;
+        body?: T;
+        ctaLabel?: T;
+        ctaUrl?: T;
+        active?: T;
+        expiresAt?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -697,6 +808,39 @@ export interface MediaSelect<T extends boolean = true> {
               filename?: T;
             };
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pro-members_select".
+ */
+export interface ProMembersSelect<T extends boolean = true> {
+  vatNumber?: T;
+  businessName?: T;
+  contactName?: T;
+  email?: T;
+  telegramId?: T;
+  discountCode?: T;
+  status?: T;
+  channelInvited?: T;
+  totalSpent?: T;
+  orderCount?: T;
+  notes?: T;
+  joinedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "promo-codes_select".
+ */
+export interface PromoCodesSelect<T extends boolean = true> {
+  code?: T;
+  type?: T;
+  active?: T;
+  proMember?: T;
+  usageCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
