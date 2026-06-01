@@ -153,6 +153,12 @@ export const Products: CollectionConfig = {
           admin: { description: 'Mostra "X pezzi rimasti" se compilato' },
         },
         {
+          name: 'description',
+          type: 'text',
+          label: 'Descrizione variante (opzionale)',
+          admin: { description: 'Appare sotto i bottoni variante quando il cliente seleziona questa. Es: "Stai per acquistare un foglio 30×20×4mm — il formato ideale per braccia e gambe."' },
+        },
+        {
           name: 'dimensions',
           type: 'text',
           label: 'Dimensioni',

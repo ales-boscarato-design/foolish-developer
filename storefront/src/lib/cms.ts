@@ -24,6 +24,7 @@ export interface ProductVariantCombination {
 }
 
 export interface ProductVariant {
+  description?: string
   sku: string
   label: string
   price: number

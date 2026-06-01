@@ -414,6 +414,27 @@ export function ProductDetail({ product }: { product: Product }) {
               </div>
             </div>
 
+            {/* Descrizione variante selezionata */}
+            <AnimatePresence mode="wait">
+              {selectedVariant.description && (
+                <motion.p
+                  key={selectedVariant.sku}
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.25 }}
+                  className="text-sm rounded-xl px-4 py-3 border-l-4"
+                  style={{
+                    color: 'var(--foreground)',
+                    backgroundColor: 'var(--muted)',
+                    borderColor: 'var(--accent)',
+                  }}
+                >
+                  {selectedVariant.description}
+                </motion.p>
+              )}
+            </AnimatePresence>
+
             {/* Attributi */}
             {product.attributes.length > 0 && (
               <div className="space-y-5">
