@@ -15,36 +15,42 @@ import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres'
 export async function up({ db }: MigrateUpArgs): Promise<void> {
 
   // ── 1. Salva dati esistenti in products_locales (se ci sono) ──
+  // Usa DO block: se la tabella sorgente non esiste (già droppata da run precedente), ignora.
   await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS _tmp_products_locales AS
-    SELECT * FROM products_locales
-  `)
-
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS _tmp_fh_locales AS
-    SELECT * FROM products_feature_highlights_locales
-    WHERE TRUE
-  `)
-  // Gli altri array potrebbero non avere dati utili, ma salviamo per sicurezza
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS _tmp_us_locales AS
-    SELECT * FROM products_usage_steps_locales
-    WHERE TRUE
+    DO $$ BEGIN
+      CREATE TABLE IF NOT EXISTS _tmp_products_locales AS SELECT * FROM products_locales;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END $$;
   `)
   await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS _tmp_witb_locales AS
-    SELECT * FROM products_whats_in_the_box_locales
-    WHERE TRUE
+    DO $$ BEGIN
+      CREATE TABLE IF NOT EXISTS _tmp_fh_locales AS SELECT * FROM products_feature_highlights_locales;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END $$;
   `)
   await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS _tmp_attr_locales AS
-    SELECT * FROM products_attributes_locales
-    WHERE TRUE
+    DO $$ BEGIN
+      CREATE TABLE IF NOT EXISTS _tmp_us_locales AS SELECT * FROM products_usage_steps_locales;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END $$;
   `)
   await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS _tmp_attropt_locales AS
-    SELECT * FROM products_attributes_options_locales
-    WHERE TRUE
+    DO $$ BEGIN
+      CREATE TABLE IF NOT EXISTS _tmp_witb_locales AS SELECT * FROM products_whats_in_the_box_locales;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END $$;
+  `)
+  await db.execute(sql`
+    DO $$ BEGIN
+      CREATE TABLE IF NOT EXISTS _tmp_attr_locales AS SELECT * FROM products_attributes_locales;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END $$;
+  `)
+  await db.execute(sql`
+    DO $$ BEGIN
+      CREATE TABLE IF NOT EXISTS _tmp_attropt_locales AS SELECT * FROM products_attributes_options_locales;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END $$;
   `)
 
   // ── 2. Elimina tabelle *_locales esistenti ─────────────────
@@ -56,7 +62,7 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`DROP TABLE IF EXISTS products_locales CASCADE`)
 
   // ── 3. Elimina enum sbagliato, crea quello corretto ────────
-  await db.execute(sql`DROP TYPE IF EXISTS enum__locales`)
+  await db.execute(sql`DROP TYPE IF EXISTS enum__locales CASCADE`)
   await db.execute(sql`
     DO $$ BEGIN
       CREATE TYPE "_locales" AS ENUM('it', 'en', 'de', 'fr', 'es');
