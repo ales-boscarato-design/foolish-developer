@@ -11,9 +11,11 @@ const CMS_API = `${CMS_URL}/api`
  */
 export function cmsImageUrl(url: string | undefined | null): string {
   if (!url) return ''
-  const prefix = `${CMS_URL}/api/media/file/`
-  if (url.startsWith(prefix)) return `/cms-media/${url.slice(prefix.length)}`
-  // fallback: se è già un path locale o un URL diverso, lascia invariato
+  // Match any CMS host — avoids env var dependency in browser context where
+  // PAYLOAD_PUBLIC_URL (no NEXT_PUBLIC_ prefix) is undefined.
+  // decodeURIComponent prevents double-encoding when Next.js re-encodes the src.
+  const match = url.match(/^https?:\/\/[^/]+\/api\/media\/file\/(.+)$/)
+  if (match) return `/cms-media/${decodeURIComponent(match[1])}`
   return url
 }
 
