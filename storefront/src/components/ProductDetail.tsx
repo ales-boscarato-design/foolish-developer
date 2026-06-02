@@ -259,6 +259,7 @@ export function ProductDetail({ product }: { product: Product }) {
 
   const handleVariantSelect = (v: ProductVariant) => {
     setSelectedVariant(v)
+    setActiveImage(0)
     setImageLoaded(false)
     setQty(1)
     const reset: Record<string, string> = {}
@@ -290,7 +291,7 @@ export function ProductDetail({ product }: { product: Product }) {
     track('pack_added', { product: product.slug, variant: selectedVariant.label, pack: pack.name, qty: pack.quantity, discount: pack.discountPercent })
   }
 
-  const firstImage = product.images[activeImage]?.image
+  const displayImage = selectedVariant.image ?? product.images[activeImage]?.image
 
   return (
     <>
@@ -317,10 +318,10 @@ export function ProductDetail({ product }: { product: Product }) {
               style={{ backgroundColor: 'var(--muted)', scale: imageScale }}
             >
               {!imageLoaded && <ImageSkeleton />}
-              {firstImage?.url ? (
+              {displayImage?.url ? (
                 <Image
-                  src={firstImage.url}
-                  alt={firstImage.alt || product.name}
+                  src={displayImage.url}
+                  alt={displayImage.alt || product.name}
                   fill
                   className={`object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
                   priority
@@ -344,8 +345,8 @@ export function ProductDetail({ product }: { product: Product }) {
               )}
             </motion.div>
 
-            {/* Dots indicator */}
-            {product.images.length > 1 && (
+            {/* Dots indicator — solo quando non c'è un'immagine specifica per la variante */}
+            {!selectedVariant.image && product.images.length > 1 && (
               <div className="flex gap-3 mt-6 justify-center">
                 {product.images.map((_, i) => (
                   <button

@@ -153,6 +153,13 @@ export const Products: CollectionConfig = {
           admin: { description: 'Mostra "X pezzi rimasti" se compilato' },
         },
         {
+          name: 'image',
+          type: 'upload',
+          relationTo: 'media',
+          label: 'Immagine variante (opzionale)',
+          admin: { description: 'Se presente, viene mostrata al posto delle immagini prodotto quando il cliente seleziona questa variante.' },
+        },
+        {
           name: 'description',
           type: 'text',
           localized: true,

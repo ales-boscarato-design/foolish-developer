@@ -24,6 +24,7 @@ export interface ProductVariantCombination {
 }
 
 export interface ProductVariant {
+  image?: { url: string; alt?: string; sizes?: Record<string, { url: string }> }
   description?: string
   sku: string
   label: string
