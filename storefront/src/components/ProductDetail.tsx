@@ -273,7 +273,8 @@ export function ProductDetail({ product }: { product: Product }) {
 
   const handleAttrSelect = (attrName: string, value: string) => {
     setSelectedAttrs((prev) => ({ ...prev, [attrName]: value }))
-    setImageLoaded(false)
+    // Non resettare imageLoaded: gli attributi non cambiano displayImage,
+    // quindi onLoad non si ri-scatena e l'immagine resterebbe nascosta.
   }
 
   const handleAdd = () => {
