@@ -19,7 +19,7 @@ const securityHeaders = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://umami-production-8b53.up.railway.app",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https://*.stripe.com",
+      "img-src 'self' data: blob: https://*.stripe.com https://*.railway.app",
       "font-src 'self'",
       "frame-src https://js.stripe.com https://hooks.stripe.com",
       "connect-src 'self' https://api.stripe.com https://t.me https://umami-production-8b53.up.railway.app",
@@ -30,20 +30,20 @@ const securityHeaders = [
 const LOCALES = ['it', 'en', 'fr', 'es', 'de']
 
 // Ricava l'hostname del CMS dall'env var per autorizzarlo come sorgente immagini
-function cmsRemotePatterns(): NextConfig['images']['remotePatterns'] {
-  const patterns = [
-    // localhost per sviluppo locale
-    { protocol: 'http' as const, hostname: 'localhost', port: '3001' },
+function cmsRemotePatterns(): { protocol: 'http' | 'https'; hostname: string; port?: string }[] {
+  const patterns: { protocol: 'http' | 'https'; hostname: string; port?: string }[] = [
+    { protocol: 'http', hostname: 'localhost', port: '3001' },
   ]
   const cmsUrl = process.env.PAYLOAD_PUBLIC_URL
   if (cmsUrl) {
     try {
       const { hostname, protocol, port } = new URL(cmsUrl)
-      patterns.push({
+      const entry: { protocol: 'http' | 'https'; hostname: string; port?: string } = {
         protocol: protocol.replace(':', '') as 'http' | 'https',
         hostname,
-        ...(port ? { port } : {}),
-      })
+      }
+      if (port) entry.port = port
+      patterns.push(entry)
     } catch {
       // URL malformata — ignora
     }
