@@ -292,7 +292,13 @@ export function ProductDetail({ product }: { product: Product }) {
     track('pack_added', { product: product.slug, variant: selectedVariant.label, pack: pack.name, qty: pack.quantity, discount: pack.discountPercent })
   }
 
-  const displayImage = selectedVariant.image ?? product.images[activeImage]?.image
+  // Gallery unificata: se la variante ha un'immagine propria va in prima posizione,
+  // seguita dalle foto generali del prodotto. Così si vedono sempre entrambe.
+  const galleryImages = [
+    ...(selectedVariant.image ? [selectedVariant.image] : []),
+    ...product.images.map((pi) => pi.image),
+  ]
+  const displayImage = galleryImages[activeImage]
 
   return (
     <>
@@ -346,10 +352,10 @@ export function ProductDetail({ product }: { product: Product }) {
               )}
             </motion.div>
 
-            {/* Dots indicator — solo quando non c'è un'immagine specifica per la variante */}
-            {!selectedVariant.image && product.images.length > 1 && (
+            {/* Dots — visibili sempre quando ci sono più immagini in gallery */}
+            {galleryImages.length > 1 && (
               <div className="flex gap-3 mt-6 justify-center">
-                {product.images.map((_, i) => (
+                {galleryImages.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => { setActiveImage(i); setImageLoaded(false) }}
