@@ -34,6 +34,8 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.railway.app' },
+      { protocol: 'https', hostname: '*.up.railway.app' },
+      { protocol: 'https', hostname: 'cms-production-1dda.up.railway.app' },
       { protocol: 'http', hostname: 'localhost', port: '3001' },
     ],
   },
