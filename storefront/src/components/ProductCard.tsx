@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Product } from '@/lib/cms'
+import { cmsImageUrl } from '@/lib/cms'
 import { TiltCard } from './TiltCard'
 
 interface ProductCardProps {
@@ -25,7 +26,7 @@ export function ProductCard({ product, showLimitedBadge, className = '' }: Produ
       <div className="aspect-square bg-[var(--muted)] relative overflow-hidden">
         {firstImage?.url ? (
           <Image
-            src={firstImage.url}
+            src={cmsImageUrl(firstImage.url)}
             alt={firstImage.alt || product.name}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-300"

@@ -30,14 +30,22 @@ const securityHeaders = [
 const LOCALES = ['it', 'en', 'fr', 'es', 'de']
 
 
+const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'http://localhost:3001'
+
 const nextConfig: NextConfig = {
+  // Le immagini CMS sono proxiate via /cms-media/* (vedi rewrites) — path locale, no remotePatterns necessari
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: '**.railway.app' },
-      { protocol: 'https', hostname: '*.up.railway.app' },
-      { protocol: 'https', hostname: 'cms-production-1dda.up.railway.app' },
       { protocol: 'http', hostname: 'localhost', port: '3001' },
     ],
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/cms-media/:path*',
+        destination: `${CMS_URL}/api/media/file/:path*`,
+      },
+    ]
   },
   async redirects() {
     return LOCALES.map((locale) => ({

@@ -5,6 +5,18 @@
 const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'http://localhost:3001'
 const CMS_API = `${CMS_URL}/api`
 
+/**
+ * Trasforma URL immagini CMS in path locale /cms-media/* per evitare
+ * problemi di remotePatterns e Cloudflare WAF su /_next/image con URL esterne.
+ */
+export function cmsImageUrl(url: string | undefined | null): string {
+  if (!url) return ''
+  const prefix = `${CMS_URL}/api/media/file/`
+  if (url.startsWith(prefix)) return `/cms-media/${url.slice(prefix.length)}`
+  // fallback: se è già un path locale o un URL diverso, lascia invariato
+  return url
+}
+
 export interface ProductAttributeOption {
   value: string
   label: string

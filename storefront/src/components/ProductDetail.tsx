@@ -6,6 +6,7 @@ import { ShoppingBag, Check, Star, Shield, Truck, Sparkles, Info } from 'lucide-
 import { useTranslations } from 'next-intl'
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion'
 import type { Product, ProductVariant, ProductAttribute, ProductVariantCombination, FeatureHighlight, ProductComponent, ProductPack } from '@/lib/cms'
+import { cmsImageUrl } from '@/lib/cms'
 import { useCart } from '@/lib/cart'
 import { track } from '@/lib/analytics'
 import { RichText } from './RichText'
@@ -181,7 +182,7 @@ function ComponentCard({ component }: { component: ProductComponent }) {
       {/* Immagine */}
       <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative" style={{ backgroundColor: 'var(--muted)' }}>
         {firstImage?.url ? (
-          <Image src={firstImage.url} alt={component.name} fill className="object-cover" sizes="64px" />
+          <Image src={cmsImageUrl(firstImage.url)} alt={component.name} fill className="object-cover" sizes="64px" />
         ) : (
           <div className="w-full h-full" style={{ backgroundColor: 'var(--muted)' }} />
         )}
@@ -320,7 +321,7 @@ export function ProductDetail({ product }: { product: Product }) {
               {!imageLoaded && <ImageSkeleton />}
               {displayImage?.url ? (
                 <Image
-                  src={displayImage.url}
+                  src={cmsImageUrl(displayImage.url)}
                   alt={displayImage.alt || product.name}
                   fill
                   className={`object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
