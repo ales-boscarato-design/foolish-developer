@@ -15,7 +15,10 @@ export const Media: CollectionConfig = {
       { name: 'card', width: 800, height: 800, position: 'centre' },
       { name: 'full', width: 1600, height: undefined },
     ],
-    adminThumbnail: 'thumbnail',
+    adminThumbnail: ({ doc }) => {
+      if (doc?.sizes?.thumbnail?.url) return doc.sizes.thumbnail.url as string
+      return typeof doc?.url === 'string' ? doc.url : ''
+    },
     mimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
   },
   fields: [
