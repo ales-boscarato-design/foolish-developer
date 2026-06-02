@@ -29,31 +29,13 @@ const securityHeaders = [
 
 const LOCALES = ['it', 'en', 'fr', 'es', 'de']
 
-// Ricava l'hostname del CMS dall'env var per autorizzarlo come sorgente immagini
-function cmsRemotePatterns(): { protocol: 'http' | 'https'; hostname: string; port?: string }[] {
-  const patterns: { protocol: 'http' | 'https'; hostname: string; port?: string }[] = [
-    { protocol: 'http', hostname: 'localhost', port: '3001' },
-  ]
-  const cmsUrl = process.env.PAYLOAD_PUBLIC_URL
-  if (cmsUrl) {
-    try {
-      const { hostname, protocol, port } = new URL(cmsUrl)
-      const entry: { protocol: 'http' | 'https'; hostname: string; port?: string } = {
-        protocol: protocol.replace(':', '') as 'http' | 'https',
-        hostname,
-      }
-      if (port) entry.port = port
-      patterns.push(entry)
-    } catch {
-      // URL malformata — ignora
-    }
-  }
-  return patterns
-}
 
 const nextConfig: NextConfig = {
   images: {
-    remotePatterns: cmsRemotePatterns(),
+    remotePatterns: [
+      { protocol: 'https', hostname: '**.railway.app' },
+      { protocol: 'http', hostname: 'localhost', port: '3001' },
+    ],
   },
   async redirects() {
     return LOCALES.map((locale) => ({
