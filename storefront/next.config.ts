@@ -29,7 +29,32 @@ const securityHeaders = [
 
 const LOCALES = ['it', 'en', 'fr', 'es', 'de']
 
+// Ricava l'hostname del CMS dall'env var per autorizzarlo come sorgente immagini
+function cmsRemotePatterns(): NextConfig['images']['remotePatterns'] {
+  const patterns = [
+    // localhost per sviluppo locale
+    { protocol: 'http' as const, hostname: 'localhost', port: '3001' },
+  ]
+  const cmsUrl = process.env.PAYLOAD_PUBLIC_URL
+  if (cmsUrl) {
+    try {
+      const { hostname, protocol, port } = new URL(cmsUrl)
+      patterns.push({
+        protocol: protocol.replace(':', '') as 'http' | 'https',
+        hostname,
+        ...(port ? { port } : {}),
+      })
+    } catch {
+      // URL malformata — ignora
+    }
+  }
+  return patterns
+}
+
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: cmsRemotePatterns(),
+  },
   async redirects() {
     return LOCALES.map((locale) => ({
       source: `/${locale}/frank`,
