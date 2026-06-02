@@ -15,6 +15,10 @@ import { PromoCodes } from './collections/PromoCodes'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
+const mediaDir = process.env.MEDIA_UPLOAD_DIR ?? path.resolve(dirname, '../../public/media')
+console.log('[CMS] MEDIA_UPLOAD_DIR:', process.env.MEDIA_UPLOAD_DIR ?? '(non impostato)')
+console.log('[CMS] mediaDir risolto:', mediaDir)
+
 export default buildConfig({
   localization: {
     locales: [

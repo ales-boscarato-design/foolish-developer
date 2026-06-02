@@ -1,8 +1,13 @@
 import type { CollectionConfig } from 'payload'
+import path from 'path'
 
 // In produzione Railway: monta un Volume su /data/media e imposta MEDIA_UPLOAD_DIR=/data/media
-// In locale: i file vanno nella cartella public/media dello storefront
-const staticDir = process.env.MEDIA_UPLOAD_DIR ?? '../public/media'
+// In locale: i file vanno nella cartella cms/public/media
+const staticDir = process.env.MEDIA_UPLOAD_DIR
+  ? path.resolve(process.env.MEDIA_UPLOAD_DIR)
+  : path.resolve(process.cwd(), 'public/media')
+
+console.log('[Media] staticDir:', staticDir)
 
 export const Media: CollectionConfig = {
   slug: 'media',
