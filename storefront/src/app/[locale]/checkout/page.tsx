@@ -8,6 +8,7 @@ import { calculateShipping, freeShippingRemaining } from '@/lib/shipping'
 import { Trash2, CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { cmsImageUrl } from '@/lib/cms'
 
 const COUNTRY_CODES = [
   'IT','DE','FR','ES','NL','BE','AT','CH','PL','PT','SE','DK','NO',
@@ -269,7 +270,7 @@ export default function CheckoutPage() {
               <div key={item.sku} className="flex gap-4 p-4 rounded-lg border" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}>
                 {item.image && (
                   <div className="w-16 h-16 rounded overflow-hidden flex-shrink-0 relative" style={{ backgroundColor: 'var(--muted)' }}>
-                    <Image src={item.image} alt={item.productName} fill className="object-cover" sizes="64px" />
+                    <Image src={cmsImageUrl(item.image)} alt={item.productName} fill className="object-cover" sizes="64px" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">

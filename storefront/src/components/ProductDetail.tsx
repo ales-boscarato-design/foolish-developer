@@ -231,6 +231,7 @@ export function ProductDetail({ product }: { product: Product }) {
   const addPackToCart = useCart((s) => s.addPack)
   const itemCount = useCart((s) => s.itemCount())
   const addRef = useRef<HTMLDivElement>(null)
+  const touchStartX = useRef<number | null>(null)
 
   // Scroll-driven parallax for image
   const { scrollYProgress } = useScroll()
@@ -308,6 +309,12 @@ export function ProductDetail({ product }: { product: Product }) {
       : product.variants.flatMap((v) => (v.image?.url ? [v.image] : []))
   const displayImage = effectiveGallery[activeImage] ?? effectiveGallery[0]
 
+  const handleSwipe = (deltaX: number) => {
+    if (effectiveGallery.length < 2) return
+    if (deltaX < -50) setActiveImage((i) => Math.min(i + 1, effectiveGallery.length - 1))
+    else if (deltaX > 50) setActiveImage((i) => Math.max(i - 1, 0))
+  }
+
   return (
     <>
       <motion.div
@@ -331,6 +338,12 @@ export function ProductDetail({ product }: { product: Product }) {
             <motion.div
               className="aspect-square rounded-2xl overflow-hidden relative"
               style={{ backgroundColor: 'var(--muted)', scale: imageScale }}
+              onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX }}
+              onTouchEnd={(e) => {
+                if (touchStartX.current === null) return
+                handleSwipe(e.changedTouches[0].clientX - touchStartX.current)
+                touchStartX.current = null
+              }}
             >
               {!imageLoaded && <ImageSkeleton />}
               {displayImage?.url ? (
