@@ -292,13 +292,20 @@ export function ProductDetail({ product }: { product: Product }) {
     track('pack_added', { product: product.slug, variant: selectedVariant.label, pack: pack.name, qty: pack.quantity, discount: pack.discountPercent })
   }
 
-  // Gallery unificata: se la variante ha un'immagine propria va in prima posizione,
-  // seguita dalle foto generali del prodotto. Così si vedono sempre entrambe.
+  // Gallery: immagine variante (se esiste) + foto generali prodotto.
   const galleryImages = [
     ...(selectedVariant.image ? [selectedVariant.image] : []),
-    ...product.images.map((pi) => pi.image),
+    ...product.images.map((pi) => pi.image).filter((img) => img?.url),
   ]
-  const displayImage = galleryImages[activeImage]
+  // Se la variante selezionata non ha immagine E il prodotto non ha foto generali
+  // (es. prodotti con immagini solo sulle varianti), mostra la prima immagine
+  // disponibile da qualunque variante. Così le varianti "senza immagine" (es.
+  // tipologia stencil) non causano uno schermo nero.
+  const effectiveGallery =
+    galleryImages.length > 0
+      ? galleryImages
+      : product.variants.flatMap((v) => (v.image?.url ? [v.image] : []))
+  const displayImage = effectiveGallery[activeImage] ?? effectiveGallery[0]
 
   return (
     <>
@@ -353,9 +360,9 @@ export function ProductDetail({ product }: { product: Product }) {
             </motion.div>
 
             {/* Dots — visibili sempre quando ci sono più immagini in gallery */}
-            {galleryImages.length > 1 && (
+            {effectiveGallery.length > 1 && (
               <div className="flex gap-3 mt-6 justify-center">
-                {galleryImages.map((_, i) => (
+                {effectiveGallery.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => { setActiveImage(i); setImageLoaded(false) }}
