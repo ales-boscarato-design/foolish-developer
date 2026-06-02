@@ -83,16 +83,16 @@ void main(){
   gl_FragColor = vec4(v, 0.0, 1.0);
 }`
 
-// Subtle luminous ink — visible but never overwhelms text
+// Skin-pressure touch — barely visible warm impression, never overwhelms
 const DISPLAY_FRAG = `
 precision highp float;
 uniform sampler2D u_tex;
 varying vec2 v_uv;
 void main(){
   vec3 c = texture2D(u_tex, v_uv).rgb;
-  float lum = dot(c, vec3(0.25, 0.35, 0.40));
-  float a = clamp(lum * 2.2, 0.0, 0.38);
-  gl_FragColor = vec4(c * 0.9, a);
+  float lum = dot(c, vec3(0.28, 0.40, 0.32));
+  float a = clamp(lum * 3.5, 0.0, 0.20);
+  gl_FragColor = vec4(c, a);
 }`
 
 // ── WebGL utilities ────────────────────────────────────────────────────────────
@@ -222,16 +222,18 @@ export function FluidCanvas() {
 
     const TX = [1 / SIM, 1 / SIM]
 
-    // Brand color palette — muted warm gold, intentionally de-saturated
+    // Skin-pressure palette — near-background dark warm tones.
+    // On #080808 these appear as a barely-perceptible warm impression,
+    // like pressing a fingertip into dark silicone.
     type RGB = [number, number, number]
     const PALETTE: RGB[] = [
-      [0.50, 0.42, 0.30],  // deep gold, dark
-      [0.55, 0.46, 0.34],  // muted amber
-      [0.38, 0.32, 0.22],  // very dark ember
-      [0.58, 0.52, 0.42],  // warm stone
+      [0.24, 0.18, 0.11],  // dark warm — primary touch
+      [0.20, 0.15, 0.09],  // slightly cooler dark
+      [0.28, 0.21, 0.13],  // warmest (accent-adjacent, very muted)
+      [0.18, 0.14, 0.09],  // darkest, near-background
     ]
 
-    function splat(x: number, y: number, dx: number, dy: number, color: RGB, radius = 0.0018) {
+    function splat(x: number, y: number, dx: number, dy: number, color: RGB, radius = 0.0022) {
       const aspect = canvas.width / canvas.height
 
       useQuad(splatP)
@@ -239,7 +241,7 @@ export function FluidCanvas() {
       gl.uniform1i(splatP.locs['u_tex'], 0)
       gl.uniform1f(splatP.locs['u_aspect'], aspect)
       gl.uniform2f(splatP.locs['u_point'], x, y)
-      gl.uniform3f(splatP.locs['u_color'], dx * 6, dy * 6, 0)
+      gl.uniform3f(splatP.locs['u_color'], dx * 5, dy * 5, 0)
       gl.uniform1f(splatP.locs['u_radius'], radius)
       target(vel.write); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
       vel.swap()
@@ -252,20 +254,20 @@ export function FluidCanvas() {
     }
 
     function step(dt: number) {
-      // Advect velocity
+      // Advect velocity — faster decay so the impression recedes like silicone
       useQuad(advectP)
       bindTex(vel.read.tex, 0); bindTex(vel.read.tex, 1)
       gl.uniform1i(advectP.locs['u_vel'], 0)
       gl.uniform1i(advectP.locs['u_src'], 1)
       gl.uniform1f(advectP.locs['u_dt'], dt)
-      gl.uniform1f(advectP.locs['u_diss'], 0.975)
+      gl.uniform1f(advectP.locs['u_diss'], 0.966)
       target(vel.write); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
       vel.swap()
 
-      // Advect dye — faster dissipation so fluid fades before overwhelming text
+      // Advect dye — fades noticeably faster than fluid: skin returns to shape
       bindTex(vel.read.tex, 0); bindTex(dye.read.tex, 1)
       gl.uniform1i(advectP.locs['u_src'], 1)
-      gl.uniform1f(advectP.locs['u_diss'], 0.972)
+      gl.uniform1f(advectP.locs['u_diss'], 0.960)
       target(dye.write); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
       dye.swap()
 
@@ -307,22 +309,7 @@ export function FluidCanvas() {
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
     }
 
-    // ── Idle orbit — slow lemniscate so fluid moves even without input ─────────
-    let orbitT = 0
-    let lastActive = Date.now()
     let colorCycle = 0
-
-    function idleTick(dt: number) {
-      orbitT += dt * 0.18
-      // Lemniscate of Bernoulli (∞ shape) centered in viewport
-      const scale = 0.22
-      const x = 0.5 + scale * Math.cos(orbitT) / (1 + Math.sin(orbitT) ** 2)
-      const y = 0.5 + (scale * 0.55) * Math.sin(orbitT) * Math.cos(orbitT) / (1 + Math.sin(orbitT) ** 2)
-      const dx = -Math.sin(orbitT) * 0.025
-      const dy =  Math.cos(orbitT) * 0.025
-      const color = PALETTE[colorCycle % PALETTE.length]
-      splat(x, y, dx, dy, color, 0.0008)
-    }
 
     // ── Mouse / touch ──────────────────────────────────────────────────────────
     let lastMouse = { x: -1, y: -1 }
@@ -333,7 +320,6 @@ export function FluidCanvas() {
 
     function onMouseMove(e: MouseEvent) {
       const [x, y] = normPos(e.clientX, e.clientY)
-      lastActive = Date.now()
       if (lastMouse.x >= 0) {
         const dx = (x - lastMouse.x) * canvas.width * 0.25
         const dy = (y - lastMouse.y) * canvas.height * 0.25
@@ -361,16 +347,13 @@ export function FluidCanvas() {
       const dt = Math.min((t - prevT) / 1000, 0.017)
       prevT = t
 
-      const idle = Date.now() - lastActive > 800
-      if (idle) idleTick(dt)
-
       step(dt)
       render()
       rafId = requestAnimationFrame(loop)
     }
 
-    // 1 gentle ambient splat on load — just enough to be visible
-    splat(0.5, 0.5, 0.08, 0.05, PALETTE[0], 0.001)
+    // Tiny ambient splat on load — just enough to hint the effect exists
+    splat(0.5, 0.5, 0.04, 0.03, PALETTE[0], 0.0006)
 
     rafId = requestAnimationFrame(loop)
 
