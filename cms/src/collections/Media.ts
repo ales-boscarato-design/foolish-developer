@@ -20,7 +20,8 @@ export const Media: CollectionConfig = {
       { name: 'full', width: 1600, height: undefined },
     ],
     adminThumbnail: ({ doc }) => {
-      if (doc?.sizes?.thumbnail?.url) return doc.sizes.thumbnail.url as string
+      const sizes = doc?.sizes as Record<string, { url?: string }> | undefined
+      if (sizes?.thumbnail?.url) return sizes.thumbnail.url
       return typeof doc?.url === 'string' ? doc.url : ''
     },
     mimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
