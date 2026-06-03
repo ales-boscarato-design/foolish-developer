@@ -181,20 +181,20 @@
     "seeAll": "See all",
     "badges": {
       "payments": {
-        "title": "Encrypted payments",
-        "body": "No data stored. We don't track any sensitive data."
+        "title": "Stripe · Secure checkout",
+        "body": "Encrypted data, nothing stored"
       },
       "shippingSpeed": {
-        "title": "Tracked shipping",
-        "body": "Fast. If there's a delay, we send you an extra sheet."
+        "title": "Ships in 24–48h",
+        "body": "We pack and ship the next business day"
       },
       "support": {
-        "title": "Quick support",
-        "body": "Write to us. We reply right away."
+        "title": "Direct support",
+        "body": "Alessandro answers — not a bot"
       },
       "freeShipping": {
-        "title": "Free shipping",
-        "body": "Italy from 50 € · Europe from 150 € · World from 250 €"
+        "title": "Free over €60",
+        "body": "Free shipping on qualifying orders"
       }
     },
     "cards": {

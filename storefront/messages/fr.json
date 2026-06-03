@@ -181,20 +181,20 @@
     "seeAll": "Voir tout",
     "badges": {
       "payments": {
-        "title": "Paiements chiffrés",
-        "body": "Aucune donnée sauvegardée. Nous ne traquons aucune donnée sensible."
+        "title": "Stripe · Paiement sécurisé",
+        "body": "Données chiffrées, rien enregistré"
       },
       "shippingSpeed": {
-        "title": "Livraison suivie",
-        "body": "Rapide. En cas de retard, nous vous envoyons une feuille supplémentaire."
+        "title": "Expédition en 24–48h",
+        "body": "Nous emballons et expédions le jour ouvrable suivant"
       },
       "support": {
-        "title": "Support rapide",
-        "body": "Écrivez-nous. Nous répondons immédiatement."
+        "title": "Support direct",
+        "body": "Alessandro répond — pas un bot"
       },
       "freeShipping": {
-        "title": "Livraison gratuite",
-        "body": "Italie à partir de 50 € · Europe à partir de 150 € · Monde à partir de 250 €"
+        "title": "Gratuit au-dessus de €60",
+        "body": "Livraison gratuite pour les commandes éligibles"
       }
     },
     "cards": {

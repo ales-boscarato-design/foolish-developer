@@ -181,20 +181,20 @@
     "seeAll": "Vedi tutti",
     "badges": {
       "payments": {
-        "title": "Pagamenti criptati",
-        "body": "Nessun dato salvato. Non tracciamo nessun dato sensibile."
+        "title": "Stripe · Pagamento sicuro",
+        "body": "Dati crittografati, nessuna info salvata"
       },
       "shippingSpeed": {
-        "title": "Spedizione tracciata",
-        "body": "Veloce. Se c'è ritardo, ti mandiamo un foglio in più."
+        "title": "Spedizione in 24–48h",
+        "body": "Prepariamo e spediamo il giorno lavorativo successivo"
       },
       "support": {
-        "title": "Supporto rapido",
-        "body": "Scrivi. Rispondiamo subito."
+        "title": "Supporto diretto",
+        "body": "Risponde Alessandro — non un bot"
       },
       "freeShipping": {
-        "title": "Free shipping",
-        "body": "Italia da 50 € · Europa da 150 € · Mondo da 250 €"
+        "title": "Gratis sopra €60",
+        "body": "Spedizione gratuita per ordini qualificati"
       }
     },
     "cards": {

@@ -84,7 +84,7 @@ function TrustBadge({
 }) {
   return (
     <div
-      className="px-7 py-8 flex gap-4 items-start border-r last:border-r-0 transition-colors"
+      className="px-7 py-8 flex gap-4 items-start transition-colors"
       style={{
         borderColor: 'var(--border)',
         transitionDuration: 'var(--dur-fast)',
@@ -260,6 +260,8 @@ export default async function HomePage() {
                 color: 'var(--accent)',
                 transitionDuration: 'var(--dur-fast)',
               }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)' }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(200, 169, 126, 0.25)' }}
             >
               {t('hero.ctaPmu')}
             </Link>
@@ -340,10 +342,10 @@ export default async function HomePage() {
         className="border-b grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 divide-y sm:divide-y-0 md:divide-x"
         style={{ borderColor: 'var(--border)' }}
       >
-        <TrustBadge Icon={ShieldCheck} title="Stripe · Pagamento sicuro" body="Dati crittografati, nessuna info salvata" />
-        <TrustBadge Icon={Package}     title="Spedizione in 24–48h"      body="Prepariamo e spediamo il giorno lavorativo successivo" />
-        <TrustBadge Icon={MessageSquare} title="Supporto diretto"        body="Risponde Alessandro — non un bot" />
-        <TrustBadge Icon={Truck}       title="Gratis sopra €60"          body="Spedizione gratuita per ordini qualificati" />
+        <TrustBadge Icon={ShieldCheck}   title={t('badges.payments.title')}     body={t('badges.payments.body')} />
+        <TrustBadge Icon={Package}       title={t('badges.shippingSpeed.title')} body={t('badges.shippingSpeed.body')} />
+        <TrustBadge Icon={MessageSquare} title={t('badges.support.title')}       body={t('badges.support.body')} />
+        <TrustBadge Icon={Truck}         title={t('badges.freeShipping.title')}  body={t('badges.freeShipping.body')} />
       </section>
 
 {/* ════════════════════════════════════════════════
