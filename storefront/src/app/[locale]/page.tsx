@@ -83,10 +83,18 @@ function TrustBadge({
   body: string
 }) {
   return (
-    <div className="px-7 py-8 flex gap-4 items-start" style={{ borderColor: 'var(--border)' }}>
+    <div
+      className="px-7 py-8 flex gap-4 items-start border-r last:border-r-0 transition-colors"
+      style={{
+        borderColor: 'var(--border)',
+        transitionDuration: 'var(--dur-fast)',
+      }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(200,169,126,0.15)' }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)' }}
+    >
       <Icon size={16} strokeWidth={1.5} className="mt-0.5 shrink-0" style={{ color: 'var(--accent)' }} />
       <div>
-        <p className="text-xs font-semibold tracking-wide uppercase mb-1">{title}</p>
+        <p className="text-label mb-1" style={{ color: 'var(--foreground)' }}>{title}</p>
         <p className="text-xs leading-relaxed" style={{ color: 'var(--muted-fg)' }}>{body}</p>
       </div>
     </div>
@@ -234,15 +242,24 @@ export default async function HomePage() {
           <div className="animate-fade-up animate-fade-up-d3 flex flex-col sm:flex-row gap-3 mb-12">
             <Link
               href="/tattoo"
-              className="px-8 py-4 font-semibold text-sm tracking-widest uppercase transition-all duration-200 active:scale-[0.98]"
+              className="relative overflow-hidden px-8 py-4 font-semibold text-sm tracking-widest uppercase transition-all active:scale-[0.98]"
               style={{ backgroundColor: 'var(--accent)', color: '#080808' }}
             >
+              <span
+                className="absolute inset-0 pointer-events-none"
+                style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.16) 0%, transparent 55%)' }}
+                aria-hidden
+              />
               {t('hero.ctaShop')}
             </Link>
             <Link
               href="/pmu"
-              className="px-8 py-4 font-semibold text-sm tracking-widest uppercase border transition-colors duration-200 hover:border-[var(--accent)]"
-              style={{ borderColor: 'var(--border)' }}
+              className="px-8 py-4 font-semibold text-sm tracking-widest uppercase border transition-colors"
+              style={{
+                borderColor: 'rgba(200, 169, 126, 0.25)',
+                color: 'var(--accent)',
+                transitionDuration: 'var(--dur-fast)',
+              }}
             >
               {t('hero.ctaPmu')}
             </Link>
@@ -323,26 +340,10 @@ export default async function HomePage() {
         className="border-b grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 divide-y sm:divide-y-0 md:divide-x"
         style={{ borderColor: 'var(--border)' }}
       >
-        <TrustBadge
-          Icon={ShieldCheck}
-          title={t('badges.payments.title')}
-          body={t('badges.payments.body')}
-        />
-        <TrustBadge
-          Icon={Truck}
-          title={t('badges.shippingSpeed.title')}
-          body={t('badges.shippingSpeed.body')}
-        />
-        <TrustBadge
-          Icon={MessageSquare}
-          title={t('badges.support.title')}
-          body={t('badges.support.body')}
-        />
-        <TrustBadge
-          Icon={Package}
-          title={t('badges.freeShipping.title')}
-          body={t('badges.freeShipping.body')}
-        />
+        <TrustBadge Icon={ShieldCheck} title="Stripe · Pagamento sicuro" body="Dati crittografati, nessuna info salvata" />
+        <TrustBadge Icon={Package}     title="Spedizione in 24–48h"      body="Prepariamo e spediamo il giorno lavorativo successivo" />
+        <TrustBadge Icon={MessageSquare} title="Supporto diretto"        body="Risponde Alessandro — non un bot" />
+        <TrustBadge Icon={Truck}       title="Gratis sopra €60"          body="Spedizione gratuita per ordini qualificati" />
       </section>
 
 {/* ════════════════════════════════════════════════
