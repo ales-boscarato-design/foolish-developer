@@ -77,6 +77,9 @@ export default function CheckoutPage() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Focus state
+  const [focusedField, setFocusedField] = useState<string | null>(null)
+
   // Payment
   const [loading, setLoading] = useState(false)
 
@@ -232,8 +235,34 @@ export default function CheckoutPage() {
     )
   }
 
-  const inputBase = 'w-full px-3 py-2 rounded border text-sm'
-  const inputStyle = { backgroundColor: 'var(--muted)', borderColor: 'var(--border)', color: 'var(--foreground)' }
+  const inputBase = 'w-full px-3 py-2.5 rounded-lg border text-sm transition-[border-color,box-shadow]'
+
+  const inputStyle = (field: string, overrideValid?: boolean) => {
+    const focused = focusedField === field
+    const isInvalid =
+      (field === 'email' && emailStatus === 'invalid') ||
+      (field === 'postalCode' && postalCodeError)
+    const isValid = overrideValid ||
+      (field === 'email' && emailStatus === 'valid') ||
+      (field === 'postalCode' && !postalCodeError && !!form.postalCode)
+    return {
+      backgroundColor: 'var(--surface-1)',
+      color: 'var(--foreground)',
+      transitionDuration: 'var(--dur-fast)',
+      borderColor: isInvalid
+        ? 'rgba(192,57,43,0.5)'
+        : isValid
+        ? 'rgba(90,156,82,0.4)'
+        : focused
+        ? 'rgba(200,169,126,0.5)'
+        : 'var(--border)',
+      boxShadow: isInvalid
+        ? '0 0 0 3px rgba(192,57,43,0.06)'
+        : focused
+        ? '0 0 0 3px var(--glow-strong)'
+        : 'none',
+    }
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
@@ -326,8 +355,10 @@ export default function CheckoutPage() {
             <select
               value={country}
               onChange={(e) => { setCountry(e.target.value); setPostalCodeError(false) }}
+              onFocus={() => setFocusedField('country')}
+              onBlur={() => setFocusedField(null)}
               className={inputBase}
-              style={inputStyle}
+              style={inputStyle('country', !!country)}
             >
               {COUNTRY_CODES.map((code) => (
                 <option key={code} value={code}>{t(`countries.${code}`)}</option>
@@ -335,14 +366,21 @@ export default function CheckoutPage() {
             </select>
 
             {/* Name */}
-            <input
-              type="text"
-              placeholder={t('fields.name')}
-              value={form.name}
-              onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
-              className={inputBase}
-              style={inputStyle}
-            />
+            <div className="relative">
+              <input
+                type="text"
+                placeholder={t('fields.name')}
+                value={form.name}
+                onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
+                onFocus={() => setFocusedField('name')}
+                onBlur={() => setFocusedField(null)}
+                className={inputBase}
+                style={inputStyle('name', !!form.name)}
+              />
+              {form.name && (
+                <CheckCircle size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#5a9c52' }} />
+              )}
+            </div>
 
             {/* Email + MX check */}
             <div>
@@ -352,18 +390,17 @@ export default function CheckoutPage() {
                   placeholder={t('fields.email')}
                   value={form.email}
                   onChange={(e) => { setForm(f => ({ ...f, email: e.target.value })); if (emailStatus !== 'idle') setEmailStatus('idle') }}
-                  onBlur={(e) => checkEmail(e.target.value)}
+                  onFocus={() => setFocusedField('email')}
+                  onBlur={(e) => { setFocusedField(null); checkEmail(e.target.value) }}
                   className={`${inputBase} pr-8`}
-                  style={{ ...inputStyle, borderColor: emailStatus === 'invalid' ? '#f44336' : emailStatus === 'valid' ? '#4caf50' : 'var(--border)' }}
+                  style={inputStyle('email')}
                 />
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                  {emailStatus === 'checking' && <Loader2 size={14} className="animate-spin" style={{ color: 'var(--muted-fg)' }} />}
-                  {emailStatus === 'valid' && <CheckCircle size={14} style={{ color: '#4caf50' }} />}
-                  {emailStatus === 'invalid' && <XCircle size={14} style={{ color: '#f44336' }} />}
-                </span>
+                {emailStatus === 'checking' && <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin pointer-events-none" style={{ color: 'var(--muted-fg)' }} />}
+                {emailStatus === 'invalid' && <XCircle size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--limited)' }} />}
+                {emailStatus === 'valid' && <CheckCircle size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#5a9c52' }} />}
               </div>
               {emailStatus === 'invalid' && (
-                <p className="text-xs mt-1" style={{ color: '#f44336' }}>{t('emailInvalid')}</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--limited)' }}>Email non valida — ricontrolla</p>
               )}
             </div>
 
@@ -374,12 +411,15 @@ export default function CheckoutPage() {
                 placeholder={t('fields.address')}
                 value={form.address}
                 onChange={(e) => handleAddressChange(e.target.value)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                onBlur={() => { setFocusedField(null); setTimeout(() => setShowSuggestions(false), 150) }}
+                onFocus={() => { setFocusedField('address'); suggestions.length > 0 && setShowSuggestions(true) }}
                 className={inputBase}
-                style={inputStyle}
+                style={inputStyle('address', !!form.address)}
                 autoComplete="off"
               />
+              {form.address && (
+                <CheckCircle size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#5a9c52' }} />
+              )}
               {showSuggestions && suggestions.length > 0 && (
                 <div
                   className="absolute z-50 w-full mt-1 rounded border shadow-lg overflow-hidden"
@@ -401,41 +441,60 @@ export default function CheckoutPage() {
             </div>
 
             {/* City */}
-            <input
-              type="text"
-              placeholder={t('fields.city')}
-              value={form.city}
-              onChange={(e) => setForm(f => ({ ...f, city: e.target.value }))}
-              className={inputBase}
-              style={inputStyle}
-            />
+            <div className="relative">
+              <input
+                type="text"
+                placeholder={t('fields.city')}
+                value={form.city}
+                onChange={(e) => setForm(f => ({ ...f, city: e.target.value }))}
+                onFocus={() => setFocusedField('city')}
+                onBlur={() => setFocusedField(null)}
+                className={inputBase}
+                style={inputStyle('city', !!form.city)}
+              />
+              {form.city && (
+                <CheckCircle size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#5a9c52' }} />
+              )}
+            </div>
 
             {/* Postal code + format validation */}
             <div>
-              <input
-                type="text"
-                placeholder={t('fields.postalCode')}
-                value={form.postalCode}
-                onChange={(e) => { setForm(f => ({ ...f, postalCode: e.target.value })); if (postalCodeError) setPostalCodeError(false) }}
-                onBlur={handlePostalCodeBlur}
-                className={inputBase}
-                style={{ ...inputStyle, borderColor: postalCodeError ? '#f44336' : 'var(--border)' }}
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder={t('fields.postalCode')}
+                  value={form.postalCode}
+                  onChange={(e) => { setForm(f => ({ ...f, postalCode: e.target.value })); if (postalCodeError) setPostalCodeError(false) }}
+                  onFocus={() => setFocusedField('postalCode')}
+                  onBlur={() => { setFocusedField(null); handlePostalCodeBlur() }}
+                  className={inputBase}
+                  style={inputStyle('postalCode')}
+                />
+                {postalCodeError && <XCircle size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--limited)' }} />}
+                {!postalCodeError && form.postalCode && <CheckCircle size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#5a9c52' }} />}
+              </div>
               {postalCodeError && (
-                <p className="text-xs mt-1" style={{ color: '#f44336' }}>{t('postalCodeInvalid')}</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--limited)' }}>Formato CAP non valido per {country}</p>
               )}
             </div>
 
             {/* Codice Fiscale / P.IVA — Italy only */}
             {country === 'IT' && (
-              <input
-                type="text"
-                placeholder={t('fields.fiscalCode')}
-                value={fiscalCode}
-                onChange={(e) => setFiscalCode(e.target.value.toUpperCase())}
-                className={inputBase}
-                style={inputStyle}
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder={t('fields.fiscalCode')}
+                  value={fiscalCode}
+                  onChange={(e) => setFiscalCode(e.target.value.toUpperCase())}
+                  onFocus={() => setFocusedField('fiscalCode')}
+                  onBlur={() => setFocusedField(null)}
+                  className={inputBase}
+                  style={inputStyle('fiscalCode', !!fiscalCode)}
+                />
+                {fiscalCode && (
+                  <CheckCircle size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#5a9c52' }} />
+                )}
+              </div>
             )}
           </div>
 
