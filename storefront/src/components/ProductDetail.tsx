@@ -162,22 +162,31 @@ const DEFAULT_WHATS_IN_THE_BOX = [
 
 interface FeatureCardProps {
   highlight: FeatureHighlight
-  delay?: number
 }
 
-function FeatureCard({ highlight, delay = 0 }: FeatureCardProps) {
+function FeatureCard({ highlight }: FeatureCardProps) {
   return (
     <motion.div
       variants={itemVariants}
-      className="rounded-2xl p-5 text-center transition-all hover:shadow-xl hover:shadow-[var(--accent)]/5"
-      style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}
-      whileHover={{ y: -4 }}
+      className="flex gap-3 items-start rounded-xl p-4 border transition-[border-color]"
+      style={{
+        backgroundColor: 'var(--surface-1)',
+        borderColor: '#141414',
+        transitionDuration: 'var(--dur-fast)',
+      }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(200,169,126,0.12)' }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = '#141414' }}
     >
-      <div className="w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: 'var(--muted)' }}>
+      <div
+        className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center"
+        style={{ backgroundColor: 'var(--glow-subtle)' }}
+      >
         {ICON_MAP[highlight.icon]}
       </div>
-      <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--foreground)' }}>{highlight.title}</h3>
-      <p className="text-xs leading-relaxed" style={{ color: 'var(--muted-fg)' }}>{highlight.description}</p>
+      <div>
+        <h3 className="text-sm font-medium mb-0.5" style={{ color: 'var(--foreground)' }}>{highlight.title}</h3>
+        <p className="text-xs leading-relaxed" style={{ color: 'var(--muted-fg)' }}>{highlight.description}</p>
+      </div>
     </motion.div>
   )
 }
@@ -650,35 +659,26 @@ export function ProductDetail({ product }: { product: Product }) {
               <motion.button
                 onClick={handleAdd}
                 disabled={selectedVariant.stockStatus === 'unavailable' || added}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full flex items-center justify-center gap-3 py-4 px-8 rounded-2xl font-bold text-base transition-all min-h-[56px] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                whileTap={selectedVariant.stockStatus !== 'unavailable' ? { scale: 0.98 } : {}}
+                className="relative w-full overflow-hidden flex items-center justify-center gap-2 rounded-lg font-semibold text-label transition-colors"
                 style={{
+                  height: 52,
                   backgroundColor: added ? '#2d5a27' : 'var(--accent)',
-                  color: 'black',
+                  color: added ? '#7dc972' : '#080808',
+                  border: added ? '1px solid rgba(125,201,114,0.2)' : 'none',
+                  transitionDuration: 'var(--dur-normal)',
                 }}
               >
-                <AnimatePresence mode="wait">
-                  {added ? (
-                    <motion.span key="added" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="flex items-center gap-2">
-                      <motion.div
-                        initial={{ rotate: -20, scale: 0 }}
-                        animate={{ rotate: 0, scale: 1 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                      >
-                        <Check size={22} />
-                      </motion.div>
-                      {t('added')}
-                    </motion.span>
-                  ) : selectedVariant.stockStatus === 'unavailable' ? (
-                    t('unavailable')
-                  ) : (
-                    <span key="add" className="flex items-center gap-2">
-                      <CartIcon count={itemCount} />
-                      {t('addToCart')}
-                    </span>
-                  )}
-                </AnimatePresence>
+                {/* Gradient overlay */}
+                {!added && (
+                  <span
+                    className="absolute inset-0 pointer-events-none"
+                    style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.16) 0%, transparent 55%)' }}
+                    aria-hidden
+                  />
+                )}
+                <CartIcon count={itemCount} />
+                {added ? 'Aggiunto al carrello' : t('addToCart')}
               </motion.button>
             </div>
           </motion.div>
@@ -692,15 +692,23 @@ export function ProductDetail({ product }: { product: Product }) {
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {product.packs.map((pack) => {
-                const packTotal = selectedVariant.price * pack.quantity * (1 - pack.discountPercent / 100)
-                const savings = selectedVariant.price * pack.quantity - packTotal
                 return (
                   <button
                     key={pack.id}
                     type="button"
                     onClick={() => handleAddPack(pack)}
-                    className="relative text-left rounded-2xl border-2 p-4 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                    style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--card)' }}
+                    className="relative text-left rounded-2xl border-2 p-4 transition-[border-color,background-color] active:scale-[0.98]"
+                    style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)', transitionDuration: 'var(--dur-fast)' }}
+                    onMouseEnter={(e) => {
+                      const el = e.currentTarget as HTMLElement
+                      el.style.borderColor = 'rgba(200,169,126,0.2)'
+                      el.style.backgroundColor = 'var(--glow-subtle)'
+                    }}
+                    onMouseLeave={(e) => {
+                      const el = e.currentTarget as HTMLElement
+                      el.style.borderColor = 'var(--border)'
+                      el.style.backgroundColor = ''
+                    }}
                   >
                     {pack.badgeText && (
                       <span
@@ -710,20 +718,36 @@ export function ProductDetail({ product }: { product: Product }) {
                         {pack.badgeText}
                       </span>
                     )}
-                    <p className="font-bold text-base mb-1" style={{ color: 'var(--foreground)' }}>
-                      × {pack.quantity} {pack.name}
-                    </p>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-xl font-bold" style={{ color: 'var(--accent)' }}>
-                        {packTotal.toFixed(2)}€
-                      </span>
-                      <span className="text-sm line-through opacity-50" style={{ color: 'var(--foreground)' }}>
-                        {(selectedVariant.price * pack.quantity).toFixed(2)}€
-                      </span>
+                    {/* Layout: info a sinistra, pricing a destra */}
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+                          {pack.name}
+                        </span>
+                        {pack.discountPercent > 0 && (
+                          <span
+                            className="text-label px-1.5 py-0.5 rounded border w-fit"
+                            style={{
+                              color: '#2d8c27',
+                              background: 'rgba(45,140,39,0.10)',
+                              borderColor: 'rgba(45,140,39,0.20)',
+                            }}
+                          >
+                            Risparmi €{((selectedVariant.price * pack.quantity) * (pack.discountPercent / 100)).toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-right flex flex-col">
+                        {pack.discountPercent > 0 && (
+                          <span className="text-xs line-through" style={{ color: 'var(--muted-fg)' }}>
+                            €{(selectedVariant.price * pack.quantity).toFixed(2)}
+                          </span>
+                        )}
+                        <span className="text-mono font-semibold text-base" style={{ color: 'var(--accent)' }}>
+                          €{(selectedVariant.price * pack.quantity * (1 - pack.discountPercent / 100)).toFixed(2)}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-xs mt-1 font-medium" style={{ color: 'var(--accent)' }}>
-                      Risparmia {savings.toFixed(2)}€ ({pack.discountPercent}% di sconto)
-                    </p>
                   </button>
                 )
               })}
@@ -736,11 +760,14 @@ export function ProductDetail({ product }: { product: Product }) {
           <h2 className="text-xl font-semibold mb-6 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
             Perché sceglierlo
           </h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <motion.div
+            variants={containerVariants}
+            className="grid grid-cols-2 gap-2"
+          >
             {(product.featureHighlights?.length ? product.featureHighlights : DEFAULT_HIGHLIGHTS).map((highlight, i) => (
-              <FeatureCard key={i} highlight={highlight} delay={i * 0.08} />
+              <FeatureCard key={i} highlight={highlight} />
             ))}
-          </div>
+          </motion.div>
         </motion.section>
 
         {/* Uso del prodotto — 3 step */}
