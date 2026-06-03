@@ -1,14 +1,14 @@
 'use client'
 
-import type { ElementType } from 'react'
+import type { ReactNode } from 'react'
 
 interface TrustBadgeProps {
-  Icon: ElementType
+  children: ReactNode
   title: string
   body: string
 }
 
-export function TrustBadge({ Icon, title, body }: TrustBadgeProps) {
+export function TrustBadge({ children, title, body }: TrustBadgeProps) {
   return (
     <div
       className="px-7 py-8 flex gap-4 items-start transition-colors"
@@ -19,7 +19,7 @@ export function TrustBadge({ Icon, title, body }: TrustBadgeProps) {
       onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(200,169,126,0.15)' }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)' }}
     >
-      <Icon size={16} strokeWidth={1.5} className="mt-0.5 shrink-0" style={{ color: 'var(--accent)' }} />
+      <div className="mt-0.5 shrink-0" style={{ color: 'var(--accent)' }}>{children}</div>
       <div>
         <p className="text-label mb-1" style={{ color: 'var(--foreground)' }}>{title}</p>
         <p className="text-xs leading-relaxed" style={{ color: 'var(--muted-fg)' }}>{body}</p>

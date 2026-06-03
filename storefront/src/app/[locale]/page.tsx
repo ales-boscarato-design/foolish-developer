@@ -312,10 +312,10 @@ export default async function HomePage() {
         className="border-b grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 divide-y sm:divide-y-0 md:divide-x"
         style={{ borderColor: 'var(--border)' }}
       >
-        <TrustBadge Icon={ShieldCheck}   title={t('badges.payments.title')}     body={t('badges.payments.body')} />
-        <TrustBadge Icon={Package}       title={t('badges.shippingSpeed.title')} body={t('badges.shippingSpeed.body')} />
-        <TrustBadge Icon={MessageSquare} title={t('badges.support.title')}       body={t('badges.support.body')} />
-        <TrustBadge Icon={Truck}         title={t('badges.freeShipping.title')}  body={t('badges.freeShipping.body')} />
+        <TrustBadge title={t('badges.payments.title')}     body={t('badges.payments.body')}    ><ShieldCheck   size={16} strokeWidth={1.5} /></TrustBadge>
+        <TrustBadge title={t('badges.shippingSpeed.title')} body={t('badges.shippingSpeed.body')}><Package       size={16} strokeWidth={1.5} /></TrustBadge>
+        <TrustBadge title={t('badges.support.title')}       body={t('badges.support.body')}     ><MessageSquare size={16} strokeWidth={1.5} /></TrustBadge>
+        <TrustBadge title={t('badges.freeShipping.title')}  body={t('badges.freeShipping.body')} ><Truck         size={16} strokeWidth={1.5} /></TrustBadge>
       </section>
 
 {/* ════════════════════════════════════════════════
