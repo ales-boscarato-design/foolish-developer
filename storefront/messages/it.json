@@ -4,7 +4,7 @@
     "closeMenu": "Chiudi menu",
     "tattoo": "Tattoo",
     "pmu": "PMU",
-    "limited": "🔥 Limitato",
+    "limited": "Su Ordinazione · Premium",
     "contatti": "Contatti",
     "account": "Account",
     "logoAlt": "The Foolish Butcher"
@@ -89,7 +89,7 @@
   },
   "product": {
     "noImage": "Foto in arrivo",
-    "limited": "Limitato",
+    "limited": "Su Ordinazione · Premium",
     "variantLabel": "Variante",
     "vatIncluded": "IVA inclusa",
     "lastItems": "⚠️ Ultimi {qty} disponibili",
@@ -115,8 +115,8 @@
       "label": "PMU"
     },
     "limited": {
-      "meta": "🔥 Stock Limitato — The Foolish Butcher",
-      "badge": "🔥 Disponibilità limitata",
+      "meta": "Su Ordinazione · Premium — The Foolish Butcher",
+      "badge": "Su Ordinazione · Premium",
       "title": "Colorazioni rare",
       "description": "Lotti speciali e colorazioni rare. Quando finiscono, finiscono."
     }
@@ -168,7 +168,7 @@
       "altFlock": "Microfili di nylon flock"
     },
     "limited": {
-      "badge": "Stock limitato",
+      "badge": "Su Ordinazione · Premium",
       "headline": "COLORAZIONI RARE — DISPONIBILI ORA",
       "cta": "Vedi tutti"
     },
