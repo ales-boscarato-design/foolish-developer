@@ -10,6 +10,42 @@
   --border: #1e1e1e;
   --card: #0f0f0f;
   --limited: #c0392b;
+
+  /* ── Spacing scale (base 4px) ── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-24: 96px;
+  --space-32: 128px;
+
+  /* ── Surface layers (depth senza colore) ── */
+  --surface-base: #080808;
+  --surface-1:    #0a0a0a;
+  --surface-2:    #0f0f0f;
+  --surface-3:    #141414;
+  --surface-4:    #1a1a1a;
+
+  /* ── Accent glow (per focus ring e hover) ── */
+  --glow-subtle: rgba(200, 169, 126, 0.06);
+  --glow-medium: rgba(200, 169, 126, 0.12);
+  --glow-strong: rgba(200, 169, 126, 0.20);
+
+  /* ── Motion durations ── */
+  --dur-instant:   80ms;
+  --dur-fast:      150ms;
+  --dur-normal:    250ms;
+  --dur-slow:      450ms;
+  --dur-cinematic: 750ms;
+
+  /* ── Motion easings ── */
+  --ease-out:        cubic-bezier(0, 0, 0.2, 1);
+  --ease-spring:     cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-emphasized: cubic-bezier(0.4, 0, 0.6, 1);
 }
 
 @theme inline {
@@ -62,6 +98,20 @@ body::after {
   font-family: var(--font-cormorant), 'Georgia', serif;
   font-weight: 500;
   letter-spacing: 0.01em;
+}
+
+/* Label uppercase — section tags, form labels, badge */
+.text-label {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
+/* Mono — prezzi, seriali, codici promo */
+.text-mono {
+  font-family: ui-monospace, 'Courier New', monospace;
+  letter-spacing: 0.04em;
 }
 
 /* Fade-up staggerati */
