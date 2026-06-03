@@ -93,14 +93,37 @@ function AttributeSelector({ attribute, selectedValue, validCombinations, select
               disabled={!available}
               whileHover={available ? { scale: 1.04 } : {}}
               whileTap={available ? { scale: 0.96 } : {}}
-              className={`px-4 py-3 text-sm rounded-xl border transition-all min-h-[48px] min-w-[48px] ${
+              className={[
+                'relative px-4 py-2.5 text-sm rounded-lg border transition-[border-color,background-color,color,box-shadow] min-h-[44px] min-w-[44px]',
                 isSelected
-                  ? 'border-[var(--accent)] bg-[var(--accent)] text-black font-semibold shadow-lg'
+                  ? 'font-medium'
                   : !available
-                  ? 'opacity-30 cursor-not-allowed border-[var(--border)]'
-                  : 'border-[var(--border)] hover:border-[var(--accent)] hover:shadow-md'
-              }`}
+                  ? 'opacity-20 cursor-not-allowed line-through'
+                  : 'hover:text-[var(--accent)]',
+              ].join(' ')}
+              style={
+                isSelected
+                  ? {
+                      borderColor: 'rgba(200, 169, 126, 0.5)',
+                      backgroundColor: 'rgba(200, 169, 126, 0.10)',
+                      color: 'var(--accent)',
+                      boxShadow: '0 0 0 1px rgba(200,169,126,0.15), 0 4px 12px rgba(200,169,126,0.06)',
+                      transitionDuration: 'var(--dur-fast)',
+                    }
+                  : !available
+                  ? { borderColor: 'var(--border)', transitionDuration: 'var(--dur-fast)' }
+                  : { borderColor: 'var(--border)', transitionDuration: 'var(--dur-fast)' }
+              }
             >
+              {isSelected && (
+                <span
+                  className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold pointer-events-none"
+                  style={{ backgroundColor: 'var(--accent)', color: '#080808' }}
+                  aria-hidden
+                >
+                  ✓
+                </span>
+              )}
               {opt.label}
             </motion.button>
           )
@@ -461,6 +484,32 @@ export function ProductDetail({ product }: { product: Product }) {
               </motion.span>
               <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>{t('vatIncluded')}</span>
             </div>
+            <div className="mt-2">
+              {selectedVariant.stockStatus === 'available' && (
+                <span
+                  className="inline-flex items-center gap-1.5 text-label px-2 py-1 rounded border"
+                  style={{
+                    color: '#5a9c52',
+                    background: 'rgba(45,90,39,0.15)',
+                    borderColor: 'rgba(90,156,82,0.2)',
+                  }}
+                >
+                  ● Disponibile
+                </span>
+              )}
+              {selectedVariant.stockStatus === 'low' && (
+                <span
+                  className="inline-flex items-center gap-1.5 text-label px-2 py-1 rounded border"
+                  style={{
+                    color: 'var(--limited)',
+                    background: 'rgba(192,57,43,0.10)',
+                    borderColor: 'rgba(192,57,43,0.20)',
+                  }}
+                >
+                  ● Ultimi pezzi
+                </span>
+              )}
+            </div>
 
             {/* Varianti — 48px touch targets */}
             <div>
@@ -483,7 +532,12 @@ export function ProductDetail({ product }: { product: Product }) {
                   >
                     {v.label}
                     {v.stockStatus === 'low' && (
-                      <span className="ml-2 text-xs" style={{ color: 'var(--limited)' }}>•</span>
+                      <span
+                        className="ml-2 text-label px-1 py-0.5 rounded"
+                        style={{ color: 'var(--limited)', background: 'rgba(192,57,43,0.1)' }}
+                      >
+                        Ultimi
+                      </span>
                     )}
                   </motion.button>
                 ))}
