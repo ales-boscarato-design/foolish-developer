@@ -4,7 +4,7 @@
     "closeMenu": "Fermer le menu",
     "tattoo": "Tatouage",
     "pmu": "PMU",
-    "limited": "Sur Commande · Premium",
+    "limited": "🔥 Premium",
     "contatti": "Contacts",
     "account": "Compte",
     "logoAlt": "The Foolish Butcher"
@@ -89,7 +89,7 @@
   },
   "product": {
     "noImage": "Photo à venir",
-    "limited": "Sur Commande · Premium",
+    "limited": "🔥 Premium",
     "variantLabel": "Variante",
     "vatIncluded": "TVA incluse",
     "lastItems": "⚠️ Dernières {qty} disponibles",
@@ -115,8 +115,8 @@
       "label": "PMU"
     },
     "limited": {
-      "meta": "Sur Commande · Premium — The Foolish Butcher",
-      "badge": "Sur Commande · Premium",
+      "meta": "🔥 Premium — The Foolish Butcher",
+      "badge": "🔥 Premium",
       "title": "Colorations rares",
       "description": "Lots spéciaux et colorations rares. Quand c'est fini, c'est fini."
     }
@@ -168,7 +168,7 @@
       "altFlock": "Microfibres de nylon flock"
     },
     "limited": {
-      "badge": "Sur Commande · Premium",
+      "badge": "🔥 Premium",
       "headline": "DERNIERS COLORIS — DISPONIBLES",
       "cta": "Voir tout"
     },
