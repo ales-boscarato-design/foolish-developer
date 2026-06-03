@@ -2,6 +2,7 @@
 
 import { useRef } from 'react'
 import { motion, useInView, useReducedMotion } from 'framer-motion'
+import { DURATION, EASE } from '@/lib/motion'
 
 interface BentoGridProps {
   children: React.ReactNode
@@ -52,12 +53,12 @@ export function BentoItem({
     <motion.div
       ref={ref}
       className={`${spanClasses[span ?? 'col-1']} ${className}`}
-      initial={{ opacity: 0, y: 32 }}
+      initial={{ opacity: 0, y: 28 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}
       transition={{
-        duration: 0.65,
+        duration: DURATION.slow,
         delay,
-        ease: [0.16, 1, 0.3, 1],
+        ease: EASE.spring,
       }}
     >
       {children}
