@@ -144,6 +144,11 @@ body::after {
   animation-play-state: paused;
 }
 
+/* Ghost CTA — hover border via CSS (usato in Server Component) */
+.ghost-cta:hover {
+  border-color: var(--accent) !important;
+}
+
 /* Ink line — separatore decorativo */
 .ink-line {
   width: 40px;

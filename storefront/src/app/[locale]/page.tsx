@@ -10,6 +10,7 @@ import { ProductCard } from '@/components/ProductCard'
 import { ManifestoPinned } from '@/components/ManifestoPinned'
 import { SplitText } from '@/components/SplitText'
 import { BentoGrid, BentoItem } from '@/components/BentoGrid'
+import { TrustBadge } from '@/components/TrustBadge'
 
 const BASE = 'https://thefoolishbutcher.com'
 const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
@@ -67,35 +68,6 @@ async function Marquee() {
             {t}
           </span>
         ))}
-      </div>
-    </div>
-  )
-}
-
-/* ─── Trust badge ─────────────────────────────────────────────────── */
-function TrustBadge({
-  Icon,
-  title,
-  body,
-}: {
-  Icon: React.ElementType
-  title: string
-  body: string
-}) {
-  return (
-    <div
-      className="px-7 py-8 flex gap-4 items-start transition-colors"
-      style={{
-        borderColor: 'var(--border)',
-        transitionDuration: 'var(--dur-fast)',
-      }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(200,169,126,0.15)' }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)' }}
-    >
-      <Icon size={16} strokeWidth={1.5} className="mt-0.5 shrink-0" style={{ color: 'var(--accent)' }} />
-      <div>
-        <p className="text-label mb-1" style={{ color: 'var(--foreground)' }}>{title}</p>
-        <p className="text-xs leading-relaxed" style={{ color: 'var(--muted-fg)' }}>{body}</p>
       </div>
     </div>
   )
@@ -254,14 +226,12 @@ export default async function HomePage() {
             </Link>
             <Link
               href="/pmu"
-              className="px-8 py-4 font-semibold text-sm tracking-widest uppercase border transition-colors"
+              className="ghost-cta px-8 py-4 font-semibold text-sm tracking-widest uppercase border transition-colors"
               style={{
                 borderColor: 'rgba(200, 169, 126, 0.25)',
                 color: 'var(--accent)',
                 transitionDuration: 'var(--dur-fast)',
               }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)' }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(200, 169, 126, 0.25)' }}
             >
               {t('hero.ctaPmu')}
             </Link>
