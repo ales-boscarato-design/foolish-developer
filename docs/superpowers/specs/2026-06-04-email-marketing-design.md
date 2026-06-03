@@ -227,7 +227,10 @@ Costruiti con **React Email**. Struttura condivisa:
 - `review-request.tsx`
 - `reengagement.tsx`
 
-**Copy** in `storefront/emails/it.json` (master italiano, scritto da Alessandro). Frank traduce `en.json`, `de.json`, `es.json`, `fr.json` e committa.
+**Copy** in `storefront/emails/it.json` (master italiano). Il workflow è flessibile:
+- Alessandro scrive il copy → Frank traduce le altre 4 lingue e committa.
+- Alessandro delega a Frank → Frank scrive il copy italiano partendo dalla brand voice Foolish, Alessandro approva, Frank produce le 5 versioni e committa.
+- Combinato: Alessandro detta le linee guida, Frank scrive e traduce tutto.
 
 Ogni template riceve `locale` e carica il file JSON corrispondente.
 
