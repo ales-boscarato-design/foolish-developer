@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { ShoppingBag, Check, Star, Shield, Truck, Sparkles, Info } from 'lucide-react'
+import { ShoppingBag, Check, Star, Shield, Truck, Sparkles } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion'
 import { DURATION, EASE } from '@/lib/motion'
@@ -616,7 +616,7 @@ export function ProductDetail({ product }: { product: Product }) {
               {/* Quantity picker */}
               {selectedVariant.stockStatus !== 'unavailable' && (
                 <motion.div variants={itemVariants} className="flex items-center gap-3 mb-4">
-                  <span className="text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>
+                  <span className="text-sm font-medium" style={{ color: 'var(--muted-fg)' }}>
                     Quantità
                   </span>
                   <div
@@ -728,9 +728,9 @@ export function ProductDetail({ product }: { product: Product }) {
                           <span
                             className="text-label px-1.5 py-0.5 rounded border w-fit"
                             style={{
-                              color: '#2d8c27',
-                              background: 'rgba(45,140,39,0.10)',
-                              borderColor: 'rgba(45,140,39,0.20)',
+                              color: '#613318',
+                              background: 'rgba(97,51,24,0.10)',
+                              borderColor: 'rgba(97,51,24,0.20)',
                             }}
                           >
                             Risparmi €{((selectedVariant.price * pack.quantity) * (pack.discountPercent / 100)).toFixed(2)}
