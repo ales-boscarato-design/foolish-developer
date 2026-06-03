@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { useCart } from '@/lib/cart'
 import { track } from '@/lib/analytics'
 import { calculateShipping, freeShippingRemaining } from '@/lib/shipping'
-import { Trash2, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { cmsImageUrl } from '@/lib/cms'
@@ -274,21 +274,53 @@ export default function CheckoutPage() {
         <div>
           {/* Free shipping bar */}
           {remaining > 0 && (
-            <div className="rounded-lg p-3 mb-6 text-sm" style={{ backgroundColor: 'var(--muted)' }}>
-              <div className="flex justify-between mb-2">
-                <span dangerouslySetInnerHTML={{ __html: t('freeShippingAdd', { amount: remaining.toFixed(2) }) }} />
-                <span style={{ color: 'var(--muted-fg)' }}>{country}</span>
+            <div
+              className="rounded-xl p-4 mb-6 border"
+              style={{ backgroundColor: 'var(--surface-1)', borderColor: '#151515' }}
+            >
+              <div className="flex justify-between items-center mb-3">
+                <p className="text-sm" style={{ color: 'var(--muted-fg)' }}>
+                  Aggiungi{' '}
+                  <span className="font-medium" style={{ color: 'var(--accent)' }}>
+                    €{remaining.toFixed(2)}
+                  </span>{' '}
+                  per la spedizione gratuita
+                </p>
+                <span className="text-mono text-xs" style={{ color: 'var(--muted-fg)' }}>
+                  {Math.round((cartTotal / (cartTotal + remaining)) * 100)}%
+                </span>
               </div>
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border)' }}>
+              {/* Progress bar con dot glow */}
+              <div className="relative h-0.5 rounded-full overflow-visible" style={{ backgroundColor: 'var(--border)' }}>
                 <div
-                  className="h-full rounded-full transition-all"
-                  style={{ backgroundColor: 'var(--accent)', width: `${Math.min(100, (cartTotal / (cartTotal + remaining)) * 100)}%` }}
-                />
+                  className="absolute left-0 top-0 h-0.5 rounded-full transition-[width]"
+                  style={{
+                    width: `${Math.min(100, (cartTotal / (cartTotal + remaining)) * 100)}%`,
+                    background: 'linear-gradient(90deg, #a88b5e, var(--accent))',
+                    transitionDuration: 'var(--dur-slow)',
+                  }}
+                >
+                  <div
+                    className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full"
+                    style={{
+                      backgroundColor: 'var(--accent)',
+                      boxShadow: '0 0 6px rgba(200,169,126,0.6)',
+                    }}
+                  />
+                </div>
               </div>
             </div>
           )}
           {remaining === 0 && (
-            <div className="rounded-lg p-3 mb-6 text-sm font-medium" style={{ backgroundColor: 'var(--muted)', color: '#4caf50' }}>
+            <div
+              className="flex items-center gap-2 rounded-xl p-3.5 mb-6 border text-sm font-medium"
+              style={{
+                backgroundColor: 'rgba(45,140,39,0.08)',
+                borderColor: 'rgba(45,140,39,0.2)',
+                color: '#5a9c52',
+              }}
+            >
+              <CheckCircle size={14} />
               {t('freeShippingApplied')}
             </div>
           )}
@@ -298,7 +330,7 @@ export default function CheckoutPage() {
             {items.map((item) => (
               <div key={item.sku} className="flex gap-4 p-4 rounded-lg border" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}>
                 {item.image && (
-                  <div className="w-16 h-16 rounded overflow-hidden flex-shrink-0 relative" style={{ backgroundColor: 'var(--muted)' }}>
+                  <div className="w-16 h-16 rounded overflow-hidden flex-shrink-0 relative border" style={{ backgroundColor: 'var(--muted)', border: '1px solid var(--surface-3)' }}>
                     <Image src={cmsImageUrl(item.image)} alt={item.productName} fill className="object-cover" sizes="64px" />
                   </div>
                 )}
@@ -307,8 +339,12 @@ export default function CheckoutPage() {
                     <p className="font-medium text-sm">{item.productName}</p>
                     {item.packName && (
                       <span
-                        className="text-xs font-bold px-1.5 py-0.5 rounded-full"
-                        style={{ backgroundColor: 'var(--accent)', color: 'black' }}
+                        className="text-label px-1.5 py-0.5 rounded border"
+                        style={{
+                          backgroundColor: 'rgba(200,169,126,0.08)',
+                          borderColor: 'rgba(200,169,126,0.2)',
+                          color: 'var(--accent)',
+                        }}
                       >
                         {item.packName}
                       </span>
@@ -330,18 +366,26 @@ export default function CheckoutPage() {
                       <span className="w-6 text-center text-sm">{item.quantity}</span>
                       <button className="w-7 h-7 flex items-center justify-center text-sm" onClick={() => updateQty(item.sku, item.quantity + 1)}>+</button>
                     </div>
-                    <button onClick={() => remove(item.sku)} className="p-1" style={{ color: 'var(--muted-fg)' }}>
-                      <Trash2 size={14} />
+                    <button
+                      onClick={() => remove(item.sku)}
+                      className="text-xs transition-colors"
+                      style={{ color: 'var(--muted-fg)', transitionDuration: 'var(--dur-fast)' }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--limited)' }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--muted-fg)' }}
+                    >
+                      ✕ Rimuovi
                     </button>
                   </div>
                 </div>
-                <div className="text-right flex-shrink-0">
-                  <span className="font-semibold text-sm">{(item.price * item.quantity).toFixed(2)}€</span>
+                <div className="text-right flex-shrink-0 flex flex-col justify-start gap-0.5">
                   {item.originalUnitPrice && (
-                    <p className="text-xs line-through opacity-40" style={{ color: 'var(--foreground)' }}>
-                      {(item.originalUnitPrice * item.quantity).toFixed(2)}€
-                    </p>
+                    <span className="text-xs line-through" style={{ color: 'var(--muted-fg)', opacity: 0.5 }}>
+                      €{(item.originalUnitPrice * item.quantity).toFixed(2)}
+                    </span>
                   )}
+                  <span className="text-mono font-semibold text-sm">
+                    €{(item.price * item.quantity).toFixed(2)}
+                  </span>
                 </div>
               </div>
             ))}
@@ -567,87 +611,113 @@ export default function CheckoutPage() {
         <div className="sticky top-20 h-fit">
           <div className="rounded-lg border p-5 space-y-3" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}>
             <h2 className="font-semibold">{t('summaryTitle')}</h2>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span style={{ color: 'var(--muted-fg)' }}>{t('labelProducts')}</span>
-                <span>{cartTotal.toFixed(2)}€</span>
+
+            {/* Riepilogo */}
+            <div className="space-y-0 mb-3">
+              <p className="text-label mb-3" style={{ color: 'var(--muted-fg)' }}>Riepilogo ordine</p>
+
+              <div className="flex justify-between py-2" style={{ borderBottom: '1px solid var(--surface-3)' }}>
+                <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>Subtotale</span>
+                <span className="text-mono text-sm">€{cartTotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between">
-                <span style={{ color: 'var(--muted-fg)' }}>{t('labelShipping', { country })}</span>
-                <span>
-                  {shipping.isFree
-                    ? <span style={{ color: '#4caf50' }}>{t('labelFree')}</span>
-                    : `${shipping.cost.toFixed(2)}€`}
+
+              <div className="flex justify-between py-2" style={{ borderBottom: '1px solid var(--surface-3)' }}>
+                <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>Spedizione — {country}</span>
+                <span className="text-mono text-sm" style={{ color: shipping.isFree ? '#5a9c52' : 'var(--foreground)' }}>
+                  {shipping.isFree ? 'Gratuita' : `€${shipping.cost.toFixed(2)}`}
                 </span>
               </div>
-              {promoType === 'percent_pro' && promoData && (
-                <div className="flex justify-between" style={{ color: '#4caf50' }}>
-                  <span>{t('promoProDiscount', { percent: promoData.discountPercent ?? 15 })}</span>
-                  <span>−{promoData.discountAmount?.toFixed(2)}€</span>
+
+              {proDiscount > 0 && (
+                <div className="flex justify-between py-2" style={{ borderBottom: '1px solid var(--surface-3)' }}>
+                  <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>
+                    {promoData?.discountPercent ? `Sconto ${promoData.discountPercent}%` : 'Sconto'}
+                  </span>
+                  <span className="text-mono text-sm" style={{ color: '#5a9c52' }}>−€{proDiscount.toFixed(2)}</span>
                 </div>
               )}
-              {!shipping.isFree && (
-                <p className="text-xs" style={{ color: 'var(--muted-fg)' }}>
-                  {t('labelFreeAbove', { amount: shipping.freeAbove })}
-                </p>
-              )}
             </div>
-            <div className="border-t pt-3" style={{ borderColor: 'var(--border)' }}>
-              <div className="flex justify-between font-bold">
-                <span>{t('labelTotal')}</span>
-                <span style={{ color: 'var(--accent)' }}>{grandTotal.toFixed(2)}€</span>
-              </div>
-              <p className="text-xs mt-1" style={{ color: 'var(--muted-fg)' }}>{t('vatIncluded')}</p>
+
+            {/* Divider */}
+            <div className="h-px mb-3" style={{ backgroundColor: 'var(--border)' }} />
+
+            {/* Totale */}
+            <div className="flex justify-between items-baseline mb-4">
+              <span className="text-sm font-medium">Totale IVA inc.</span>
+              <span className="text-mono font-bold" style={{ fontSize: 22, color: 'var(--accent)', letterSpacing: '-0.01em' }}>
+                €{grandTotal.toFixed(2)}
+              </span>
             </div>
 
             {/* Promo code */}
             <div className="border-t pt-3" style={{ borderColor: 'var(--border)' }}>
-              {promoStatus !== 'valid' ? (
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder={t('promoPlaceholder')}
-                    value={promoCode}
-                    onChange={(e) => { setPromoCode(e.target.value); if (promoStatus === 'invalid') setPromoStatus('idle') }}
-                    onKeyDown={(e) => e.key === 'Enter' && applyPromo()}
-                    className="flex-1 px-3 py-1.5 rounded border text-sm"
-                    style={{ backgroundColor: 'var(--muted)', borderColor: promoStatus === 'invalid' ? '#f44336' : 'var(--border)', color: 'var(--foreground)' }}
-                  />
-                  <button
-                    onClick={applyPromo}
-                    disabled={promoStatus === 'loading' || !promoCode.trim()}
-                    className="px-3 py-1.5 rounded border text-sm font-medium transition-opacity disabled:opacity-40"
-                    style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
-                  >
-                    {promoStatus === 'loading' ? '…' : t('promoApply')}
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between text-sm">
-                  <span style={{ color: '#4caf50' }}>
-                    {promoType === 'percent_pro'
-                      ? t('promoProActive', { percent: promoData?.discountPercent ?? 15 })
-                      : t('promoFreeShipping')}
+              <div className="flex gap-2 mb-2">
+                <input
+                  className={`${inputBase} flex-1 text-mono uppercase`}
+                  style={inputStyle('promo')}
+                  placeholder="CODICE PROMO"
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                  onFocus={() => setFocusedField('promo')}
+                  onBlur={() => setFocusedField(null)}
+                  disabled={promoStatus === 'valid'}
+                />
+                <button
+                  onClick={applyPromo}
+                  disabled={promoStatus === 'loading' || promoStatus === 'valid' || !promoCode.trim()}
+                  className="text-label px-4 rounded-lg border flex-shrink-0 transition-[border-color,background-color] disabled:opacity-40"
+                  style={{
+                    borderColor: 'rgba(200,169,126,0.2)',
+                    color: 'var(--accent)',
+                    transitionDuration: 'var(--dur-fast)',
+                  }}
+                >
+                  {promoStatus === 'loading' ? <Loader2 size={14} className="animate-spin" /> : 'Applica'}
+                </button>
+              </div>
+              {promoStatus === 'valid' && (
+                <div
+                  className="flex items-center justify-between p-3 rounded-lg border text-sm"
+                  style={{
+                    backgroundColor: 'rgba(45,140,39,0.08)',
+                    borderColor: 'rgba(45,140,39,0.2)',
+                    color: '#5a9c52',
+                  }}
+                >
+                  <span className="flex items-center gap-2">
+                    <CheckCircle size={14} />
+                    {promoCode} · {promoData?.discountPercent ? `−${promoData.discountPercent}%` : 'Spedizione gratuita'}
                   </span>
-                  <button onClick={removePromo} className="text-xs underline" style={{ color: 'var(--muted-fg)' }}>{t('promoRemove')}</button>
+                  <button onClick={removePromo} className="text-label" style={{ color: 'var(--muted-fg)' }}>
+                    Rimuovi
+                  </button>
                 </div>
               )}
               {promoStatus === 'invalid' && (
-                <p className="text-xs mt-1" style={{ color: '#f44336' }}>{t('promoInvalid')}</p>
+                <p className="flex items-center gap-1.5 text-xs mt-1" style={{ color: 'var(--limited)' }}>
+                  <XCircle size={12} /> Codice non valido o scaduto
+                </p>
               )}
             </div>
 
             <button
               onClick={handlePayment}
               disabled={!canPay}
-              className="w-full py-3 rounded font-semibold text-sm transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ backgroundColor: 'var(--accent)', color: 'black' }}
+              className="relative w-full overflow-hidden rounded-lg text-label font-semibold flex items-center justify-center gap-2 transition-opacity disabled:opacity-40"
+              style={{ height: 56, backgroundColor: 'var(--accent)', color: '#080808' }}
             >
-              {loading ? t('loading') : t('pay', { amount: grandTotal.toFixed(2) })}
+              <span
+                className="absolute inset-0 pointer-events-none"
+                style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 55%)' }}
+                aria-hidden
+              />
+              {loading
+                ? <Loader2 size={18} className="animate-spin" />
+                : <>{t('pay')}</>
+              }
             </button>
-
-            <p className="text-xs text-center" style={{ color: 'var(--muted-fg)' }}>
-              {t('securePayment')}
+            <p className="text-center mt-2.5 text-xs" style={{ color: 'var(--muted-fg)' }}>
+              🔒 Stripe · Pagamento sicuro · Dati crittografati
             </p>
           </div>
         </div>
