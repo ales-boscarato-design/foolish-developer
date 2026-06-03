@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { ShoppingBag, Check, Star, Shield, Truck, Sparkles, Info } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion'
+import { DURATION, EASE } from '@/lib/motion'
 import type { Product, ProductVariant, ProductAttribute, ProductVariantCombination, FeatureHighlight, ProductComponent, ProductPack } from '@/lib/cms'
 import { cmsImageUrl } from '@/lib/cms'
 import { useCart } from '@/lib/cart'
@@ -345,22 +346,43 @@ export function ProductDetail({ product }: { product: Product }) {
                 touchStartX.current = null
               }}
             >
+              {/* Skeleton visibile solo al primo caricamento */}
               {!imageLoaded && <ImageSkeleton />}
-              {displayImage?.url ? (
-                <Image
-                  src={cmsImageUrl(displayImage.url)}
-                  alt={displayImage.alt || product.name}
-                  fill
-                  className={`object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 60vw"
-                  onLoad={() => setImageLoaded(true)}
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center" style={{ color: 'var(--muted-fg)' }}>
-                  {t('noImage')}
-                </div>
-              )}
+
+              {/* Crossfade animato al cambio di activeImage */}
+              <AnimatePresence mode="sync">
+                {displayImage?.url ? (
+                  <motion.div
+                    key={`${displayImage.url}-${activeImage}`}
+                    className="absolute inset-0"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: DURATION.fast, ease: EASE.out }}
+                  >
+                    <Image
+                      src={cmsImageUrl(displayImage.url)}
+                      alt={displayImage.alt || product.name}
+                      fill
+                      className="object-cover"
+                      priority
+                      sizes="(max-width: 1024px) 100vw, 60vw"
+                      onLoad={() => setImageLoaded(true)}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="no-image"
+                    className="absolute inset-0 flex items-center justify-center"
+                    style={{ color: 'var(--muted-fg)' }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    {t('noImage')}
+                  </motion.div>
+                )}
+              </AnimatePresence>
               {product.limitedStock && (
                 <motion.span
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -373,21 +395,42 @@ export function ProductDetail({ product }: { product: Product }) {
               )}
             </motion.div>
 
-            {/* Dots — visibili sempre quando ci sono più immagini in gallery */}
             {effectiveGallery.length > 1 && (
-              <div className="flex gap-3 mt-6 justify-center">
-                {effectiveGallery.map((_, i) => (
+              <div className="flex gap-2 mt-3 flex-wrap">
+                {effectiveGallery.slice(0, 4).map((img, i) => (
                   <button
                     key={i}
-                    onClick={() => { setActiveImage(i); setImageLoaded(false) }}
-                    className="rounded-full transition-all min-h-[12px] min-w-[12px]"
-                    style={{
-                      backgroundColor: i === activeImage ? 'var(--accent)' : 'var(--border)',
-                      transform: i === activeImage ? 'scale(1.3)' : 'scale(1)',
-                    }}
+                    onClick={() => { setActiveImage(i); }}
                     aria-label={`Immagine ${i + 1}`}
-                  />
+                    className="relative flex-shrink-0 rounded-lg overflow-hidden border transition-[border-color,box-shadow]"
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderColor: i === activeImage ? 'var(--accent)' : 'var(--border)',
+                      boxShadow: i === activeImage ? '0 0 0 1px rgba(200,169,126,0.3)' : 'none',
+                      transitionDuration: 'var(--dur-fast)',
+                      backgroundColor: 'var(--muted)',
+                    }}
+                  >
+                    {img?.url && (
+                      <Image
+                        src={cmsImageUrl(img.url)}
+                        alt=""
+                        fill
+                        className="object-cover"
+                        sizes="44px"
+                      />
+                    )}
+                  </button>
                 ))}
+                {effectiveGallery.length > 4 && (
+                  <div
+                    className="flex-shrink-0 rounded-lg border flex items-center justify-center text-xs"
+                    style={{ width: 44, height: 44, borderColor: 'var(--border)', color: 'var(--muted-fg)' }}
+                  >
+                    +{effectiveGallery.length - 4}
+                  </div>
+                )}
               </div>
             )}
           </motion.div>
