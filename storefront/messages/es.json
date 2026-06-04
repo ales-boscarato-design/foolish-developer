@@ -97,6 +97,7 @@
     "added": "Añadido al carrito",
     "unavailable": "No disponible",
     "thickness": "{value}mm grosor",
+    "pieces": "{qty} piezas",
     "sectionTattoo": "Tatuaje",
     "sectionPmu": "PMU"
   },

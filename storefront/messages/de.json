@@ -97,6 +97,7 @@
     "added": "In den Warenkorb gelegt",
     "unavailable": "Nicht verfügbar",
     "thickness": "{value}mm Stärke",
+    "pieces": "{qty} Stück",
     "sectionTattoo": "Tätowierung",
     "sectionPmu": "PMU"
   },

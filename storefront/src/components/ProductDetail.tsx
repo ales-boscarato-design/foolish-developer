@@ -725,6 +725,9 @@ export function ProductDetail({ product }: { product: Product }) {
                         <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
                           {pack.name}
                         </span>
+                        <span className="text-xs" style={{ color: 'var(--muted-fg)' }}>
+                          {t('pieces', { qty: pack.quantity })}
+                        </span>
                         {pack.discountPercent > 0 && (
                           <span
                             className="text-label px-1.5 py-0.5 rounded border w-fit"

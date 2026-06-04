@@ -97,6 +97,7 @@
     "added": "Ajouté au panier",
     "unavailable": "Non disponible",
     "thickness": "{value}mm épaisseur",
+    "pieces": "{qty} pièces",
     "sectionTattoo": "Tatouage",
     "sectionPmu": "PMU"
   },
