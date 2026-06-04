@@ -5,7 +5,9 @@ import { AbandonedCartEmail } from '@/emails/abandoned-cart'
 import { ReviewRequestEmail } from '@/emails/review-request'
 import { ReengagementEmail } from '@/emails/reengagement'
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY!)
+}
 const FROM = process.env.RESEND_FROM || 'The Foolish Butcher <noreply@thefoolishbutcher.com>'
 const SITE = 'https://thefoolishbutcher.com'
 
@@ -40,7 +42,7 @@ export async function sendWelcomeEmail(params: {
   subscriberId: string
 }): Promise<string> {
   const token = await generateUnsubscribeToken(params.subscriberId, params.to)
-  const { data, error } = await resend.emails.send({
+  const { data, error } = await getResend().emails.send({
     from: FROM,
     to: params.to,
     subject: getSubject('welcome', params.locale),
@@ -61,7 +63,7 @@ export async function sendAbandonedCartEmail(params: {
   subscriberId: string
 }): Promise<string> {
   const token = await generateUnsubscribeToken(params.subscriberId, params.to)
-  const { data, error } = await resend.emails.send({
+  const { data, error } = await getResend().emails.send({
     from: FROM,
     to: params.to,
     subject: getSubject('abandoned_cart', params.locale),
@@ -83,7 +85,7 @@ export async function sendReviewRequestEmail(params: {
   subscriberId: string
 }): Promise<string> {
   const token = await generateUnsubscribeToken(params.subscriberId, params.to)
-  const { data, error } = await resend.emails.send({
+  const { data, error } = await getResend().emails.send({
     from: FROM,
     to: params.to,
     replyTo: 'alessandro@thefoolishbutcher.com',
@@ -105,7 +107,7 @@ export async function sendReengagementEmail(params: {
   subscriberId: string
 }): Promise<string> {
   const token = await generateUnsubscribeToken(params.subscriberId, params.to)
-  const { data, error } = await resend.emails.send({
+  const { data, error } = await getResend().emails.send({
     from: FROM,
     to: params.to,
     subject: getSubject('reengagement', params.locale),
