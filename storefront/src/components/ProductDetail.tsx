@@ -529,13 +529,17 @@ export function ProductDetail({ product }: { product: Product }) {
               {selectedVariant.stockStatus === 'available' && (
                 <span
                   className="inline-flex items-center gap-1.5 text-label px-2 py-1 rounded border"
-                  style={{
+                  style={product.madeToOrder ? {
+                    color: 'var(--accent)',
+                    background: 'rgba(200,169,126,0.12)',
+                    borderColor: 'rgba(200,169,126,0.25)',
+                  } : {
                     color: '#5a9c52',
                     background: 'rgba(45,90,39,0.15)',
                     borderColor: 'rgba(90,156,82,0.2)',
                   }}
                 >
-                  ● Disponibile
+                  {product.madeToOrder ? '✦ Su ordinazione' : '● Disponibile'}
                 </span>
               )}
               {selectedVariant.stockStatus === 'low' && (

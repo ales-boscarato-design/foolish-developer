@@ -102,7 +102,7 @@
     "sectionPmu": "PMU",
     "shipsIn": "Spedito in {days} giorni lavorativi",
     "madeToOrder": "Fatto su ordinazione",
-    "madeToOrderDesc": "Il tuo viene lavorato personalmente dopo l'acquisto. Consegna stimata in {total} giorni lavorativi."
+    "madeToOrderDesc": "Il tuo ordine viene lavorato personalmente dopo l'acquisto. Consegna stimata in {total} giorni lavorativi."
   },
   "sections": {
     "label": "Sezione",
