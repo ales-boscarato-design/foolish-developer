@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { useCart } from '@/lib/cart'
 import { track } from '@/lib/analytics'
@@ -82,6 +82,21 @@ export default function CheckoutPage() {
 
   // Payment
   const [loading, setLoading] = useState(false)
+
+  // Cart session capture for abandoned cart flow
+  useEffect(() => {
+    if (!form.email || !form.email.includes('@') || items.length === 0) return
+
+    const timer = setTimeout(() => {
+      fetch('/api/email/cart-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email, cartData: items }),
+      }).catch(() => {}) // fire-and-forget, never block checkout
+    }, 2000)
+
+    return () => clearTimeout(timer)
+  }, [form.email, items])
 
   // ---- Derived ----
   const cartTotal = total()
