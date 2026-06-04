@@ -27,17 +27,18 @@ export async function GET(req: NextRequest) {
       const blocked = await isSubscriberBlocked(email)
       if (blocked) continue
 
-      const subRows = await sql<{ id: string }[]>`
-        SELECT id FROM marketing.subscribers WHERE email = ${email} LIMIT 1
+      const subRows = await sql<{ id: string; locale: string }[]>`
+        SELECT id, locale FROM marketing.subscribers WHERE email = ${email} LIMIT 1
       `
       if (subRows.length === 0) continue
 
       const subscriberId = subRows[0].id
+      const locale = subRows[0].locale
 
       const resendId = await sendAbandonedCartEmail({
         to: email,
         cartData: cart.cart_data,
-        locale: 'it',
+        locale,
         subscriberId,
       })
 
