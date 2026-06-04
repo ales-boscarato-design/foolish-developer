@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { ShoppingBag, Check, Star, Shield, Truck, Sparkles } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion'
@@ -213,17 +214,17 @@ function ComponentCard({ component }: { component: ProductComponent }) {
       whileHover={{ y: -2 }}
     >
       {/* Immagine */}
-      <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative" style={{ backgroundColor: 'var(--muted)' }}>
+      <Link href={`/prodotto/${component.slug}`} className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative block" style={{ backgroundColor: 'var(--muted)' }}>
         {firstImage?.url ? (
           <Image src={cmsImageUrl(firstImage.url)} alt={component.name} fill className="object-cover" sizes="64px" />
         ) : (
           <div className="w-full h-full" style={{ backgroundColor: 'var(--muted)' }} />
         )}
-      </div>
+      </Link>
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold truncate" style={{ color: 'var(--foreground)' }}>{component.name}</p>
+        <Link href={`/prodotto/${component.slug}`} className="text-sm font-semibold truncate block hover:underline" style={{ color: 'var(--foreground)' }}>{component.name}</Link>
         <p className="text-sm mt-0.5" style={{ color: 'var(--accent)' }}>
           {firstVariant ? `${firstVariant.price.toFixed(2)}€` : `${component.basePrice.toFixed(2)}€`}
         </p>

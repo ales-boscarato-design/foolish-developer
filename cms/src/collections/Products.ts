@@ -49,6 +49,13 @@ export const Products: CollectionConfig = {
       label: 'Stock limitato (appare in sezione speciale)',
     },
     {
+      name: 'hideFromListings',
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'Nascondi dalla vetrina',
+      admin: { description: 'Se attivo, il prodotto non appare nelle griglie/vetrine ma rimane accessibile dalla pagina prodotto e dai kit.' },
+    },
+    {
       name: 'order',
       type: 'number',
       defaultValue: 0,
