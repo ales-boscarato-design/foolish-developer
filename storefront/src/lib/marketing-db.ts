@@ -25,6 +25,8 @@ export interface OrderForReview {
   customer_email: string
   customer_name: string | null
   subscriber_status: string | null
+  product_id: number | null
+  product_slug: string | null
 }
 
 // Upsert subscriber from a purchase. Returns { id, isNew }.
@@ -132,15 +134,25 @@ export async function isSubscriberBlocked(email: string): Promise<boolean> {
 }
 
 // Orders delivered 7+ days ago with no review email, customer not blocked.
+// product_id and product_slug are resolved via products_variants table (Payload CMS array storage)
+// matching the first line item sku. Falls back to NULL if no match found.
 export async function getOrdersForReview(): Promise<OrderForReview[]> {
   return sql<OrderForReview[]>`
     SELECT
       o.id::text,
       o.customer_email,
       o.customer_name,
-      s.status as subscriber_status
+      s.status as subscriber_status,
+      p.id as product_id,
+      p.slug as product_slug
     FROM public.orders o
     LEFT JOIN marketing.subscribers s ON s.email = o.customer_email
+    LEFT JOIN LATERAL (
+      SELECT p2.id, p2.slug FROM public.products p2
+      INNER JOIN public.products_variants pv ON pv._parent_id = p2.id
+      WHERE pv.sku = (o.line_items->0->>'sku')
+      LIMIT 1
+    ) p ON true
     WHERE o.delivered_at <= NOW() - INTERVAL '7 days'
       AND o.review_email_sent_at IS NULL
       AND o.customer_email IS NOT NULL

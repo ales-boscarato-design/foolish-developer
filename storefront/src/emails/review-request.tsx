@@ -1,11 +1,12 @@
 import {
-  Html, Head, Body, Container, Section, Text, Hr, Preview,
+  Html, Head, Body, Container, Section, Text, Hr, Preview, Button,
 } from '@react-email/components'
 
 interface Props {
   name: string | null
   locale: string
   unsubscribeUrl: string
+  reviewUrl: string
 }
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -19,7 +20,7 @@ function getFooter(locale: string): Record<string, string> {
   catch { return require('../../emails/it.json').footer }
 }
 
-export function ReviewRequestEmail({ name, locale, unsubscribeUrl }: Props) {
+export function ReviewRequestEmail({ name, locale, unsubscribeUrl, reviewUrl }: Props) {
   const copy = getCopy(locale)
   const footer = getFooter(locale)
   const greeting = name ? name.split(' ')[0] : null
@@ -48,6 +49,22 @@ export function ReviewRequestEmail({ name, locale, unsubscribeUrl }: Props) {
             <Text style={{ color: '#f0ede8', fontSize: '15px', lineHeight: '1.7', margin: '0 0 32px' }}>
               {copy.body}
             </Text>
+            <Button
+              href={reviewUrl}
+              style={{
+                backgroundColor: '#c8a97e',
+                color: '#000',
+                padding: '14px 28px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                textDecoration: 'none',
+                display: 'inline-block',
+                marginBottom: '32px',
+              }}
+            >
+              {copy.cta}
+            </Button>
             <Text style={{ color: '#6b6560', fontSize: '13px', fontStyle: 'italic' }}>
               — Alessandro, The Foolish Butcher
             </Text>

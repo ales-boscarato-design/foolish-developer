@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getOrdersForReview, markReviewEmailSent, logEmail } from '@/lib/marketing-db'
-import { sendReviewRequestEmail, notifyFrank } from '@/lib/resend'
+import { sendReviewRequestEmail, generateReviewToken, notifyFrank } from '@/lib/resend'
 import sql from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
@@ -28,12 +28,23 @@ export async function GET(req: NextRequest) {
 
       if (!subscriberId) continue
 
+      // Skip if product info not available (lineItems had no matching product)
+      if (!order.product_id || !order.product_slug) continue
+
+      const reviewToken = await generateReviewToken({
+        orderId: parseInt(order.id),
+        productId: order.product_id,
+        productSlug: order.product_slug,
+        subscriberId,
+      })
+      const reviewUrl = `https://thefoolishbutcher.com/${locale}/recensisci?token=${reviewToken}`
+
       const resendId = await sendReviewRequestEmail({
         to: email,
         name: order.customer_name,
         locale,
         subscriberId,
-        reviewUrl: '', // TODO: populated in Task 4 (review token generation)
+        reviewUrl,
       })
 
       await markReviewEmailSent(order.id)
