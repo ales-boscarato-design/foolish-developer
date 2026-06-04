@@ -141,9 +141,9 @@ function getSubject(type: string, locale: string): string {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   let copy: Record<string, Record<string, string>>
   try {
-    copy = require(`../../../emails/${locale}.json`)
+    copy = require(`../../emails/${locale}.json`)
   } catch {
-    copy = require('../../../emails/it.json')
+    copy = require('../../emails/it.json')
   }
   return copy[type]?.subject ?? '— The Foolish Butcher'
 }
