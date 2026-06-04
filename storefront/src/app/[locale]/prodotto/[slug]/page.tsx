@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { getLocale } from 'next-intl/server'
 import { getProductBySlug } from '@/lib/cms'
 import { ProductDetail } from '@/components/ProductDetail'
+import { getPublishedReviewsByProduct, getReviewSummary } from '@/lib/reviews-db'
 
 const BASE = 'https://thefoolishbutcher.com'
 const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
@@ -45,6 +46,11 @@ export default async function ProductPage({ params }: Props) {
   const product = await getProductBySlug(slug, locale)
   if (!product) notFound()
 
+  const [reviews, reviewSummary] = await Promise.all([
+    getPublishedReviewsByProduct(slug, 5),
+    getReviewSummary(slug),
+  ])
+
   const firstImage = product.images?.[0]?.image?.url
   const lowestPrice = product.variants?.reduce(
     (min, v) => (v.price < min ? v.price : min),
@@ -73,7 +79,7 @@ export default async function ProductPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
       />
-      <ProductDetail product={product} />
+      <ProductDetail product={product} reviews={reviews} reviewSummary={reviewSummary} />
     </>
   )
 }

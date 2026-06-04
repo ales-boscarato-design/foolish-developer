@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ShoppingBag, Check, Star, Shield, Truck, Sparkles, Play } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion'
 import { DURATION, EASE } from '@/lib/motion'
 import type { Product, ProductVariant, ProductAttribute, ProductVariantCombination, FeatureHighlight, ProductComponent, ProductPack, ProductVideo } from '@/lib/cms'
@@ -12,6 +12,8 @@ import { cmsImageUrl } from '@/lib/cms'
 import { useCart } from '@/lib/cart'
 import { track } from '@/lib/analytics'
 import { RichText } from './RichText'
+import { ReviewList } from './ReviewList'
+import type { Review } from '@/lib/reviews-db'
 
 // ─── Animation variants ─────────────────────────────────────────────────────
 const containerVariants = {
@@ -246,8 +248,15 @@ function ComponentCard({ component }: { component: ProductComponent }) {
 }
 
 // ─── Main component ──────────────────────────────────────────────────────────
-export function ProductDetail({ product }: { product: Product }) {
+interface ProductDetailProps {
+  product: Product
+  reviews?: Review[]
+  reviewSummary?: { average: number; count: number }
+}
+
+export function ProductDetail({ product, reviews = [], reviewSummary = { average: 0, count: 0 } }: ProductDetailProps) {
   const t = useTranslations('product')
+  const locale = useLocale()
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(product.variants[0])
   const [selectedAttrs, setSelectedAttrs] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {}
@@ -507,6 +516,16 @@ export function ProductDetail({ product }: { product: Product }) {
               <h1 className="text-4xl lg:text-5xl font-bold leading-tight font-artisan" style={{ color: 'var(--foreground)' }}>
                 {product.name}
               </h1>
+              {reviewSummary.count > 0 && (
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span style={{ color: '#c8a97e', fontSize: 13 }}>
+                    {'★'.repeat(Math.round(reviewSummary.average))}{'☆'.repeat(5 - Math.round(reviewSummary.average))}
+                  </span>
+                  <span className="text-xs" style={{ color: 'var(--muted-fg)' }}>
+                    {reviewSummary.average.toFixed(1)} ({reviewSummary.count})
+                  </span>
+                </div>
+              )}
               {product.shortDescription && (
                 <p className="text-base mt-3" style={{ color: 'var(--muted-fg)' }}>{product.shortDescription}</p>
               )}
@@ -923,6 +942,14 @@ export function ProductDetail({ product }: { product: Product }) {
             </div>
           </motion.div>
         )}
+
+        {/* Recensioni */}
+        <ReviewList
+          reviews={reviews}
+          summary={reviewSummary}
+          productSlug={product.slug}
+          locale={locale}
+        />
       </motion.div>
 
       {/* Sticky CTA bar — mobile only, shows after scroll past main CTA */}
