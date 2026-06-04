@@ -338,8 +338,10 @@ export function ProductDetail({ product }: { product: Product }) {
     .map((v: ProductVideo) => ({ kind: 'video', url: cmsImageUrl(v.video.url) }))
 
   const imageItems: GalleryItem[] = [
-    ...(selectedVariant.image?.url ? [{ kind: 'image' as const, url: selectedVariant.image.url, alt: selectedVariant.image.alt }] : []),
-    ...product.images.map((pi) => pi.image?.url ? { kind: 'image' as const, url: pi.image.url, alt: pi.image.alt } : null).filter((x): x is { kind: 'image'; url: string; alt?: string } => x !== null),
+    ...(selectedVariant.image?.url ? [{ kind: 'image' as const, url: selectedVariant.image.url, alt: selectedVariant.image.alt ?? undefined }] : []),
+    ...product.images
+      .filter((pi) => !!pi.image?.url)
+      .map((pi): GalleryItem => ({ kind: 'image', url: pi.image.url, alt: pi.image.alt ?? undefined })),
   ]
 
   // Fallback: se nessuna immagine disponibile, prendi la prima variante con immagine
