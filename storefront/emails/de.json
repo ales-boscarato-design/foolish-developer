@@ -1,0 +1,38 @@
+{
+  "welcome": {
+    "subject": "Danke — deine Bestellung ist bestätigt",
+    "preview": "Handgefertigt auf Bestellung.",
+    "heading": "Bestellung eingegangen.",
+    "body": "Handgefertigt auf Bestellung. Jede Lage, die ich herstelle, ist einzigartig — keine zwei sind gleich. Ich melde mich, sobald sie fertig ist, mit Fotos von genau dem, was ich dir schicke.",
+    "cta": "Zurück zur Website",
+    "cta_url": "https://thefoolishbutcher.com"
+  },
+  "abandoned_cart": {
+    "subject": "Du hast etwas im Warenkorb gelassen",
+    "preview": "Auf Bestellung gefertigt — Plätze sind begrenzt.",
+    "heading": "Noch da?",
+    "body": "Du hast einige Artikel im Warenkorb gelassen. Ich produziere auf Bestellung: wenn eine Charge fertig ist, ist sie weg. Falls du noch interessiert bist, besser bald.",
+    "cta": "Bestellung abschließen",
+    "footer_note": "Handwerkliche Produktion — jede Lage ist einzigartig."
+  },
+  "review_request": {
+    "subject": "Wie ist es angekommen?",
+    "preview": "Deine Bestellung ist vor ein paar Tagen angekommen.",
+    "heading": "Lass es mich wissen.",
+    "body": "Deine Bestellung ist vor ein paar Tagen angekommen. Hast du schon darauf tätowiert? Jedes Feedback hilft mir, die nächste Charge zu verbessern — antworte einfach auf diese E-Mail.",
+    "cta": "Auf diese E-Mail antworten"
+  },
+  "reengagement": {
+    "subject": "Noch hier.",
+    "preview": "Es ist eine Weile her.",
+    "heading": "Verschwinde nicht.",
+    "body": "Es ist eine Weile her. Wann immer du wieder bestellen möchtest, bin ich da — in der Zwischenzeit produziere und verbessere ich weiter.",
+    "cta": "Neuheiten entdecken",
+    "cta_url": "https://thefoolishbutcher.com"
+  },
+  "footer": {
+    "unsubscribe_text": "Keine E-Mails mehr erhalten?",
+    "unsubscribe_cta": "Abmelden",
+    "site": "thefoolishbutcher.com"
+  }
+}

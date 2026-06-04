@@ -1,0 +1,38 @@
+{
+  "welcome": {
+    "subject": "Thank you — your order is confirmed",
+    "preview": "Handcrafted, made to order.",
+    "heading": "Order received.",
+    "body": "Handcrafted, made to order. Every sheet I make is unique — no two are the same. I'll write to you as soon as it's ready, with photos of exactly what I'm sending you.",
+    "cta": "Back to the site",
+    "cta_url": "https://thefoolishbutcher.com"
+  },
+  "abandoned_cart": {
+    "subject": "You left something in your cart",
+    "preview": "Made to order — spots don't last.",
+    "heading": "Still there?",
+    "body": "You left some items in your cart. I produce to order: when a batch is done, it's done. If you're still interested, sooner is better.",
+    "cta": "Complete your order",
+    "footer_note": "Handcrafted production — every sheet is one of a kind."
+  },
+  "review_request": {
+    "subject": "How did it arrive?",
+    "preview": "Your order arrived a few days ago.",
+    "heading": "Let me know.",
+    "body": "Your order arrived a few days ago. Have you tried tattooing on it yet? Every bit of feedback helps me improve the next batch — just reply to this email.",
+    "cta": "Reply to this email"
+  },
+  "reengagement": {
+    "subject": "Still here.",
+    "preview": "It's been a while.",
+    "heading": "Don't disappear.",
+    "body": "It's been a while. Whenever you're ready to order again, I'm here — in the meantime I keep producing and improving.",
+    "cta": "See what's new",
+    "cta_url": "https://thefoolishbutcher.com"
+  },
+  "footer": {
+    "unsubscribe_text": "Don't want to receive emails anymore?",
+    "unsubscribe_cta": "Unsubscribe",
+    "site": "thefoolishbutcher.com"
+  }
+}

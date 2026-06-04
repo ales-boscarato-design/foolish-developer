@@ -1,0 +1,38 @@
+{
+  "welcome": {
+    "subject": "Merci — votre commande est confirmée",
+    "preview": "Fait main, sur commande.",
+    "heading": "Commande reçue.",
+    "body": "Fait main, sur commande. Chaque feuille que je fabrique est unique — aucune n'est identique. Je vous écris dès qu'elle est prête, avec des photos de ce que je vous envoie.",
+    "cta": "Retour au site",
+    "cta_url": "https://thefoolishbutcher.com"
+  },
+  "abandoned_cart": {
+    "subject": "Vous avez laissé quelque chose dans votre panier",
+    "preview": "Production sur commande — les places ne durent pas.",
+    "heading": "Toujours là ?",
+    "body": "Vous avez laissé des produits dans votre panier. Je produis sur commande : quand un lot est terminé, c'est terminé. Si vous êtes toujours intéressé, mieux vaut ne pas attendre.",
+    "cta": "Finaliser la commande",
+    "footer_note": "Production artisanale — chaque feuille est unique."
+  },
+  "review_request": {
+    "subject": "Comment est-il arrivé ?",
+    "preview": "Votre commande est arrivée il y a quelques jours.",
+    "heading": "Dites-moi.",
+    "body": "Votre commande est arrivée il y a quelques jours. Avez-vous déjà tatoué dessus ? Chaque retour m'aide à améliorer le prochain lot — répondez directement à cet email.",
+    "cta": "Répondre à cet email"
+  },
+  "reengagement": {
+    "subject": "Je suis toujours là.",
+    "preview": "Ça fait un moment.",
+    "heading": "Ne disparaissez pas.",
+    "body": "Ça fait un moment. Quand vous êtes prêt à commander à nouveau, je suis là — en attendant, je continue à produire et à m'améliorer.",
+    "cta": "Voir les nouveautés",
+    "cta_url": "https://thefoolishbutcher.com"
+  },
+  "footer": {
+    "unsubscribe_text": "Vous ne souhaitez plus recevoir d'emails ?",
+    "unsubscribe_cta": "Se désabonner",
+    "site": "thefoolishbutcher.com"
+  }
+}

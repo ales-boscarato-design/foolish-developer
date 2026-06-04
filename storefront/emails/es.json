@@ -1,0 +1,38 @@
+{
+  "welcome": {
+    "subject": "Gracias — tu pedido está confirmado",
+    "preview": "Hecho a mano, bajo pedido.",
+    "heading": "Pedido recibido.",
+    "body": "Hecho a mano, bajo pedido. Cada lámina que hago es única — no hay dos iguales. Te escribo en cuanto esté lista, con fotos de exactamente lo que te voy a enviar.",
+    "cta": "Volver al sitio",
+    "cta_url": "https://thefoolishbutcher.com"
+  },
+  "abandoned_cart": {
+    "subject": "Dejaste algo en el carrito",
+    "preview": "Producción bajo pedido — las plazas no duran.",
+    "heading": "¿Sigues ahí?",
+    "body": "Dejaste algunos productos en el carrito. Produzco bajo pedido: cuando termino un lote, se acaba. Si todavía te interesa, mejor no esperar.",
+    "cta": "Completar el pedido",
+    "footer_note": "Producción artesanal — cada lámina es irrepetible."
+  },
+  "review_request": {
+    "subject": "¿Cómo llegó?",
+    "preview": "Tu pedido llegó hace unos días.",
+    "heading": "Cuéntame.",
+    "body": "Tu pedido llegó hace unos días. ¿Ya has tatuado sobre él? Cualquier opinión me ayuda a mejorar el próximo lote — responde directamente a este correo.",
+    "cta": "Responder a este correo"
+  },
+  "reengagement": {
+    "subject": "Sigo aquí.",
+    "preview": "Ha pasado un tiempo.",
+    "heading": "No desaparezcas.",
+    "body": "Ha pasado un tiempo. Cuando estés listo para volver a pedir, aquí estoy — mientras tanto sigo produciendo y mejorando.",
+    "cta": "Ver las novedades",
+    "cta_url": "https://thefoolishbutcher.com"
+  },
+  "footer": {
+    "unsubscribe_text": "¿No quieres recibir más correos?",
+    "unsubscribe_cta": "Cancelar suscripción",
+    "site": "thefoolishbutcher.com"
+  }
+}
