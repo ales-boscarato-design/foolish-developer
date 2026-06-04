@@ -52,7 +52,8 @@ CREATE INDEX IF NOT EXISTS idx_email_log_subscriber ON marketing.email_log(subsc
 CREATE INDEX IF NOT EXISTS idx_email_log_type ON marketing.email_log(type);
 CREATE INDEX IF NOT EXISTS idx_email_log_sent_at ON marketing.email_log(sent_at);
 
--- Add review_email_sent_at to existing foolish.orders table
-ALTER TABLE foolish.orders ADD COLUMN IF NOT EXISTS review_email_sent_at TIMESTAMPTZ;
-CREATE INDEX IF NOT EXISTS idx_orders_review_email ON foolish.orders(delivered_at)
+-- Add delivered_at and review_email_sent_at to Payload CMS orders table
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS review_email_sent_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_orders_review_email ON public.orders(delivered_at)
     WHERE review_email_sent_at IS NULL;

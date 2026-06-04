@@ -21,7 +21,7 @@ export interface AbandonedCart {
 }
 
 export interface OrderForReview {
-  id: string // WooCommerce order id (bigint → string)
+  id: string // Payload CMS order id (integer → string)
   customer_email: string
   customer_name: string | null
   subscriber_status: string | null
@@ -139,7 +139,7 @@ export async function getOrdersForReview(): Promise<OrderForReview[]> {
       o.customer_email,
       o.customer_name,
       s.status as subscriber_status
-    FROM foolish.orders o
+    FROM public.orders o
     LEFT JOIN marketing.subscribers s ON s.email = o.customer_email
     WHERE o.delivered_at <= NOW() - INTERVAL '7 days'
       AND o.review_email_sent_at IS NULL
@@ -151,9 +151,9 @@ export async function getOrdersForReview(): Promise<OrderForReview[]> {
 // Mark review email as sent on the order.
 export async function markReviewEmailSent(orderId: string): Promise<void> {
   await sql`
-    UPDATE foolish.orders
+    UPDATE public.orders
     SET review_email_sent_at = NOW()
-    WHERE id = ${orderId}::bigint
+    WHERE id = ${orderId}::integer
   `
 }
 
