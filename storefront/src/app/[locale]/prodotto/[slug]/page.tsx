@@ -43,7 +43,7 @@ export default async function ProductPage({ params }: Props) {
   const { slug } = await params
   const locale = await getLocale()
   const product = await getProductBySlug(slug, locale)
-  if (!product || !product.active) notFound()
+  if (!product) notFound()
 
   const firstImage = product.images?.[0]?.image?.url
   const lowestPrice = product.variants?.reduce(

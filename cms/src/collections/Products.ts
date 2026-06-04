@@ -41,19 +41,13 @@ export const Products: CollectionConfig = {
       type: 'checkbox',
       defaultValue: true,
       label: 'Visibile nella vetrina',
+      admin: { description: 'Se disattivato, il prodotto non appare nelle griglie ma rimane accessibile via URL diretto e nei kit.' },
     },
     {
       name: 'limitedStock',
       type: 'checkbox',
       defaultValue: false,
       label: 'Stock limitato (appare in sezione speciale)',
-    },
-    {
-      name: 'hideFromListings',
-      type: 'checkbox',
-      defaultValue: false,
-      label: 'Nascondi dalla vetrina',
-      admin: { description: 'Se attivo, il prodotto non appare nelle griglie/vetrine ma rimane accessibile dalla pagina prodotto e dai kit.' },
     },
     {
       name: 'order',

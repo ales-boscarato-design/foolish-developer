@@ -142,7 +142,6 @@ async function fetchAPI<T>(path: string, params?: Record<string, string>, locale
 export async function getProducts(section?: 'tattoo' | 'pmu', locale = 'it'): Promise<Product[]> {
   const params: Record<string, string> = {
     'where[active][equals]': 'true',
-    'where[hideFromListings][not_equals]': 'true',
     sort: 'order',
     limit: '100',
   }
@@ -155,7 +154,6 @@ export async function getLimitedProducts(locale = 'it'): Promise<Product[]> {
   const data = await fetchAPI<{ docs: Product[] }>('/products', {
     'where[active][equals]': 'true',
     'where[limitedStock][equals]': 'true',
-    'where[hideFromListings][not_equals]': 'true',
     sort: 'order',
     limit: '20',
   }, locale)
