@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { upsertSubscriber, markCartSessionRecovered, logEmail } from '@/lib/marketing-db'
+import { sendWelcomeEmail, countryToLocale } from '@/lib/resend'
 
 export const dynamic = 'force-dynamic'
 
@@ -147,6 +149,49 @@ export async function POST(req: NextRequest) {
           itemsJson: session.metadata?.items_json,
         }),
       }).catch((e) => console.error('nanobot notify failed:', e))
+    }
+
+    // Marketing: upsert subscriber + welcome email on first purchase
+    const mktEmail = session.customer_email ?? session.customer_details?.email
+    if (mktEmail) {
+      try {
+        const customerName = session.metadata?.customer_name ?? session.customer_details?.name ?? null
+        const amountEur = (session.amount_total ?? 0) / 100
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const shippingCountry = (session as any).shipping_details?.address?.country
+          ?? session.metadata?.customer_country
+          ?? null
+        const locale = countryToLocale(shippingCountry)
+
+        const { id: subscriberId, isNew } = await upsertSubscriber({
+          email: mktEmail,
+          name: customerName,
+          locale,
+          amountEur,
+        })
+
+        // Mark any open cart session as recovered (purchase completed)
+        await markCartSessionRecovered(mktEmail)
+
+        // Welcome email only on first purchase
+        if (isNew) {
+          const resendId = await sendWelcomeEmail({
+            to: mktEmail,
+            name: customerName,
+            locale,
+            subscriberId,
+          })
+          await logEmail({
+            email: mktEmail,
+            type: 'welcome',
+            resendId,
+            subscriberId,
+          })
+        }
+      } catch (err) {
+        // Marketing errors must never block Stripe response
+        console.error('Marketing upsert/welcome failed:', err)
+      }
     }
   }
 
