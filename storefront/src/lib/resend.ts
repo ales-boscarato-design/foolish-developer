@@ -20,12 +20,12 @@ export function countryToLocale(country: string | null | undefined): string {
   return 'en'
 }
 
-// Generate a signed JWT for unsubscribe links (30-day expiry).
+// Generate a signed JWT for unsubscribe links (365-day expiry).
 export async function generateUnsubscribeToken(subscriberId: string, email: string): Promise<string> {
   const secret = new TextEncoder().encode(process.env.UNSUBSCRIBE_SECRET!)
   return new SignJWT({ subscriberId, email })
     .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime('30d')
+    .setExpirationTime('365d')
     .sign(secret)
 }
 

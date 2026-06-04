@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Marketing: upsert subscriber + welcome email on first purchase
-    const mktEmail = session.customer_email ?? session.customer_details?.email
+    const mktEmail = (session.customer_email ?? session.customer_details?.email)?.toLowerCase().trim() ?? null
     if (mktEmail) {
       try {
         const customerName = session.metadata?.customer_name ?? session.customer_details?.name ?? null
