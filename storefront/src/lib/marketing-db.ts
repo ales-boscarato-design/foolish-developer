@@ -58,20 +58,23 @@ export async function upsertSubscriber(params: {
 export async function saveCartSession(email: string, cartData: unknown): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const json = sql.json(cartData as any)
-  await sql`
-    INSERT INTO marketing.cart_sessions (email, cart_data, checkout_started_at)
-    VALUES (${email}, ${json}, NOW())
-    ON CONFLICT DO NOTHING
-  `
-  // Update existing open session for this email
-  await sql`
+  // Update existing open session first
+  const updated = await sql<{ id: string }[]>`
     UPDATE marketing.cart_sessions
     SET cart_data = ${json},
         checkout_started_at = NOW()
     WHERE email = ${email}
       AND email_sent_at IS NULL
       AND recovered_at IS NULL
+    RETURNING id
   `
+  // No open session exists — insert a new one
+  if (updated.length === 0) {
+    await sql`
+      INSERT INTO marketing.cart_sessions (email, cart_data, checkout_started_at)
+      VALUES (${email}, ${json}, NOW())
+    `
+  }
 }
 
 // Mark cart as recovered (purchase completed).
@@ -160,6 +163,7 @@ export async function getInactiveSubscribers(limit = 100): Promise<Subscriber[]>
     SELECT s.*
     FROM marketing.subscribers s
     WHERE s.status = 'active'
+      AND s.last_purchase_at IS NOT NULL
       AND s.last_purchase_at <= NOW() - INTERVAL '90 days'
       AND NOT EXISTS (
         SELECT 1 FROM marketing.email_log el
