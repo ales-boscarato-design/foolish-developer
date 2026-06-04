@@ -55,6 +55,10 @@ export interface ProductImage {
   alt?: string
 }
 
+export interface ProductVideo {
+  video: { url: string }
+}
+
 export interface FeatureHighlight {
   icon: 'sparkles' | 'shield' | 'star' | 'truck'
   title: string
@@ -115,6 +119,7 @@ export interface Product {
   } | null
   uniqueNote?: string
   images: ProductImage[]
+  videos?: ProductVideo[]
   basePrice: number
   variants: ProductVariant[]
   attributes: ProductAttribute[]

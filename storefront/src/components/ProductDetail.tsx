@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ShoppingBag, Check, Star, Shield, Truck, Sparkles } from 'lucide-react'
+import { ShoppingBag, Check, Star, Shield, Truck, Sparkles, Play } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion'
 import { DURATION, EASE } from '@/lib/motion'
-import type { Product, ProductVariant, ProductAttribute, ProductVariantCombination, FeatureHighlight, ProductComponent, ProductPack } from '@/lib/cms'
+import type { Product, ProductVariant, ProductAttribute, ProductVariantCombination, FeatureHighlight, ProductComponent, ProductPack, ProductVideo } from '@/lib/cms'
 import { cmsImageUrl } from '@/lib/cms'
 import { useCart } from '@/lib/cart'
 import { track } from '@/lib/analytics'
@@ -328,20 +328,27 @@ export function ProductDetail({ product }: { product: Product }) {
     track('pack_added', { product: product.slug, variant: selectedVariant.label, pack: pack.name, qty: pack.quantity, discount: pack.discountPercent })
   }
 
-  // Gallery: immagine variante (se esiste) + foto generali prodotto.
-  const galleryImages = [
-    ...(selectedVariant.image ? [selectedVariant.image] : []),
-    ...product.images.map((pi) => pi.image).filter((img) => img?.url),
+  // Gallery: video prima, poi immagine variante, poi foto generali prodotto.
+  type GalleryItem =
+    | { kind: 'image'; url: string; alt?: string }
+    | { kind: 'video'; url: string }
+
+  const videoItems: GalleryItem[] = (product.videos ?? [])
+    .filter((v: ProductVideo) => v.video?.url)
+    .map((v: ProductVideo) => ({ kind: 'video', url: cmsImageUrl(v.video.url) }))
+
+  const imageItems: GalleryItem[] = [
+    ...(selectedVariant.image?.url ? [{ kind: 'image' as const, url: selectedVariant.image.url, alt: selectedVariant.image.alt }] : []),
+    ...product.images.map((pi) => pi.image?.url ? { kind: 'image' as const, url: pi.image.url, alt: pi.image.alt } : null).filter((x): x is { kind: 'image'; url: string; alt?: string } => x !== null),
   ]
-  // Se la variante selezionata non ha immagine E il prodotto non ha foto generali
-  // (es. prodotti con immagini solo sulle varianti), mostra la prima immagine
-  // disponibile da qualunque variante. Così le varianti "senza immagine" (es.
-  // tipologia stencil) non causano uno schermo nero.
-  const effectiveGallery =
-    galleryImages.length > 0
-      ? galleryImages
-      : product.variants.flatMap((v) => (v.image?.url ? [v.image] : []))
-  const displayImage = effectiveGallery[activeImage] ?? effectiveGallery[0]
+
+  // Fallback: se nessuna immagine disponibile, prendi la prima variante con immagine
+  const effectiveGallery: GalleryItem[] =
+    videoItems.length > 0 || imageItems.length > 0
+      ? [...videoItems, ...imageItems]
+      : product.variants.flatMap((v) => (v.image?.url ? [{ kind: 'image' as const, url: v.image.url, alt: v.image.alt }] : []))
+
+  const activeItem = effectiveGallery[activeImage] ?? effectiveGallery[0]
 
   const handleSwipe = (deltaX: number) => {
     if (effectiveGallery.length < 2) return
@@ -379,14 +386,32 @@ export function ProductDetail({ product }: { product: Product }) {
                 touchStartX.current = null
               }}
             >
-              {/* Skeleton visibile solo al primo caricamento */}
-              {!imageLoaded && <ImageSkeleton />}
+              {/* Skeleton visibile solo al primo caricamento immagine */}
+              {!imageLoaded && activeItem?.kind !== 'video' && <ImageSkeleton />}
 
               {/* Crossfade animato al cambio di activeImage */}
               <AnimatePresence mode="sync">
-                {displayImage?.url ? (
+                {activeItem?.kind === 'video' ? (
                   <motion.div
-                    key={`${displayImage.url}-${activeImage}`}
+                    key={`video-${activeImage}`}
+                    className="absolute inset-0"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: DURATION.fast, ease: EASE.out }}
+                  >
+                    <video
+                      src={activeItem.url}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  </motion.div>
+                ) : activeItem?.url ? (
+                  <motion.div
+                    key={`${activeItem.url}-${activeImage}`}
                     className="absolute inset-0"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -394,8 +419,8 @@ export function ProductDetail({ product }: { product: Product }) {
                     transition={{ duration: DURATION.fast, ease: EASE.out }}
                   >
                     <Image
-                      src={cmsImageUrl(displayImage.url)}
-                      alt={displayImage.alt || product.name}
+                      src={cmsImageUrl(activeItem.url)}
+                      alt={activeItem.alt || product.name}
                       fill
                       className="object-cover"
                       priority
@@ -430,11 +455,11 @@ export function ProductDetail({ product }: { product: Product }) {
 
             {effectiveGallery.length > 1 && (
               <div className="flex gap-2 mt-3 flex-wrap">
-                {effectiveGallery.slice(0, 4).map((img, i) => (
+                {effectiveGallery.slice(0, 4).map((item, i) => (
                   <button
                     key={i}
                     onClick={() => { setActiveImage(i); }}
-                    aria-label={`Immagine ${i + 1}`}
+                    aria-label={item.kind === 'video' ? `Video ${i + 1}` : `Immagine ${i + 1}`}
                     className="relative flex-shrink-0 rounded-lg overflow-hidden border transition-[border-color,box-shadow]"
                     style={{
                       width: 44,
@@ -445,15 +470,19 @@ export function ProductDetail({ product }: { product: Product }) {
                       backgroundColor: 'var(--muted)',
                     }}
                   >
-                    {img?.url && (
+                    {item.kind === 'video' ? (
+                      <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}>
+                        <Play size={16} className="text-white" fill="white" />
+                      </div>
+                    ) : item.url ? (
                       <Image
-                        src={cmsImageUrl(img.url)}
+                        src={cmsImageUrl(item.url)}
                         alt=""
                         fill
                         className="object-cover"
                         sizes="44px"
                       />
-                    )}
+                    ) : null}
                   </button>
                 ))}
                 {effectiveGallery.length > 4 && (

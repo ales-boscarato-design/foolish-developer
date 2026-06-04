@@ -15,7 +15,7 @@ const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'http://localhost:3001'
  * while safely encoding spaces and other chars that would break the request.
  */
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ path: string[] }> },
 ): Promise<NextResponse> {
   const { path } = await params
@@ -24,13 +24,23 @@ export async function GET(
   const filename = path.map((s) => encodeURI(s)).join('/')
   const upstream = `${CMS_URL}/api/media/file/${filename}`
 
-  const res = await fetch(upstream)
-  if (!res.ok) return new NextResponse(null, { status: res.status })
+  // Forward Range header so browsers can seek video files.
+  const upstreamHeaders: HeadersInit = {}
+  const range = req.headers.get('range')
+  if (range) upstreamHeaders['range'] = range
+
+  const res = await fetch(upstream, { headers: upstreamHeaders })
+  if (!res.ok && res.status !== 206) return new NextResponse(null, { status: res.status })
 
   const headers = new Headers()
   const ct = res.headers.get('content-type')
   if (ct) headers.set('content-type', ct)
+  const cr = res.headers.get('content-range')
+  if (cr) headers.set('content-range', cr)
+  const cl = res.headers.get('content-length')
+  if (cl) headers.set('content-length', cl)
+  headers.set('accept-ranges', 'bytes')
   headers.set('cache-control', 'public, max-age=31536000, immutable')
 
-  return new NextResponse(res.body, { status: 200, headers })
+  return new NextResponse(res.body, { status: res.status, headers })
 }

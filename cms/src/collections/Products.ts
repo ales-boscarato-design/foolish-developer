@@ -98,6 +98,23 @@ export const Products: CollectionConfig = {
       ],
     },
 
+    {
+      name: 'videos',
+      type: 'array',
+      label: 'Video prodotto',
+      maxRows: 3,
+      admin: { description: 'Video demo del prodotto (MP4 o WebM, max 50MB). Appaiono prima delle immagini nella gallery.' },
+      fields: [
+        {
+          name: 'video',
+          type: 'upload',
+          relationTo: 'media',
+          required: true,
+          filterOptions: { mimeType: { in: ['video/mp4', 'video/webm'] } },
+        },
+      ],
+    },
+
     // PREZZO BASE — formato entry (quello piu piccolo/economico)
     {
       name: 'basePrice',
