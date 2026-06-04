@@ -1,5 +1,5 @@
 import { Resend } from 'resend'
-import { SignJWT } from 'jose'
+import { SignJWT, jwtVerify } from 'jose'
 import { WelcomeEmail } from '@/emails/welcome'
 import { AbandonedCartEmail } from '@/emails/abandoned-cart'
 import { ReviewRequestEmail } from '@/emails/review-request'
@@ -29,6 +29,35 @@ export async function generateUnsubscribeToken(subscriberId: string, email: stri
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime('365d')
     .sign(secret)
+}
+
+// Review token: JWT firmato con REVIEW_SECRET, scadenza 30 giorni.
+export async function generateReviewToken(params: {
+  orderId: number
+  productId: number
+  productSlug: string
+  subscriberId: string
+}): Promise<string> {
+  const secret = new TextEncoder().encode(process.env.REVIEW_SECRET!)
+  return new SignJWT(params as unknown as Record<string, unknown>)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime('30d')
+    .sign(secret)
+}
+
+export async function verifyReviewToken(token: string): Promise<{
+  orderId: number
+  productId: number
+  productSlug: string
+  subscriberId: string
+} | null> {
+  try {
+    const secret = new TextEncoder().encode(process.env.REVIEW_SECRET!)
+    const { payload } = await jwtVerify(token, secret)
+    return payload as { orderId: number; productId: number; productSlug: string; subscriberId: string }
+  } catch {
+    return null
+  }
 }
 
 function unsubscribeUrl(token: string): string {
@@ -83,6 +112,7 @@ export async function sendReviewRequestEmail(params: {
   name: string | null
   locale: string
   subscriberId: string
+  reviewUrl: string
 }): Promise<string> {
   const token = await generateUnsubscribeToken(params.subscriberId, params.to)
   const { data, error } = await getResend().emails.send({
@@ -94,6 +124,7 @@ export async function sendReviewRequestEmail(params: {
       name: params.name,
       locale: params.locale,
       unsubscribeUrl: unsubscribeUrl(token),
+      reviewUrl: params.reviewUrl,
     }),
   })
   if (error) throw new Error(`Resend review_request error: ${error.message}`)

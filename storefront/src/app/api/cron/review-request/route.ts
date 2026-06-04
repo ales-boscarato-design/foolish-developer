@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
         name: order.customer_name,
         locale,
         subscriberId,
+        reviewUrl: '', // TODO: populated in Task 4 (review token generation)
       })
 
       await markReviewEmailSent(order.id)
