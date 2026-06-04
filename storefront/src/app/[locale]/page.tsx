@@ -5,7 +5,9 @@ import { getTranslations, getLocale } from 'next-intl/server'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Truck, ShieldCheck, MessageSquare, Package, ArrowRight } from 'lucide-react'
-import { getProducts, getLimitedProducts } from '@/lib/cms'
+import { getProducts, getLimitedProducts, getProductBySlug } from '@/lib/cms'
+import { getHomepageReviews } from '@/lib/reviews-db'
+import { ReviewQuote } from '@/components/ReviewQuote'
 import { ProductCard } from '@/components/ProductCard'
 import { ManifestoPinned } from '@/components/ManifestoPinned'
 import { SplitText } from '@/components/SplitText'
@@ -114,11 +116,22 @@ function SectionLabel({
 export default async function HomePage() {
   const t = await getTranslations('home')
   const locale = await getLocale()
-  const [tattooProducts, pmuProducts, limitedProducts] = await Promise.all([
+  const [tattooProducts, pmuProducts, limitedProducts, homepageReviews] = await Promise.all([
     getProducts('tattoo', locale),
     getProducts('pmu', locale),
     getLimitedProducts(locale),
+    getHomepageReviews(10),
   ])
+
+  const productNamesMap: Record<string, string> = {}
+  for (const r of homepageReviews) {
+    if (!productNamesMap[r.product_slug]) {
+      try {
+        const p = await getProductBySlug(r.product_slug, locale)
+        if (p) productNamesMap[r.product_slug] = p.name
+      } catch { /* ignore */ }
+    }
+  }
 
   return (
     <div>
@@ -495,6 +508,18 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {homepageReviews.length > 0 && (
+        <ReviewQuote
+          reviews={homepageReviews.map(r => ({
+            rating: r.rating,
+            body: r.body,
+            reviewer_name: r.reviewer_name,
+            product_slug: r.product_slug,
+          }))}
+          productNames={productNamesMap}
+        />
+      )}
 
       {/* ════════════════════════════════════════════════
           CTA FINALE — Chiusura forte
