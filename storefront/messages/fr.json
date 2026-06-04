@@ -99,7 +99,10 @@
     "thickness": "{value}mm épaisseur",
     "pieces": "{qty} pièces",
     "sectionTattoo": "Tatouage",
-    "sectionPmu": "PMU"
+    "sectionPmu": "PMU",
+    "shipsIn": "Expédié en {days} jours ouvrés",
+    "madeToOrder": "Fabriqué sur commande",
+    "madeToOrderDesc": "Votre pièce est travaillée personnellement après l'achat. Livraison estimée en {total} jours ouvrés."
   },
   "sections": {
     "label": "Section",

@@ -633,6 +633,32 @@ export function ProductDetail({ product }: { product: Product }) {
               </motion.div>
             )}
 
+            {/* Delivery estimate */}
+            {(product.shippingDays || product.madeToOrder) && (
+              <motion.div
+                variants={itemVariants}
+                className="rounded-xl px-4 py-3 text-sm border"
+                style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
+              >
+                {product.madeToOrder ? (
+                  <div>
+                    <p className="font-semibold mb-0.5" style={{ color: 'var(--foreground)' }}>
+                      {t('madeToOrder')}
+                    </p>
+                    <p className="text-xs leading-relaxed" style={{ color: 'var(--muted-fg)' }}>
+                      {t('madeToOrderDesc', {
+                        total: (product.productionDays ?? 0) + (product.shippingDays ?? 3),
+                      })}
+                    </p>
+                  </div>
+                ) : (
+                  <p style={{ color: 'var(--muted-fg)' }}>
+                    {t('shipsIn', { days: product.shippingDays ?? 3 })}
+                  </p>
+                )}
+              </motion.div>
+            )}
+
             {/* CTA — ref for sticky detection */}
             <div ref={addRef} className="border-t pt-6" style={{ borderColor: 'var(--border)' }}>
               {selectedVariant.limitedQty && (

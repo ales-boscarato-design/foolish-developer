@@ -57,6 +57,29 @@ export const Products: CollectionConfig = {
       admin: { description: 'Numero piu basso = appare prima' },
     },
     {
+      name: 'madeToOrder',
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'Su ordinazione (premium)',
+      admin: { description: 'Attiva per prodotti che vengono lavorati dopo l\'acquisto. Mostra tempi di produzione + spedizione.' },
+    },
+    {
+      name: 'productionDays',
+      type: 'number',
+      label: 'Giorni di produzione',
+      admin: {
+        description: 'Giorni lavorativi per produrre il pezzo (solo su ordinazione)',
+        condition: (data) => !!data.madeToOrder,
+      },
+    },
+    {
+      name: 'shippingDays',
+      type: 'number',
+      defaultValue: 3,
+      label: 'Giorni di spedizione',
+      admin: { description: 'Giorni lavorativi dalla spedizione alla consegna' },
+    },
+    {
       name: 'shortDescription',
       type: 'text',
       localized: true,

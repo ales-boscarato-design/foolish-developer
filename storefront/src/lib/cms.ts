@@ -100,6 +100,9 @@ export interface Product {
   section: 'tattoo' | 'pmu'
   active: boolean
   limitedStock: boolean
+  madeToOrder?: boolean
+  productionDays?: number
+  shippingDays?: number
   order: number
   shortDescription?: string
   description?: {
