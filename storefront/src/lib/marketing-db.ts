@@ -211,3 +211,22 @@ export async function bounceByEmail(email: string): Promise<void> {
     WHERE email = ${email}
   `
 }
+
+// Upsert cliente nella collection Payload CMS customers.
+// Crea se non esiste, incrementa total_orders se esiste già.
+export async function upsertCmsCustomer(params: {
+  email: string
+  name: string | null
+  country: string | null
+}): Promise<void> {
+  const { email, name, country } = params
+  await sql`
+    INSERT INTO public.customers (email, name, country, total_orders, updated_at, created_at)
+    VALUES (${email}, ${name}, ${country}, 1, NOW(), NOW())
+    ON CONFLICT (email) DO UPDATE SET
+      name        = COALESCE(EXCLUDED.name, public.customers.name),
+      country     = COALESCE(EXCLUDED.country, public.customers.country),
+      total_orders = public.customers.total_orders + 1,
+      updated_at  = NOW()
+  `
+}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { upsertSubscriber, markCartSessionRecovered, logEmail } from '@/lib/marketing-db'
+import { upsertSubscriber, markCartSessionRecovered, logEmail, upsertCmsCustomer } from '@/lib/marketing-db'
 import { sendWelcomeEmail, countryToLocale } from '@/lib/resend'
 
 export const dynamic = 'force-dynamic'
@@ -151,6 +151,19 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       cmsError = err instanceof Error ? err.message : String(err)
       console.error('CMS order creation FAILED after all retries:', cmsError)
+    }
+
+    // Upsert cliente in Payload CMS customers
+    try {
+      const customerEmail = (session.customer_email ?? session.customer_details?.email ?? '').toLowerCase().trim()
+      const customerName = session.metadata?.customer_name ?? session.customer_details?.name ?? null
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const country = (session as any).shipping_details?.address?.country ?? session.metadata?.customer_country ?? null
+      if (customerEmail) {
+        await upsertCmsCustomer({ email: customerEmail, name: customerName, country })
+      }
+    } catch (err) {
+      console.error('CMS customer upsert failed:', err)
     }
 
     // Notifica nanobot — sempre, con flag cmsError esplicito
