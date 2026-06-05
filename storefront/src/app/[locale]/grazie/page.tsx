@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import { Package, ArrowRight, CheckCircle } from 'lucide-react'
 import { Suspense } from 'react'
+import { OrderCompletedTracker } from '@/components/OrderCompletedTracker'
 
 interface GraziePageProps {
   searchParams: Promise<{ session_id?: string }>
@@ -76,6 +77,7 @@ async function OrderVerifier({ sessionId }: { sessionId: string }) {
 
   return (
     <>
+      <OrderCompletedTracker orderRef={orderRef} total={total} itemCount={items.length} />
       <div className="rounded-lg p-5 mb-6 border text-left" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}>
         <div className="flex items-center gap-2 mb-3">
           <CheckCircle size={16} style={{ color: '#4caf50' }} />
