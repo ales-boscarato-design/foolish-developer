@@ -52,6 +52,8 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  await notifyFrank({ cron: 'abandoned_cart', sent: recipients.length, recipients, errors })
+  if (recipients.length > 0 || errors.length > 0) {
+    await notifyFrank({ cron: 'abandoned_cart', sent: recipients.length, recipients, errors })
+  }
   return NextResponse.json({ ok: true, sent: recipients.length, errors })
 }
