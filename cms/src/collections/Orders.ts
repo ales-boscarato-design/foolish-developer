@@ -68,6 +68,15 @@ const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation
     <p style="margin:8px 0 0;font-size:11px;color:#999">Trovi foto dei fogli, stato della spedizione e aggiornamenti.</p>
   </div>
 
+  <div style="margin:24px 0;padding:16px;background:#f0f4ff;border-left:3px solid #4a6fa5">
+    <p style="margin:0 0 8px;font-size:13px;color:#555">Vuoi aggiornarti via Telegram? Scrivimi direttamente:</p>
+    <a href="https://t.me/the_foolish_butcher_bot?start=order_${doc.orderNumber}"
+       style="display:inline-block;padding:10px 20px;background:#0088cc;color:#fff;text-decoration:none;font-size:13px;border-radius:3px">
+      Apri su Telegram →
+    </a>
+    <p style="margin:8px 0 0;font-size:11px;color:#999">Ti riconosco subito e seguiamo il tuo ordine insieme.</p>
+  </div>
+
   <p style="font-size:13px;color:#555">Alessandro<br>The Foolish Butcher</p>
 </body>
 </html>`
