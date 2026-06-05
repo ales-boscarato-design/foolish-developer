@@ -13,6 +13,26 @@ interface ParsedItem {
   price: number
 }
 
+async function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function createOrderInCMSWithRetry(session: Stripe.Checkout.Session): Promise<void> {
+  const delays = [0, 2000, 5000, 10000] // 4 tentativi: subito, 2s, 5s, 10s
+  let lastError: Error | null = null
+  for (const delay of delays) {
+    if (delay > 0) await sleep(delay)
+    try {
+      await createOrderInCMS(session)
+      return // successo
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err))
+      console.error(`CMS order creation attempt failed (retry in ${delay}ms):`, lastError.message)
+    }
+  }
+  throw lastError
+}
+
 async function createOrderInCMS(session: Stripe.Checkout.Session): Promise<void> {
   const cmsUrl = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1dda.up.railway.app'
 
@@ -124,15 +144,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true })
     }
 
-    // Crea ordine in Payload CMS
+    // Crea ordine in Payload CMS — retry automatico fino a 4 tentativi
+    let cmsError: string | null = null
     try {
-      await createOrderInCMS(session)
+      await createOrderInCMSWithRetry(session)
     } catch (err) {
-      console.error('CMS order creation failed:', err)
-      // Non bloccare la risposta a Stripe — ordine andrà in coda manuale
+      cmsError = err instanceof Error ? err.message : String(err)
+      console.error('CMS order creation FAILED after all retries:', cmsError)
     }
 
-    // Notifica nanobot
+    // Notifica nanobot — sempre, con flag cmsError esplicito
     const nanobotUrl = process.env.NANOBOT_WEBHOOK_URL
     if (nanobotUrl) {
       await fetch(`${nanobotUrl}/hooks/foolish-storefront-order`, {
@@ -147,6 +168,7 @@ export async function POST(req: NextRequest) {
           customerEmail: session.customer_email,
           customerName: session.metadata?.customer_name,
           itemsJson: session.metadata?.items_json,
+          cmsError,
         }),
       }).catch((e) => console.error('nanobot notify failed:', e))
     }
