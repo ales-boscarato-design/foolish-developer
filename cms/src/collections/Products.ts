@@ -437,14 +437,12 @@ export const Products: CollectionConfig = {
         {
           name: 'label',
           type: 'text',
-          required: true,
           localized: true,
           label: 'Etichetta',
         },
         {
           name: 'description',
           type: 'text',
-          required: true,
           localized: true,
           label: 'Descrizione',
         },
