@@ -73,7 +73,7 @@ const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation
 </html>`
 
   const resendKey = process.env.RESEND_API_KEY
-  const fromAddress = process.env.EMAIL_FROM || 'noreply@thefoolishbutcher.com'
+  const fromAddress = process.env.EMAIL_FROM || 'The Foolish Butcher <ordini@updates.thefoolishbutcher.com>'
   if (!resendKey) {
     console.error('[Orders] RESEND_API_KEY not set — skipping confirmation email')
     return

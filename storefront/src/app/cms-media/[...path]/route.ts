@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
-const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'http://localhost:3001'
+const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1dda.up.railway.app'
 
 /**
  * Proxy CMS media through /cms-media/* so /_next/image sees a same-origin URL.

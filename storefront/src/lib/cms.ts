@@ -2,7 +2,7 @@
  * Payload CMS API client — usato dal server-side Next.js.
  */
 
-const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'http://localhost:3001'
+const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1dda.up.railway.app'
 const CMS_API = `${CMS_URL}/api`
 
 /**

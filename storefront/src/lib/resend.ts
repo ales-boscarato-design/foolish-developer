@@ -8,7 +8,7 @@ import { ReengagementEmail } from '@/emails/reengagement'
 function getResend() {
   return new Resend(process.env.RESEND_API_KEY!)
 }
-const FROM = process.env.RESEND_FROM || 'The Foolish Butcher <noreply@thefoolishbutcher.com>'
+const FROM = process.env.RESEND_FROM || 'The Foolish Butcher <ordini@updates.thefoolishbutcher.com>'
 const SITE = 'https://thefoolishbutcher.com'
 
 // Map shipping country → locale

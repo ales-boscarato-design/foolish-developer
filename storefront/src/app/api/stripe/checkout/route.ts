@@ -3,7 +3,7 @@ import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
 
-const STOREFRONT_URL = process.env.STOREFRONT_URL || 'http://localhost:3000'
+const STOREFRONT_URL = process.env.STOREFRONT_URL || 'https://thefoolishbutcher.com'
 
 interface CartItem {
   productName: string
