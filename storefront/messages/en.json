@@ -313,7 +313,10 @@
     "days": "{days} working days",
     "backToAccount": "← Your orders",
     "backToShop": "← Back to shop",
-    "itemsIncluded": "(shipping included)"
+    "itemsIncluded": "(shipping included)",
+    "telegramTitle": "Real-time updates on Telegram",
+    "telegramBody": "Write to the lab for updates on your order. Frank replies directly.",
+    "telegramCta": "Open on Telegram →"
   },
   "termini": {
     "meta": "Terms and Conditions — The Foolish Butcher",

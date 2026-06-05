@@ -313,7 +313,10 @@
     "days": "{days} días laborables",
     "backToAccount": "← Tus pedidos",
     "backToShop": "← Volver a la tienda",
-    "itemsIncluded": "(envío incluido)"
+    "itemsIncluded": "(envío incluido)",
+    "telegramTitle": "Actualizaciones en tiempo real en Telegram",
+    "telegramBody": "Escribe al laboratorio para actualizaciones sobre tu pedido. Frank responde directamente.",
+    "telegramCta": "Abrir en Telegram →"
   },
   "termini": {
     "meta": "Términos y condiciones — The Foolish Butcher",

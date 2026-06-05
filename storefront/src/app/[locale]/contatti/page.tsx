@@ -31,12 +31,12 @@ export default async function ContattiPage() {
         <div>
           <p className="text-xs uppercase tracking-widest text-[var(--muted-fg)] mb-1">{t('telegramLabel')}</p>
           <a
-            href="https://t.me/foolishbot"
+            href="https://t.me/the_foolish_butcher_bot"
             className="text-lg hover:opacity-70 transition-opacity"
             target="_blank"
             rel="noopener noreferrer"
           >
-            @nanobot_foolish_bot
+            @the_foolish_butcher_bot
           </a>
           <p className="text-sm text-[var(--muted-fg)] mt-1">{t('telegramNote')}</p>
         </div>
