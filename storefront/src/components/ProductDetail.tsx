@@ -257,7 +257,7 @@ interface ProductDetailProps {
 export function ProductDetail({ product, reviews = [], reviewSummary = { average: 0, count: 0 } }: ProductDetailProps) {
   const t = useTranslations('product')
   const locale = useLocale()
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(product.variants[0])
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | undefined>(product.variants?.[0])
   const [selectedAttrs, setSelectedAttrs] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {}
     for (const attr of product.attributes) {
@@ -299,6 +299,8 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
     observer.observe(el)
     return () => observer.disconnect()
   }, [])
+
+  if (!selectedVariant) return null
 
   const maxQty = selectedVariant.limitedQty ?? 99
 
