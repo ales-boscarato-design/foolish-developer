@@ -116,8 +116,6 @@ export default function CheckoutPage() {
     !loading &&
     !!form.name && !!form.email && !!form.address && !!form.city && !!form.postalCode &&
     emailStatus !== 'invalid' &&
-    emailStatus !== 'checking' &&
-    !postalCodeError &&
     (!billingDifferent || (!!billing.name && !!billing.address && !!billing.city && !!billing.postalCode))
 
   // ---- Promo ----
@@ -154,21 +152,11 @@ export default function CheckoutPage() {
     setPromoData(null)
   }
 
-  // ---- Email MX validation ----
-  const checkEmail = async (email: string) => {
-    if (!email.includes('@') || !email.split('@')[1]?.includes('.')) return
-    setEmailStatus('checking')
-    try {
-      const res = await fetch('/api/validate/email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      })
-      const { valid } = await res.json()
-      setEmailStatus(valid ? 'valid' : 'invalid')
-    } catch {
-      setEmailStatus('idle') // fail open — never block payment on our own API error
-    }
+  // ---- Email format validation ----
+  const checkEmail = (email: string) => {
+    if (!email) return
+    const valid = email.includes('@') && email.split('@')[1]?.includes('.')
+    setEmailStatus(valid ? 'valid' : 'invalid')
   }
 
   // ---- Postal code ----
@@ -207,7 +195,6 @@ export default function CheckoutPage() {
 
   // ---- Payment ----
   const handlePayment = async () => {
-    if (!validatePostalCode(form.postalCode, country)) { setPostalCodeError(true); return }
     setLoading(true)
     try {
       const res = await fetch('/api/stripe/checkout', {
