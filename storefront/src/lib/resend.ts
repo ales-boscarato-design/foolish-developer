@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import { SignJWT, jwtVerify } from 'jose'
+import { render } from '@react-email/render'
 import { WelcomeEmail } from '@/emails/welcome'
 import { AbandonedCartEmail } from '@/emails/abandoned-cart'
 import { ReviewRequestEmail } from '@/emails/review-request'
@@ -71,15 +72,16 @@ export async function sendWelcomeEmail(params: {
   subscriberId: string
 }): Promise<string> {
   const token = await generateUnsubscribeToken(params.subscriberId, params.to)
+  const html = await render(WelcomeEmail({
+    name: params.name,
+    locale: params.locale,
+    unsubscribeUrl: unsubscribeUrl(token),
+  }))
   const { data, error } = await getResend().emails.send({
     from: FROM,
     to: params.to,
     subject: getSubject('welcome', params.locale),
-    react: WelcomeEmail({
-      name: params.name,
-      locale: params.locale,
-      unsubscribeUrl: unsubscribeUrl(token),
-    }),
+    html,
   })
   if (error) throw new Error(`Resend welcome error: ${error.message}`)
   return data!.id
@@ -92,16 +94,17 @@ export async function sendAbandonedCartEmail(params: {
   subscriberId: string
 }): Promise<string> {
   const token = await generateUnsubscribeToken(params.subscriberId, params.to)
+  const html = await render(AbandonedCartEmail({
+    cartData: params.cartData,
+    locale: params.locale,
+    unsubscribeUrl: unsubscribeUrl(token),
+    checkoutUrl: `${SITE}/checkout`,
+  }))
   const { data, error } = await getResend().emails.send({
     from: FROM,
     to: params.to,
     subject: getSubject('abandoned_cart', params.locale),
-    react: AbandonedCartEmail({
-      cartData: params.cartData,
-      locale: params.locale,
-      unsubscribeUrl: unsubscribeUrl(token),
-      checkoutUrl: `${SITE}/checkout`,
-    }),
+    html,
   })
   if (error) throw new Error(`Resend abandoned_cart error: ${error.message}`)
   return data!.id
@@ -115,17 +118,18 @@ export async function sendReviewRequestEmail(params: {
   reviewUrl: string
 }): Promise<string> {
   const token = await generateUnsubscribeToken(params.subscriberId, params.to)
+  const html = await render(ReviewRequestEmail({
+    name: params.name,
+    locale: params.locale,
+    unsubscribeUrl: unsubscribeUrl(token),
+    reviewUrl: params.reviewUrl,
+  }))
   const { data, error } = await getResend().emails.send({
     from: FROM,
     to: params.to,
     replyTo: 'alessandro@thefoolishbutcher.com',
     subject: getSubject('review_request', params.locale),
-    react: ReviewRequestEmail({
-      name: params.name,
-      locale: params.locale,
-      unsubscribeUrl: unsubscribeUrl(token),
-      reviewUrl: params.reviewUrl,
-    }),
+    html,
   })
   if (error) throw new Error(`Resend review_request error: ${error.message}`)
   return data!.id
@@ -138,16 +142,17 @@ export async function sendReengagementEmail(params: {
   subscriberId: string
 }): Promise<string> {
   const token = await generateUnsubscribeToken(params.subscriberId, params.to)
+  const html = await render(ReengagementEmail({
+    name: params.name,
+    locale: params.locale,
+    unsubscribeUrl: unsubscribeUrl(token),
+    shopUrl: SITE,
+  }))
   const { data, error } = await getResend().emails.send({
     from: FROM,
     to: params.to,
     subject: getSubject('reengagement', params.locale),
-    react: ReengagementEmail({
-      name: params.name,
-      locale: params.locale,
-      unsubscribeUrl: unsubscribeUrl(token),
-      shopUrl: SITE,
-    }),
+    html,
   })
   if (error) throw new Error(`Resend reengagement error: ${error.message}`)
   return data!.id
