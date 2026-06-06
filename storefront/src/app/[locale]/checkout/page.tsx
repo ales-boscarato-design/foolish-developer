@@ -728,7 +728,7 @@ export default function CheckoutPage() {
               />
               {loading
                 ? <Loader2 size={18} className="animate-spin" />
-                : <>{t('pay')}</>
+                : <>{t('pay', { amount: grandTotal.toFixed(2) })}</>
               }
             </button>
             <p className="text-center mt-2.5 text-xs" style={{ color: 'var(--muted-fg)' }}>
