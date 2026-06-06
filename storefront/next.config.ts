@@ -47,7 +47,29 @@ const nextConfig: NextConfig = {
       destination: `/${locale}/prodotto/master-pack-20-fogli-di-pelle-formato-a5-2-a4-1-xxl`,
       permanent: true,
     }))
-    return [...frankRedirects, ...masterPackRedirects]
+    // Old WooCommerce / WordPress URLs
+    const legacyRedirects = [
+      // Shop / product listings
+      { source: '/shop',         destination: '/it/',      permanent: true },
+      { source: '/it/products',  destination: '/it/',      permanent: true },
+      { source: '/en/products',  destination: '/en/',      permanent: true },
+      // Virtual WooCommerce product (spedizione gratuita, non reale)
+      { source: '/it/product/free-shipping-ita', destination: '/it/', permanent: true },
+      { source: '/en/product/free-shipping-ita', destination: '/en/', permanent: true },
+      // Contact page
+      { source: '/en/contact',       destination: '/en/contatti', permanent: true },
+      { source: '/en/pages/contact', destination: '/en/contatti', permanent: true },
+      { source: '/it/contact',       destination: '/it/contatti', permanent: true },
+      { source: '/de/contact',       destination: '/de/contatti', permanent: true },
+      { source: '/fr/contact',       destination: '/fr/contatti', permanent: true },
+      { source: '/es/contact',       destination: '/es/contatti', permanent: true },
+      // About / chi siamo (non esiste nel nuovo sito)
+      { source: '/en/about', destination: '/en/', permanent: true },
+      { source: '/it/about', destination: '/it/', permanent: true },
+      // WordPress admin/cron (bot spam — 410 Gone via redirect a pagina inesistente non funziona in Next.js, skippiamo)
+    ]
+
+    return [...frankRedirects, ...masterPackRedirects, ...legacyRedirects]
   },
   async headers() {
     return [
