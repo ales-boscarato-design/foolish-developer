@@ -37,11 +37,17 @@ const nextConfig: NextConfig = {
     ],
   },
   async redirects() {
-    return LOCALES.map((locale) => ({
+    const frankRedirects = LOCALES.map((locale) => ({
       source: `/${locale}/frank`,
       destination: `/${locale}/sebo`,
       permanent: true,
     }))
+    const masterPackRedirects = LOCALES.map((locale) => ({
+      source: `/${locale}/prodotto/master-pack-20-fogli`,
+      destination: `/${locale}/prodotto/master-pack-20-fogli-di-pelle-formato-a5-2-a4-1-xxl`,
+      permanent: true,
+    }))
+    return [...frankRedirects, ...masterPackRedirects]
   },
   async headers() {
     return [
