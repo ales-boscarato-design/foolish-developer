@@ -350,9 +350,9 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
 
   const imageItems: GalleryItem[] = [
     ...(selectedVariant.image?.url ? [{ kind: 'image' as const, url: selectedVariant.image.url, alt: selectedVariant.image.alt ?? undefined }] : []),
-    ...product.images
-      .filter((pi) => !!pi.image?.url)
-      .map((pi): GalleryItem => ({ kind: 'image', url: pi.image.url, alt: pi.image.alt ?? undefined })),
+    ...product.images.flatMap((pi): GalleryItem[] =>
+      pi.image?.url ? [{ kind: 'image' as const, url: pi.image.url, alt: pi.image.alt ?? undefined }] : []
+    ),
   ]
 
   // Fallback: se nessuna immagine disponibile, prendi la prima variante con immagine
