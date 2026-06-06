@@ -69,7 +69,26 @@ const nextConfig: NextConfig = {
       // WordPress admin/cron (bot spam — 410 Gone via redirect a pagina inesistente non funziona in Next.js, skippiamo)
     ]
 
-    return [...frankRedirects, ...masterPackRedirects, ...legacyRedirects]
+    // Old WooCommerce product-category URLs
+    const productCategoryRedirects = LOCALES.flatMap((locale) => [
+      {
+        source: `/${locale}/product-category/negozio/tattoo`,
+        destination: `/${locale}/tattoo`,
+        permanent: true,
+      },
+      {
+        source: `/${locale}/product-category/negozio/pmu`,
+        destination: `/${locale}/pmu`,
+        permanent: true,
+      },
+      {
+        source: `/${locale}/product-category/:path*`,
+        destination: `/${locale}/`,
+        permanent: true,
+      },
+    ])
+
+    return [...frankRedirects, ...masterPackRedirects, ...legacyRedirects, ...productCategoryRedirects]
   },
   async headers() {
     return [
