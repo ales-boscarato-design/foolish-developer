@@ -31,58 +31,44 @@ const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation
       ? `<tr><td style="padding:4px 8px">Spedizione</td><td></td><td style="padding:4px 8px;text-align:right">${Number(doc.shippingCost).toFixed(2)}€</td></tr>`
       : `<tr><td style="padding:4px 8px" colspan="3" style="color:#4caf50">Spedizione gratuita</td></tr>`
 
+  const firstName = (doc.customerName ?? '').split(' ')[0] || 'cliente'
+
   const html = `
 <!DOCTYPE html>
 <html>
 <body style="font-family:sans-serif;color:#111;max-width:560px;margin:0 auto;padding:24px">
-  <h2 style="margin-bottom:4px">Ordine ricevuto.</h2>
+  <h2 style="margin-bottom:4px">Conferma ordine</h2>
   <p style="color:#555;margin-top:0">Riferimento: <strong>${doc.orderNumber}</strong></p>
 
-  <p>Ciao ${doc.customerName ?? ''},<br>
-  Ho ricevuto il tuo ordine. Lo produco personalmente — ti scrivo appena è pronto con le foto di quello che ti mando.</p>
+  <p>Ciao ${firstName},</p>
+  <p>Abbiamo ricevuto il tuo ordine. Trovi il riepilogo qui sotto.</p>
 
   <table style="width:100%;border-collapse:collapse;margin:16px 0">
     <thead>
       <tr style="border-bottom:1px solid #eee">
-        <th style="text-align:left;padding:4px 8px">Prodotto</th>
-        <th style="padding:4px 8px">Qtà</th>
-        <th style="text-align:right;padding:4px 8px">Prezzo</th>
+        <th style="text-align:left;padding:6px 8px">Prodotto</th>
+        <th style="text-align:center;padding:6px 8px">Qtà</th>
+        <th style="text-align:right;padding:6px 8px">Prezzo</th>
       </tr>
     </thead>
     <tbody>
       ${itemsHtml}
       ${shippingLine}
-      <tr style="border-top:1px solid #eee;font-weight:bold">
-        <td style="padding:8px 8px" colspan="2">Totale</td>
-        <td style="padding:8px 8px;text-align:right">${Number(doc.total).toFixed(2)}€</td>
+      <tr style="border-top:2px solid #eee;font-weight:bold">
+        <td style="padding:8px" colspan="2">Totale</td>
+        <td style="text-align:right;padding:8px">${Number(doc.total).toFixed(2)} €</td>
       </tr>
     </tbody>
   </table>
 
-  <div style="margin:24px 0;padding:16px;background:#faf8f5;border-left:3px solid #c9a96e">
-    <p style="margin:0 0 8px;font-size:13px;color:#555">Segui il tuo ordine in tempo reale:</p>
-    <a href="https://thefoolishbutcher.com/ordine/${doc.pageToken}"
-       style="display:inline-block;padding:10px 20px;background:#1a1207;color:#fff;text-decoration:none;font-size:13px;border-radius:3px">
-      Apri la tua pagina ordine →
-    </a>
-    <p style="margin:8px 0 0;font-size:11px;color:#999">Trovi foto dei fogli, stato della spedizione e aggiornamenti.</p>
-  </div>
-
-  <div style="margin:24px 0;padding:16px;background:#f0f4ff;border-left:3px solid #4a6fa5">
-    <p style="margin:0 0 8px;font-size:13px;color:#555">Vuoi aggiornarti via Telegram? Scrivimi direttamente:</p>
-    <a href="https://t.me/the_foolish_butcher_bot?start=order_${doc.orderNumber}"
-       style="display:inline-block;padding:10px 20px;background:#0088cc;color:#fff;text-decoration:none;font-size:13px;border-radius:3px">
-      Apri su Telegram →
-    </a>
-    <p style="margin:8px 0 0;font-size:11px;color:#999">Ti riconosco subito e seguiamo il tuo ordine insieme.</p>
-  </div>
-
-  <p style="font-size:13px;color:#555">Alessandro<br>The Foolish Butcher</p>
+  <p style="margin-top:24px;font-size:13px;color:#555">The Foolish Butcher</p>
 </body>
 </html>`
 
   const resendKey = process.env.RESEND_API_KEY
-  const fromAddress = process.env.EMAIL_FROM || 'The Foolish Butcher <ordini@updates.thefoolishbutcher.com>'
+  const emailFrom = process.env.EMAIL_FROM || 'ordini@updates.thefoolishbutcher.com'
+  // Ensure "Name <email>" format — EMAIL_FROM may be just the address
+  const fromAddress = emailFrom.includes('<') ? emailFrom : `The Foolish Butcher <${emailFrom}>`
   if (!resendKey) {
     console.error('[Orders] RESEND_API_KEY not set — skipping confirmation email')
     return
@@ -96,7 +82,7 @@ const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: `The Foolish Butcher <${fromAddress}>`,
+        from: fromAddress,
         to: [doc.customerEmail],
         subject: `Ordine ricevuto — ${doc.orderNumber}`,
         html,
@@ -105,6 +91,8 @@ const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation
     if (!res.ok) {
       const text = await res.text()
       console.error('[Orders] Resend API error:', res.status, text)
+    } else {
+      console.log('[Orders] Confirmation email sent to', doc.customerEmail, 'order', doc.orderNumber)
     }
   } catch (err) {
     console.error('[Orders] sendOrderConfirmation failed:', err)
