@@ -299,18 +299,6 @@ export const Orders: CollectionConfig = {
               type: 'text',
               label: 'Corriere',
             },
-            {
-              name: 'shippedAt',
-              type: 'date',
-              label: 'Data spedizione',
-              admin: { date: { pickerAppearance: 'dayAndTime' } },
-            },
-            {
-              name: 'deliveredAt',
-              type: 'date',
-              label: 'Data consegna',
-              admin: { date: { pickerAppearance: 'dayAndTime' } },
-            },
           ],
         },
         {
