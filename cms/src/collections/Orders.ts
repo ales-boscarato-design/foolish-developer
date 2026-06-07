@@ -51,9 +51,64 @@ const generatePageToken: CollectionBeforeChangeHook = async ({ data, operation }
   return data
 }
 
-const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation, req }) => {
+const ORDER_STRINGS: Record<string, {
+  subject: string; heading: string; ref: string; greeting: string;
+  body: string; product: string; qty: string; price: string;
+  shipping: string; freeShipping: string; total: string;
+}> = {
+  it: {
+    subject: 'Ordine ricevuto',
+    heading: 'Conferma ordine',
+    ref: 'Riferimento',
+    greeting: 'Ciao',
+    body: 'Abbiamo ricevuto il tuo ordine. Trovi il riepilogo qui sotto.',
+    product: 'Prodotto', qty: 'Qtà', price: 'Prezzo',
+    shipping: 'Spedizione', freeShipping: 'Spedizione gratuita', total: 'Totale',
+  },
+  en: {
+    subject: 'Order received',
+    heading: 'Order confirmation',
+    ref: 'Reference',
+    greeting: 'Hi',
+    body: 'We have received your order. Here is your summary.',
+    product: 'Product', qty: 'Qty', price: 'Price',
+    shipping: 'Shipping', freeShipping: 'Free shipping', total: 'Total',
+  },
+  de: {
+    subject: 'Bestellung eingegangen',
+    heading: 'Bestellbestätigung',
+    ref: 'Referenz',
+    greeting: 'Hallo',
+    body: 'Wir haben Ihre Bestellung erhalten. Hier ist Ihre Zusammenfassung.',
+    product: 'Produkt', qty: 'Menge', price: 'Preis',
+    shipping: 'Versand', freeShipping: 'Kostenloser Versand', total: 'Gesamt',
+  },
+  fr: {
+    subject: 'Commande reçue',
+    heading: 'Confirmation de commande',
+    ref: 'Référence',
+    greeting: 'Bonjour',
+    body: 'Nous avons bien reçu votre commande. Voici votre récapitulatif.',
+    product: 'Produit', qty: 'Qté', price: 'Prix',
+    shipping: 'Livraison', freeShipping: 'Livraison gratuite', total: 'Total',
+  },
+  es: {
+    subject: 'Pedido recibido',
+    heading: 'Confirmación de pedido',
+    ref: 'Referencia',
+    greeting: 'Hola',
+    body: 'Hemos recibido tu pedido. Aquí tienes el resumen.',
+    product: 'Producto', qty: 'Cant.', price: 'Precio',
+    shipping: 'Envío', freeShipping: 'Envío gratuito', total: 'Total',
+  },
+}
+
+const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation }) => {
   if (operation !== 'create') return
   if (!doc.customerEmail) return
+
+  const locale = (doc.customerLocale as string | null) ?? 'it'
+  const t = ORDER_STRINGS[locale] ?? ORDER_STRINGS['en']!
 
   const items: Array<{ name: string; variantLabel: string; quantity: number; unitPrice: number }> =
     Array.isArray(doc.lineItems) ? doc.lineItems : []
@@ -71,34 +126,34 @@ const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation
 
   const shippingLine =
     doc.shippingCost > 0
-      ? `<tr><td style="padding:4px 8px">Spedizione</td><td></td><td style="padding:4px 8px;text-align:right">${Number(doc.shippingCost).toFixed(2)}€</td></tr>`
-      : `<tr><td style="padding:4px 8px" colspan="3" style="color:#4caf50">Spedizione gratuita</td></tr>`
+      ? `<tr><td style="padding:4px 8px">${t.shipping}</td><td></td><td style="padding:4px 8px;text-align:right">${Number(doc.shippingCost).toFixed(2)}€</td></tr>`
+      : `<tr><td style="padding:4px 8px" colspan="3" style="color:#4caf50">${t.freeShipping}</td></tr>`
 
-  const firstName = (doc.customerName ?? '').split(' ')[0] || 'cliente'
+  const firstName = (doc.customerName ?? '').split(' ')[0] || ''
 
   const html = `
 <!DOCTYPE html>
 <html>
 <body style="font-family:sans-serif;color:#111;max-width:560px;margin:0 auto;padding:24px">
-  <h2 style="margin-bottom:4px">Conferma ordine</h2>
-  <p style="color:#555;margin-top:0">Riferimento: <strong>${doc.orderNumber}</strong></p>
+  <h2 style="margin-bottom:4px">${t.heading}</h2>
+  <p style="color:#555;margin-top:0">${t.ref}: <strong>${doc.orderNumber}</strong></p>
 
-  <p>Ciao ${firstName},</p>
-  <p>Abbiamo ricevuto il tuo ordine. Trovi il riepilogo qui sotto.</p>
+  <p>${t.greeting}${firstName ? ' ' + firstName : ''},</p>
+  <p>${t.body}</p>
 
   <table style="width:100%;border-collapse:collapse;margin:16px 0">
     <thead>
       <tr style="border-bottom:1px solid #eee">
-        <th style="text-align:left;padding:6px 8px">Prodotto</th>
-        <th style="text-align:center;padding:6px 8px">Qtà</th>
-        <th style="text-align:right;padding:6px 8px">Prezzo</th>
+        <th style="text-align:left;padding:6px 8px">${t.product}</th>
+        <th style="text-align:center;padding:6px 8px">${t.qty}</th>
+        <th style="text-align:right;padding:6px 8px">${t.price}</th>
       </tr>
     </thead>
     <tbody>
       ${itemsHtml}
       ${shippingLine}
       <tr style="border-top:2px solid #eee;font-weight:bold">
-        <td style="padding:8px" colspan="2">Totale</td>
+        <td style="padding:8px" colspan="2">${t.total}</td>
         <td style="text-align:right;padding:8px">${Number(doc.total).toFixed(2)} €</td>
       </tr>
     </tbody>
@@ -110,7 +165,6 @@ const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation
 
   const resendKey = process.env.RESEND_API_KEY
   const emailFrom = process.env.EMAIL_FROM || 'ordini@updates.thefoolishbutcher.com'
-  // Ensure "Name <email>" format — EMAIL_FROM may be just the address
   const fromAddress = emailFrom.includes('<') ? emailFrom : `The Foolish Butcher <${emailFrom}>`
   if (!resendKey) {
     console.error('[Orders] RESEND_API_KEY not set — skipping confirmation email')
@@ -120,14 +174,11 @@ const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendKey}`,
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from: fromAddress,
         to: [doc.customerEmail],
-        subject: `Ordine ricevuto — ${doc.orderNumber}`,
+        subject: `${t.subject} — ${doc.orderNumber}`,
         html,
       }),
     })
@@ -135,7 +186,7 @@ const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation
       const text = await res.text()
       console.error('[Orders] Resend API error:', res.status, text)
     } else {
-      console.log('[Orders] Confirmation email sent to', doc.customerEmail, 'order', doc.orderNumber)
+      console.log('[Orders] Confirmation email sent to', doc.customerEmail, 'locale', locale, 'order', doc.orderNumber)
     }
   } catch (err) {
     console.error('[Orders] sendOrderConfirmation failed:', err)

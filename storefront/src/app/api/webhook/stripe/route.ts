@@ -97,6 +97,8 @@ async function createOrderInCMS(session: Stripe.Checkout.Session): Promise<void>
     if (existingData.docs?.length > 0) return // already created, idempotent
   }
 
+  const customerLocale = countryToLocale(shippingAddress?.country)
+
   const res = await fetch(`${cmsUrl}/api/orders`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -109,6 +111,7 @@ async function createOrderInCMS(session: Stripe.Checkout.Session): Promise<void>
       total,
       shippingCost,
       shippingAddress,
+      customerLocale,
       pipelineState: 'received',
     }),
   })
