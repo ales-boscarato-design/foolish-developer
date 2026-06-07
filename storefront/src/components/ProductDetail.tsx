@@ -257,7 +257,15 @@ interface ProductDetailProps {
 export function ProductDetail({ product, reviews = [], reviewSummary = { average: 0, count: 0 } }: ProductDetailProps) {
   const t = useTranslations('product')
   const locale = useLocale()
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | undefined>(product.variants?.[0])
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | undefined>(
+    product.variants?.[0] ?? (product.basePrice != null ? {
+      sku: product.slug,
+      label: '',
+      price: product.basePrice,
+      stockStatus: 'available' as const,
+      validCombinations: [],
+    } : undefined)
+  )
   const [selectedAttrs, setSelectedAttrs] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {}
     for (const attr of product.attributes) {
@@ -578,7 +586,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
             </div>
 
             {/* Varianti — 48px touch targets */}
-            <div>
+            {product.variants.length > 0 && <div>
               <p className="text-sm font-medium mb-3" style={{ color: 'var(--muted-fg)' }}>{t('variantLabel')}</p>
               <div className="flex flex-wrap gap-3">
                 {product.variants.map((v, i) => (
@@ -608,7 +616,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                   </motion.button>
                 ))}
               </div>
-            </div>
+            </div>}
 
             {/* Descrizione variante selezionata */}
             <AnimatePresence mode="wait">
