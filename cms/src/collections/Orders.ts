@@ -213,12 +213,7 @@ export const Orders: CollectionConfig = {
           type: 'select',
           defaultValue: 'received',
           label: 'Stato',
-          admin: {
-            width: '50%',
-            components: {
-              Cell: '@/components/PipelineStateCell#PipelineStateCell',
-            },
-          },
+          admin: { width: '50%' },
           options: [
             { label: 'Ricevuto', value: 'received' },
             { label: 'In attesa ETA', value: 'eta_pending' },
