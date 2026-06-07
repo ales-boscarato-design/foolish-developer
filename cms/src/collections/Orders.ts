@@ -212,6 +212,7 @@ const notifyNanobot: CollectionAfterChangeHook = async ({ doc, previousDoc, oper
       pipelineState: doc.pipelineState,
       previousState: previousDoc?.pipelineState ?? null,
       customerEmail: doc.customerEmail,
+      customerLocale: doc.customerLocale ?? 'it',
       trackingNumber: doc.trackingNumber ?? null,
       trackingCarrier: doc.trackingCarrier ?? null,
       productionEtaDays: doc.productionEtaDays ?? null,
