@@ -4,7 +4,8 @@ export const Customers: CollectionConfig = {
   slug: 'customers',
   admin: {
     useAsTitle: 'email',
-    defaultColumns: ['email', 'name', 'telegramId', 'preferredChannel', 'updatedAt'],
+    defaultColumns: ['email', 'name', 'totalOrders', 'country', 'tags', 'updatedAt'],
+    listSearchableFields: ['email', 'name'],
     group: 'Clienti',
   },
   access: {

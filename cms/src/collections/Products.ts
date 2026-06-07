@@ -4,8 +4,15 @@ export const Products: CollectionConfig = {
   slug: 'products',
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name', 'section', 'active', 'updatedAt'],
+    defaultColumns: ['name', 'section', 'active', 'basePrice', 'updatedAt'],
+    listSearchableFields: ['name', 'slug'],
     group: 'Catalogo',
+    livePreview: {
+      url: ({ data }) => {
+        const slug = (data as Record<string, unknown>).slug as string | undefined
+        return slug ? `https://thefoolishbutcher.com/it/prodotto/${slug}` : 'https://thefoolishbutcher.com/it'
+      },
+    },
   },
   access: {
     read: () => true,
