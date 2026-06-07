@@ -1,6 +1,49 @@
 import type { CollectionConfig, CollectionAfterChangeHook, CollectionBeforeChangeHook } from 'payload'
 import crypto from 'crypto'
 
+const syncCustomer: CollectionAfterChangeHook = async ({ doc, operation, req }) => {
+  if (!doc.customerEmail) return
+
+  const payload = req.payload
+  const country = (doc.shippingAddress as Record<string, string> | undefined)?.country || undefined
+
+  try {
+    const existing = await payload.find({
+      collection: 'customers',
+      where: { email: { equals: doc.customerEmail } },
+      limit: 1,
+      depth: 0,
+    })
+
+    if (existing.docs.length === 0) {
+      // Create new customer record
+      await payload.create({
+        collection: 'customers',
+        data: {
+          email: doc.customerEmail,
+          name: doc.customerName || undefined,
+          country: country || undefined,
+          totalOrders: 1,
+        },
+      })
+    } else {
+      const customer = existing.docs[0] as unknown as Record<string, unknown>
+      const currentTotal = (customer.totalOrders as number) ?? 0
+      await payload.update({
+        collection: 'customers',
+        id: customer.id as string,
+        data: {
+          ...(doc.customerName && !customer.name ? { name: doc.customerName } : {}),
+          ...(country && !customer.country ? { country } : {}),
+          ...(operation === 'create' ? { totalOrders: currentTotal + 1 } : {}),
+        },
+      })
+    }
+  } catch (err) {
+    console.error('[Orders] syncCustomer failed:', err)
+  }
+}
+
 const generatePageToken: CollectionBeforeChangeHook = async ({ data, operation }) => {
   if (operation === 'create' && !data.pageToken) {
     data.pageToken = crypto.randomUUID()
@@ -129,7 +172,7 @@ export const Orders: CollectionConfig = {
   slug: 'orders',
   hooks: {
     beforeChange: [generatePageToken],
-    afterChange: [sendOrderConfirmation, notifyNanobot],
+    afterChange: [sendOrderConfirmation, notifyNanobot, syncCustomer],
   },
   admin: {
     useAsTitle: 'orderNumber',
