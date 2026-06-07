@@ -24,6 +24,11 @@ export const Products: CollectionConfig = {
       required: true,
       localized: true,
       label: 'Nome prodotto',
+      admin: {
+        components: {
+          Cell: '@/components/ProductImageCell#ProductImageCell',
+        },
+      },
     },
     {
       name: 'slug',

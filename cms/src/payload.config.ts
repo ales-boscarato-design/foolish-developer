@@ -38,6 +38,9 @@ export default buildConfig({
       description: 'Pannello di controllo The Foolish Butcher',
     },
     theme: 'dark',
+    components: {
+      providers: ['@/components/AdminStyleProvider#AdminStyleProvider'],
+    },
   },
   collections: [
     Products,

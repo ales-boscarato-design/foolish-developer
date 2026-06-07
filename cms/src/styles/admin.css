@@ -1,0 +1,18 @@
+/* Righe più alte nelle liste */
+.collection-list .table tbody tr td,
+.list-controls ~ * table tbody tr td,
+table tbody tr td.cell {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  vertical-align: middle !important;
+}
+
+/* Altezza minima righe */
+table tbody tr {
+  min-height: 76px;
+}
+
+/* Celle non tagliate */
+table tbody tr td {
+  overflow: visible !important;
+}
