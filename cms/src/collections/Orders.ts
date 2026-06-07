@@ -168,11 +168,82 @@ const notifyNanobot: CollectionAfterChangeHook = async ({ doc, previousDoc, oper
   }).catch((err) => console.error('[Orders] nanobot notify failed:', err))
 }
 
+const notifyAlessandroByEmail: CollectionAfterChangeHook = async ({ doc, operation }) => {
+  if (operation !== 'create') return
+
+  const resendKey = process.env.RESEND_API_KEY
+  const adminEmail = process.env.ADMIN_EMAIL
+  if (!resendKey || !adminEmail) return
+
+  const emailFrom = process.env.EMAIL_FROM || 'ordini@updates.thefoolishbutcher.com'
+  const fromAddress = emailFrom.includes('<') ? emailFrom : `The Foolish Butcher <${emailFrom}>`
+
+  const items: Array<{ name: string; variantLabel: string; quantity: number; unitPrice: number }> =
+    Array.isArray(doc.lineItems) ? doc.lineItems : []
+
+  const itemsText = items
+    .map((i) => `• ${i.quantity}× ${i.name} ${i.variantLabel} — ${(i.unitPrice * i.quantity).toFixed(2)}€`)
+    .join('\n')
+
+  const addr = doc.shippingAddress as Record<string, string> | undefined
+  const addressText = addr
+    ? `${addr.name}, ${addr.address1}${addr.address2 ? ' ' + addr.address2 : ''}, ${addr.postalCode} ${addr.city} (${addr.country})`
+    : '—'
+
+  const cmsUrl = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1dda.up.railway.app'
+  const orderLink = `${cmsUrl}/admin/collections/orders/${doc.id}`
+
+  const html = `<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif;color:#111;max-width:520px;margin:0 auto;padding:24px">
+  <h2 style="margin-bottom:4px">🛒 Nuovo ordine ricevuto</h2>
+  <p style="color:#555;margin-top:0">Riferimento: <strong>${doc.orderNumber}</strong></p>
+
+  <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
+    <tr><td style="padding:4px 0;color:#555;width:140px">Cliente</td><td><strong>${doc.customerName ?? '—'}</strong></td></tr>
+    <tr><td style="padding:4px 0;color:#555">Email</td><td>${doc.customerEmail}</td></tr>
+    <tr><td style="padding:4px 0;color:#555">Indirizzo</td><td>${addressText}</td></tr>
+    <tr><td style="padding:4px 0;color:#555">Totale</td><td><strong>${Number(doc.total).toFixed(2)} €</strong>${doc.shippingCost > 0 ? ` (di cui ${Number(doc.shippingCost).toFixed(2)}€ spedizione)` : ' — spedizione gratuita'}</td></tr>
+  </table>
+
+  <p style="font-size:14px;margin:8px 0 4px"><strong>Prodotti:</strong></p>
+  <pre style="font-size:13px;background:#f5f5f5;padding:12px;border-radius:6px;margin:0">${itemsText}</pre>
+
+  <p style="margin-top:24px">
+    <a href="${orderLink}" style="background:#111;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:14px">
+      Apri ordine nel CMS →
+    </a>
+  </p>
+</body>
+</html>`
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: fromAddress,
+        to: [adminEmail],
+        subject: `🛒 Nuovo ordine ${doc.orderNumber} — ${Number(doc.total).toFixed(2)}€`,
+        html,
+      }),
+    })
+    if (!res.ok) {
+      const text = await res.text()
+      console.error('[Orders] Admin notification email error:', res.status, text)
+    } else {
+      console.log('[Orders] Admin notification sent to', adminEmail, 'order', doc.orderNumber)
+    }
+  } catch (err) {
+    console.error('[Orders] notifyAlessandroByEmail failed:', err)
+  }
+}
+
 export const Orders: CollectionConfig = {
   slug: 'orders',
   hooks: {
     beforeChange: [generatePageToken],
-    afterChange: [sendOrderConfirmation, notifyNanobot, syncCustomer],
+    afterChange: [sendOrderConfirmation, notifyNanobot, notifyAlessandroByEmail, syncCustomer],
   },
   admin: {
     useAsTitle: 'orderNumber',
