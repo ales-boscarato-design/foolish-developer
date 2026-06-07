@@ -58,7 +58,7 @@ export default buildConfig({
   ],
   editor: lexicalEditor({}),
   sharp,
-  secret: process.env.PAYLOAD_SECRET || 'CHANGE_ME_IN_PRODUCTION',
+  secret: process.env.PAYLOAD_SECRET!,
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },

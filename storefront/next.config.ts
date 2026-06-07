@@ -17,7 +17,7 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://umami-production-8b53.up.railway.app",
+      "script-src 'self' 'unsafe-inline' https://js.stripe.com https://umami-production-8b53.up.railway.app",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://*.stripe.com https://*.railway.app",
       "font-src 'self'",

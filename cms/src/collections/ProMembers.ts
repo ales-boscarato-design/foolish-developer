@@ -8,7 +8,7 @@ export const ProMembers: CollectionConfig = {
     group: 'Foolish Pro',
   },
   access: {
-    create: () => true,
+    create: ({ req }) => !!req.user,
     read: ({ req }) => !!req.user,
     update: ({ req }) => !!req.user,
     delete: ({ req }) => !!req.user,

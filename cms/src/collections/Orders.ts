@@ -213,6 +213,7 @@ const notifyNanobot: CollectionAfterChangeHook = async ({ doc, previousDoc, oper
       previousState: previousDoc?.pipelineState ?? null,
       customerEmail: doc.customerEmail,
       customerLocale: doc.customerLocale ?? 'it',
+      customerTelegramId: doc.customerTelegramId ?? null,
       trackingNumber: doc.trackingNumber ?? null,
       trackingCarrier: doc.trackingCarrier ?? null,
       productionEtaDays: doc.productionEtaDays ?? null,
@@ -310,11 +311,14 @@ export const Orders: CollectionConfig = {
   access: {
     read: ({ req }) => {
       if (req.user) return true
-      // Storefront può leggere con shared secret header
       const secret = req.headers?.get?.('x-storefront-secret') ?? (req.headers as unknown as Record<string, string>)?.['x-storefront-secret']
       return !!secret && secret === process.env.PAYLOAD_API_SECRET
     },
-    create: () => true,            // webhook può creare
+    create: ({ req }) => {
+      if (req.user) return true
+      const secret = req.headers?.get?.('x-storefront-secret') ?? (req.headers as unknown as Record<string, string>)?.['x-storefront-secret']
+      return !!secret && secret === process.env.PAYLOAD_API_SECRET
+    },
     update: ({ req }) => !!req.user,
     delete: ({ req }) => !!req.user,
   },

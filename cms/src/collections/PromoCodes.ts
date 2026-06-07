@@ -9,7 +9,7 @@ export const PromoCodes: CollectionConfig = {
   },
   access: {
     read: () => true,
-    create: () => true,
+    create: ({ req }) => !!req.user,
     update: ({ req }) => !!req.user,
     delete: ({ req }) => !!req.user,
   },

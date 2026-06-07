@@ -10,7 +10,7 @@ export const Customers: CollectionConfig = {
   },
   access: {
     read: ({ req }) => !!req.user,
-    create: () => true,
+    create: ({ req }) => !!req.user,
     update: ({ req }) => !!req.user,
     delete: ({ req }) => !!req.user,
   },

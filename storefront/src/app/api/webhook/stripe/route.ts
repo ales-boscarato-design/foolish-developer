@@ -101,7 +101,10 @@ async function createOrderInCMS(session: Stripe.Checkout.Session): Promise<void>
 
   const res = await fetch(`${cmsUrl}/api/orders`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-storefront-secret': process.env.PAYLOAD_API_SECRET || '',
+    },
     body: JSON.stringify({
       orderNumber: orderRef,
       source: 'storefront',
