@@ -9,7 +9,7 @@ interface PageProps {
 }
 
 const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://admin.thefoolishbutcher.com'
-const CMS_TOKEN = process.env.PAYLOAD_API_TOKEN || ''
+const CMS_SECRET = process.env.PAYLOAD_API_SECRET || ''
 
 const PIPELINE_STATE_LABELS: Record<string, string> = {
   received: 'statusReceived',
@@ -26,11 +26,10 @@ const PIPELINE_STATE_LABELS: Record<string, string> = {
 }
 
 async function getOrder(orderNumber: string) {
-  if (!CMS_TOKEN) return null
   const res = await fetch(
     `${CMS_URL}/api/orders?where[orderNumber][equals]=${encodeURIComponent(orderNumber)}&depth=1`,
     {
-      headers: { Authorization: `Bearer ${CMS_TOKEN}` },
+      headers: { 'x-storefront-secret': CMS_SECRET },
       next: { revalidate: 0 },
     },
   )

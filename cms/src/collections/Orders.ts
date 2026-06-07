@@ -55,51 +55,84 @@ const ORDER_STRINGS: Record<string, {
   subject: string; heading: string; ref: string; greeting: string;
   body: string; product: string; qty: string; price: string;
   shipping: string; freeShipping: string; total: string;
+  trackOrder: string; trackOrderBody: string;
+  telegramTitle: string; telegramBody: string; telegramCta: string;
+  footer: string;
 }> = {
   it: {
     subject: 'Ordine ricevuto',
     heading: 'Conferma ordine',
     ref: 'Riferimento',
     greeting: 'Ciao',
-    body: 'Abbiamo ricevuto il tuo ordine. Trovi il riepilogo qui sotto.',
+    body: 'Abbiamo ricevuto il tuo ordine. Lo stiamo preparando personalmente.',
     product: 'Prodotto', qty: 'Qtà', price: 'Prezzo',
     shipping: 'Spedizione', freeShipping: 'Spedizione gratuita', total: 'Totale',
+    trackOrder: 'Segui il tuo ordine →',
+    trackOrderBody: 'Puoi seguire lo stato del tuo ordine in tempo reale.',
+    telegramTitle: 'Aggiornamenti in tempo reale su Telegram',
+    telegramBody: 'Ricevi notifiche dirette da Alessandro — foto dei fogli, tracking e aggiornamenti.',
+    telegramCta: 'Apri su Telegram',
+    footer: 'The Foolish Butcher · Chieri (TO), Italia · Made in Italy',
   },
   en: {
     subject: 'Order received',
     heading: 'Order confirmation',
     ref: 'Reference',
     greeting: 'Hi',
-    body: 'We have received your order. Here is your summary.',
+    body: 'We have received your order. We are preparing it personally.',
     product: 'Product', qty: 'Qty', price: 'Price',
     shipping: 'Shipping', freeShipping: 'Free shipping', total: 'Total',
+    trackOrder: 'Track your order →',
+    trackOrderBody: 'You can follow your order status in real time.',
+    telegramTitle: 'Real-time updates on Telegram',
+    telegramBody: 'Get direct updates from Alessandro — sheet photos, tracking and updates.',
+    telegramCta: 'Open on Telegram',
+    footer: 'The Foolish Butcher · Chieri (TO), Italy · Made in Italy',
   },
   de: {
     subject: 'Bestellung eingegangen',
     heading: 'Bestellbestätigung',
     ref: 'Referenz',
     greeting: 'Hallo',
-    body: 'Wir haben Ihre Bestellung erhalten. Hier ist Ihre Zusammenfassung.',
+    body: 'Wir haben Ihre Bestellung erhalten und bereiten sie persönlich vor.',
     product: 'Produkt', qty: 'Menge', price: 'Preis',
     shipping: 'Versand', freeShipping: 'Kostenloser Versand', total: 'Gesamt',
+    trackOrder: 'Bestellung verfolgen →',
+    trackOrderBody: 'Sie können den Status Ihrer Bestellung in Echtzeit verfolgen.',
+    telegramTitle: 'Echtzeit-Updates auf Telegram',
+    telegramBody: 'Erhalten Sie direkte Updates von Alessandro — Fotos, Tracking und mehr.',
+    telegramCta: 'Auf Telegram öffnen',
+    footer: 'The Foolish Butcher · Chieri (TO), Italien · Made in Italy',
   },
   fr: {
     subject: 'Commande reçue',
     heading: 'Confirmation de commande',
     ref: 'Référence',
     greeting: 'Bonjour',
-    body: 'Nous avons bien reçu votre commande. Voici votre récapitulatif.',
+    body: 'Nous avons bien reçu votre commande et la préparons personnellement.',
     product: 'Produit', qty: 'Qté', price: 'Prix',
     shipping: 'Livraison', freeShipping: 'Livraison gratuite', total: 'Total',
+    trackOrder: 'Suivre ma commande →',
+    trackOrderBody: 'Vous pouvez suivre l\'état de votre commande en temps réel.',
+    telegramTitle: 'Mises à jour en temps réel sur Telegram',
+    telegramBody: 'Recevez des messages directs d\'Alessandro — photos, suivi et mises à jour.',
+    telegramCta: 'Ouvrir sur Telegram',
+    footer: 'The Foolish Butcher · Chieri (TO), Italie · Made in Italy',
   },
   es: {
     subject: 'Pedido recibido',
     heading: 'Confirmación de pedido',
     ref: 'Referencia',
     greeting: 'Hola',
-    body: 'Hemos recibido tu pedido. Aquí tienes el resumen.',
+    body: 'Hemos recibido tu pedido y lo estamos preparando personalmente.',
     product: 'Producto', qty: 'Cant.', price: 'Precio',
     shipping: 'Envío', freeShipping: 'Envío gratuito', total: 'Total',
+    trackOrder: 'Seguir mi pedido →',
+    trackOrderBody: 'Puedes seguir el estado de tu pedido en tiempo real.',
+    telegramTitle: 'Actualizaciones en tiempo real en Telegram',
+    telegramBody: 'Recibe mensajes directos de Alessandro — fotos, tracking y actualizaciones.',
+    telegramCta: 'Abrir en Telegram',
+    footer: 'The Foolish Butcher · Chieri (TO), Italia · Made in Italy',
   },
 }
 
@@ -113,53 +146,117 @@ const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation
   const items: Array<{ name: string; variantLabel: string; quantity: number; unitPrice: number }> =
     Array.isArray(doc.lineItems) ? doc.lineItems : []
 
-  const itemsHtml = items
-    .map(
-      (i) =>
-        `<tr>
-          <td style="padding:4px 8px">${i.name} — ${i.variantLabel}</td>
-          <td style="padding:4px 8px;text-align:center">${i.quantity}</td>
-          <td style="padding:4px 8px;text-align:right">${(i.unitPrice * i.quantity).toFixed(2)}€</td>
-        </tr>`,
-    )
-    .join('')
-
-  const shippingLine =
-    doc.shippingCost > 0
-      ? `<tr><td style="padding:4px 8px">${t.shipping}</td><td></td><td style="padding:4px 8px;text-align:right">${Number(doc.shippingCost).toFixed(2)}€</td></tr>`
-      : `<tr><td style="padding:4px 8px" colspan="3" style="color:#4caf50">${t.freeShipping}</td></tr>`
+  const storefrontUrl = process.env.STOREFRONT_URL || 'https://thefoolishbutcher.com'
+  const trackingUrl = doc.pageToken ? `${storefrontUrl}/ordine/${doc.pageToken}` : null
+  const telegramUrl = doc.orderNumber
+    ? `https://t.me/the_foolish_butcher_bot?start=order_${doc.orderNumber}`
+    : 'https://t.me/the_foolish_butcher_bot'
 
   const firstName = (doc.customerName ?? '').split(' ')[0] || ''
 
-  const html = `
-<!DOCTYPE html>
-<html>
-<body style="font-family:sans-serif;color:#111;max-width:560px;margin:0 auto;padding:24px">
-  <h2 style="margin-bottom:4px">${t.heading}</h2>
-  <p style="color:#555;margin-top:0">${t.ref}: <strong>${doc.orderNumber}</strong></p>
+  const itemsHtml = items.map((i) => `
+    <tr>
+      <td style="padding:10px 0;border-bottom:1px solid #1e1a14;color:#c9c0b0;font-size:14px">
+        ${i.name}${i.variantLabel ? ` <span style="color:#6b5f4a">— ${i.variantLabel}</span>` : ''}
+      </td>
+      <td style="padding:10px 0;border-bottom:1px solid #1e1a14;text-align:center;color:#6b5f4a;font-size:14px">×${i.quantity}</td>
+      <td style="padding:10px 0;border-bottom:1px solid #1e1a14;text-align:right;color:#c9c0b0;font-size:14px">${(i.unitPrice * i.quantity).toFixed(2)}€</td>
+    </tr>`).join('')
 
-  <p>${t.greeting}${firstName ? ' ' + firstName : ''},</p>
-  <p>${t.body}</p>
+  const shippingRow = doc.shippingCost > 0
+    ? `<tr>
+        <td colspan="2" style="padding:8px 0;color:#6b5f4a;font-size:13px">${t.shipping}</td>
+        <td style="padding:8px 0;text-align:right;color:#6b5f4a;font-size:13px">${Number(doc.shippingCost).toFixed(2)}€</td>
+       </tr>`
+    : `<tr><td colspan="3" style="padding:8px 0;color:#4caf50;font-size:13px">✓ ${t.freeShipping}</td></tr>`
 
-  <table style="width:100%;border-collapse:collapse;margin:16px 0">
-    <thead>
-      <tr style="border-bottom:1px solid #eee">
-        <th style="text-align:left;padding:6px 8px">${t.product}</th>
-        <th style="text-align:center;padding:6px 8px">${t.qty}</th>
-        <th style="text-align:right;padding:6px 8px">${t.price}</th>
+  const html = `<!DOCTYPE html>
+<html lang="${locale}">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0d0b08;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0b08;padding:32px 16px">
+  <tr><td align="center">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
+
+      <!-- Header -->
+      <tr>
+        <td style="border-bottom:1px solid #2a2318;padding-bottom:20px;margin-bottom:20px">
+          <p style="margin:0;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#6b5f4a">THE FOOLISH BUTCHER</p>
+          <p style="margin:4px 0 0;font-size:11px;color:#3a3020">${t.ref}: <span style="color:#c9a96e;font-family:monospace">${doc.orderNumber}</span></p>
+        </td>
       </tr>
-    </thead>
-    <tbody>
-      ${itemsHtml}
-      ${shippingLine}
-      <tr style="border-top:2px solid #eee;font-weight:bold">
-        <td style="padding:8px" colspan="2">${t.total}</td>
-        <td style="text-align:right;padding:8px">${Number(doc.total).toFixed(2)} €</td>
-      </tr>
-    </tbody>
-  </table>
 
-  <p style="margin-top:24px;font-size:13px;color:#555">The Foolish Butcher</p>
+      <!-- Greeting -->
+      <tr>
+        <td style="padding:28px 0 20px">
+          <h1 style="margin:0 0 8px;font-size:26px;font-weight:700;color:#f0e8d8;line-height:1.2">${firstName ? `${t.greeting} ${firstName}.` : t.heading}</h1>
+          <p style="margin:0;font-size:15px;color:#9a8870;line-height:1.6">${t.body}</p>
+        </td>
+      </tr>
+
+      <!-- Items table -->
+      <tr>
+        <td style="background:#13110e;border-radius:6px;padding:4px 20px 12px">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <thead>
+              <tr>
+                <th style="text-align:left;padding:12px 0 8px;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#6b5f4a;font-weight:500">${t.product}</th>
+                <th style="text-align:center;padding:12px 0 8px;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#6b5f4a;font-weight:500;width:40px">${t.qty}</th>
+                <th style="text-align:right;padding:12px 0 8px;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#6b5f4a;font-weight:500">${t.price}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+              ${shippingRow}
+              <tr>
+                <td colspan="2" style="padding:12px 0 4px;font-size:15px;font-weight:700;color:#f0e8d8">${t.total}</td>
+                <td style="padding:12px 0 4px;text-align:right;font-size:18px;font-weight:700;color:#c9a96e">${Number(doc.total).toFixed(2)} €</td>
+              </tr>
+            </tbody>
+          </table>
+        </td>
+      </tr>
+
+      ${trackingUrl ? `
+      <!-- Track order CTA -->
+      <tr>
+        <td style="padding:28px 0 0">
+          <p style="margin:0 0 10px;font-size:13px;color:#6b5f4a">${t.trackOrderBody}</p>
+          <a href="${trackingUrl}"
+             style="display:inline-block;background:#c9a96e;color:#0d0b08;padding:12px 24px;border-radius:4px;text-decoration:none;font-size:14px;font-weight:700;letter-spacing:0.02em">
+            ${t.trackOrder}
+          </a>
+        </td>
+      </tr>` : ''}
+
+      <!-- Telegram CTA -->
+      <tr>
+        <td style="padding:24px 0 0">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#13110e;border-radius:6px;padding:0">
+            <tr>
+              <td style="padding:18px 20px">
+                <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#f0e8d8">${t.telegramTitle}</p>
+                <p style="margin:0 0 14px;font-size:13px;color:#6b5f4a;line-height:1.5">${t.telegramBody}</p>
+                <a href="${telegramUrl}"
+                   style="display:inline-flex;align-items:center;gap:8px;background:#229ED9;color:#fff;padding:9px 18px;border-radius:4px;text-decoration:none;font-size:13px;font-weight:600">
+                  ${t.telegramCta}
+                </a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      <!-- Footer -->
+      <tr>
+        <td style="padding:32px 0 0;border-top:1px solid #1a1510;margin-top:32px">
+          <p style="margin:0;font-size:11px;color:#3a3020;text-align:center">${t.footer}</p>
+        </td>
+      </tr>
+
+    </table>
+  </td></tr>
+</table>
 </body>
 </html>`
 
