@@ -196,201 +196,195 @@ export const Orders: CollectionConfig = {
     delete: ({ req }) => !!req.user,
   },
   fields: [
+    // ── Intestazione ──────────────────────────────────────────────
     {
-      type: 'tabs',
-      tabs: [
+      type: 'row',
+      fields: [
         {
-          label: 'Ordine',
+          name: 'orderNumber',
+          type: 'text',
+          required: true,
+          unique: true,
+          label: 'Numero ordine',
+          admin: { width: '50%' },
+        },
+        {
+          name: 'pipelineState',
+          type: 'select',
+          defaultValue: 'received',
+          label: 'Stato',
+          admin: {
+            width: '50%',
+            components: {
+              Cell: '@/components/PipelineStateCell#PipelineStateCell',
+            },
+          },
+          options: [
+            { label: 'Ricevuto', value: 'received' },
+            { label: 'In attesa ETA', value: 'eta_pending' },
+            { label: 'ETA confermato', value: 'eta_confirmed' },
+            { label: 'In produzione', value: 'in_production' },
+            { label: 'Matching in attesa', value: 'matching_pending' },
+            { label: 'Abbinato', value: 'matched' },
+            { label: 'Preview inviata', value: 'preview_sent' },
+            { label: 'Spedito', value: 'shipped' },
+            { label: 'Consegnato', value: 'delivered' },
+            { label: 'Follow-up fatto', value: 'followup_done' },
+            { label: 'Chiuso', value: 'closed' },
+          ],
+        },
+      ],
+    },
+
+    // ── Cliente ───────────────────────────────────────────────────
+    {
+      type: 'row',
+      fields: [
+        { name: 'customerEmail', type: 'email', required: true, label: 'Email cliente', admin: { width: '50%' } },
+        { name: 'customerName', type: 'text', label: 'Nome cliente', admin: { width: '50%' } },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
+        { name: 'customerTelegramId', type: 'text', label: 'Telegram ID cliente', admin: { width: '50%' } },
+        { name: 'customerLocale', type: 'text', label: 'Lingua (es. it, en)', admin: { width: '50%' } },
+      ],
+    },
+
+    // ── Importi ───────────────────────────────────────────────────
+    {
+      type: 'row',
+      fields: [
+        { name: 'total', type: 'number', required: true, label: 'Totale (€)', admin: { width: '33%' } },
+        { name: 'shippingCost', type: 'number', label: 'Spedizione (€)', admin: { width: '33%' } },
+        { name: 'productionEtaDays', type: 'number', label: 'ETA produzione (giorni)', admin: { width: '33%' } },
+      ],
+    },
+
+    // ── Prodotti ordinati ─────────────────────────────────────────
+    {
+      name: 'lineItems',
+      type: 'json',
+      required: true,
+      label: 'Prodotti ordinati',
+    },
+
+    // ── Spedizione ────────────────────────────────────────────────
+    {
+      type: 'collapsible',
+      label: 'Spedizione e tracking',
+      admin: { initCollapsed: false },
+      fields: [
+        {
+          type: 'row',
+          fields: [
+            { name: 'trackingNumber', type: 'text', label: 'Tracking', admin: { width: '50%' } },
+            { name: 'trackingCarrier', type: 'text', label: 'Corriere', admin: { width: '50%' } },
+          ],
+        },
+        {
+          name: 'shippingAddress',
+          type: 'group',
+          label: 'Indirizzo spedizione',
+          fields: [
+            { name: 'name', type: 'text', label: 'Nome' },
+            { type: 'row', fields: [
+              { name: 'address1', type: 'text', label: 'Via/Piazza', admin: { width: '70%' } },
+              { name: 'address2', type: 'text', label: 'Interno', admin: { width: '30%' } },
+            ]},
+            { type: 'row', fields: [
+              { name: 'city', type: 'text', label: 'Città', admin: { width: '40%' } },
+              { name: 'postalCode', type: 'text', label: 'CAP', admin: { width: '30%' } },
+              { name: 'country', type: 'text', label: 'Paese', admin: { width: '30%' } },
+            ]},
+          ],
+        },
+      ],
+    },
+
+    // ── Note ─────────────────────────────────────────────────────
+    {
+      name: 'notes',
+      type: 'textarea',
+      label: 'Note interne (solo Alessandro)',
+    },
+
+    // ── Foto fogli ────────────────────────────────────────────────
+    {
+      type: 'collapsible',
+      label: 'Foto fogli abbinati',
+      admin: { initCollapsed: true },
+      fields: [
+        {
+          name: 'sheetPhotos',
+          type: 'array',
+          label: 'Foto',
+          admin: { description: 'Foto dei fogli fisici abbinati a questo ordine.' },
+          fields: [
+            { name: 'url', type: 'text', required: true, label: 'URL foto' },
+            { name: 'caption', type: 'text', label: 'Didascalia' },
+          ],
+        },
+      ],
+    },
+
+    // ── Blocchi pagina cliente ────────────────────────────────────
+    {
+      type: 'collapsible',
+      label: 'Blocchi pagina cliente',
+      admin: { initCollapsed: true, description: 'Frank popola questi blocchi: guide, offerte, annunci.' },
+      fields: [
+        {
+          name: 'contentBlocks',
+          type: 'array',
+          label: 'Blocchi',
           fields: [
             {
-              name: 'orderNumber',
-              type: 'text',
-              required: true,
-              unique: true,
-              label: 'Numero ordine',
-            },
-            {
-              name: 'customerEmail',
-              type: 'email',
-              required: true,
-              label: 'Email cliente',
-            },
-            {
-              name: 'customerName',
-              type: 'text',
-              label: 'Nome cliente',
-            },
-            {
-              name: 'customerTelegramId',
-              type: 'text',
-              label: 'Telegram ID cliente',
-            },
-            {
-              name: 'pipelineState',
+              name: 'type',
               type: 'select',
-              defaultValue: 'received',
-              label: 'Stato pipeline',
-              admin: {
-                components: {
-                  Cell: '@/components/PipelineStateCell#PipelineStateCell',
-                },
-              },
-              options: [
-                { label: 'Ricevuto', value: 'received' },
-                { label: 'In attesa ETA', value: 'eta_pending' },
-                { label: 'ETA confermato', value: 'eta_confirmed' },
-                { label: 'In produzione', value: 'in_production' },
-                { label: 'Matching in attesa', value: 'matching_pending' },
-                { label: 'Abbinato', value: 'matched' },
-                { label: 'Preview inviata', value: 'preview_sent' },
-                { label: 'Spedito', value: 'shipped' },
-                { label: 'Consegnato', value: 'delivered' },
-                { label: 'Follow-up fatto', value: 'followup_done' },
-                { label: 'Chiuso', value: 'closed' },
-              ],
-            },
-            {
-              name: 'productionEtaDays',
-              type: 'number',
-              label: 'ETA produzione (giorni)',
-            },
-            {
-              name: 'lineItems',
-              type: 'json',
               required: true,
-              label: 'Prodotti ordinati',
-            },
-            {
-              name: 'total',
-              type: 'number',
-              required: true,
-              label: 'Totale (€)',
-            },
-            {
-              name: 'shippingCost',
-              type: 'number',
-              label: 'Spedizione (€)',
-            },
-            {
-              name: 'notes',
-              type: 'textarea',
-              label: 'Note interne',
-            },
-          ],
-        },
-        {
-          label: 'Spedizione',
-          fields: [
-            {
-              name: 'shippingAddress',
-              type: 'group',
-              label: 'Indirizzo spedizione',
-              fields: [
-                { name: 'name', type: 'text', label: 'Nome' },
-                { name: 'address1', type: 'text', label: 'Indirizzo' },
-                { name: 'address2', type: 'text', label: 'Interno/Piano' },
-                { name: 'city', type: 'text', label: 'Città' },
-                { name: 'postalCode', type: 'text', label: 'CAP' },
-                { name: 'country', type: 'text', label: 'Paese (ISO 2)' },
-              ],
-            },
-            {
-              name: 'trackingNumber',
-              type: 'text',
-              label: 'Tracking spedizione',
-            },
-            {
-              name: 'trackingCarrier',
-              type: 'text',
-              label: 'Corriere',
-            },
-          ],
-        },
-        {
-          label: 'Contenuti',
-          fields: [
-            {
-              name: 'sheetPhotos',
-              type: 'array',
-              label: 'Foto fogli',
-              admin: { description: 'Foto dei fogli fisici abbinati a questo ordine.' },
-              fields: [
-                { name: 'url', type: 'text', required: true, label: 'URL foto' },
-                { name: 'caption', type: 'text', label: 'Didascalia (es. A4 — flock denso, discromia ocra)' },
-              ],
-            },
-            {
-              name: 'contentBlocks',
-              type: 'array',
-              label: 'Blocchi contenuto (pagina cliente)',
-              admin: { description: 'Frank popola questi blocchi: guide, offerte, annunci. Visibili nella pagina cliente.' },
-              fields: [
-                {
-                  name: 'type',
-                  type: 'select',
-                  required: true,
-                  label: 'Tipo',
-                  options: [
-                    { label: 'Guida tecnica', value: 'guide' },
-                    { label: 'Annuncio produzione', value: 'announcement' },
-                    { label: 'Offerta', value: 'offer' },
-                    { label: 'Suggerimento', value: 'tip' },
-                  ],
-                },
-                { name: 'title', type: 'text', required: true, label: 'Titolo' },
-                { name: 'body', type: 'textarea', required: true, label: 'Testo' },
-                { name: 'ctaLabel', type: 'text', label: 'Testo CTA (opzionale)' },
-                { name: 'ctaUrl', type: 'text', label: 'URL CTA (opzionale)' },
-                { name: 'active', type: 'checkbox', defaultValue: true, label: 'Visibile' },
-                { name: 'expiresAt', type: 'date', label: 'Scade il (opzionale)' },
-              ],
-            },
-          ],
-        },
-        {
-          label: 'Avanzate',
-          fields: [
-            {
-              name: 'source',
-              type: 'select',
-              defaultValue: 'storefront',
-              label: 'Origine',
+              label: 'Tipo',
               options: [
-                { label: 'Storefront', value: 'storefront' },
-                { label: 'WooCommerce', value: 'woocommerce' },
-                { label: 'Manuale', value: 'manual' },
+                { label: 'Guida tecnica', value: 'guide' },
+                { label: 'Annuncio produzione', value: 'announcement' },
+                { label: 'Offerta', value: 'offer' },
+                { label: 'Suggerimento', value: 'tip' },
               ],
             },
-            {
-              name: 'customerLocale',
-              type: 'text',
-              label: 'Lingua cliente (es. it, en, de)',
-              admin: { description: 'Codice ISO 639-1. Usato per localizzare la pagina cliente.' },
-            },
-            {
-              name: 'pageToken',
-              type: 'text',
-              unique: true,
-              label: 'Token pagina cliente',
-              admin: {
-                readOnly: true,
-                description: 'UUID generato automaticamente. Usato come URL sicuro per la pagina cliente.',
-              },
-            },
-            {
-              name: 'revolutOrderId',
-              type: 'text',
-              label: 'Revolut Order ID',
-              admin: { readOnly: true },
-            },
-            {
-              name: 'revolutStatus',
-              type: 'text',
-              label: 'Revolut Status',
-              admin: { readOnly: true },
-            },
+            { name: 'title', type: 'text', required: true, label: 'Titolo' },
+            { name: 'body', type: 'textarea', required: true, label: 'Testo' },
+            { type: 'row', fields: [
+              { name: 'ctaLabel', type: 'text', label: 'CTA testo', admin: { width: '50%' } },
+              { name: 'ctaUrl', type: 'text', label: 'CTA URL', admin: { width: '50%' } },
+            ]},
+            { name: 'active', type: 'checkbox', defaultValue: true, label: 'Visibile' },
+            { name: 'expiresAt', type: 'date', label: 'Scade il (opzionale)' },
           ],
         },
+      ],
+    },
+
+    // ── Campi tecnici (nascosti) ──────────────────────────────────
+    {
+      type: 'collapsible',
+      label: 'Dati tecnici',
+      admin: { initCollapsed: true },
+      fields: [
+        {
+          name: 'source',
+          type: 'select',
+          defaultValue: 'storefront',
+          label: 'Origine',
+          options: [
+            { label: 'Storefront', value: 'storefront' },
+            { label: 'WooCommerce', value: 'woocommerce' },
+            { label: 'Manuale', value: 'manual' },
+          ],
+        },
+        { name: 'pageToken', type: 'text', unique: true, label: 'Token pagina cliente', admin: { readOnly: true } },
+        { name: 'revolutOrderId', type: 'text', label: 'Revolut Order ID', admin: { readOnly: true } },
+        { name: 'revolutStatus', type: 'text', label: 'Revolut Status', admin: { readOnly: true } },
       ],
     },
   ],
