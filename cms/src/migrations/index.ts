@@ -15,6 +15,7 @@ import * as migration_20260601_220000_localize_variant_pack_fields from './20260
 import * as migration_20260602_100000_add_variant_image from './20260602_100000_add_variant_image';
 import * as migration_20260605_120000_fix_orders_array_column_names from './20260605_120000_fix_orders_array_column_names';
 import * as migration_20260605_130000_fix_customers_tags from './20260605_130000_fix_customers_tags';
+import * as migration_20260607_120000_add_billing_fields_to_orders from './20260607_120000_add_billing_fields_to_orders';
 
 export const migrations = [
   {
@@ -101,5 +102,10 @@ export const migrations = [
     up: migration_20260605_130000_fix_customers_tags.up,
     down: migration_20260605_130000_fix_customers_tags.down,
     name: '20260605_130000_fix_customers_tags',
+  },
+  {
+    up: migration_20260607_120000_add_billing_fields_to_orders.up,
+    down: migration_20260607_120000_add_billing_fields_to_orders.down,
+    name: '20260607_120000_add_billing_fields_to_orders',
   },
 ];

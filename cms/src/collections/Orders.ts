@@ -310,6 +310,52 @@ export const Orders: CollectionConfig = {
       label: 'Note interne (solo Alessandro)',
     },
 
+    // ── Dati fatturazione ─────────────────────────────────────────
+    {
+      type: 'collapsible',
+      label: 'Dati fatturazione',
+      admin: {
+        initCollapsed: false,
+        description: 'Compilare per generare fattura. Se uguale alla spedizione lasciare vuoto.',
+      },
+      fields: [
+        {
+          name: 'billingSameAsShipping',
+          type: 'checkbox',
+          defaultValue: true,
+          label: 'Indirizzo fatturazione = indirizzo spedizione',
+        },
+        {
+          type: 'row',
+          fields: [
+            { name: 'billingCompanyName', type: 'text', label: 'Ragione sociale', admin: { width: '50%' } },
+            { name: 'billingVatNumber', type: 'text', label: 'P.IVA / Codice Fiscale', admin: { width: '30%', description: 'IT12345678901' } },
+            { name: 'billingSdiCode', type: 'text', label: 'Codice SDI', admin: { width: '20%', description: 'Es. 0000000' } },
+          ],
+        },
+        {
+          name: 'billingAddress',
+          type: 'group',
+          label: 'Indirizzo fatturazione (se diverso)',
+          admin: {
+            condition: (data) => data.billingSameAsShipping === false,
+          },
+          fields: [
+            { name: 'name', type: 'text', label: 'Intestatario' },
+            { type: 'row', fields: [
+              { name: 'address1', type: 'text', label: 'Via/Piazza', admin: { width: '70%' } },
+              { name: 'address2', type: 'text', label: 'Interno', admin: { width: '30%' } },
+            ]},
+            { type: 'row', fields: [
+              { name: 'city', type: 'text', label: 'Città', admin: { width: '40%' } },
+              { name: 'postalCode', type: 'text', label: 'CAP', admin: { width: '30%' } },
+              { name: 'country', type: 'text', label: 'Paese', admin: { width: '30%' } },
+            ]},
+          ],
+        },
+      ],
+    },
+
     // ── Foto fogli ────────────────────────────────────────────────
     {
       type: 'collapsible',
