@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/account-auth'
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ orderId: string }> }
@@ -11,6 +9,7 @@ export async function POST(
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
   const { orderId } = await params
   const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL ?? process.env.PAYLOAD_PUBLIC_URL
 
