@@ -138,7 +138,7 @@ def main() -> None:
         print("Modalità: DRY RUN (nessuna scrittura)")
     print()
 
-    with httpx.Client(timeout=30) as client:
+    with httpx.Client(timeout=30, follow_redirects=True) as client:
         # Login Payload
         if not args.dry_run:
             print("Login Payload CMS...")

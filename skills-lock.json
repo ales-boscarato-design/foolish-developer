@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "payload": {
+      "source": "smithery.ai",
+      "sourceType": "well-known",
+      "computedHash": "580a7f579df2e9821dd65011098f7547e94c769f006a8fd5f62083b48abc4b80"
+    }
+  }
+}
