@@ -1,6 +1,6 @@
 import sql from './db'
 
-export type EmailType = 'welcome' | 'abandoned_cart' | 'review_request' | 'reengagement'
+export type EmailType = 'welcome' | 'abandoned_cart' | 'review_request' | 'reengagement' | 'magic_link' | 'push_offer'
 
 export interface Subscriber {
   id: string
