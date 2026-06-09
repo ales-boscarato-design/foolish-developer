@@ -7,13 +7,13 @@ import { motion, useScroll, useTransform, useSpring } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import { useCart } from '@/lib/cart'
 import { Link, usePathname, useRouter } from '@/i18n/navigation'
+import NextLink from 'next/link'
 import { useLocale } from 'next-intl'
 import { routing } from '@/i18n/routing'
 
 const links = [
   { href: '/tattoo' as const, labelKey: 'tattoo' as const, accent: false },
   { href: '/pmu' as const, labelKey: 'pmu' as const, accent: false },
-  { href: '/account' as const, labelKey: 'account' as const, accent: false },
 ]
 
 const LOCALE_LABELS: Record<string, string> = {
@@ -136,6 +136,18 @@ export function Nav({ hasLimitedProducts = true }: NavProps) {
                 </Link>
               </motion.div>
             ))}
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 + links.length * 0.08, duration: 0.4, ease: 'easeOut' }}
+            >
+              <NextLink
+                href="/account"
+                className="tracking-wide transition-colors hover:text-[var(--accent)] text-[var(--muted-fg)]"
+              >
+                {t('account')}
+              </NextLink>
+            </motion.div>
             {hasLimitedProducts && (
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
@@ -209,6 +221,14 @@ export function Nav({ hasLimitedProducts = true }: NavProps) {
               {t(l.labelKey)}
             </Link>
           ))}
+          <NextLink
+            href="/account"
+            onClick={() => setOpen(false)}
+            className="block px-6 py-4 text-sm font-medium tracking-wide border-b transition-colors hover:text-[var(--accent)] text-[var(--muted-fg)]"
+            style={{ borderColor: 'var(--border)' }}
+          >
+            {t('account')}
+          </NextLink>
           {hasLimitedProducts && (
             <Link
               href="/limited"
