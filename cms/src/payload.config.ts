@@ -11,6 +11,7 @@ import { Customers } from './collections/Customers'
 import { Media } from './collections/Media'
 import { ProMembers } from './collections/ProMembers'
 import { PromoCodes } from './collections/PromoCodes'
+import { CustomerFiles } from './collections/CustomerFiles'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -46,6 +47,7 @@ export default buildConfig({
     Media,
     ProMembers,
     PromoCodes,
+    CustomerFiles,
     {
       slug: 'users',
       auth: true,
