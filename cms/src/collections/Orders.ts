@@ -389,11 +389,103 @@ const notifyAlessandroByEmail: CollectionAfterChangeHook = async ({ doc, operati
   }
 }
 
+const TRACKING_STRINGS: Record<string, {
+  subject: string; heading: string; body: string;
+  trackLabel: string; carrierLabel: string; footer: string;
+}> = {
+  it: {
+    subject: 'Il tuo ordine è in viaggio',
+    heading: 'Spedito!',
+    body: 'Il tuo ordine è stato spedito. Puoi tracciarlo usando le informazioni qui sotto.',
+    trackLabel: 'Traccia il tuo ordine →',
+    carrierLabel: 'Corriere',
+    footer: 'The Foolish Butcher · Chieri (TO), Italia · Made in Italy',
+  },
+  en: {
+    subject: 'Your order is on its way',
+    heading: 'Shipped!',
+    body: 'Your order has been shipped. You can track it using the information below.',
+    trackLabel: 'Track your order →',
+    carrierLabel: 'Carrier',
+    footer: 'The Foolish Butcher · Chieri (TO), Italy · Made in Italy',
+  },
+  de: {
+    subject: 'Ihre Bestellung ist unterwegs',
+    heading: 'Versendet!',
+    body: 'Ihre Bestellung wurde versendet. Sie können sie mit den folgenden Informationen verfolgen.',
+    trackLabel: 'Bestellung verfolgen →',
+    carrierLabel: 'Transportunternehmen',
+    footer: 'The Foolish Butcher · Chieri (TO), Italien · Made in Italy',
+  },
+  fr: {
+    subject: 'Votre commande est en route',
+    heading: 'Expédié !',
+    body: 'Votre commande a été expédiée. Vous pouvez la suivre avec les informations ci-dessous.',
+    trackLabel: 'Suivre ma commande →',
+    carrierLabel: 'Transporteur',
+    footer: 'The Foolish Butcher · Chieri (TO), Italie · Made in Italy',
+  },
+  es: {
+    subject: 'Tu pedido está en camino',
+    heading: '¡Enviado!',
+    body: 'Tu pedido ha sido enviado. Puedes rastrearlo con la información a continuación.',
+    trackLabel: 'Rastrear mi pedido →',
+    carrierLabel: 'Transportista',
+    footer: 'The Foolish Butcher · Chieri (TO), Italia · Made in Italy',
+  },
+}
+
+const sendTrackingEmail: CollectionAfterChangeHook = async ({ doc, previousDoc, operation }) => {
+  if (operation !== 'update') return
+  if (!doc.trackingNumber) return
+  if (previousDoc?.trackingNumber === doc.trackingNumber) return
+  if (!doc.customerEmail) return
+
+  const locale = (doc.customerLocale as string | null) ?? 'it'
+  const t = TRACKING_STRINGS[locale] ?? TRACKING_STRINGS['en']!
+
+  const resendKey = process.env.RESEND_API_KEY
+  const fromEmail = process.env.RESEND_FROM ?? 'The Foolish Butcher <ordini@updates.thefoolishbutcher.com>'
+  if (!resendKey) return
+
+  const storeFrontUrl = process.env.STOREFRONT_URL ?? 'https://thefoolishbutcher.com'
+  const trackingUrl = `${storeFrontUrl}/ordine/${doc.pageToken}`
+
+  const html = `
+    <div style="font-family:monospace;max-width:480px;margin:0 auto;background:#0d0d0d;color:#fff;padding:32px;">
+      <div style="font-size:11px;letter-spacing:2px;color:#555;text-transform:uppercase;margin-bottom:24px;">The Foolish Butcher</div>
+      <h1 style="font-size:22px;font-weight:300;color:#c9a96e;margin-bottom:16px;">${t.heading}</h1>
+      <p style="color:#aaa;margin-bottom:24px;">${t.body}</p>
+      <div style="background:#111;border:1px solid #333;border-radius:6px;padding:16px;margin-bottom:24px;">
+        <div style="color:#555;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">${t.carrierLabel}</div>
+        <div style="color:#fff;font-size:14px;font-family:monospace;">${doc.trackingCarrier ?? ''} · ${doc.trackingNumber}</div>
+      </div>
+      <a href="${trackingUrl}" style="display:inline-block;background:#c9a96e;color:#000;padding:12px 24px;text-decoration:none;font-weight:bold;font-size:13px;border-radius:4px;">${t.trackLabel}</a>
+      <p style="color:#444;font-size:11px;margin-top:32px;">${t.footer}</p>
+    </div>
+  `
+
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: doc.customerEmail,
+        subject: t.subject,
+        html,
+      }),
+    })
+  } catch (err) {
+    console.error('[Orders] sendTrackingEmail error:', err)
+  }
+}
+
 export const Orders: CollectionConfig = {
   slug: 'orders',
   hooks: {
     beforeChange: [generatePageToken],
-    afterChange: [sendOrderConfirmation, notifyNanobot, notifyAlessandroByEmail, syncCustomer],
+    afterChange: [sendOrderConfirmation, notifyNanobot, notifyAlessandroByEmail, syncCustomer, sendTrackingEmail],
   },
   admin: {
     useAsTitle: 'orderNumber',
