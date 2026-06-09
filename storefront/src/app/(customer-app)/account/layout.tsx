@@ -1,6 +1,12 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/account-auth'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+  manifest: '/manifest.json',
+  themeColor: '#0d0d0d',
+}
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession()
