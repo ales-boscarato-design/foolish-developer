@@ -27,13 +27,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  // Check subscriber exists and is active
+  // Upsert subscriber — create if not exists so anyone can register
   const rows = await sql<{ email: string; name: string | null; locale: string }[]>`
-    SELECT email, name, locale FROM marketing.subscribers
-    WHERE email = ${email} AND status = 'active'
-    LIMIT 1
+    INSERT INTO marketing.subscribers (email, status, locale)
+    VALUES (${email}, 'active', 'it')
+    ON CONFLICT (email) DO UPDATE SET status = CASE
+      WHEN marketing.subscribers.status = 'unsubscribed' THEN 'active'
+      ELSE marketing.subscribers.status
+    END
+    RETURNING email, name, locale
   `
-  // Always return ok to avoid email enumeration
   if (!rows.length) return NextResponse.json({ ok: true })
 
   const subscriber = rows[0]!
