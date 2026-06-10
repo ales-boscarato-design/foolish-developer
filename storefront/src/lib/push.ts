@@ -1,11 +1,19 @@
 import webpush from 'web-push'
 import sql from './db'
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT!,
-  process.env.VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-)
+// Lazy init: setVapidDetails runs only at request time, not during build.
+let initialized = false
+function wp() {
+  if (!initialized) {
+    webpush.setVapidDetails(
+      process.env.VAPID_SUBJECT!,
+      process.env.VAPID_PUBLIC_KEY!,
+      process.env.VAPID_PRIVATE_KEY!
+    )
+    initialized = true
+  }
+  return webpush
+}
 
 export interface PushPayload {
   title: string
@@ -22,13 +30,12 @@ export async function sendPushToEmail(email: string, payload: PushPayload): Prom
   if (!rows.length || !rows[0]?.push_subscription) return false
 
   try {
-    await webpush.sendNotification(
+    await wp().sendNotification(
       rows[0].push_subscription as webpush.PushSubscription,
       JSON.stringify(payload)
     )
     return true
   } catch (err: unknown) {
-    // Subscription expired or invalid — clear it
     if (typeof err === 'object' && err !== null && 'statusCode' in err) {
       const statusCode = (err as { statusCode: number }).statusCode
       if (statusCode === 410 || statusCode === 404) {
