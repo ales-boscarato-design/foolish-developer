@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/account-auth'
 import { getAccountLocale, getT } from '@/lib/account-i18n'
 import Link from 'next/link'
+import { PwaInstallBanner } from './_components/PwaInstallBanner'
 
 export const metadata: Metadata = {
   manifest: '/manifest.json',
@@ -22,6 +23,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
           __html: `if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js')`,
         }}
       />
+      <PwaInstallBanner />
       <main style={{ flex: 1, overflowY: 'auto', paddingBottom: '60px' }}>
         {children}
       </main>

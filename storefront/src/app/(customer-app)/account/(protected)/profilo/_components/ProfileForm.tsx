@@ -29,10 +29,20 @@ const LOCALES = [
   { code: 'es', label: '🇪🇸 ES' },
 ]
 
+function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const raw = window.atob(base64)
+  const buffer = new ArrayBuffer(raw.length)
+  const output = new Uint8Array(buffer)
+  for (let i = 0; i < raw.length; i++) output[i] = raw.charCodeAt(i)
+  return buffer
+}
+
 export function ProfileForm({ level, styles, locale, notifyOrders, notifyNewBatches, notifyOffers, pushPublicKey, labels }: ProfileFormProps) {
   const [form, setForm] = useState({ level, styles, locale, notifyOrders, notifyNewBatches, notifyOffers })
   const [saved, setSaved] = useState(false)
-  const [pushStatus, setPushStatus] = useState<'unknown'|'active'|'denied'>('unknown')
+  const [pushStatus, setPushStatus] = useState<'unknown'|'active'|'denied'|'loading'>('unknown')
 
   async function save(updates: Partial<typeof form>) {
     const prevLocale = form.locale
@@ -56,12 +66,24 @@ export function ProfileForm({ level, styles, locale, notifyOrders, notifyNewBatc
 
   async function enablePush() {
     if (!('Notification' in window) || !('serviceWorker' in navigator)) return
-    const permission = await Notification.requestPermission()
-    if (permission !== 'granted') { setPushStatus('denied'); return }
-    const reg = await navigator.serviceWorker.ready
-    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: pushPublicKey })
-    await fetch('/api/account/push-subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub.toJSON()) })
-    setPushStatus('active')
+    setPushStatus('loading')
+    try {
+      const permission = await Notification.requestPermission()
+      if (permission !== 'granted') { setPushStatus('denied'); return }
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(pushPublicKey),
+      })
+      await fetch('/api/account/push-subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sub.toJSON()),
+      })
+      setPushStatus('active')
+    } catch {
+      setPushStatus('unknown')
+    }
   }
 
   async function logout() {
@@ -138,6 +160,8 @@ export function ProfileForm({ level, styles, locale, notifyOrders, notifyNewBatc
             <div style={{ fontSize: '11px', color: '#5a7a5a' }}>{labels.pushActive}</div>
           ) : pushStatus === 'denied' ? (
             <div style={{ fontSize: '11px', color: '#888' }}>{labels.pushDenied}</div>
+          ) : pushStatus === 'loading' ? (
+            <div style={{ fontSize: '11px', color: '#c9a96e', opacity: 0.6 }}>...</div>
           ) : (
             <button onClick={enablePush}
               style={{ background: '#1a1a1a', color: '#c9a96e', border: '1px solid #c9a96e44', fontSize: '11px', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}>
