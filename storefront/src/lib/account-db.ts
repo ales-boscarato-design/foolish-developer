@@ -50,7 +50,7 @@ export async function updateSubscriberProfile(
 
   // Build individual updates to avoid sql.unsafe parameter binding issues
   if (data.level !== undefined) await sql`UPDATE marketing.subscribers SET level = ${data.level ?? null}, updated_at = NOW() WHERE email = ${email}`
-  if (data.styles !== undefined) await sql`UPDATE marketing.subscribers SET styles = ${data.styles as string[]}, updated_at = NOW() WHERE email = ${email}`
+  if (data.styles !== undefined) await sql`UPDATE marketing.subscribers SET styles = ${sql.array(data.styles)}::text[], updated_at = NOW() WHERE email = ${email}`
   if (data.locale !== undefined) await sql`UPDATE marketing.subscribers SET locale = ${data.locale}, updated_at = NOW() WHERE email = ${email}`
   if (data.notify_orders !== undefined) await sql`UPDATE marketing.subscribers SET notify_orders = ${data.notify_orders}, updated_at = NOW() WHERE email = ${email}`
   if (data.notify_new_batches !== undefined) await sql`UPDATE marketing.subscribers SET notify_new_batches = ${data.notify_new_batches}, updated_at = NOW() WHERE email = ${email}`

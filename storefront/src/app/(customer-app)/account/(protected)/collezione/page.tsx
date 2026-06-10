@@ -5,12 +5,12 @@ import { getAccountLocale, getT } from '@/lib/account-i18n'
 interface SheetPhoto { url: string; caption?: string }
 interface OrderDoc { orderNumber: string; sheetPhotos?: SheetPhoto[]; lineItems?: { variantLabel?: string }[]; pipelineState: string }
 
-function extractFormat(lineItems?: { variantLabel?: string }[]): string {
+function extractFormat(lineItems?: { variantLabel?: string }[], fallback = 'Other'): string {
   const label = lineItems?.[0]?.variantLabel ?? ''
   if (label.includes('A4')) return 'A4'
   if (label.includes('A5')) return 'A5'
   if (label.includes('XXL')) return 'XXL'
-  return 'Altro'
+  return fallback
 }
 
 export default async function Collezionepage() {
@@ -34,7 +34,7 @@ export default async function Collezionepage() {
     if (!order.sheetPhotos?.length) return []
     return order.sheetPhotos.map((photo) => ({
       ...photo,
-      format: extractFormat(order.lineItems),
+      format: extractFormat(order.lineItems, t('other_format')),
       orderNumber: order.orderNumber,
       isActive: ACTIVE_STATES.includes(order.pipelineState),
     }))

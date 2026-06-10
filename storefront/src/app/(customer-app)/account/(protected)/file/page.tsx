@@ -99,7 +99,7 @@ export default async function FilePage() {
             >
               {t('buy')}
             </a>
-            <WishlistItemActions slug={item.product_slug} name={item.product_name} />
+            <WishlistItemActions slug={item.product_slug} name={item.product_name} removeLabel={t('remove')} />
           </div>
         ))}
       </div>

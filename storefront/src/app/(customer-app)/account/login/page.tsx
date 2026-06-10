@@ -1,10 +1,20 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { getT, getClientLocale } from '@/lib/account-translations'
+import type { AccountLocale } from '@/lib/account-translations'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [locale, setLocale] = useState<AccountLocale>('it')
+  const searchParams = useSearchParams()
+  const error = searchParams.get('error')
+
+  useEffect(() => { setLocale(getClientLocale()) }, [])
+
+  const t = getT(locale)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -24,24 +34,31 @@ export default function LoginPage() {
         <div style={{ fontSize: '11px', letterSpacing: '2px', color: '#555', textTransform: 'uppercase', marginBottom: '24px' }}>
           The Foolish Butcher
         </div>
+
+        {error && (
+          <div style={{ background: '#3a1a1a', border: '1px solid #c9696944', color: '#c96969', fontSize: '12px', padding: '10px 12px', borderRadius: '6px', marginBottom: '16px' }}>
+            {error === 'expired' ? t('login_error_expired') : t('login_error_missing')}
+          </div>
+        )}
+
         {sent ? (
           <div>
-            <h1 style={{ fontSize: '22px', fontWeight: 300, color: '#fff', marginBottom: '12px' }}>Controlla la tua email</h1>
+            <h1 style={{ fontSize: '22px', fontWeight: 300, color: '#fff', marginBottom: '12px' }}>{t('login_sent_title')}</h1>
             <p style={{ color: '#666', fontSize: '13px' }}>
-              Ti abbiamo inviato un link di accesso a <strong style={{ color: '#aaa' }}>{email}</strong>. Scade in 15 minuti.
+              {t('login_sent_msg').split('$email')[0]}
+              <strong style={{ color: '#aaa' }}>{email}</strong>
+              {t('login_sent_msg').split('$email')[1]}
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
-            <h1 style={{ fontSize: '22px', fontWeight: 300, color: '#fff', marginBottom: '8px' }}>La tua area</h1>
-            <p style={{ color: '#666', fontSize: '13px', marginBottom: '24px' }}>
-              Inserisci la tua email per ricevere il link di accesso.
-            </p>
+            <h1 style={{ fontSize: '22px', fontWeight: 300, color: '#fff', marginBottom: '8px' }}>{t('login_title')}</h1>
+            <p style={{ color: '#666', fontSize: '13px', marginBottom: '24px' }}>{t('login_subtitle')}</p>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="email@esempio.it"
+              placeholder={t('login_placeholder')}
               required
               style={{
                 width: '100%', padding: '12px', background: '#111', border: '1px solid #333',
@@ -58,7 +75,7 @@ export default function LoginPage() {
                 cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
               }}
             >
-              {loading ? 'Invio...' : 'Invia link →'}
+              {loading ? t('login_sending') : t('login_button')}
             </button>
           </form>
         )}
