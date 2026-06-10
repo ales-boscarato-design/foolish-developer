@@ -2,6 +2,10 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
+import wallDataRaw from '@/data/sebo-wall.json'
+
+interface WallEntry { id: string; image: string; line: string; date: string; platform_url?: string }
+const wallData = wallDataRaw as WallEntry[]
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('sebo')
@@ -15,195 +19,203 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-const CDN = process.env.NEXT_PUBLIC_FRANK_CDN ?? ''
-const HERO_VIDEO = CDN ? `${CDN}/scene_02_clip.mp4` : ''
-const HERO_POSTER = '/frank/frank-02.png'
-
-const OBSESSION_IDS = [
-  { id: 'flock',     img: '/frank/frank-01.png' },
-  { id: 'discromie', img: '/frank/frank-03.png' },
-  { id: 'catalisi',  img: '/frank/frank-lab.png' },
-  { id: 'pelleViva', img: '/frank/frank-02.png' },
-] as const
-
 export default async function SeboPage() {
   const t = await getTranslations('sebo')
 
   return (
     <div style={{ backgroundColor: '#0a0806', color: '#e8dcc8' }}>
 
-      {/* ── HERO ── */}
-      <section className="relative h-screen flex items-start overflow-hidden">
-        {HERO_VIDEO ? (
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            poster={HERO_POSTER}
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ filter: 'brightness(0.45) sepia(0.3)' }}
-          >
-            <source src={HERO_VIDEO} type="video/mp4" />
-          </video>
-        ) : (
-          <Image
-            src={HERO_POSTER}
-            alt={t('imageAlt')}
-            fill
-            className="object-cover object-top"
-            priority
-            style={{ filter: 'brightness(0.4) sepia(0.3)' }}
-          />
-        )}
-
+      {/* ── HERO — manifesto poster ── */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+        {/* Placeholder bg until LoRA image is ready */}
         <div
           className="absolute inset-0"
-          style={{ background: 'linear-gradient(to bottom, #0a0806 0%, rgba(10,8,6,0.6) 40%, transparent 100%)' }}
+          style={{ background: 'radial-gradient(ellipse at 50% 40%, #1a1108 0%, #0a0806 70%)' }}
+        />
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 39px, #c9a96e22 39px, #c9a96e22 40px)' }}
         />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-8 md:px-16 pt-16 w-full">
-          <p className="text-xs font-bold tracking-[0.4em] uppercase mb-4" style={{ color: '#c9a96e' }}>
-            {t('hero.eyebrow')}
+        <div className="relative z-10 text-center px-8 max-w-4xl mx-auto">
+          <p className="text-xs font-bold tracking-[0.5em] uppercase mb-12" style={{ color: '#c9a96e' }}>
+            THE FOOLISH BUTCHER · PRACTICE SKIN
           </p>
           <h1
-            className="font-display leading-none mb-4"
-            style={{ fontSize: 'clamp(72px, 14vw, 180px)', color: '#e8dcc8' }}
+            className="font-display leading-none whitespace-pre-line"
+            style={{ fontSize: 'clamp(48px, 11vw, 144px)', color: '#e8dcc8', letterSpacing: '-0.02em' }}
           >
-            SEBO
+            {t('hero.manifesto')}
           </h1>
-          <p className="text-base max-w-md" style={{ color: '#a89880' }}>
-            {t('hero.sub')}
-          </p>
         </div>
       </section>
 
-      {/* ── CHI È SEBO ── */}
-      <section className="max-w-3xl mx-auto px-8 md:px-16 py-24">
+      {/* ── CHI È SEBO ── 3 lines ── */}
+      <section className="max-w-2xl mx-auto px-8 md:px-16 py-24">
         <p className="text-xs font-bold tracking-[0.35em] uppercase mb-10" style={{ color: '#c9a96e' }}>
-          {t('lore.eyebrow')}
+          {t('bio.eyebrow')}
         </p>
-
-        <div className="space-y-6 text-base leading-relaxed" style={{ color: '#c8bfb0' }}>
-          <p style={{ fontSize: '1.15rem', color: '#e8dcc8', fontWeight: 500 }}>
-            {t('lore.p1')}
+        <div className="space-y-5" style={{ color: '#c8bfb0' }}>
+          <p style={{ fontSize: '1.15rem', color: '#e8dcc8', fontWeight: 500, lineHeight: 1.6 }}>
+            {t('bio.p1')}
           </p>
-          <p>{t('lore.p2')}</p>
-          <p>{t('lore.p3')}</p>
-          <p>{t('lore.p4')}</p>
-          <p className="italic" style={{ color: '#a89880', borderLeft: '2px solid #c9a96e', paddingLeft: '1.25rem' }}>
-            {t('lore.quote')}
-          </p>
+          <p style={{ fontSize: '1rem', lineHeight: 1.7 }}>{t('bio.p2')}</p>
+          <p style={{ fontSize: '1rem', lineHeight: 1.7 }}>{t('bio.p3')}</p>
         </div>
       </section>
 
-      {/* ── LE SUE OSSESSIONI ── */}
+      {/* ── IL MURO ── wall grid ── */}
       <section className="border-t py-24" style={{ borderColor: '#1e1812' }}>
         <div className="max-w-7xl mx-auto px-8 md:px-16">
           <p className="text-xs font-bold tracking-[0.35em] uppercase mb-12" style={{ color: '#c9a96e' }}>
-            {t('obsessions.eyebrow')}
+            {t('wall.eyebrow')}
           </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {OBSESSION_IDS.map(({ id, img }) => (
-              <div key={id} className="group">
-                <div className="relative aspect-[3/4] rounded overflow-hidden mb-5">
-                  <Image
-                    src={img}
-                    alt={`Sebo — ${t(`obsessions.${id}.label` as never).toLowerCase()}`}
-                    fill
-                    className="object-cover transition-transform duration-700 group-hover:scale-105"
-                    style={{ filter: 'brightness(0.7) sepia(0.4)' }}
-                  />
-                  <div
-                    className="absolute inset-0"
-                    style={{ background: 'linear-gradient(to top, #0a0806 0%, transparent 60%)' }}
-                  />
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <p className="text-xs font-bold tracking-[0.3em] uppercase mb-1" style={{ color: '#c9a96e' }}>
-                      {t(`obsessions.${id}.label` as never)}
-                    </p>
-                  </div>
-                </div>
-                <p className="text-sm italic leading-relaxed" style={{ color: '#a89880' }}>
-                  &ldquo;{t(`obsessions.${id}.quote` as never)}&rdquo;
-                </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {wallData.map((entry) => (
+              <div key={entry.id} className="group relative">
+                {entry.platform_url ? (
+                  <a
+                    href={entry.platform_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
+                    <WallTile image={entry.image} line={entry.line} />
+                  </a>
+                ) : (
+                  <WallTile image={entry.image} line={entry.line} />
+                )}
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── IL BANCO È APERTO ── */}
+      {/* ── STICKERS ── */}
       <section className="border-t py-24" style={{ borderColor: '#1e1812' }}>
         <div className="max-w-7xl mx-auto px-8 md:px-16">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div className="relative aspect-[4/5] rounded overflow-hidden order-2 md:order-1">
-              <Image
-                src="/frank/frank-lab.png"
-                alt={t('imageAlt')}
-                fill
-                className="object-cover object-top"
-                style={{ filter: 'brightness(0.65) sepia(0.35)' }}
-              />
-            </div>
-
-            <div className="order-1 md:order-2">
-              <p className="text-xs font-bold tracking-[0.4em] uppercase mb-6" style={{ color: '#c9a96e' }}>
-                {t('cta.eyebrow')}
-              </p>
-              <h2
-                className="font-display leading-none mb-10"
-                style={{ fontSize: 'clamp(40px, 6vw, 72px)', color: '#e8dcc8' }}
-              >
-                {t('cta.title')}
-              </h2>
-
-              {/* CTA 1 — drops */}
-              <div className="mb-8">
-                <a
-                  href="https://t.me/+f6VDb9iZdw5lMTE0"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-3 px-8 py-4 font-semibold text-sm tracking-widest uppercase transition-opacity hover:opacity-80 mb-3"
-                  style={{ backgroundColor: '#c9a96e', color: '#0a0806' }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.04 9.614c-.146.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.903.607z"/>
-                  </svg>
-                  {t('cta.drops.button')}
-                </a>
-                <p className="text-xs" style={{ color: '#6b6055' }}>
-                  {t('cta.drops.note')}
-                </p>
-              </div>
-
-              {/* CTA 2 — lab support */}
-              <div>
-                <a
-                  href="https://t.me/the_foolish_butcher_bot"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-3 px-8 py-4 font-semibold text-sm tracking-widest uppercase border transition-opacity hover:opacity-70 mb-3"
-                  style={{ borderColor: '#c9a96e', color: '#c9a96e' }}
-                >
-                  {t('cta.support.button')}
-                </a>
-                <p className="text-xs" style={{ color: '#6b6055' }}>
-                  {t('cta.support.note')}
-                </p>
-              </div>
-            </div>
+          <p className="text-xs font-bold tracking-[0.35em] uppercase mb-8" style={{ color: '#c9a96e' }}>
+            {t('stickers.eyebrow')}
+          </p>
+          <div
+            className="border rounded-lg px-8 py-12 text-center"
+            style={{ borderColor: '#1e1812', borderStyle: 'dashed' }}
+          >
+            <p
+              className="font-display leading-none mb-4"
+              style={{ fontSize: 'clamp(22px, 4vw, 48px)', color: '#2a2318' }}
+            >
+              Sbaglia su di me.
+            </p>
+            <p className="text-sm italic" style={{ color: '#555' }}>
+              {t('stickers.comingSoon')}
+            </p>
           </div>
         </div>
       </section>
 
+      {/* ── CTA ── */}
+      <section className="border-t py-24" style={{ borderColor: '#1e1812' }}>
+        <div className="max-w-3xl mx-auto px-8 md:px-16">
+          <p className="text-xs font-bold tracking-[0.4em] uppercase mb-10" style={{ color: '#c9a96e' }}>
+            {t('cta.eyebrow')}
+          </p>
+
+          {/* Instagram — primary */}
+          <div className="mb-8">
+            <a
+              href="https://www.instagram.com/thefoolishbutcher"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 px-8 py-4 font-semibold text-sm tracking-widest uppercase transition-opacity hover:opacity-80 mb-3"
+              style={{ backgroundColor: '#c9a96e', color: '#0a0806' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+              </svg>
+              {t('cta.instagram.button')}
+            </a>
+            <p className="text-xs" style={{ color: '#6b6055' }}>
+              {t('cta.instagram.note')}
+            </p>
+          </div>
+
+          {/* Telegram — secondary */}
+          <div className="mb-8">
+            <a
+              href="https://t.me/+f6VDb9iZdw5lMTE0"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 px-8 py-4 font-semibold text-sm tracking-widest uppercase border transition-opacity hover:opacity-70 mb-3"
+              style={{ borderColor: '#c9a96e', color: '#c9a96e' }}
+            >
+              {t('cta.telegram.button')}
+            </a>
+            <p className="text-xs" style={{ color: '#6b6055' }}>
+              {t('cta.telegram.note')}
+            </p>
+          </div>
+
+          {/* Orders bot */}
+          <div>
+            <a
+              href="https://t.me/the_foolish_butcher_bot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs tracking-widest uppercase hover:opacity-60 transition-opacity"
+              style={{ color: '#444' }}
+            >
+              {t('cta.support.button')}
+            </a>
+            <p className="text-xs mt-1" style={{ color: '#444' }}>
+              {t('cta.support.note')}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Il Pellaio cross-link ── */}
+      <div className="max-w-7xl mx-auto px-8 md:px-16 py-12 border-t" style={{ borderColor: '#1e1812' }}>
+        <p className="text-sm italic" style={{ color: '#555' }}>
+          {t('pellaioLink')}{' '}
+          <Link href="/laboratorio" className="underline hover:opacity-60 transition-opacity" style={{ color: '#6b6055' }}>
+            /laboratorio
+          </Link>
+        </p>
+      </div>
+
       {/* ── Back link ── */}
-      <div className="max-w-7xl mx-auto px-8 md:px-16 pb-16 border-t pt-8" style={{ borderColor: '#1e1812' }}>
+      <div className="max-w-7xl mx-auto px-8 md:px-16 pb-16">
         <Link href="/" className="text-xs tracking-widest uppercase hover:opacity-60 transition-opacity" style={{ color: '#6b6055' }}>
           {t('backToShop')}
         </Link>
       </div>
 
+    </div>
+  )
+}
+
+function WallTile({ image, line }: { image: string; line: string }) {
+  return (
+    <div className="relative aspect-square rounded overflow-hidden bg-[#111]">
+      <Image
+        src={image}
+        alt={line}
+        fill
+        className="object-cover transition-transform duration-700 group-hover:scale-105"
+        style={{ filter: 'brightness(0.8)' }}
+        onError={() => {/* placeholder shows bg */}}
+      />
+      <div
+        className="absolute inset-0"
+        style={{ background: 'linear-gradient(to top, rgba(10,8,6,0.9) 0%, transparent 50%)' }}
+      />
+      <p
+        className="absolute bottom-3 left-3 right-3 text-xs leading-relaxed italic"
+        style={{ color: '#c8bfb0' }}
+      >
+        {line}
+      </p>
     </div>
   )
 }

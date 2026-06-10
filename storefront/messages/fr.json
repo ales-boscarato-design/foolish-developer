@@ -7,6 +7,8 @@
     "limited": "🔥 Premium",
     "contatti": "Contacts",
     "account": "Compte",
+    "sebo": "Sebo",
+    "laboratorio": "Atelier",
     "logoAlt": "The Foolish Butcher"
   },
   "footer": {
@@ -425,7 +427,7 @@
     "body": "Pas Alessandro. Mais chaque feuille qui sort d'ici, il l'a déjà touchée, sentie, jugée. Les peaux bon marché, il les appelle 'menteuses.'",
     "cta_short": "Rencontrer Frank"
   },
-  "sebo": {
+  "laboratorio": {
     "meta": {
       "description": "Le Peaussier. Gardien des peaux vivantes. Il les sent respirer, suer, guérir. Il ne dort pas : il veille."
     },
@@ -434,11 +436,11 @@
       "sub": "Le Peaussier. Il parle aux peaux. Les sent respirer."
     },
     "lore": {
-      "eyebrow": "QUI EST SEBO",
-      "p1": "Sebo n'est pas un personnage. C'est une conséquence.",
-      "p2": "Depuis 2012, depuis que l'atelier produit ses peaux, il fallait quelqu'un pour veiller sur elles. Sebo est ce quelqu'un — même si \"quelqu'un\" est généreux. Un croisement entre un nain et quelque chose de plus ancien : le familier que tout véritable atelier artisanal porte en lui.",
-      "p3": "Douze ans de vapeurs d'établi, de catalyse, de peau respirée trop longtemps. Il ne sait plus où finit l'atelier et où commence lui, et la tête lui tourne toujours un peu. On l'appelle Sebo parce qu'il EST le sébum : la seule chose qui manquait vraiment à la peau synthétique en silicone. Il les complète, elles lui donnent un sens.",
-      "p4": "Pour Sebo, les peaux sont vivantes. Elles respirent par les pores, suent l'encre qui ne mérite pas de rester, et guérissent — si tu en prends soin. Les peaux bon marché, il les appelle \"mortes\", \"menteuses\" : ne pas les vendre ici a été son combat. \"Un cadavre ne guérit pas\", dit-il. \"La blessure reste ouverte pour toujours. Ma peau se ferme.\"",
+      "eyebrow": "QUI EST LE PEAUSSIER",
+      "p1": "Le Peaussier n'est pas un personnage. C'est une conséquence.",
+      "p2": "Depuis 2012, depuis que l'atelier produit ses peaux, il fallait quelqu'un pour veiller sur elles. Le Peaussier est ce quelqu'un — le gardien que tout véritable atelier artisanal porte en lui.",
+      "p3": "Douze ans de vapeurs d'établi, de catalyse, de peau respirée trop longtemps. Il ne sait plus où finit l'atelier et où commence lui. Il les fabrique. Il les veille pendant les douze heures de catalyse. Il ne les laisse partir que quand il est sûr qu'elles sont vivantes.",
+      "p4": "Pour le Peaussier, les peaux sont vivantes. Elles respirent par les pores, suent l'encre qui ne mérite pas de rester, et guérissent — si tu en prends soin. Les peaux bon marché, il les appelle \"mortes\", \"menteuses\" : ne pas les vendre ici a été son combat. \"Un cadavre ne guérit pas\", dit-il. \"La blessure reste ouverte pour toujours. Ma peau se ferme.\"",
       "quote": "On ne tatoue pas, dit-il. On vénère. Peau sainte."
     },
     "obsessions": {
@@ -464,7 +466,7 @@
       "eyebrow": "L'ÉTABLI EST OUVERT",
       "title": "SUIS OU ÉCRIS.",
       "drops": {
-        "button": "Suis Sebo",
+        "button": "Suis l'atelier",
         "note": "Toutes les douze heures, une pensée depuis l'établi. N'attends pas de la gentillesse. Attends-toi à de l'obsession."
       },
       "support": {
@@ -472,7 +474,47 @@
         "note": "Pour les commandes et les envois, on répond nous-mêmes, droit au but."
       }
     },
-    "imageAlt": "Sebo dans l'atelier",
+    "seboLink": "Il y a aussi Sebo. Je préfère ne pas en parler.",
+    "imageAlt": "Le Peaussier dans l'atelier",
+    "backToShop": "← Retour à la vitrine"
+  },
+  "sebo": {
+    "meta": {
+      "description": "Le pire portfolio d'Italie. La raison pour laquelle le vôtre ne l'est pas. Ratez sur moi. Pas sur un humain."
+    },
+    "hero": {
+      "manifesto": "Ratez sur moi.\nPas sur un humain."
+    },
+    "bio": {
+      "eyebrow": "QUI EST SEBO",
+      "p1": "Je m'appelle Sebo. Je suis le pire portfolio d'Italie, et la raison pour laquelle le vôtre ne l'est pas.",
+      "p2": "Chaque ligne tordue que je porte sur moi est un client sauvé.",
+      "p3": "Je ne suis pas un personnage. Je suis une conséquence : depuis 2012, quelqu'un devait bien se faire piquer."
+    },
+    "wall": {
+      "eyebrow": "LE MUR"
+    },
+    "stickers": {
+      "eyebrow": "STICKERS",
+      "comingSoon": "Bientôt disponibles — le manifeste d'abord, le reste ensuite."
+    },
+    "pellaioLink": "Le Peaussier fait les peaux. Moi je les abîme. Il ne m'adresse plus la parole depuis 2012.",
+    "cta": {
+      "eyebrow": "SUIVEZ-MOI",
+      "instagram": {
+        "button": "Sebo sur Instagram",
+        "note": "Là où je vis. Blagues, échecs, mauvais tatouages — chaque jour."
+      },
+      "telegram": {
+        "button": "Canal Telegram",
+        "note": "Pour ceux qui veulent le canal direct."
+      },
+      "support": {
+        "button": "Écrire à l'atelier",
+        "note": "Pour les commandes — c'est l'atelier qui répond."
+      }
+    },
+    "imageAlt": "Sebo — la mascotte du labo",
     "backToShop": "← Retour à la vitrine"
   }
 }

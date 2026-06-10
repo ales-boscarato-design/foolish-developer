@@ -1,0 +1,38 @@
+[
+  {
+    "id": "sebo-001",
+    "image": "/sebo/placeholder-01.jpg",
+    "line": "Cliente: voglio qualcosa di sottile. Io: perfetto.",
+    "date": "2026-01-15"
+  },
+  {
+    "id": "sebo-002",
+    "image": "/sebo/placeholder-02.jpg",
+    "line": "Il blowout è una scelta artistica. L'ho deciso adesso.",
+    "date": "2026-02-03"
+  },
+  {
+    "id": "sebo-003",
+    "image": "/sebo/placeholder-03.jpg",
+    "line": "Linea dritta. Prima o poi ci riesco.",
+    "date": "2026-02-20"
+  },
+  {
+    "id": "sebo-004",
+    "image": "/sebo/placeholder-04.jpg",
+    "line": "Scrivo MAMM così ci sta nel riquadro. Nessuno se ne accorge.",
+    "date": "2026-03-08"
+  },
+  {
+    "id": "sebo-005",
+    "image": "/sebo/placeholder-05.jpg",
+    "line": "Ogni linea storta che porto addosso è un cliente salvato.",
+    "date": "2026-04-01"
+  },
+  {
+    "id": "sebo-006",
+    "image": "/sebo/placeholder-06.jpg",
+    "line": "Il Pellaio mi guarda. Preferisco non incontrare il suo sguardo.",
+    "date": "2026-05-12"
+  }
+]

@@ -496,8 +496,8 @@ export default async function HomePage() {
           </div>
           <div className="relative aspect-[3/4] rounded overflow-hidden hidden md:block">
             <img
-              src="/frank/frank-03.png"
-              alt="Sebo nel laboratorio"
+              src="/pellaio/pellaio-03.png"
+              alt="Il Pellaio nel laboratorio"
               className="w-full h-full object-cover object-top"
               style={{ filter: 'brightness(0.75) sepia(0.3)' }}
             />

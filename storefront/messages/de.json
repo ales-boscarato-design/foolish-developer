@@ -7,6 +7,8 @@
     "limited": "🔥 Premium",
     "contatti": "Kontakte",
     "account": "Konto",
+    "sebo": "Sebo",
+    "laboratorio": "Werkstatt",
     "logoAlt": "The Foolish Butcher"
   },
   "footer": {
@@ -425,7 +427,7 @@
     "body": "Nicht Alessandro. Aber jedes Blatt, das von hier kommt, hat er bereits angefasst, gerochen, beurteilt. Billige Skins nennt er 'Lügner.'",
     "cta_short": "Frank treffen"
   },
-  "sebo": {
+  "laboratorio": {
     "meta": {
       "description": "Der Häuter. Hüter der lebenden Häute. Er spürt sie atmen, schwitzen, heilen. Er schläft nicht: er wacht über sie."
     },
@@ -434,11 +436,11 @@
       "sub": "Der Häuter. Er spricht zu den Häuten. Spürt sie atmen."
     },
     "lore": {
-      "eyebrow": "WER IST SEBO",
-      "p1": "Sebo ist kein Charakter. Er ist eine Konsequenz.",
-      "p2": "Seit 2012, seit die Werkstatt ihre Häute herstellt, musste jemand bei ihnen bleiben und über sie wachen. Sebo ist dieser Jemand — auch wenn \"jemand\" großzügig ist. Eine Kreuzung aus einem Zwerg und etwas Älterem: der Hausgeist, den jede echte Handwerkswerkstatt in sich trägt.",
-      "p3": "Zwölf Jahre Werkstattdämpfe, Katalyse, zu lange eingeatmete Haut. Er weiß nicht mehr, wo die Werkstatt endet und er beginnt, und sein Kopf dreht sich immer ein wenig. Sie nennen ihn Sebo, weil er DAS Sebum ist: das Einzige, was der silikonbasierten Synthetikhaut wirklich fehlte. Er vollendet sie, sie geben ihm Sinn.",
-      "p4": "Für Sebo sind die Häute lebendig. Sie atmen durch die Poren, schwitzen Tinte aus, die sie nicht verdienen zu behalten, und heilen — wenn man sich um sie kümmert. Billige Häute nennt er \"tot\", \"Lügner\": sie nicht hier zu verkaufen war sein Kampf. \"Eine Leiche heilt nicht\", sagt er. \"Die Wunde bleibt für immer offen. Meine Haut schließt sich.\"",
+      "eyebrow": "WER IST DER HÄUTER",
+      "p1": "Der Häuter ist kein Charakter. Er ist eine Konsequenz.",
+      "p2": "Seit 2012, seit die Werkstatt ihre Häute herstellt, musste jemand bei ihnen bleiben und über sie wachen. Der Häuter ist dieser Jemand — der Hüter, den jede echte Handwerkswerkstatt in sich trägt.",
+      "p3": "Zwölf Jahre Werkstattdämpfe, Katalyse, zu lange eingeatmete Haut. Er weiß nicht mehr, wo die Werkstatt endet und er beginnt. Er macht sie. Er wacht die zwölf Stunden der Katalyse über sie. Er lässt sie erst gehen, wenn er sicher ist, dass sie lebendig sind.",
+      "p4": "Für den Häuter sind die Häute lebendig. Sie atmen durch die Poren, schwitzen Tinte aus, die sie nicht verdienen zu behalten, und heilen — wenn man sich um sie kümmert. Billige Häute nennt er \"tot\", \"Lügner\": sie nicht hier zu verkaufen war sein Kampf. \"Eine Leiche heilt nicht\", sagt er. \"Die Wunde bleibt für immer offen. Meine Haut schließt sich.\"",
       "quote": "Man tätowiert nicht, sagt er. Man verehrt. Heilige Haut."
     },
     "obsessions": {
@@ -464,7 +466,7 @@
       "eyebrow": "DIE WERKBANK IST OFFEN",
       "title": "FOLGE ODER SCHREIB.",
       "drops": {
-        "button": "Folge Sebo",
+        "button": "Folge der Werkstatt",
         "note": "Alle zwölf Stunden ein Gedanke von der Werkbank. Erwarte keine Freundlichkeit. Erwarte Besessenheit."
       },
       "support": {
@@ -472,7 +474,47 @@
         "note": "Für Bestellungen und Versand antworten wir selbst, direkt auf den Punkt."
       }
     },
-    "imageAlt": "Sebo in der Werkstatt",
+    "seboLink": "Dann ist da noch Sebo. Ich spreche lieber nicht darüber.",
+    "imageAlt": "Der Häuter in der Werkstatt",
+    "backToShop": "← Zurück zur Auslage"
+  },
+  "sebo": {
+    "meta": {
+      "description": "Das schlechteste Portfolio Italiens. Der Grund, warum deins es nicht ist. Mach Fehler an mir. Nicht an einem Menschen."
+    },
+    "hero": {
+      "manifesto": "Mach Fehler an mir.\nNicht an einem Menschen."
+    },
+    "bio": {
+      "eyebrow": "WER IST SEBO",
+      "p1": "Mein Name ist Sebo. Ich bin das schlechteste Portfolio Italiens — und der Grund, warum deins es nicht ist.",
+      "p2": "Jede schiefe Linie, die ich trage, ist ein geretteter Kunde.",
+      "p3": "Ich bin kein Charakter. Ich bin eine Konsequenz: seit 2012 musste jemand gestochen werden."
+    },
+    "wall": {
+      "eyebrow": "DIE WAND"
+    },
+    "stickers": {
+      "eyebrow": "STICKERS",
+      "comingSoon": "Demnächst — erst das Manifest, dann der Rest."
+    },
+    "pellaioLink": "Der Häuter macht die Häute. Ich ruiniere sie. Er spricht seit 2012 nicht mehr mit mir.",
+    "cta": {
+      "eyebrow": "FOLGE MIR",
+      "instagram": {
+        "button": "Sebo auf Instagram",
+        "note": "Wo ich lebe. Witze, Misserfolge, schlechte Tattoos — jeden Tag."
+      },
+      "telegram": {
+        "button": "Telegram-Kanal",
+        "note": "Für alle, die den direkten Kanal wollen."
+      },
+      "support": {
+        "button": "Schreib der Werkstatt",
+        "note": "Für Bestellungen — die Werkstatt antwortet."
+      }
+    },
+    "imageAlt": "Sebo — das Lab-Maskottchen",
     "backToShop": "← Zurück zur Auslage"
   }
 }

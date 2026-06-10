@@ -1,0 +1,219 @@
+import type { Metadata } from 'next'
+import Image from 'next/image'
+import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('laboratorio')
+  return {
+    title: 'Il Laboratorio — The Foolish Butcher',
+    description: t('meta.description'),
+    openGraph: {
+      title: 'Il Laboratorio — The Foolish Butcher',
+      description: t('meta.description'),
+    },
+  }
+}
+
+const CDN = process.env.NEXT_PUBLIC_FRANK_CDN ?? ''
+const HERO_VIDEO = CDN ? `${CDN}/scene_02_clip.mp4` : ''
+const HERO_POSTER = '/pellaio/pellaio-02.png'
+
+const OBSESSION_IDS = [
+  { id: 'flock',     img: '/pellaio/pellaio-01.png' },
+  { id: 'discromie', img: '/pellaio/pellaio-03.png' },
+  { id: 'catalisi',  img: '/pellaio/pellaio-lab.png' },
+  { id: 'pelleViva', img: '/pellaio/pellaio-02.png' },
+] as const
+
+export default async function LaboratorioPage() {
+  const t = await getTranslations('laboratorio')
+
+  return (
+    <div style={{ backgroundColor: '#0a0806', color: '#e8dcc8' }}>
+
+      {/* ── HERO ── */}
+      <section className="relative h-screen flex items-start overflow-hidden">
+        {HERO_VIDEO ? (
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            poster={HERO_POSTER}
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ filter: 'brightness(0.45) sepia(0.3)' }}
+          >
+            <source src={HERO_VIDEO} type="video/mp4" />
+          </video>
+        ) : (
+          <Image
+            src={HERO_POSTER}
+            alt={t('imageAlt')}
+            fill
+            className="object-cover object-top"
+            priority
+            style={{ filter: 'brightness(0.4) sepia(0.3)' }}
+          />
+        )}
+
+        <div
+          className="absolute inset-0"
+          style={{ background: 'linear-gradient(to bottom, #0a0806 0%, rgba(10,8,6,0.6) 40%, transparent 100%)' }}
+        />
+
+        <div className="relative z-10 max-w-7xl mx-auto px-8 md:px-16 pt-16 w-full">
+          <p className="text-xs font-bold tracking-[0.4em] uppercase mb-4" style={{ color: '#c9a96e' }}>
+            {t('hero.eyebrow')}
+          </p>
+          <h1
+            className="font-display leading-none mb-4"
+            style={{ fontSize: 'clamp(56px, 10vw, 140px)', color: '#e8dcc8' }}
+          >
+            IL PELLAIO
+          </h1>
+          <p className="text-base max-w-md" style={{ color: '#a89880' }}>
+            {t('hero.sub')}
+          </p>
+        </div>
+      </section>
+
+      {/* ── CHI È IL PELLAIO ── */}
+      <section className="max-w-3xl mx-auto px-8 md:px-16 py-24">
+        <p className="text-xs font-bold tracking-[0.35em] uppercase mb-10" style={{ color: '#c9a96e' }}>
+          {t('lore.eyebrow')}
+        </p>
+
+        <div className="space-y-6 text-base leading-relaxed" style={{ color: '#c8bfb0' }}>
+          <p style={{ fontSize: '1.15rem', color: '#e8dcc8', fontWeight: 500 }}>
+            {t('lore.p1')}
+          </p>
+          <p>{t('lore.p2')}</p>
+          <p>{t('lore.p3')}</p>
+          <p>{t('lore.p4')}</p>
+          <p className="italic" style={{ color: '#a89880', borderLeft: '2px solid #c9a96e', paddingLeft: '1.25rem' }}>
+            {t('lore.quote')}
+          </p>
+        </div>
+      </section>
+
+      {/* ── LE SUE OSSESSIONI ── */}
+      <section className="border-t py-24" style={{ borderColor: '#1e1812' }}>
+        <div className="max-w-7xl mx-auto px-8 md:px-16">
+          <p className="text-xs font-bold tracking-[0.35em] uppercase mb-12" style={{ color: '#c9a96e' }}>
+            {t('obsessions.eyebrow')}
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {OBSESSION_IDS.map(({ id, img }) => (
+              <div key={id} className="group">
+                <div className="relative aspect-[3/4] rounded overflow-hidden mb-5">
+                  <Image
+                    src={img}
+                    alt={`Il Pellaio — ${t(`obsessions.${id}.label` as never).toLowerCase()}`}
+                    fill
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    style={{ filter: 'brightness(0.7) sepia(0.4)' }}
+                  />
+                  <div
+                    className="absolute inset-0"
+                    style={{ background: 'linear-gradient(to top, #0a0806 0%, transparent 60%)' }}
+                  />
+                  <div className="absolute bottom-4 left-4 right-4">
+                    <p className="text-xs font-bold tracking-[0.3em] uppercase mb-1" style={{ color: '#c9a96e' }}>
+                      {t(`obsessions.${id}.label` as never)}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-sm italic leading-relaxed" style={{ color: '#a89880' }}>
+                  &ldquo;{t(`obsessions.${id}.quote` as never)}&rdquo;
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── IL BANCO È APERTO ── */}
+      <section className="border-t py-24" style={{ borderColor: '#1e1812' }}>
+        <div className="max-w-7xl mx-auto px-8 md:px-16">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div className="relative aspect-[4/5] rounded overflow-hidden order-2 md:order-1">
+              <Image
+                src="/pellaio/pellaio-lab.png"
+                alt={t('imageAlt')}
+                fill
+                className="object-cover object-top"
+                style={{ filter: 'brightness(0.65) sepia(0.35)' }}
+              />
+            </div>
+
+            <div className="order-1 md:order-2">
+              <p className="text-xs font-bold tracking-[0.4em] uppercase mb-6" style={{ color: '#c9a96e' }}>
+                {t('cta.eyebrow')}
+              </p>
+              <h2
+                className="font-display leading-none mb-10"
+                style={{ fontSize: 'clamp(40px, 6vw, 72px)', color: '#e8dcc8' }}
+              >
+                {t('cta.title')}
+              </h2>
+
+              {/* CTA 1 — drops */}
+              <div className="mb-8">
+                <a
+                  href="https://t.me/+f6VDb9iZdw5lMTE0"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-3 px-8 py-4 font-semibold text-sm tracking-widest uppercase transition-opacity hover:opacity-80 mb-3"
+                  style={{ backgroundColor: '#c9a96e', color: '#0a0806' }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.04 9.614c-.146.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.903.607z"/>
+                  </svg>
+                  {t('cta.drops.button')}
+                </a>
+                <p className="text-xs" style={{ color: '#6b6055' }}>
+                  {t('cta.drops.note')}
+                </p>
+              </div>
+
+              {/* CTA 2 — lab support */}
+              <div>
+                <a
+                  href="https://t.me/the_foolish_butcher_bot"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-3 px-8 py-4 font-semibold text-sm tracking-widest uppercase border transition-opacity hover:opacity-70 mb-3"
+                  style={{ borderColor: '#c9a96e', color: '#c9a96e' }}
+                >
+                  {t('cta.support.button')}
+                </a>
+                <p className="text-xs" style={{ color: '#6b6055' }}>
+                  {t('cta.support.note')}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Sebo cross-link ── */}
+      <div className="max-w-7xl mx-auto px-8 md:px-16 py-12 border-t" style={{ borderColor: '#1e1812' }}>
+        <p className="text-sm italic" style={{ color: '#555' }}>
+          {t('seboLink')}{' '}
+          <Link href="/sebo" className="underline hover:opacity-60 transition-opacity" style={{ color: '#6b6055' }}>
+            /sebo
+          </Link>
+        </p>
+      </div>
+
+      {/* ── Back link ── */}
+      <div className="max-w-7xl mx-auto px-8 md:px-16 pb-16">
+        <Link href="/" className="text-xs tracking-widest uppercase hover:opacity-60 transition-opacity" style={{ color: '#6b6055' }}>
+          {t('backToShop')}
+        </Link>
+      </div>
+
+    </div>
+  )
+}

@@ -7,6 +7,8 @@
     "limited": "🔥 Premium",
     "contatti": "Contacts",
     "account": "Account",
+    "sebo": "Sebo",
+    "laboratorio": "Workshop",
     "logoAlt": "The Foolish Butcher"
   },
   "footer": {
@@ -425,7 +427,7 @@
     "body": "Not Alessandro. But every sheet that comes out of here, he has already touched, smelled, judged. He calls cheap skins 'liars.'",
     "cta_short": "Meet Frank"
   },
-  "sebo": {
+  "laboratorio": {
     "meta": {
       "description": "The Tannery Keeper. Guardian of living skins. He feels them breathe, sweat, heal. He doesn't sleep: he watches over them."
     },
@@ -434,11 +436,11 @@
       "sub": "The Tannery Keeper. He talks to the skins. Feels them breathe."
     },
     "lore": {
-      "eyebrow": "WHO IS SEBO",
-      "p1": "Sebo is not a character. He's a consequence.",
-      "p2": "Since 2012, since the workshop started making its skins, someone had to stay and watch over them. Sebo is that someone — though \"someone\" is generous. A cross between a dwarf and something older: the house spirit every true artisan workshop carries within.",
-      "p3": "Twelve years of bench fumes, of catalysis, of skin breathed in too long. He no longer knows where the workshop ends and he begins, and his head is always a little spinning. They call him Sebo because he IS the sebum: the one thing silicone synthetic skin was really missing. He completes them, they give him purpose.",
-      "p4": "To Sebo, skins are alive. They breathe through their pores, sweat out ink that doesn't deserve to stay, and heal — if you take care of them. Cheap skins he calls \"dead\", \"liars\": not selling them here was his battle. \"A corpse doesn't heal,\" he says. \"The wound stays open forever. My skin closes.\"",
+      "eyebrow": "WHO IS IL PELLAIO",
+      "p1": "Il Pellaio is not a character. He's a consequence.",
+      "p2": "Since 2012, since the workshop started making its skins, someone had to stay and watch over them. Il Pellaio is that someone — the custodian every true artisan workshop carries within.",
+      "p3": "Twelve years of bench fumes, of catalysis, of skin breathed in too long. He no longer knows where the workshop ends and he begins. He makes them. He watches over them during the twelve hours of catalysis. He only lets them go when he's sure they're alive.",
+      "p4": "To Il Pellaio, skins are alive. They breathe through their pores, sweat out ink that doesn't deserve to stay, and heal — if you take care of them. Cheap skins he calls \"dead\", \"liars\": not selling them here was his battle. \"A corpse doesn't heal,\" he says. \"The wound stays open forever. My skin closes.\"",
       "quote": "You don't tattoo it, he says. You revere it. Holy skin."
     },
     "obsessions": {
@@ -464,7 +466,7 @@
       "eyebrow": "THE BENCH IS OPEN",
       "title": "FOLLOW OR WRITE.",
       "drops": {
-        "button": "Follow Sebo",
+        "button": "Follow the workshop",
         "note": "Every twelve hours, a thought from the bench. Don't expect kindness. Expect obsession."
       },
       "support": {
@@ -472,7 +474,47 @@
         "note": "For orders and shipping, we answer — straight to the point."
       }
     },
-    "imageAlt": "Sebo in the workshop",
+    "seboLink": "Then there's Sebo. I'd rather not talk about it.",
+    "imageAlt": "Il Pellaio in the workshop",
+    "backToShop": "← Back to the shop"
+  },
+  "sebo": {
+    "meta": {
+      "description": "The worst portfolio in Italy. The reason yours isn't. Mess up on me. Not on a human."
+    },
+    "hero": {
+      "manifesto": "Mess up on me.\nNot on a human."
+    },
+    "bio": {
+      "eyebrow": "WHO IS SEBO",
+      "p1": "My name is Sebo. I'm the worst portfolio in Italy, and the reason yours isn't.",
+      "p2": "Every crooked line I carry is a client saved.",
+      "p3": "I'm not a character. I'm a consequence: since 2012, someone had to get stabbed."
+    },
+    "wall": {
+      "eyebrow": "THE WALL"
+    },
+    "stickers": {
+      "eyebrow": "STICKERS",
+      "comingSoon": "Coming soon — the manifesto first, then the rest."
+    },
+    "pellaioLink": "Il Pellaio makes the skins. I ruin them. He hasn't spoken to me since 2012.",
+    "cta": {
+      "eyebrow": "FOLLOW ME",
+      "instagram": {
+        "button": "Sebo on Instagram",
+        "note": "Where I live. Jokes, failures, bad tattoos — every day."
+      },
+      "telegram": {
+        "button": "Telegram channel",
+        "note": "For those who want the direct channel."
+      },
+      "support": {
+        "button": "Write to the workshop",
+        "note": "For orders — the workshop answers."
+      }
+    },
+    "imageAlt": "Sebo — the lab mascot",
     "backToShop": "← Back to the shop"
   }
 }

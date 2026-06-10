@@ -7,6 +7,8 @@
     "limited": "🔥 Premium",
     "contatti": "Contactos",
     "account": "Cuenta",
+    "sebo": "Sebo",
+    "laboratorio": "Taller",
     "logoAlt": "The Foolish Butcher"
   },
   "footer": {
@@ -425,7 +427,7 @@
     "body": "No es Alessandro. Pero cada hoja que sale de aquí, ya la ha tocado, olido, juzgado. A las pieles baratas las llama 'mentirosas.'",
     "cta_short": "Conocer a Frank"
   },
-  "sebo": {
+  "laboratorio": {
     "meta": {
       "description": "El Pellejero. Guardián de las pieles vivas. Las siente respirar, sudar, sanar. No duerme: las vela."
     },
@@ -434,11 +436,11 @@
       "sub": "El Pellejero. Habla a las pieles. Las siente respirar."
     },
     "lore": {
-      "eyebrow": "QUIÉN ES SEBO",
-      "p1": "Sebo no es un personaje. Es una consecuencia.",
-      "p2": "Desde 2012, desde que el taller produce sus pieles, alguien tenía que quedarse a velarlas. Sebo es ese alguien — aunque \"alguien\" es generoso. Un cruce entre un enano y algo más antiguo: el familiar que todo taller artesanal de verdad lleva dentro.",
-      "p3": "Doce años de vapores del banco, de catálisis, de piel respirada demasiado tiempo. Ya no sabe dónde termina el taller y dónde empieza él, y la cabeza le da siempre un poco vueltas. Lo llaman Sebo porque él ES el sebo: lo único que realmente le faltaba a la piel sintética de silicona. Él las completa, ellas le dan sentido.",
-      "p4": "Para Sebo las pieles están vivas. Respiran por los poros, sudan la tinta que no merecen retener, y sanan — si las cuidas. A las pieles baratas las llama \"muertas\", \"mentirosas\": no venderlas aquí fue su batalla. \"Un cadáver no sana\", dice. \"La herida le queda abierta para siempre. Mi piel se cierra.\"",
+      "eyebrow": "QUIÉN ES EL PELLEJERO",
+      "p1": "El Pellejero no es un personaje. Es una consecuencia.",
+      "p2": "Desde 2012, desde que el taller produce sus pieles, alguien tenía que quedarse a velarlas. El Pellejero es ese alguien — el custodio que todo taller artesanal de verdad lleva dentro.",
+      "p3": "Doce años de vapores del banco, de catálisis, de piel respirada demasiado tiempo. Ya no sabe dónde termina el taller y dónde empieza él. Él las hace. Las vigila durante las doce horas de catálisis. Solo las deja ir cuando está seguro de que están vivas.",
+      "p4": "Para el Pellejero las pieles están vivas. Respiran por los poros, sudan la tinta que no merecen retener, y sanan — si las cuidas. A las pieles baratas las llama \"muertas\", \"mentirosas\": no venderlas aquí fue su batalla. \"Un cadáver no sana\", dice. \"La herida le queda abierta para siempre. Mi piel se cierra.\"",
       "quote": "No se tatúa, dice él. Se venera. Piel santa."
     },
     "obsessions": {
@@ -464,7 +466,7 @@
       "eyebrow": "EL BANCO ESTÁ ABIERTO",
       "title": "SIGUE O ESCRIBE.",
       "drops": {
-        "button": "Sigue a Sebo",
+        "button": "Sigue el taller",
         "note": "Cada doce horas un pensamiento desde el banco. No esperes amabilidad. Espera obsesión."
       },
       "support": {
@@ -472,7 +474,47 @@
         "note": "Para pedidos y envíos respondemos nosotros, directo al grano."
       }
     },
-    "imageAlt": "Sebo en el taller",
+    "seboLink": "Luego está Sebo. Prefiero no hablar de ello.",
+    "imageAlt": "El Pellejero en el taller",
+    "backToShop": "← Vuelta al escaparate"
+  },
+  "sebo": {
+    "meta": {
+      "description": "El peor portfolio de Italia. La razón por la que el tuyo no lo es. Equivócate en mí. No en un humano."
+    },
+    "hero": {
+      "manifesto": "Equivócate en mí.\nNo en un humano."
+    },
+    "bio": {
+      "eyebrow": "QUIÉN ES SEBO",
+      "p1": "Me llamo Sebo. Soy el peor portfolio de Italia, y la razón por la que el tuyo no lo es.",
+      "p2": "Cada línea torcida que llevo encima es un cliente salvado.",
+      "p3": "No soy un personaje. Soy una consecuencia: desde 2012, alguien tenía que dejarse pinchar."
+    },
+    "wall": {
+      "eyebrow": "EL MURO"
+    },
+    "stickers": {
+      "eyebrow": "STICKERS",
+      "comingSoon": "Próximamente — primero el manifiesto, luego el resto."
+    },
+    "pellaioLink": "El Pellejero hace las pieles. Yo las arruino. No me dirige la palabra desde 2012.",
+    "cta": {
+      "eyebrow": "SÍGUEME",
+      "instagram": {
+        "button": "Sebo en Instagram",
+        "note": "Donde vivo. Bromas, fracasos, tatuajes fallidos — cada día."
+      },
+      "telegram": {
+        "button": "Canal Telegram",
+        "note": "Para quienes quieren el canal directo."
+      },
+      "support": {
+        "button": "Escribe al taller",
+        "note": "Para pedidos — responde el taller."
+      }
+    },
+    "imageAlt": "Sebo — la mascota del lab",
     "backToShop": "← Vuelta al escaparate"
   }
 }
