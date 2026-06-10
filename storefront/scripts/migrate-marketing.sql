@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS marketing.email_log (
     subscriber_id  UUID REFERENCES marketing.subscribers(id),
     email          TEXT NOT NULL,
     type           TEXT NOT NULL
-                   CHECK (type IN ('welcome', 'abandoned_cart', 'review_request', 'reengagement')),
+                   CHECK (type IN ('welcome', 'abandoned_cart', 'review_request', 'reengagement', 'magic_link', 'push_offer')),
     resend_id      TEXT,
     sent_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
