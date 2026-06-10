@@ -487,7 +487,7 @@ export default async function HomePage() {
               {t('frank.body')}
             </p>
             <a
-              href="/sebo"
+              href="/laboratorio"
               className="inline-flex items-center gap-2 text-sm font-semibold tracking-widest uppercase transition-opacity hover:opacity-70"
               style={{ color: '#c9a96e' }}
             >
