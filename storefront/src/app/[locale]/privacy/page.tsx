@@ -21,7 +21,7 @@ export default async function PrivacyPage() {
         <h2 className="text-base font-semibold text-[var(--fg)]">{t('dataController')}</h2>
         <p>
           The Foolish Butcher · Chieri (TO), Italia · P.IVA IT12475480013<br />
-          <a href="mailto:info@thefoolishbutcher.com" className="underline">info@thefoolishbutcher.com</a>
+          <a href="mailto:support.foolish@agentmail.to" className="underline">support.foolish@agentmail.to</a>
         </p>
       </section>
 
@@ -59,7 +59,7 @@ export default async function PrivacyPage() {
 
       <section className="space-y-2">
         <h2 className="text-base font-semibold text-[var(--fg)]">{t('dataSubjectRights')}</h2>
-        <p>{t('dataSubjectRightsText', { email: 'info@thefoolishbutcher.com' })}</p>
+        <p>{t('dataSubjectRightsText', { email: 'support.foolish@agentmail.to' })}</p>
       </section>
 
       <section className="space-y-2">

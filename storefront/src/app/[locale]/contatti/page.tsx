@@ -21,10 +21,10 @@ export default async function ContattiPage() {
         <div>
           <p className="text-xs uppercase tracking-widest text-[var(--muted-fg)] mb-1">{t('emailLabel')}</p>
           <a
-            href="mailto:info@thefoolishbutcher.com"
+            href="mailto:support.foolish@agentmail.to"
             className="text-lg hover:opacity-70 transition-opacity"
           >
-            info@thefoolishbutcher.com
+            support.foolish@agentmail.to
           </a>
         </div>
 

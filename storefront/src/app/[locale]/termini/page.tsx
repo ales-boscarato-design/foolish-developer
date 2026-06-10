@@ -21,7 +21,7 @@ export default async function TerminiPage() {
         <h2 className="text-base font-semibold text-[var(--fg)]">{t('seller')}</h2>
         <p>
           The Foolish Butcher, con sede in Chieri (TO), Italia · P.IVA IT12475480013 ·{' '}
-          <a href="mailto:info@thefoolishbutcher.com" className="underline">info@thefoolishbutcher.com</a>
+          <a href="mailto:support.foolish@agentmail.to" className="underline">support.foolish@agentmail.to</a>
         </p>
       </section>
 
@@ -47,13 +47,13 @@ export default async function TerminiPage() {
 
       <section className="space-y-2">
         <h2 className="text-base font-semibold text-[var(--fg)]">{t('withdrawal')}</h2>
-        <p>{t('withdrawalText1', { email: 'info@thefoolishbutcher.com' })}</p>
+        <p>{t('withdrawalText1', { email: 'support.foolish@agentmail.to' })}</p>
         <p>{t('withdrawalText2')}</p>
       </section>
 
       <section className="space-y-2">
         <h2 className="text-base font-semibold text-[var(--fg)]">{t('warranty')}</h2>
-        <p>{t('warrantyText', { email: 'info@thefoolishbutcher.com' })}</p>
+        <p>{t('warrantyText', { email: 'support.foolish@agentmail.to' })}</p>
       </section>
 
       <section className="space-y-2">
