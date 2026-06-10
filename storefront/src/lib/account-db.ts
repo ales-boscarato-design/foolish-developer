@@ -57,11 +57,44 @@ export async function updateSubscriberProfile(
   if (data.notify_offers !== undefined) await sql`UPDATE marketing.subscribers SET notify_offers = ${data.notify_offers}, updated_at = NOW() WHERE email = ${email}`
 }
 
-export async function savePushSubscription(email: string, subscription: unknown): Promise<void> {
+export async function savePushSubscription(email: string, subscription: unknown): Promise<{ isFirstTime: boolean }> {
+  const rows = await sql<{ had_sub: boolean }[]>`
+    SELECT push_subscription IS NOT NULL AS had_sub
+    FROM marketing.subscribers WHERE email = ${email}
+  `
+  const isFirstTime = !rows[0]?.had_sub
+
   await sql`
     UPDATE marketing.subscribers
-    SET push_subscription = ${JSON.stringify(subscription)}::jsonb, updated_at = NOW()
+    SET
+      push_subscription = ${JSON.stringify(subscription)}::jsonb,
+      push_subscribed_at = COALESCE(push_subscribed_at, NOW()),
+      updated_at = NOW()
     WHERE email = ${email}
+  `
+  return { isFirstTime }
+}
+
+export async function markPushSequenceStep(email: string, stepKey: string): Promise<void> {
+  await sql`
+    UPDATE marketing.subscribers
+    SET push_sequence_state = COALESCE(push_sequence_state, '{}'::jsonb) || ${JSON.stringify({ [stepKey]: true })}::jsonb,
+        updated_at = NOW()
+    WHERE email = ${email}
+  `
+}
+
+export async function getSubscribersForSequence(triggerHoursAgo: number): Promise<Array<{
+  email: string; name: string | null; locale: string;
+  push_subscribed_at: Date; push_sequence_state: Record<string, boolean>
+}>> {
+  return sql`
+    SELECT email, name, locale, push_subscribed_at,
+           COALESCE(push_sequence_state, '{}'::jsonb) AS push_sequence_state
+    FROM marketing.subscribers
+    WHERE push_subscription IS NOT NULL
+      AND push_subscribed_at IS NOT NULL
+      AND status = 'active'
   `
 }
 

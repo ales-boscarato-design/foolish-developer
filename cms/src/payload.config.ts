@@ -12,6 +12,7 @@ import { Media } from './collections/Media'
 import { ProMembers } from './collections/ProMembers'
 import { PromoCodes } from './collections/PromoCodes'
 import { CustomerFiles } from './collections/CustomerFiles'
+import { PushSequences } from './collections/PushSequences'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -48,6 +49,7 @@ export default buildConfig({
     ProMembers,
     PromoCodes,
     CustomerFiles,
+    PushSequences,
     {
       slug: 'users',
       auth: true,
