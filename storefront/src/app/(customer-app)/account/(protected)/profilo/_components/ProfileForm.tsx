@@ -66,6 +66,8 @@ export function ProfileForm({ level, styles, locale, notifyOrders, notifyNewBatc
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') { setPushStatus('denied'); return }
       const reg = await navigator.serviceWorker.ready
+      const existing = await reg.pushManager.getSubscription()
+      if (existing) await existing.unsubscribe()
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: pushPublicKey,
