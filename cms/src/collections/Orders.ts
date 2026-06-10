@@ -13,10 +13,10 @@ const syncCustomer: CollectionAfterChangeHook = async ({ doc, operation, req }) 
       where: { email: { equals: doc.customerEmail } },
       limit: 1,
       depth: 0,
+      overrideAccess: true,
     })
 
     if (existing.docs.length === 0) {
-      // Create new customer record
       await payload.create({
         collection: 'customers',
         data: {
@@ -25,6 +25,7 @@ const syncCustomer: CollectionAfterChangeHook = async ({ doc, operation, req }) 
           country: country || undefined,
           totalOrders: 1,
         },
+        overrideAccess: true,
       })
     } else {
       const customer = existing.docs[0] as unknown as Record<string, unknown>
@@ -37,6 +38,7 @@ const syncCustomer: CollectionAfterChangeHook = async ({ doc, operation, req }) 
           ...(country && !customer.country ? { country } : {}),
           ...(operation === 'create' ? { totalOrders: currentTotal + 1 } : {}),
         },
+        overrideAccess: true,
       })
     }
   } catch (err) {
