@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const cmsUrl = process.env.CMS_URL
+  const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL ?? process.env.PAYLOAD_PUBLIC_URL
   const cmsSecret = process.env.PAYLOAD_API_SECRET
   if (!cmsUrl || !cmsSecret) {
     return NextResponse.json({ error: 'CMS not configured' }, { status: 500 })

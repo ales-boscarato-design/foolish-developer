@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
 
   if (isFirstTime) {
     // Fetch on_subscribe sequence delay=0 steps from CMS and send immediately
-    const cmsUrl = process.env.CMS_URL
+    const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL ?? process.env.PAYLOAD_PUBLIC_URL
     const cmsSecret = process.env.PAYLOAD_API_SECRET
     if (cmsUrl && cmsSecret) {
       try {
