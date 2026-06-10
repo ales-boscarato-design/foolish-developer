@@ -6,6 +6,7 @@ interface ProfileLabels {
   notifyOrdersLabel: string; notifyOrdersSub: string; notifyBatchesLabel: string; notifyBatchesSub: string
   notifyOffersLabel: string; notifyOffersSub: string; pushActive: string; pushDenied: string
   pushEnable: string; logout: string; savedLabel: string
+  levelLabels: Record<string, string>
 }
 
 interface ProfileFormProps {
@@ -34,6 +35,7 @@ export function ProfileForm({ level, styles, locale, notifyOrders, notifyNewBatc
   const [pushStatus, setPushStatus] = useState<'unknown'|'active'|'denied'>('unknown')
 
   async function save(updates: Partial<typeof form>) {
+    const prevLocale = form.locale
     const next = { ...form, ...updates }
     setForm(next)
     await fetch('/api/account/profile', {
@@ -46,7 +48,7 @@ export function ProfileForm({ level, styles, locale, notifyOrders, notifyNewBatc
     })
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
-    if (updates.locale && updates.locale !== form.locale) {
+    if (updates.locale && updates.locale !== prevLocale) {
       document.cookie = `foolish_locale=${updates.locale}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`
       window.location.reload()
     }
@@ -82,7 +84,7 @@ export function ProfileForm({ level, styles, locale, notifyOrders, notifyNewBatc
           {LEVELS.map((l) => (
             <button key={l} onClick={() => save({ level: l })}
               style={{ background: form.level === l ? '#c9a96e' : '#1a1a1a', color: form.level === l ? '#000' : '#555', fontSize: '11px', padding: '5px 12px', borderRadius: '16px', border: '1px solid', borderColor: form.level === l ? '#c9a96e' : '#333', cursor: 'pointer', fontWeight: form.level === l ? 600 : 400 }}>
-              {l}
+              {labels.levelLabels[l] ?? l}
             </button>
           ))}
         </div>

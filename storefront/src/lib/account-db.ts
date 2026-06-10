@@ -46,25 +46,15 @@ export async function updateSubscriberProfile(
     notify_offers?: boolean
   }
 ): Promise<void> {
-  const updates: string[] = []
-  const values: unknown[] = []
-  let i = 1
+  if (Object.keys(data).length === 0) return
 
-  if (data.level !== undefined) { updates.push(`level = $${i++}`); values.push(data.level) }
-  if (data.styles !== undefined) { updates.push(`styles = $${i++}`); values.push(data.styles) }
-  if (data.locale !== undefined) { updates.push(`locale = $${i++}`); values.push(data.locale) }
-  if (data.notify_orders !== undefined) { updates.push(`notify_orders = $${i++}`); values.push(data.notify_orders) }
-  if (data.notify_new_batches !== undefined) { updates.push(`notify_new_batches = $${i++}`); values.push(data.notify_new_batches) }
-  if (data.notify_offers !== undefined) { updates.push(`notify_offers = $${i++}`); values.push(data.notify_offers) }
-
-  if (updates.length === 0) return
-
-  values.push(email)
-  await sql`
-    UPDATE marketing.subscribers
-    SET ${sql.unsafe(updates.join(', '))}, updated_at = NOW()
-    WHERE email = ${email}
-  `
+  // Build individual updates to avoid sql.unsafe parameter binding issues
+  if (data.level !== undefined) await sql`UPDATE marketing.subscribers SET level = ${data.level ?? null}, updated_at = NOW() WHERE email = ${email}`
+  if (data.styles !== undefined) await sql`UPDATE marketing.subscribers SET styles = ${data.styles as string[]}, updated_at = NOW() WHERE email = ${email}`
+  if (data.locale !== undefined) await sql`UPDATE marketing.subscribers SET locale = ${data.locale}, updated_at = NOW() WHERE email = ${email}`
+  if (data.notify_orders !== undefined) await sql`UPDATE marketing.subscribers SET notify_orders = ${data.notify_orders}, updated_at = NOW() WHERE email = ${email}`
+  if (data.notify_new_batches !== undefined) await sql`UPDATE marketing.subscribers SET notify_new_batches = ${data.notify_new_batches}, updated_at = NOW() WHERE email = ${email}`
+  if (data.notify_offers !== undefined) await sql`UPDATE marketing.subscribers SET notify_offers = ${data.notify_offers}, updated_at = NOW() WHERE email = ${email}`
 }
 
 export async function savePushSubscription(email: string, subscription: unknown): Promise<void> {

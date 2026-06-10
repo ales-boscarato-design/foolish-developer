@@ -52,6 +52,12 @@ export default async function ProfiloPage() {
           pushEnable: t('push_enable'),
           logout: t('logout'),
           savedLabel: t('saved_label'),
+          levelLabels: {
+            tatuatore: t('level_tatuatore'),
+            pmu: t('level_pmu'),
+            studente: t('level_studente'),
+            professionista: t('level_professionista'),
+          },
         }}
       />
     </div>

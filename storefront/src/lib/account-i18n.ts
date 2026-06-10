@@ -22,6 +22,7 @@ const translations = {
     notify_offers_label: 'Offerte personalizzate', notify_offers_sub: 'Max 1 a settimana',
     push_active: '✓ Push notifiche attive', push_denied: 'Push bloccate dal browser. Abilita dalle impostazioni.',
     push_enable: 'Attiva notifiche push →', logout: "Esci dall'account", saved_label: 'Salvato ✓', reorder: 'Riordina',
+    level_tatuatore: 'Tatuatore', level_pmu: 'PMU', level_studente: 'Studente', level_professionista: 'Professionista',
   },
   en: {
     nav_home: 'Home', nav_orders: 'Orders', nav_collection: 'Collection', nav_files: 'Files', nav_profile: 'Profile',
@@ -44,6 +45,7 @@ const translations = {
     notify_offers_label: 'Personalised offers', notify_offers_sub: 'Max 1 per week',
     push_active: '✓ Push notifications active', push_denied: 'Push blocked by browser. Enable in settings.',
     push_enable: 'Enable push notifications →', logout: 'Sign out', saved_label: 'Saved ✓', reorder: 'Reorder',
+    level_tatuatore: 'Tattoo artist', level_pmu: 'PMU', level_studente: 'Student', level_professionista: 'Professional',
   },
   fr: {
     nav_home: 'Accueil', nav_orders: 'Commandes', nav_collection: 'Collection', nav_files: 'Fichiers', nav_profile: 'Profil',
@@ -66,6 +68,7 @@ const translations = {
     notify_offers_label: 'Offres personnalisées', notify_offers_sub: 'Max 1 par semaine',
     push_active: '✓ Notifications push actives', push_denied: 'Push bloqué par le navigateur. Activez dans les paramètres.',
     push_enable: 'Activer les notifications push →', logout: 'Se déconnecter', saved_label: 'Enregistré ✓', reorder: 'Recommander',
+    level_tatuatore: 'Tatoueur', level_pmu: 'PMU', level_studente: 'Étudiant', level_professionista: 'Professionnel',
   },
   es: {
     nav_home: 'Inicio', nav_orders: 'Pedidos', nav_collection: 'Colección', nav_files: 'Archivos', nav_profile: 'Perfil',
@@ -88,6 +91,7 @@ const translations = {
     notify_offers_label: 'Ofertas personalizadas', notify_offers_sub: 'Máx. 1 por semana',
     push_active: '✓ Notificaciones push activas', push_denied: 'Push bloqueado por el navegador. Actívalo en configuración.',
     push_enable: 'Activar notificaciones push →', logout: 'Cerrar sesión', saved_label: 'Guardado ✓', reorder: 'Volver a pedir',
+    level_tatuatore: 'Tatuador', level_pmu: 'PMU', level_studente: 'Estudiante', level_professionista: 'Profesional',
   },
   de: {
     nav_home: 'Start', nav_orders: 'Bestellungen', nav_collection: 'Sammlung', nav_files: 'Dateien', nav_profile: 'Profil',
@@ -110,6 +114,7 @@ const translations = {
     notify_offers_label: 'Personalisierte Angebote', notify_offers_sub: 'Max. 1 pro Woche',
     push_active: '✓ Push-Benachrichtigungen aktiv', push_denied: 'Push vom Browser blockiert. In Einstellungen aktivieren.',
     push_enable: 'Push-Benachrichtigungen aktivieren →', logout: 'Abmelden', saved_label: 'Gespeichert ✓', reorder: 'Neu bestellen',
+    level_tatuatore: 'Tätowierer', level_pmu: 'PMU', level_studente: 'Student', level_professionista: 'Profi',
   },
 }
 
