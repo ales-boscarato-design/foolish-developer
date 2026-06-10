@@ -14,7 +14,7 @@ import { routing } from '@/i18n/routing'
 const links = [
   { href: '/tattoo' as const, labelKey: 'tattoo' as const, accent: false },
   { href: '/pmu' as const, labelKey: 'pmu' as const, accent: false },
-  { href: '/sebo' as const, labelKey: 'sebo' as const, accent: false },
+  // { href: '/sebo' as const, labelKey: 'sebo' as const, accent: false }, // hidden until page is complete
   { href: '/laboratorio' as const, labelKey: 'laboratorio' as const, accent: false },
 ]
 
