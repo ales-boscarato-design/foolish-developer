@@ -46,7 +46,8 @@ export function ProfileForm({ level, styles, locale, notifyOrders, notifyNewBatc
     })
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
-    if (updates.locale && updates.locale !== locale) {
+    if (updates.locale && updates.locale !== form.locale) {
+      document.cookie = `foolish_locale=${updates.locale}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`
       window.location.reload()
     }
   }
