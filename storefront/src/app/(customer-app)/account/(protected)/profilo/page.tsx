@@ -50,6 +50,7 @@ export default async function ProfiloPage() {
           pushActive: t('push_active'),
           pushDenied: t('push_denied'),
           pushEnable: t('push_enable'),
+          pushUnsupported: t('push_unsupported'),
           logout: t('logout'),
           savedLabel: t('saved_label'),
           levelLabels: {

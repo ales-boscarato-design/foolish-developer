@@ -5,7 +5,7 @@ interface ProfileLabels {
   whoAreYou: string; preferredStyle: string; commLanguage: string; notifications: string
   notifyOrdersLabel: string; notifyOrdersSub: string; notifyBatchesLabel: string; notifyBatchesSub: string
   notifyOffersLabel: string; notifyOffersSub: string; pushActive: string; pushDenied: string
-  pushEnable: string; logout: string; savedLabel: string
+  pushEnable: string; pushUnsupported: string; logout: string; savedLabel: string
   levelLabels: Record<string, string>
 }
 
@@ -42,7 +42,8 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
 export function ProfileForm({ level, styles, locale, notifyOrders, notifyNewBatches, notifyOffers, pushPublicKey, labels }: ProfileFormProps) {
   const [form, setForm] = useState({ level, styles, locale, notifyOrders, notifyNewBatches, notifyOffers })
   const [saved, setSaved] = useState(false)
-  const [pushStatus, setPushStatus] = useState<'unknown'|'active'|'denied'|'loading'>('unknown')
+  const [pushStatus, setPushStatus] = useState<'unknown'|'active'|'denied'|'loading'|'unsupported'|'error'>('unknown')
+  const [pushError, setPushError] = useState<string>('')
 
   async function save(updates: Partial<typeof form>) {
     const prevLocale = form.locale
@@ -65,7 +66,10 @@ export function ProfileForm({ level, styles, locale, notifyOrders, notifyNewBatc
   }
 
   async function enablePush() {
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) return
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      setPushStatus('unsupported')
+      return
+    }
     setPushStatus('loading')
     try {
       const permission = await Notification.requestPermission()
@@ -75,14 +79,17 @@ export function ProfileForm({ level, styles, locale, notifyOrders, notifyNewBatc
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(pushPublicKey),
       })
-      await fetch('/api/account/push-subscribe', {
+      const res = await fetch('/api/account/push-subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(sub.toJSON()),
       })
+      if (!res.ok) throw new Error(`server ${res.status}`)
       setPushStatus('active')
-    } catch {
-      setPushStatus('unknown')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setPushError(msg)
+      setPushStatus('error')
     }
   }
 
@@ -160,8 +167,17 @@ export function ProfileForm({ level, styles, locale, notifyOrders, notifyNewBatc
             <div style={{ fontSize: '11px', color: '#5a7a5a' }}>{labels.pushActive}</div>
           ) : pushStatus === 'denied' ? (
             <div style={{ fontSize: '11px', color: '#888' }}>{labels.pushDenied}</div>
+          ) : pushStatus === 'unsupported' ? (
+            <div style={{ fontSize: '11px', color: '#666' }}>{labels.pushUnsupported}</div>
           ) : pushStatus === 'loading' ? (
             <div style={{ fontSize: '11px', color: '#c9a96e', opacity: 0.6 }}>...</div>
+          ) : pushStatus === 'error' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ fontSize: '10px', color: '#a05050', wordBreak: 'break-all' }}>Errore: {pushError}</div>
+              <button onClick={enablePush} style={{ background: '#1a1a1a', color: '#c9a96e', border: '1px solid #c9a96e44', fontSize: '11px', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', width: 'fit-content' }}>
+                Riprova
+              </button>
+            </div>
           ) : (
             <button onClick={enablePush}
               style={{ background: '#1a1a1a', color: '#c9a96e', border: '1px solid #c9a96e44', fontSize: '11px', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}>

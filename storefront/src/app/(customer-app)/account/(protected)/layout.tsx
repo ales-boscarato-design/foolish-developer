@@ -20,7 +20,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
     <div style={{ minHeight: '100dvh', background: '#0d0d0d', display: 'flex', flexDirection: 'column' }}>
       <script
         dangerouslySetInnerHTML={{
-          __html: `if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js')`,
+          __html: `if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js'); window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); window.__pwaInstallPrompt = e; });`,
         }}
       />
       <PwaInstallBanner />

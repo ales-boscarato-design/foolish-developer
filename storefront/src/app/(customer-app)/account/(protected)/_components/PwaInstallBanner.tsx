@@ -1,51 +1,75 @@
 'use client'
 import { useState, useEffect } from 'react'
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt(): Promise<void>
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+declare global {
+  interface Window {
+    __pwaInstallPrompt?: { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> } | null
+  }
+}
+
+function isMobileBrowser() {
+  if (typeof navigator === 'undefined') return false
+  // iPadOS 13+ reports as Macintosh in desktop mode — catch via touch points
+  const isIpadDesktop = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
+  return /iphone|ipad|ipod|android/i.test(navigator.userAgent) || isIpadDesktop
+}
+
+function isIos() {
+  if (typeof navigator === 'undefined') return false
+  const isIpadDesktop = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) || isIpadDesktop
+}
+
+function isInStandaloneMode() {
+  return typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches
 }
 
 export function PwaInstallBanner() {
-  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-  const [isIos, setIsIos] = useState(false)
-  const [dismissed, setDismissed] = useState(false)
+  const [show, setShow] = useState(false)
+  const [ios, setIos] = useState(false)
+  const [hasPrompt, setHasPrompt] = useState(false)
 
   useEffect(() => {
-    // Already installed (standalone mode) — don't show banner
-    if (window.matchMedia('(display-mode: standalone)').matches) return
-    // Already dismissed this session
-    if (sessionStorage.getItem('pwa-banner-dismissed')) { setDismissed(true); return }
+    if (isInStandaloneMode()) return
+    if (sessionStorage.getItem('pwa-banner-dismissed')) return
+    if (!isMobileBrowser()) return
 
-    // iOS detection (no beforeinstallprompt on Safari)
-    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !('BeforeInstallPromptEvent' in window)
-    if (ios) { setIsIos(true); return }
+    setIos(isIos())
 
-    // Android/Chrome
+    // Check if beforeinstallprompt was captured early by the inline script in layout
+    if (window.__pwaInstallPrompt) {
+      setHasPrompt(true)
+    }
+
+    // Also listen for it in case it fires after mount
     const handler = (e: Event) => {
       e.preventDefault()
-      setInstallPrompt(e as BeforeInstallPromptEvent)
+      window.__pwaInstallPrompt = e as unknown as Window['__pwaInstallPrompt']
+      setHasPrompt(true)
     }
     window.addEventListener('beforeinstallprompt', handler)
+
+    setShow(true)
     return () => window.removeEventListener('beforeinstallprompt', handler)
   }, [])
 
   function dismiss() {
     sessionStorage.setItem('pwa-banner-dismissed', '1')
-    setDismissed(true)
-    setInstallPrompt(null)
-    setIsIos(false)
+    setShow(false)
   }
 
   async function install() {
-    if (!installPrompt) return
-    await installPrompt.prompt()
-    const { outcome } = await installPrompt.userChoice
-    if (outcome === 'accepted') setDismissed(true)
-    setInstallPrompt(null)
+    const prompt = window.__pwaInstallPrompt
+    if (!prompt) return
+    await prompt.prompt()
+    const { outcome } = await prompt.userChoice
+    if (outcome === 'accepted') {
+      window.__pwaInstallPrompt = null
+      setShow(false)
+    }
   }
 
-  if (dismissed || (!installPrompt && !isIos)) return null
+  if (!show) return null
 
   return (
     <div style={{
@@ -60,39 +84,39 @@ export function PwaInstallBanner() {
     }}>
       <div style={{ fontSize: '20px', lineHeight: 1 }}>📲</div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        {isIos ? (
-          <>
-            <div style={{ fontSize: '12px', color: '#c9a96e', fontWeight: 600, marginBottom: '4px' }}>
-              Installa l&apos;app
-            </div>
-            <div style={{ fontSize: '11px', color: '#888', lineHeight: 1.5 }}>
-              Tocca <strong style={{ color: '#aaa' }}>Condividi</strong> → <strong style={{ color: '#aaa' }}>Aggiungi a schermata Home</strong> per accedere ai tuoi ordini senza aprire il browser.
-            </div>
-          </>
-        ) : (
-          <>
-            <div style={{ fontSize: '12px', color: '#c9a96e', fontWeight: 600, marginBottom: '4px' }}>
-              Installa l&apos;app
-            </div>
+        <div style={{ fontSize: '12px', color: '#c9a96e', fontWeight: 600, marginBottom: '4px' }}>
+          Installa l&apos;app
+        </div>
+        {ios ? (
+          <div style={{ fontSize: '11px', color: '#888', lineHeight: 1.5 }}>
+            Tocca <strong style={{ color: '#aaa' }}>Condividi</strong> {' '}
+            <span style={{ color: '#666' }}>⎙</span>{' '}
+            poi <strong style={{ color: '#aaa' }}>Aggiungi a schermata Home</strong>.
+          </div>
+        ) : hasPrompt ? (
+          <div>
             <div style={{ fontSize: '11px', color: '#888', marginBottom: '8px' }}>
-              Aggiungi alla schermata Home per accesso rapido ai tuoi ordini.
+              Accesso rapido ai tuoi ordini dalla schermata Home.
             </div>
-            <button
-              onClick={install}
-              style={{
-                background: '#c9a96e', color: '#000', border: 'none',
-                fontSize: '11px', fontWeight: 600, padding: '5px 12px',
-                borderRadius: '4px', cursor: 'pointer',
-              }}
-            >
+            <button onClick={install} style={{
+              background: '#c9a96e', color: '#000', border: 'none',
+              fontSize: '11px', fontWeight: 600, padding: '5px 12px',
+              borderRadius: '4px', cursor: 'pointer',
+            }}>
               Installa
             </button>
-          </>
+          </div>
+        ) : (
+          // Android without beforeinstallprompt (already prompted, or Chrome criteria not met yet)
+          <div style={{ fontSize: '11px', color: '#888', lineHeight: 1.5 }}>
+            Tocca il menu del browser <strong style={{ color: '#aaa' }}>⋮</strong> poi{' '}
+            <strong style={{ color: '#aaa' }}>Aggiungi a schermata Home</strong>.
+          </div>
         )}
       </div>
       <button
         onClick={dismiss}
-        style={{ background: 'none', border: 'none', color: '#444', fontSize: '16px', cursor: 'pointer', padding: '0', lineHeight: 1, flexShrink: 0 }}
+        style={{ background: 'none', border: 'none', color: '#444', fontSize: '18px', cursor: 'pointer', padding: '0', lineHeight: 1, flexShrink: 0 }}
         aria-label="Chiudi"
       >
         ×
