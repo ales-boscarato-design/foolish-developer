@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createMagicToken } from '@/lib/account-auth'
 import sql from '@/lib/db'
 
+const SUPPORTED_LOCALES = ['it', 'en', 'de', 'fr', 'es']
+
+function detectLocale(req: NextRequest): string {
+  const accept = req.headers.get('accept-language') ?? ''
+  for (const part of accept.split(',')) {
+    const lang = part.split(';')[0]?.trim().slice(0, 2).toLowerCase() ?? ''
+    if (SUPPORTED_LOCALES.includes(lang)) return lang
+  }
+  return 'it'
+}
+
 export async function POST(req: NextRequest) {
   let email: string
   try {
@@ -27,10 +38,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  const detectedLocale = detectLocale(req)
+
   // Upsert subscriber — create if not exists so anyone can register
   const rows = await sql<{ email: string; name: string | null; locale: string }[]>`
     INSERT INTO marketing.subscribers (email, status, locale)
-    VALUES (${email}, 'active', 'it')
+    VALUES (${email}, 'active', ${detectedLocale})
     ON CONFLICT (email) DO UPDATE SET status = CASE
       WHEN marketing.subscribers.status = 'unsubscribed' THEN 'active'
       ELSE marketing.subscribers.status
