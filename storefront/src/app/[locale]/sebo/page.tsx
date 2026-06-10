@@ -204,7 +204,6 @@ function WallTile({ image, line }: { image: string; line: string }) {
         fill
         className="object-cover transition-transform duration-700 group-hover:scale-105"
         style={{ filter: 'brightness(0.8)' }}
-        onError={() => {/* placeholder shows bg */}}
       />
       <div
         className="absolute inset-0"
