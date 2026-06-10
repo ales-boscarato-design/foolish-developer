@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/account-auth'
 import { getAccountSubscriber, getWishlist } from '@/lib/account-db'
+import { getAccountLocale, getT } from '@/lib/account-i18n'
 import Link from 'next/link'
 import { ReorderButton } from './_components/ReorderButton'
 
@@ -8,13 +9,15 @@ export default async function AccountHome() {
   const session = await getSession()
   if (!session) redirect('/account/login')
 
-  const [subscriber, wishlist] = await Promise.all([
+  const [subscriber, wishlist, locale] = await Promise.all([
     getAccountSubscriber(session.email),
     getWishlist(session.email),
+    getAccountLocale(),
   ])
   if (!subscriber) redirect('/account/login')
 
-  // Fetch orders
+  const t = getT(locale)
+
   const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL ?? process.env.PAYLOAD_PUBLIC_URL
   const ordersRes = await fetch(
     `${cmsUrl}/api/orders?where[customerEmail][equals]=${encodeURIComponent(session.email)}&sort=-createdAt&limit=10&depth=0`,
@@ -35,25 +38,23 @@ export default async function AccountHome() {
 
   return (
     <div style={{ padding: '16px', fontFamily: 'monospace', color: '#fff' }}>
-      {/* Header */}
       <div style={{ marginBottom: '20px', paddingTop: '8px' }}>
         <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#555', textTransform: 'uppercase', marginBottom: '4px' }}>
           The Foolish Butcher
         </div>
         <div style={{ fontSize: '20px', fontWeight: 300 }}>
-          Ciao{subscriber.name ? `, ${subscriber.name.split(' ')[0]}` : ''}
+          {t('hello')}{subscriber.name ? `, ${subscriber.name.split(' ')[0]}` : ''}
         </div>
         <div style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>
-          {subscriber.level ?? 'Cliente'} · {subscriber.purchase_count} ordini
+          {subscriber.level ?? t('customer')} · {subscriber.purchase_count} {t('orders_total')}
         </div>
       </div>
 
-      {/* Ordine attivo */}
       {activeOrder && (
         <Link href={`/account/ordini/${activeOrder.orderNumber}`} style={{ textDecoration: 'none' }}>
           <div style={{ background: '#111', border: '1px solid #c9a96e44', borderRadius: '8px', padding: '14px', marginBottom: '12px' }}>
             <div style={{ fontSize: '10px', color: '#c9a96e', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>
-              Ordine in corso
+              {t('active_order')}
             </div>
             <div style={{ fontSize: '13px', color: '#fff', marginBottom: '4px' }}>
               #{activeOrder.orderNumber}
@@ -62,7 +63,7 @@ export default async function AccountHome() {
               <div style={{ width: '6px', height: '6px', background: '#c9a96e', borderRadius: '50%' }} />
               <div style={{ fontSize: '11px', color: '#c9a96e' }}>
                 {activeOrder.pipelineState as string}
-                {activeOrder.productionEtaDays ? ` · ETA ${activeOrder.productionEtaDays} giorni` : ''}
+                {activeOrder.productionEtaDays ? ` · ETA ${activeOrder.productionEtaDays} ${t('eta_days')}` : ''}
               </div>
             </div>
             <div style={{ background: '#1a1a1a', borderRadius: '2px', height: '3px', marginBottom: '4px' }}>
@@ -72,11 +73,10 @@ export default async function AccountHome() {
         </Link>
       )}
 
-      {/* Ultimo ordine + Riordina */}
       {lastDelivered && (
         <div style={{ background: '#111', border: '1px solid #1e1e1e', borderRadius: '8px', padding: '14px', marginBottom: '12px' }}>
           <div style={{ fontSize: '10px', color: '#555', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
-            Ultimo ricevuto
+            {t('last_received')}
           </div>
           <div style={{ fontSize: '13px', color: '#fff', marginBottom: '4px' }}>
             #{lastDelivered.orderNumber}
@@ -84,15 +84,14 @@ export default async function AccountHome() {
           <div style={{ fontSize: '11px', color: '#666', marginBottom: '10px' }}>
             {Array.isArray(lastDelivered.lineItems) ? (lastDelivered.lineItems as { name: string }[]).map(i => i.name).join(', ') : ''}
           </div>
-          <ReorderButton orderId={lastDelivered.orderNumber as string} />
+          <ReorderButton orderId={lastDelivered.orderNumber as string} label={t('reorder')} />
         </div>
       )}
 
-      {/* Wishlist preview */}
       {wishlist.length > 0 && (
         <div style={{ background: '#111', border: '1px solid #1e1e1e', borderRadius: '8px', padding: '14px' }}>
           <div style={{ fontSize: '10px', color: '#555', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>
-            Salvati ({wishlist.length})
+            {t('saved')} ({wishlist.length})
           </div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             {wishlist.slice(0, 3).map((item) => (
@@ -102,7 +101,7 @@ export default async function AccountHome() {
             ))}
             {wishlist.length > 3 && (
               <Link href="/account/file" style={{ background: '#1a1a1a', border: '1px solid #c9a96e44', borderRadius: '4px', padding: '5px 10px', fontSize: '11px', color: '#c9a96e', textDecoration: 'none' }}>
-                Vedi tutti →
+                {t('view_all')}
               </Link>
             )}
           </div>

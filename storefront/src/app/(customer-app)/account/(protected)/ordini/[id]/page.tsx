@@ -1,17 +1,23 @@
 import { redirect, notFound } from 'next/navigation'
 import { getSession } from '@/lib/account-auth'
+import { getAccountLocale, getT } from '@/lib/account-i18n'
 import Link from 'next/link'
 import { ReorderButton } from '../../_components/ReorderButton'
 
 const PIPELINE_STEPS = ['received','in_production','shipped','delivered']
-const STATE_LABELS: Record<string, string> = {
-  received: 'Ricevuto', in_production: 'In produzione', shipped: 'Spedito', delivered: 'Consegnato',
-}
 
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const session = await getSession()
   if (!session) redirect('/account/login')
+
+  const locale = await getAccountLocale()
+  const t = getT(locale)
+
+  const STATE_LABELS: Record<string, string> = {
+    received: t('received'), in_production: t('in_production'),
+    shipped: t('shipped'), delivered: t('delivered'),
+  }
 
   const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL ?? process.env.PAYLOAD_PUBLIC_URL
   const res = await fetch(
@@ -30,7 +36,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', paddingTop: '8px' }}>
         <Link href="/account/ordini" style={{ color: '#555', fontSize: '20px', textDecoration: 'none' }}>←</Link>
         <div>
-          <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#555', textTransform: 'uppercase' }}>Ordine #{order.orderNumber}</div>
+          <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#555', textTransform: 'uppercase' }}>{t('order_label')} #{order.orderNumber}</div>
         </div>
       </div>
 
@@ -51,10 +57,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         </div>
       </div>
 
-      {/* Foto fogli */}
       {Array.isArray(order.sheetPhotos) && order.sheetPhotos.length > 0 && (
         <div style={{ marginBottom: '12px' }}>
-          <div style={{ fontSize: '10px', color: '#555', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>I tuoi fogli</div>
+          <div style={{ fontSize: '10px', color: '#555', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>{t('your_sheets')}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
             {(order.sheetPhotos as { url: string; caption?: string }[]).map((photo, i) => (
               <div key={i}>
@@ -66,18 +71,16 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         </div>
       )}
 
-      {/* Tracking */}
       {order.trackingNumber && (
         <div style={{ background: '#111', borderRadius: '8px', padding: '12px', marginBottom: '12px' }}>
-          <div style={{ fontSize: '10px', color: '#555', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Tracking</div>
+          <div style={{ fontSize: '10px', color: '#555', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>{t('tracking')}</div>
           <div style={{ fontSize: '12px', color: '#aaa', fontFamily: 'monospace' }}>
             {order.trackingCarrier} · {order.trackingNumber}
           </div>
         </div>
       )}
 
-      {/* CTA */}
-      {isDelivered && <ReorderButton orderId={order.orderNumber} />}
+      {isDelivered && <ReorderButton orderId={order.orderNumber} label={t('reorder')} />}
     </div>
   )
 }

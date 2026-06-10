@@ -1,14 +1,20 @@
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/account-auth'
 import { getAccountSubscriber } from '@/lib/account-db'
+import { getAccountLocale, getT } from '@/lib/account-i18n'
 import { ProfileForm } from './_components/ProfileForm'
 
 export default async function ProfiloPage() {
   const session = await getSession()
   if (!session) redirect('/account/login')
 
-  const subscriber = await getAccountSubscriber(session.email)
+  const [subscriber, locale] = await Promise.all([
+    getAccountSubscriber(session.email),
+    getAccountLocale(),
+  ])
   if (!subscriber) redirect('/account/login')
+
+  const t = getT(locale)
 
   return (
     <div style={{ padding: '16px', fontFamily: 'monospace', color: '#fff' }}>
@@ -17,7 +23,7 @@ export default async function ProfiloPage() {
           {subscriber.name?.[0]?.toUpperCase() ?? '?'}
         </div>
         <div>
-          <div style={{ fontSize: '16px', fontWeight: 300 }}>{subscriber.name ?? 'Cliente'}</div>
+          <div style={{ fontSize: '16px', fontWeight: 300 }}>{subscriber.name ?? t('customer')}</div>
           <div style={{ fontSize: '11px', color: '#555' }}>{subscriber.email}</div>
         </div>
       </div>
@@ -30,6 +36,23 @@ export default async function ProfiloPage() {
         notifyNewBatches={subscriber.notify_new_batches}
         notifyOffers={subscriber.notify_offers}
         pushPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''}
+        labels={{
+          whoAreYou: t('who_are_you'),
+          preferredStyle: t('preferred_style'),
+          commLanguage: t('comm_language'),
+          notifications: t('notifications'),
+          notifyOrdersLabel: t('notify_orders_label'),
+          notifyOrdersSub: t('notify_orders_sub'),
+          notifyBatchesLabel: t('notify_batches_label'),
+          notifyBatchesSub: t('notify_batches_sub'),
+          notifyOffersLabel: t('notify_offers_label'),
+          notifyOffersSub: t('notify_offers_sub'),
+          pushActive: t('push_active'),
+          pushDenied: t('push_denied'),
+          pushEnable: t('push_enable'),
+          logout: t('logout'),
+          savedLabel: t('saved_label'),
+        }}
       />
     </div>
   )

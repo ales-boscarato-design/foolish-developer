@@ -1,16 +1,19 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/account-auth'
+import { getAccountLocale, getT } from '@/lib/account-i18n'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
   manifest: '/manifest.json',
-  themeColor: '#0d0d0d',
 }
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession()
   if (!session) redirect('/account/login')
+
+  const locale = await getAccountLocale()
+  const t = getT(locale)
 
   return (
     <div style={{ minHeight: '100dvh', background: '#0d0d0d', display: 'flex', flexDirection: 'column' }}>
@@ -28,11 +31,11 @@ export default async function AccountLayout({ children }: { children: React.Reac
         zIndex: 50,
       }}>
         {[
-          { href: '/account', label: 'Home', icon: '🏠' },
-          { href: '/account/ordini', label: 'Ordini', icon: '📦' },
-          { href: '/account/collezione', label: 'Collezione', icon: '🖼️' },
-          { href: '/account/file', label: 'File', icon: '📁' },
-          { href: '/account/profilo', label: 'Profilo', icon: '👤' },
+          { href: '/account', label: t('nav_home'), icon: '🏠' },
+          { href: '/account/ordini', label: t('nav_orders'), icon: '📦' },
+          { href: '/account/collezione', label: t('nav_collection'), icon: '🖼️' },
+          { href: '/account/file', label: t('nav_files'), icon: '📁' },
+          { href: '/account/profilo', label: t('nav_profile'), icon: '👤' },
         ].map(({ href, label, icon }) => (
           <Link
             key={href}

@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 
-export function ReorderButton({ orderId }: { orderId: string }) {
+export function ReorderButton({ orderId, label = 'Riordina' }: { orderId: string; label?: string }) {
   const [loading, setLoading] = useState(false)
 
   async function handleReorder() {
@@ -18,7 +18,7 @@ export function ReorderButton({ orderId }: { orderId: string }) {
       disabled={loading}
       style={{ background: '#c9a96e', color: '#000', border: 'none', padding: '7px 14px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer' }}
     >
-      {loading ? '...' : 'Riordina'}
+      {loading ? '...' : label}
     </button>
   )
 }

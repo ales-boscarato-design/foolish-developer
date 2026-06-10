@@ -13,5 +13,9 @@ export async function PATCH(req: NextRequest) {
   )
 
   await updateSubscriberProfile(session.email, data)
-  return NextResponse.json({ ok: true })
+  const res = NextResponse.json({ ok: true })
+  if (typeof data.locale === 'string') {
+    res.cookies.set('foolish_locale', data.locale, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' })
+  }
+  return res
 }

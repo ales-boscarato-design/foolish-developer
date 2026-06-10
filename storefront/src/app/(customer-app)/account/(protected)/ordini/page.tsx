@@ -1,20 +1,24 @@
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/account-auth'
+import { getAccountLocale, getT } from '@/lib/account-i18n'
 import Link from 'next/link'
 import { ReorderButton } from '../_components/ReorderButton'
-
-const STATE_LABELS: Record<string, string> = {
-  received: 'Ricevuto', eta_pending: 'In attesa ETA', eta_confirmed: 'Confermato',
-  in_production: 'In produzione', matching_pending: 'Abbinamento', matched: 'Abbinato',
-  preview_sent: 'Preview inviata', shipped: 'Spedito', delivered: 'Consegnato',
-  followup_done: 'Completato', closed: 'Chiuso',
-}
 
 const ACTIVE_STATES = ['received','eta_pending','eta_confirmed','in_production','matching_pending','matched','preview_sent','shipped']
 
 export default async function OrdiniPage() {
   const session = await getSession()
   if (!session) redirect('/account/login')
+
+  const locale = await getAccountLocale()
+  const t = getT(locale)
+
+  const STATE_LABELS: Record<string, string> = {
+    received: t('received'), eta_pending: t('eta_pending'), eta_confirmed: t('eta_confirmed'),
+    in_production: t('in_production'), matching_pending: t('matching_pending'), matched: t('matched'),
+    preview_sent: t('preview_sent'), shipped: t('shipped'), delivered: t('delivered'),
+    followup_done: t('followup_done'), closed: t('closed'),
+  }
 
   const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL ?? process.env.PAYLOAD_PUBLIC_URL
   const res = await fetch(
@@ -27,8 +31,8 @@ export default async function OrdiniPage() {
   return (
     <div style={{ padding: '16px', fontFamily: 'monospace', color: '#fff' }}>
       <div style={{ marginBottom: '16px', paddingTop: '8px' }}>
-        <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#555', textTransform: 'uppercase', marginBottom: '4px' }}>I tuoi ordini</div>
-        <div style={{ fontSize: '18px', fontWeight: 300 }}>{orders.length} ordini totali</div>
+        <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#555', textTransform: 'uppercase', marginBottom: '4px' }}>{t('your_orders')}</div>
+        <div style={{ fontSize: '18px', fontWeight: 300 }}>{orders.length} {t('orders_count')}</div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -46,9 +50,9 @@ export default async function OrdiniPage() {
                 €{(order.total as number)?.toFixed(2)}
               </div>
               <div style={{ display: 'flex', gap: '6px' }}>
-                {!isActive && <ReorderButton orderId={order.orderNumber as string} />}
+                {!isActive && <ReorderButton orderId={order.orderNumber as string} label={t('reorder')} />}
                 <Link href={`/account/ordini/${order.orderNumber}`} style={{ background: '#1a1a1a', color: '#aaa', fontSize: '10px', padding: '4px 8px', borderRadius: '3px', border: '1px solid #333', textDecoration: 'none' }}>
-                  Dettaglio →
+                  {t('detail')}
                 </Link>
               </div>
             </div>
