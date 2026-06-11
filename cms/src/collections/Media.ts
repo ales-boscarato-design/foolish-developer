@@ -29,7 +29,13 @@ export const Media: CollectionConfig = {
       if (sizes?.thumbnail?.url) return sizes.thumbnail.url
       return typeof doc?.url === 'string' ? doc.url : ''
     },
-    mimeTypes: ['image/png', 'image/jpeg', 'image/webp', 'video/mp4', 'video/webm'],
+    mimeTypes: [
+      'image/png', 'image/jpeg', 'image/webp',
+      'video/mp4', 'video/webm',
+      'application/pdf',
+      'application/zip', 'application/x-zip-compressed',
+      'application/octet-stream',
+    ],
   },
   fields: [
     {
