@@ -9,7 +9,11 @@ export const PushSequences: CollectionConfig = {
     group: 'Marketing',
   },
   access: {
-    read: ({ req }) => !!req.user,
+    read: ({ req }) => {
+      if (req.user) return true
+      const secret = req.headers?.get?.('x-storefront-secret') ?? (req.headers as unknown as Record<string, string>)?.['x-storefront-secret']
+      return !!secret && secret === process.env.PAYLOAD_API_SECRET
+    },
     create: ({ req }) => !!req.user,
     update: ({ req }) => !!req.user,
     delete: ({ req }) => !!req.user,
