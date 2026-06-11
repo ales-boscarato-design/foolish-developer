@@ -29,7 +29,8 @@ self.addEventListener('fetch', (event) => {
 
 // Web Push
 self.addEventListener('push', (event) => {
-  const data = event.data?.json() ?? {}
+  let data = {}
+  try { data = event.data?.json() ?? {} } catch { data = { body: event.data?.text() ?? '' } }
   const title = data.title ?? 'The Foolish Butcher'
   const options = {
     body: data.body ?? '',
