@@ -138,7 +138,9 @@ export interface CustomerOffer {
   used: boolean
 }
 
+let offersTableReady = false
 async function ensureOffersTable() {
+  if (offersTableReady) return
   await sql`
     CREATE TABLE IF NOT EXISTS account.customer_offers (
       id               SERIAL PRIMARY KEY,
@@ -152,6 +154,7 @@ async function ensureOffersTable() {
       created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `
+  offersTableReady = true
 }
 
 export async function createCustomerOffer(

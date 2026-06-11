@@ -15,7 +15,10 @@ export default async function CollezionePage() {
   const t = getT(locale)
 
   const offer = await getActiveCustomerOffer(session.email)
-  const product = offer ? await getProductBySlug(offer.product_slug, locale) : null
+  let product = null
+  if (offer) {
+    try { product = await getProductBySlug(offer.product_slug, locale) } catch { /* CMS unavailable */ }
+  }
 
   if (!offer || !product) {
     return (
