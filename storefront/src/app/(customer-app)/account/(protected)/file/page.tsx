@@ -3,6 +3,7 @@ import { getSession } from '@/lib/account-auth'
 import { getWishlist } from '@/lib/account-db'
 import { getAccountLocale, getT } from '@/lib/account-i18n'
 import { WishlistItemActions } from './_components/WishlistItem'
+import { cmsImageUrl } from '@/lib/cms'
 
 interface CustomerFile {
   id: string
@@ -11,6 +12,7 @@ interface CustomerFile {
   active: boolean
   file?: { url?: string; filename?: string; filesize?: number }
   customer?: { email?: string } | null
+  description?: string
 }
 
 export default async function FilePage() {
@@ -50,29 +52,29 @@ export default async function FilePage() {
           <div style={{ color: '#555', fontSize: '12px' }}>{t('no_files')}</div>
         )}
         {myFiles.map((file) => {
-          const fileUrl = file.file?.url
-          const mediaBase = process.env.NEXT_PUBLIC_CMS_URL ?? ''
-          const fullUrl = fileUrl?.startsWith('http') ? fileUrl : `${mediaBase}${fileUrl}`
+          const fullUrl = cmsImageUrl(file.file?.url)
+          const ext = file.file?.filename?.split('.').pop()?.toUpperCase() ?? ''
+          const sizeMb = file.file?.filesize ? (file.file.filesize / 1024 / 1024).toFixed(1) : null
           return (
             <a
               key={file.id}
               href={fullUrl}
+              download
               target="_blank"
               rel="noopener noreferrer"
               style={{ background: '#111', border: '1px solid #1e1e1e', borderRadius: '8px', padding: '12px', display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}
             >
-              <div style={{ width: '36px', height: '36px', background: '#1a1a1a', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
-                {FILE_ICON[file.fileType] ?? '📎'}
+              <div style={{ width: '40px', height: '40px', background: '#1a1a1a', borderRadius: '6px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0, gap: '1px' }}>
+                <div style={{ fontSize: '16px', lineHeight: 1 }}>{FILE_ICON[file.fileType] ?? '📎'}</div>
+                {ext && <div style={{ fontSize: '8px', color: '#555', letterSpacing: '0.05em' }}>{ext}</div>}
               </div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: '12px', color: '#fff', marginBottom: '2px' }}>{file.title}</div>
-                {file.file?.filesize && (
-                  <div style={{ fontSize: '10px', color: '#555' }}>
-                    {(file.file.filesize / 1024 / 1024).toFixed(1)} MB
-                  </div>
+                {sizeMb && (
+                  <div style={{ fontSize: '10px', color: '#555' }}>{sizeMb} MB</div>
                 )}
               </div>
-              <div style={{ color: '#c9a96e', fontSize: '14px' }}>↓</div>
+              <div style={{ color: '#c9a96e', fontSize: '18px', flexShrink: 0 }}>↓</div>
             </a>
           )
         })}
