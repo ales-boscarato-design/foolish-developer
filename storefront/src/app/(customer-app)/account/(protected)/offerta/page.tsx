@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { OfferCountdown } from './_components/OfferCountdown'
 import { CopyCode } from './_components/CopyCode'
 
-export default async function CollezionePage() {
+export default async function OffertaPage() {
   const session = await getSession()
   if (!session) redirect('/account/login')
 
@@ -25,12 +25,12 @@ export default async function CollezionePage() {
       <div style={{ padding: '16px', fontFamily: 'monospace', color: '#fff' }}>
         <div style={{ marginBottom: '16px', paddingTop: '8px' }}>
           <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#555', textTransform: 'uppercase', marginBottom: '4px' }}>
-            {t('your_collection')}
+            {t('nav_offer')}
           </div>
-          <div style={{ fontSize: '18px', fontWeight: 300 }}>{t('your_collection')}</div>
+          <div style={{ fontSize: '18px', fontWeight: 300 }}>{t('offer_title')}</div>
         </div>
         <div style={{ color: '#555', fontSize: '13px', textAlign: 'center', padding: '60px 0', lineHeight: 1.6 }}>
-          {t('sheets_appear')}
+          {t('offer_empty')}
         </div>
       </div>
     )
@@ -43,9 +43,9 @@ export default async function CollezionePage() {
     <div style={{ padding: '16px', fontFamily: 'monospace', color: '#fff' }}>
       <div style={{ marginBottom: '20px', paddingTop: '8px' }}>
         <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#555', textTransform: 'uppercase', marginBottom: '4px' }}>
-          {t('your_collection')}
+          {t('nav_offer')}
         </div>
-        <div style={{ fontSize: '18px', fontWeight: 300 }}>Offerta riservata</div>
+        <div style={{ fontSize: '18px', fontWeight: 300 }}>{t('offer_title')}</div>
       </div>
 
       {/* Offer card */}
@@ -66,7 +66,7 @@ export default async function CollezionePage() {
         <div style={{ padding: '16px' }}>
           {/* Badge */}
           <div style={{ display: 'inline-block', background: '#c9a96e22', color: '#c9a96e', fontSize: '10px', fontWeight: 600, padding: '3px 10px', borderRadius: '12px', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '10px' }}>
-            Solo per te — {offer.discount_percent}% di sconto
+            {t('offer_badge')} {offer.discount_percent}% di sconto
           </div>
 
           {/* Product name */}
@@ -87,7 +87,7 @@ export default async function CollezionePage() {
           )}
 
           {/* Promo code */}
-          <div style={{ fontSize: '11px', color: '#555', marginBottom: '6px' }}>Usa questo codice al checkout:</div>
+          <div style={{ fontSize: '11px', color: '#555', marginBottom: '6px' }}>{t('offer_code_hint')}</div>
           <div style={{ marginBottom: '14px' }}>
             <CopyCode code={offer.promo_code} />
           </div>
@@ -96,7 +96,7 @@ export default async function CollezionePage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '16px' }}>
             <div style={{ width: '6px', height: '6px', background: '#c9a96e', borderRadius: '50%' }} />
             <div style={{ fontSize: '11px', color: '#888' }}>
-              Scade tra: <OfferCountdown expiresAt={offer.expires_at.toISOString()} />
+              {t('offer_expires')} <OfferCountdown expiresAt={offer.expires_at.toISOString()} />
             </div>
           </div>
 
@@ -105,7 +105,7 @@ export default async function CollezionePage() {
             href={productUrl}
             style={{ display: 'block', background: '#c9a96e', color: '#000', textAlign: 'center', padding: '12px', borderRadius: '6px', fontSize: '13px', fontWeight: 700, textDecoration: 'none', letterSpacing: '0.02em' }}
           >
-            Scopri il prodotto →
+            {t('offer_cta')}
           </Link>
         </div>
       </div>

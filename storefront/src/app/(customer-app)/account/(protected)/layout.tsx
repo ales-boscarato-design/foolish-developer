@@ -35,7 +35,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
         {[
           { href: '/account', label: t('nav_home'), icon: '🏠' },
           { href: '/account/ordini', label: t('nav_orders'), icon: '📦' },
-          { href: '/account/collezione', label: t('nav_collection'), icon: '🖼️' },
+          { href: '/account/offerta', label: t('nav_offer'), icon: '🏷️' },
           { href: '/account/file', label: t('nav_files'), icon: '📁' },
           { href: '/account/profilo', label: t('nav_profile'), icon: '👤' },
         ].map(({ href, label, icon }) => (
