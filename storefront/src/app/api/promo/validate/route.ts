@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getOfferByCode } from '@/lib/account-db'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,7 +51,19 @@ export async function POST(req: NextRequest) {
     // CMS unreachable — fall through to env var
   }
 
-  // 2. Fallback: env var PROMO_CODES
+  // 2. Check customer offers (post-order personal offers)
+  try {
+    const offer = await getOfferByCode(normalizedCode)
+    if (offer) {
+      const cartTotal = typeof total === 'number' && total > 0 ? total : 0
+      const discountAmount = parseFloat(((cartTotal * offer.discount_percent) / 100).toFixed(2))
+      return NextResponse.json({ valid: true, type: 'percent_offer', discountPercent: offer.discount_percent, discountAmount })
+    }
+  } catch {
+    // DB unreachable — fall through
+  }
+
+  // 3. Fallback: env var PROMO_CODES
   const codes = getCodes()
   const type = codes[normalizedCode]
   if (!type) return NextResponse.json({ valid: false })

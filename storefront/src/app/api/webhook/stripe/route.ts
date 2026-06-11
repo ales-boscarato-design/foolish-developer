@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { upsertSubscriber, markCartSessionRecovered, logEmail, upsertCmsCustomer } from '@/lib/marketing-db'
+import { createCustomerOffer } from '@/lib/account-db'
 import { sendWelcomeEmail, countryToLocale } from '@/lib/resend'
 
 export const dynamic = 'force-dynamic'
@@ -176,6 +177,36 @@ export async function POST(req: NextRequest) {
       }
     } catch (err) {
       console.error('CMS customer upsert failed:', err)
+    }
+
+    // Offerta post-ordine — fetch config CMS e crea offerta per il cliente
+    try {
+      const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL ?? process.env.PAYLOAD_PUBLIC_URL
+      const cmsSecret = process.env.PAYLOAD_API_SECRET
+      if (cmsUrl && cmsSecret) {
+        const offerRes = await fetch(
+          `${cmsUrl}/api/offer-config?where[active][equals]=true&depth=1&limit=1`,
+          { headers: { 'x-storefront-secret': cmsSecret }, cache: 'no-store' }
+        )
+        if (offerRes.ok) {
+          const offerData = await offerRes.json() as {
+            docs?: Array<{ product?: { slug?: string }; threshold: number; discountBelow: number; discountAbove: number; validityHours: number }>
+          }
+          const config = offerData.docs?.[0]
+          const productSlug = config?.product?.slug
+          if (config && productSlug) {
+            const orderTotal = (session.amount_total ?? 0) / 100
+            const discount = orderTotal < config.threshold ? config.discountBelow : config.discountAbove
+            const email = (session.customer_email ?? session.customer_details?.email ?? '').toLowerCase()
+            if (email) {
+              await createCustomerOffer(email, orderRef, productSlug, discount, config.validityHours)
+              console.log(`[webhook] Offer created for ${email}: ${discount}% on ${productSlug}`)
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[webhook] Offer creation failed:', err)
     }
 
     // Notifica nanobot — sempre, con flag cmsError esplicito

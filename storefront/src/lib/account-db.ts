@@ -124,3 +124,81 @@ export async function removeFromWishlist(email: string, productSlug: string): Pr
     WHERE subscriber_email = ${email} AND product_slug = ${productSlug}
   `
 }
+
+// ─── Customer Offers ────────────────────────────────────────────────────────
+
+export interface CustomerOffer {
+  id: number
+  email: string
+  order_number: string
+  product_slug: string
+  discount_percent: number
+  promo_code: string
+  expires_at: Date
+  used: boolean
+}
+
+async function ensureOffersTable() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS account.customer_offers (
+      id               SERIAL PRIMARY KEY,
+      email            TEXT NOT NULL,
+      order_number     TEXT NOT NULL,
+      product_slug     TEXT NOT NULL,
+      discount_percent INTEGER NOT NULL,
+      promo_code       TEXT NOT NULL UNIQUE,
+      expires_at       TIMESTAMPTZ NOT NULL,
+      used             BOOLEAN NOT NULL DEFAULT false,
+      created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `
+}
+
+export async function createCustomerOffer(
+  email: string,
+  orderNumber: string,
+  productSlug: string,
+  discountPercent: number,
+  validityHours: number
+): Promise<string> {
+  await ensureOffersTable()
+  // Generate unique code: OFFER-{6 random chars}-{discount}
+  const rand = Math.random().toString(36).slice(2, 8).toUpperCase()
+  const code = `OFFER-${rand}-${discountPercent}`
+  const expiresAt = new Date(Date.now() + validityHours * 60 * 60 * 1000)
+  await sql`
+    INSERT INTO account.customer_offers (email, order_number, product_slug, discount_percent, promo_code, expires_at)
+    VALUES (${email}, ${orderNumber}, ${productSlug}, ${discountPercent}, ${code}, ${expiresAt})
+    ON CONFLICT DO NOTHING
+  `
+  return code
+}
+
+export async function getActiveCustomerOffer(email: string): Promise<CustomerOffer | null> {
+  await ensureOffersTable()
+  const rows = await sql<CustomerOffer[]>`
+    SELECT * FROM account.customer_offers
+    WHERE email = ${email}
+      AND used = false
+      AND expires_at > NOW()
+    ORDER BY created_at DESC
+    LIMIT 1
+  `
+  return rows[0] ?? null
+}
+
+export async function getOfferByCode(code: string): Promise<CustomerOffer | null> {
+  await ensureOffersTable()
+  const rows = await sql<CustomerOffer[]>`
+    SELECT * FROM account.customer_offers
+    WHERE promo_code = ${code}
+      AND used = false
+      AND expires_at > NOW()
+    LIMIT 1
+  `
+  return rows[0] ?? null
+}
+
+export async function markOfferUsed(code: string): Promise<void> {
+  await sql`UPDATE account.customer_offers SET used = true WHERE promo_code = ${code}`
+}

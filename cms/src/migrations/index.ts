@@ -18,6 +18,7 @@ import * as migration_20260605_130000_fix_customers_tags from './20260605_130000
 import * as migration_20260607_120000_add_billing_fields_to_orders from './20260607_120000_add_billing_fields_to_orders';
 import * as migration_20260610_140000_add_customer_files from './20260610_140000_add_customer_files';
 import * as migration_20260610_160000_add_push_sequences from './20260610_160000_add_push_sequences';
+import * as migration_20260611_100000_add_offer_config from './20260611_100000_add_offer_config';
 
 export const migrations = [
   {
@@ -119,5 +120,10 @@ export const migrations = [
     up: migration_20260610_160000_add_push_sequences.up,
     down: migration_20260610_160000_add_push_sequences.down,
     name: '20260610_160000_add_push_sequences',
+  },
+  {
+    up: migration_20260611_100000_add_offer_config.up,
+    down: migration_20260611_100000_add_offer_config.down,
+    name: '20260611_100000_add_offer_config',
   },
 ];
