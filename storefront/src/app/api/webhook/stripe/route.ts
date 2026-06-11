@@ -150,13 +150,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true })
     }
 
+    const orderRef = session.metadata?.order_ref ?? `FOOLISH-${session.id}`
+    const customerEmail = session.customer_email ?? session.customer_details?.email ?? ''
+    const total = ((session.amount_total ?? 0) / 100).toFixed(2)
+    console.log(`[webhook] ORDER RECEIVED ${orderRef} | ${customerEmail} | €${total}`)
+
     // Crea ordine in Payload CMS — retry automatico fino a 4 tentativi
     let cmsError: string | null = null
     try {
       await createOrderInCMSWithRetry(session)
+      console.log(`[webhook] CMS order created OK ${orderRef}`)
     } catch (err) {
       cmsError = err instanceof Error ? err.message : String(err)
-      console.error('CMS order creation FAILED after all retries:', cmsError)
+      console.error(`[webhook] CMS order FAILED ${orderRef}:`, cmsError)
     }
 
     // Upsert cliente in Payload CMS customers
