@@ -16,8 +16,20 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
     )
   `)
   await db.execute(sql`CREATE INDEX IF NOT EXISTS "offer_config_created_at_idx" ON "offer_config" USING btree ("created_at")`)
+
+  // Register in payload_locked_documents_rels
+  await db.execute(sql`ALTER TABLE "payload_locked_documents_rels" ADD COLUMN IF NOT EXISTS "offer_config_id" integer`)
+  try {
+    await db.execute(sql`
+      ALTER TABLE "payload_locked_documents_rels"
+        ADD CONSTRAINT "payload_locked_documents_rels_offer_config_fk"
+        FOREIGN KEY ("offer_config_id") REFERENCES "offer_config"("id") ON DELETE CASCADE
+    `)
+  } catch { /* constraint may already exist */ }
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS "payload_locked_documents_rels_offer_config_id_idx" ON "payload_locked_documents_rels" USING btree ("offer_config_id")`)
 }
 
 export async function down({ db }: MigrateDownArgs): Promise<void> {
+  await db.execute(sql`ALTER TABLE "payload_locked_documents_rels" DROP COLUMN IF EXISTS "offer_config_id"`)
   await db.execute(sql`DROP TABLE IF EXISTS "offer_config"`)
 }
