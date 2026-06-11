@@ -4,6 +4,7 @@ import { getAccountSubscriber, getWishlist } from '@/lib/account-db'
 import { getAccountLocale, getT } from '@/lib/account-i18n'
 import Link from 'next/link'
 import { ReorderButton } from './_components/ReorderButton'
+import { getProductImagesBySku, cmsImageUrl } from '@/lib/cms'
 
 export default async function AccountHome() {
   const session = await getSession()
@@ -31,6 +32,11 @@ export default async function AccountHome() {
   )
   const lastDelivered = orders.find((o: Record<string, unknown>) => o.pipelineState === 'delivered')
 
+  const allSkus = orders.flatMap((o: Record<string, unknown>) =>
+    (o.lineItems as Array<{ sku: string }> | null)?.map(i => i.sku) ?? []
+  )
+  const skuImages = await getProductImagesBySku(allSkus)
+
   const PIPELINE_PROGRESS: Record<string, number> = {
     received: 10, eta_pending: 15, eta_confirmed: 25, in_production: 45,
     matching_pending: 60, matched: 70, preview_sent: 80, shipped: 90,
@@ -50,43 +56,68 @@ export default async function AccountHome() {
         </div>
       </div>
 
-      {activeOrder && (
-        <Link href={`/account/ordini/${activeOrder.orderNumber}`} style={{ textDecoration: 'none' }}>
-          <div style={{ background: '#111', border: '1px solid #c9a96e44', borderRadius: '8px', padding: '14px', marginBottom: '12px' }}>
-            <div style={{ fontSize: '10px', color: '#c9a96e', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>
-              {t('active_order')}
-            </div>
-            <div style={{ fontSize: '13px', color: '#fff', marginBottom: '4px' }}>
-              #{activeOrder.orderNumber}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-              <div style={{ width: '6px', height: '6px', background: '#c9a96e', borderRadius: '50%' }} />
-              <div style={{ fontSize: '11px', color: '#c9a96e' }}>
-                {activeOrder.pipelineState as string}
-                {activeOrder.productionEtaDays ? ` · ETA ${activeOrder.productionEtaDays} ${t('eta_days')}` : ''}
+      {activeOrder && (() => {
+        const lineItems = activeOrder.lineItems as Array<{ sku: string; name: string }> | null ?? []
+        const thumbs = [...new Map(lineItems.map(i => [i.sku, i])).values()]
+          .map(i => cmsImageUrl(skuImages[i.sku])).filter(Boolean).slice(0, 3)
+        return (
+          <Link href={`/account/ordini/${activeOrder.orderNumber}`} style={{ textDecoration: 'none' }}>
+            <div style={{ background: '#111', border: '1px solid #c9a96e44', borderRadius: '8px', padding: '14px', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                <div style={{ fontSize: '10px', color: '#c9a96e', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                  {t('active_order')}
+                </div>
+                {thumbs.length > 0 && (
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {thumbs.map((url, i) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img key={i} src={url} alt="" style={{ width: '36px', height: '36px', borderRadius: '4px', objectFit: 'cover', background: '#1a1a1a' }} />
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div style={{ fontSize: '13px', color: '#fff', marginBottom: '4px' }}>
+                #{activeOrder.orderNumber}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                <div style={{ width: '6px', height: '6px', background: '#c9a96e', borderRadius: '50%' }} />
+                <div style={{ fontSize: '11px', color: '#c9a96e' }}>
+                  {activeOrder.pipelineState as string}
+                  {activeOrder.productionEtaDays ? ` · ETA ${activeOrder.productionEtaDays} ${t('eta_days')}` : ''}
+                </div>
+              </div>
+              <div style={{ background: '#1a1a1a', borderRadius: '2px', height: '3px', marginBottom: '4px' }}>
+                <div style={{ background: '#c9a96e', height: '3px', borderRadius: '2px', width: `${PIPELINE_PROGRESS[activeOrder.pipelineState as string] ?? 50}%` }} />
               </div>
             </div>
-            <div style={{ background: '#1a1a1a', borderRadius: '2px', height: '3px', marginBottom: '4px' }}>
-              <div style={{ background: '#c9a96e', height: '3px', borderRadius: '2px', width: `${PIPELINE_PROGRESS[activeOrder.pipelineState as string] ?? 50}%` }} />
+          </Link>
+        )
+      })()}
+
+      {lastDelivered && (() => {
+        const lineItems = lastDelivered.lineItems as Array<{ sku: string; name: string }> | null ?? []
+        const thumbUrl = cmsImageUrl(skuImages[lineItems[0]?.sku ?? ''])
+        return (
+          <div style={{ background: '#111', border: '1px solid #1e1e1e', borderRadius: '8px', padding: '14px', marginBottom: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+            {thumbUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={thumbUrl} alt="" style={{ width: '52px', height: '52px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }} />
+            )}
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '10px', color: '#555', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>
+                {t('last_received')}
+              </div>
+              <div style={{ fontSize: '13px', color: '#fff', marginBottom: '4px' }}>
+                #{lastDelivered.orderNumber}
+              </div>
+              <div style={{ fontSize: '11px', color: '#666', marginBottom: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {lineItems.map(i => i.name).join(', ')}
+              </div>
+              <ReorderButton orderId={lastDelivered.orderNumber as string} label={t('reorder')} />
             </div>
           </div>
-        </Link>
-      )}
-
-      {lastDelivered && (
-        <div style={{ background: '#111', border: '1px solid #1e1e1e', borderRadius: '8px', padding: '14px', marginBottom: '12px' }}>
-          <div style={{ fontSize: '10px', color: '#555', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
-            {t('last_received')}
-          </div>
-          <div style={{ fontSize: '13px', color: '#fff', marginBottom: '4px' }}>
-            #{lastDelivered.orderNumber}
-          </div>
-          <div style={{ fontSize: '11px', color: '#666', marginBottom: '10px' }}>
-            {Array.isArray(lastDelivered.lineItems) ? (lastDelivered.lineItems as { name: string }[]).map(i => i.name).join(', ') : ''}
-          </div>
-          <ReorderButton orderId={lastDelivered.orderNumber as string} label={t('reorder')} />
-        </div>
-      )}
+        )
+      })()}
 
       {wishlist.length > 0 && (
         <div style={{ background: '#111', border: '1px solid #1e1e1e', borderRadius: '8px', padding: '14px' }}>

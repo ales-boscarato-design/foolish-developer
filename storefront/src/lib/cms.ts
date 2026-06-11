@@ -176,3 +176,30 @@ export async function getProductBySlug(slug: string, locale = 'it'): Promise<Pro
   }, locale)
   return data.docs[0] ?? null
 }
+
+/** Restituisce una mappa SKU → URL immagine (prima immagine del prodotto). */
+export async function getProductImagesBySku(skus: string[]): Promise<Record<string, string>> {
+  const unique = [...new Set(skus.filter(Boolean))]
+  if (!unique.length) return {}
+  try {
+    const res = await fetch(
+      `${CMS_API}/products?where[variants.sku][in]=${unique.map(encodeURIComponent).join(',')}&depth=1&limit=50`,
+      { cache: 'no-store' }
+    )
+    if (!res.ok) return {}
+    const data = await res.json() as {
+      docs: Array<{ variants: Array<{ sku: string }>; images: Array<{ image: { url: string } }> }>
+    }
+    const map: Record<string, string> = {}
+    for (const product of data.docs) {
+      const img = product.images[0]?.image?.url
+      if (!img) continue
+      for (const v of product.variants) {
+        if (unique.includes(v.sku)) map[v.sku] = img
+      }
+    }
+    return map
+  } catch {
+    return {}
+  }
+}
