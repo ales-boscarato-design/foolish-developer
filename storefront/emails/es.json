@@ -30,6 +30,14 @@
     "cta": "Ver las novedades",
     "cta_url": "https://thefoolishbutcher.com"
   },
+  "pwa_invite": {
+    "subject": "Tu espacio personal te espera",
+    "preview": "Sigue tu pedido y descubre tu oferta exclusiva.",
+    "heading": "Tu pedido está en producción.",
+    "body": "Tienes un espacio personal en thefoolishbutcher.com donde puedes seguir tu pedido en tiempo real, descargar tus archivos y encontrar una pequeña sorpresa solo para ti.",
+    "cta": "Accede a tu cuenta",
+    "pwa_hint": "También puedes instalar la app en tu móvil — toca 'Agregar a pantalla de inicio' desde tu navegador."
+  },
   "footer": {
     "unsubscribe_text": "¿No quieres recibir más correos?",
     "unsubscribe_cta": "Cancelar suscripción",

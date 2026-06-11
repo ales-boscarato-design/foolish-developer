@@ -1,6 +1,6 @@
 import sql from './db'
 
-export type EmailType = 'welcome' | 'abandoned_cart' | 'review_request' | 'reengagement' | 'magic_link' | 'push_offer'
+export type EmailType = 'welcome' | 'abandoned_cart' | 'review_request' | 'reengagement' | 'magic_link' | 'push_offer' | 'pwa_invite'
 
 export interface Subscriber {
   id: string
@@ -209,6 +209,83 @@ export async function bounceByEmail(email: string): Promise<void> {
     UPDATE marketing.subscribers
     SET status = 'bounced', updated_at = NOW()
     WHERE email = ${email}
+  `
+}
+
+// ─── PWA Invite Queue ──────────────────────────────────────────────────────
+
+export interface PwaInviteRow {
+  id: string
+  email: string
+  name: string | null
+  locale: string
+  subscriber_id: string
+  scheduled_at: Date
+  sent_at: Date | null
+}
+
+let pwaInviteTableReady = false
+async function ensurePwaInviteTable() {
+  if (pwaInviteTableReady) return
+  await sql`
+    CREATE TABLE IF NOT EXISTS marketing.pwa_invite_queue (
+      id            SERIAL PRIMARY KEY,
+      email         TEXT NOT NULL,
+      name          TEXT,
+      locale        TEXT NOT NULL DEFAULT 'it',
+      subscriber_id TEXT NOT NULL,
+      scheduled_at  TIMESTAMPTZ NOT NULL,
+      sent_at       TIMESTAMPTZ,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (email)
+    )
+  `
+  pwaInviteTableReady = true
+}
+
+// Enqueue a PWA invite to be sent after delayMinutes (default 15).
+// Idempotent: if a row for this email already exists, does nothing.
+export async function enqueuePwaInvite(params: {
+  email: string
+  name: string | null
+  locale: string
+  subscriberId: string
+  delayMinutes?: number
+}): Promise<void> {
+  await ensurePwaInviteTable()
+  const delay = params.delayMinutes ?? 15
+  await sql`
+    INSERT INTO marketing.pwa_invite_queue (email, name, locale, subscriber_id, scheduled_at)
+    VALUES (
+      ${params.email},
+      ${params.name ?? null},
+      ${params.locale},
+      ${params.subscriberId},
+      NOW() + (${delay} * INTERVAL '1 minute')
+    )
+    ON CONFLICT (email) DO NOTHING
+  `
+}
+
+// Return pending invites whose scheduled_at has passed.
+export async function getPendingPwaInvites(): Promise<PwaInviteRow[]> {
+  await ensurePwaInviteTable()
+  return sql<PwaInviteRow[]>`
+    SELECT id, email, name, locale, subscriber_id, scheduled_at, sent_at
+    FROM marketing.pwa_invite_queue
+    WHERE scheduled_at <= NOW()
+      AND sent_at IS NULL
+    ORDER BY scheduled_at ASC
+    LIMIT 100
+  `
+}
+
+// Mark a PWA invite as sent.
+export async function markPwaInviteSent(id: string): Promise<void> {
+  await sql`
+    UPDATE marketing.pwa_invite_queue
+    SET sent_at = NOW()
+    WHERE id = ${id}
   `
 }
 

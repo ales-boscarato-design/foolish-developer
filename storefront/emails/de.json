@@ -30,6 +30,14 @@
     "cta": "Neuheiten entdecken",
     "cta_url": "https://thefoolishbutcher.com"
   },
+  "pwa_invite": {
+    "subject": "Dein persönlicher Bereich wartet",
+    "preview": "Verfolge deine Bestellung und entdecke dein exklusives Angebot.",
+    "heading": "Deine Bestellung wird gefertigt.",
+    "body": "Du hast einen persönlichen Bereich auf thefoolishbutcher.com, wo du deine Bestellung in Echtzeit verfolgen, deine Dateien herunterladen und eine kleine Überraschung nur für dich finden kannst.",
+    "cta": "Zu deinem Konto",
+    "pwa_hint": "Du kannst die App auch auf deinem Handy installieren — tippe im Browser auf 'Zum Startbildschirm hinzufügen'."
+  },
   "footer": {
     "unsubscribe_text": "Keine E-Mails mehr erhalten?",
     "unsubscribe_cta": "Abmelden",

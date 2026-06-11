@@ -30,6 +30,14 @@
     "cta": "See what's new",
     "cta_url": "https://thefoolishbutcher.com"
   },
+  "pwa_invite": {
+    "subject": "Your personal space is waiting",
+    "preview": "Track your order and discover your exclusive offer.",
+    "heading": "Your order is being made.",
+    "body": "You have a personal area on thefoolishbutcher.com where you can track your order in real time, download your files, and find a small surprise just for you.",
+    "cta": "Access your account",
+    "pwa_hint": "You can also install the app on your phone — tap 'Add to Home Screen' from your browser."
+  },
   "footer": {
     "unsubscribe_text": "Don't want to receive emails anymore?",
     "unsubscribe_cta": "Unsubscribe",

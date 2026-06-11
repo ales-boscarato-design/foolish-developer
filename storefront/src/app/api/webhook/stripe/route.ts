@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { upsertSubscriber, markCartSessionRecovered, logEmail, upsertCmsCustomer } from '@/lib/marketing-db'
+import { upsertSubscriber, markCartSessionRecovered, logEmail, upsertCmsCustomer, enqueuePwaInvite } from '@/lib/marketing-db'
 import { createCustomerOffer } from '@/lib/account-db'
 import { sendWelcomeEmail, countryToLocale } from '@/lib/resend'
 
@@ -266,6 +266,14 @@ export async function POST(req: NextRequest) {
             subscriberId,
           })
         }
+
+        // Enqueue PWA invite email — sent 15 min later (every order, idempotent after first)
+        await enqueuePwaInvite({
+          email: mktEmail,
+          name: customerName,
+          locale,
+          subscriberId,
+        })
       } catch (err) {
         // Marketing errors must never block Stripe response
         console.error('Marketing upsert/welcome failed:', err)

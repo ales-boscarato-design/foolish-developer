@@ -5,6 +5,7 @@ import { WelcomeEmail } from '@/emails/welcome'
 import { AbandonedCartEmail } from '@/emails/abandoned-cart'
 import { ReviewRequestEmail } from '@/emails/review-request'
 import { ReengagementEmail } from '@/emails/reengagement'
+import { PwaInviteEmail } from '@/emails/pwa-invite'
 
 function getResend() {
   return new Resend(process.env.RESEND_API_KEY!)
@@ -155,6 +156,30 @@ export async function sendReengagementEmail(params: {
     html,
   })
   if (error) throw new Error(`Resend reengagement error: ${error.message}`)
+  return data!.id
+}
+
+export async function sendPwaInviteEmail(params: {
+  to: string
+  name: string | null
+  locale: string
+  subscriberId: string
+}): Promise<string> {
+  const token = await generateUnsubscribeToken(params.subscriberId, params.to)
+  const accountUrl = `${SITE}/account`
+  const html = await render(PwaInviteEmail({
+    name: params.name,
+    locale: params.locale,
+    accountUrl,
+    unsubscribeUrl: unsubscribeUrl(token),
+  }))
+  const { data, error } = await getResend().emails.send({
+    from: FROM,
+    to: params.to,
+    subject: getSubject('pwa_invite', params.locale),
+    html,
+  })
+  if (error) throw new Error(`Resend pwa_invite error: ${error.message}`)
   return data!.id
 }
 
