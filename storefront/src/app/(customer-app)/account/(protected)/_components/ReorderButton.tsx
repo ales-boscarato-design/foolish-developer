@@ -14,7 +14,7 @@ export function ReorderButton({ orderId, label = 'Riordina' }: { orderId: string
 
   return (
     <button
-      onClick={handleReorder}
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleReorder() }}
       disabled={loading}
       style={{ background: '#c9a96e', color: '#000', border: 'none', padding: '7px 14px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer' }}
     >

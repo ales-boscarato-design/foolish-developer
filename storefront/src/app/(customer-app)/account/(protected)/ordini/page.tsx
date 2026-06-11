@@ -70,7 +70,7 @@ export default async function OrdiniPage() {
                   <div style={{ fontSize: '11px', color: '#555', marginBottom: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {lineItems.map(i => i.name).join(', ')} · €{(order.total as number)?.toFixed(2)}
                   </div>
-                  <div style={{ display: 'flex', gap: '6px' }} onClick={e => e.preventDefault()}>
+                  <div style={{ display: 'flex', gap: '6px' }}>
                     {!isActive && <ReorderButton orderId={order.orderNumber as string} label={t('reorder')} />}
                   </div>
                 </div>
