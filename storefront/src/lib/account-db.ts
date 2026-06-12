@@ -138,24 +138,8 @@ export interface CustomerOffer {
   used: boolean
 }
 
-let offersTableReady = false
-async function ensureOffersTable() {
-  if (offersTableReady) return
-  await sql`
-    CREATE TABLE IF NOT EXISTS account.customer_offers (
-      id               SERIAL PRIMARY KEY,
-      email            TEXT NOT NULL,
-      order_number     TEXT NOT NULL,
-      product_slug     TEXT NOT NULL,
-      discount_percent INTEGER NOT NULL,
-      promo_code       TEXT NOT NULL UNIQUE,
-      expires_at       TIMESTAMPTZ NOT NULL,
-      used             BOOLEAN NOT NULL DEFAULT false,
-      created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `
-  offersTableReady = true
-}
+// Table is created via migration — no runtime CREATE TABLE needed
+async function ensureOffersTable() { /* noop — table exists */ }
 
 export async function createCustomerOffer(
   email: string,
