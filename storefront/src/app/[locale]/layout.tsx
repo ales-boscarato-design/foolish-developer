@@ -48,6 +48,10 @@ export async function generateMetadata({
       type: 'website',
       locale,
     },
+    icons: {
+      icon: '/favicon.ico',
+      apple: '/apple-touch-icon.png',
+    },
     robots: { index: true, follow: true },
   }
 }
