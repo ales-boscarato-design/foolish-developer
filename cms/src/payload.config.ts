@@ -54,7 +54,10 @@ export default buildConfig({
     OfferConfig,
     {
       slug: 'users',
-      auth: true,
+      auth: {
+        maxLoginAttempts: 5,
+        lockTime: 30 * 60 * 1000, // 30 minuti
+      },
       admin: {
         useAsTitle: 'email',
         group: 'Sistema',
