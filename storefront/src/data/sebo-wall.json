@@ -1,1 +1,32 @@
-[]
+[
+  {
+    "id": "sebo-001",
+    "image": "/sebo/sebo-01.png",
+    "line": "Non sono difettoso. Sono onesto.",
+    "date": "2026-01-15"
+  },
+  {
+    "id": "sebo-002",
+    "image": "/sebo/sebo-02.png",
+    "line": "Il blowout è una scelta artistica. L'ho deciso adesso.",
+    "date": "2026-02-03"
+  },
+  {
+    "id": "sebo-003",
+    "image": "/sebo/sebo-03.png",
+    "line": "Ogni linea storta che porto addosso è un cliente salvato.",
+    "date": "2026-02-20"
+  },
+  {
+    "id": "sebo-004",
+    "image": "/sebo/sebo-04.png",
+    "line": "Cliente: voglio qualcosa di sottile. Io: perfetto.",
+    "date": "2026-03-08"
+  },
+  {
+    "id": "sebo-005",
+    "image": "/sebo/sebo-05.png",
+    "line": "Il Pellaio mi guarda. Preferisco non incontrare il suo sguardo.",
+    "date": "2026-04-01"
+  }
+]
