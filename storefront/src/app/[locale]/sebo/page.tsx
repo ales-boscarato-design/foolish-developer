@@ -25,16 +25,19 @@ export default async function SeboPage() {
   return (
     <div style={{ backgroundColor: '#0a0806', color: '#e8dcc8' }}>
 
-      {/* ── HERO — manifesto poster ── */}
+      {/* ── HERO ── */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Placeholder bg until LoRA image is ready */}
-        <div
-          className="absolute inset-0"
-          style={{ background: 'radial-gradient(ellipse at 50% 40%, #1a1108 0%, #0a0806 70%)' }}
+        <Image
+          src="/sebo/sebo-hero.png"
+          alt="Sebo sul lettino"
+          fill
+          priority
+          className="object-cover object-center"
+          style={{ filter: 'brightness(0.55) sepia(0.15)' }}
         />
         <div
-          className="absolute inset-0 opacity-10"
-          style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 39px, #c9a96e22 39px, #c9a96e22 40px)' }}
+          className="absolute inset-0"
+          style={{ background: 'linear-gradient(to bottom, transparent 40%, #0a0806 100%)' }}
         />
 
         <div className="relative z-10 text-center px-8 max-w-4xl mx-auto">
