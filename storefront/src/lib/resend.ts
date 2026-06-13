@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { notifyNanobot } from '@/lib/nanobot'
 import { SignJWT, jwtVerify } from 'jose'
 import { render } from '@react-email/render'
 import { WelcomeEmail } from '@/emails/welcome'
@@ -190,13 +191,7 @@ export async function notifyFrank(payload: {
   recipients: string[]
   errors: string[]
 }): Promise<void> {
-  const url = process.env.FRANK_WEBHOOK_URL
-  if (!url) return
-  await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  }).catch((e) => console.error('Frank notify failed:', e))
+  await notifyNanobot('/hooks/foolish-storefront-cron', payload)
 }
 
 // Helper: read subject line from locale copy.

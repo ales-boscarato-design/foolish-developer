@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { notifyNanobot } from '@/lib/nanobot'
 
 export const dynamic = 'force-dynamic'
 
 const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1dda.up.railway.app'
-const NANOBOT_WEBHOOK_URL = process.env.NANOBOT_WEBHOOK_URL
 
 function parseVat(raw: string): { countryCode: string; vatNumber: string } | null {
   const trimmed = raw.trim().toUpperCase().replace(/\s/g, '')
@@ -117,20 +117,14 @@ export async function POST(req: NextRequest) {
   }
 
   // Notify Frank
-  if (NANOBOT_WEBHOOK_URL) {
-    fetch(`${NANOBOT_WEBHOOK_URL}/hooks/foolish-pro-register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        vatNumber: normalizedVat,
-        businessName,
-        contactName,
-        email,
-        telegramUsername: telegramUsername ?? null,
-        discountCode: code,
-      }),
-    }).catch((err) => console.error('[pro/register] nanobot notify failed:', err))
-  }
+  notifyNanobot('/hooks/foolish-pro-register', {
+    vatNumber: normalizedVat,
+    businessName,
+    contactName,
+    email,
+    telegramUsername: telegramUsername ?? null,
+    discountCode: code,
+  })
 
   return NextResponse.json({ success: true, code })
 }

@@ -3,6 +3,7 @@ import Stripe from 'stripe'
 import { upsertSubscriber, markCartSessionRecovered, logEmail, upsertCmsCustomer, enqueuePwaInvite } from '@/lib/marketing-db'
 import { createCustomerOffer } from '@/lib/account-db'
 import { sendWelcomeEmail, countryToLocale } from '@/lib/resend'
+import { notifyNanobot } from '@/lib/nanobot'
 
 export const dynamic = 'force-dynamic'
 
@@ -210,24 +211,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Notifica nanobot — sempre, con flag cmsError esplicito
-    const nanobotUrl = process.env.NANOBOT_WEBHOOK_URL
-    if (nanobotUrl) {
-      await fetch(`${nanobotUrl}/hooks/foolish-storefront-order`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          source: 'storefront',
-          stripeSessionId: session.id,
-          externalRef: session.metadata?.order_ref,
-          amount: (session.amount_total ?? 0) / 100,
-          currency: session.currency?.toUpperCase(),
-          customerEmail: session.customer_email,
-          customerName: session.metadata?.customer_name,
-          itemsJson: session.metadata?.items_json,
-          cmsError,
-        }),
-      }).catch((e) => console.error('nanobot notify failed:', e))
-    }
+    await notifyNanobot('/hooks/foolish-storefront-order', {
+      source: 'storefront',
+      stripeSessionId: session.id,
+      externalRef: session.metadata?.order_ref,
+      amount: (session.amount_total ?? 0) / 100,
+      currency: session.currency?.toUpperCase(),
+      customerEmail: session.customer_email,
+      customerName: session.metadata?.customer_name,
+      itemsJson: session.metadata?.items_json,
+      cmsError,
+    })
 
     // Marketing: upsert subscriber + welcome email on first purchase
     const mktEmail = (session.customer_email ?? session.customer_details?.email)?.toLowerCase().trim() ?? null

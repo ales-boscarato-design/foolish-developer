@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 import { insertReview, reviewExistsForOrder } from '@/lib/reviews-db'
 import sql from '@/lib/db'
+import { notifyNanobot } from '@/lib/nanobot'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -51,29 +52,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   `
   const productName = productRows[0]?.name ?? payload.productSlug
 
-  const frankUrl = process.env.FRANK_REVIEW_WEBHOOK_URL
-  if (frankUrl) {
-    const adminSecret = process.env.REVIEW_ADMIN_SECRET!
-    const moderateBase = `${SITE}/api/review/moderate`
-    const publishUrl = `${moderateBase}?id=${review.id}&action=publish&token=${adminSecret}`
-    const removeUrl = `${moderateBase}?id=${review.id}&action=remove&token=${adminSecret}`
-
-    fetch(frankUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        reviewId: review.id,
-        productName,
-        productSlug: payload.productSlug,
-        rating: body.rating,
-        body: body.reviewText?.trim() || null,
-        reviewerName: body.reviewerName?.trim() || 'Anonimo',
-        photoUrls: body.photoUrls ?? [],
-        publishUrl,
-        removeUrl,
-      }),
-    }).catch((e) => console.error('Frank review webhook failed:', e))
-  }
+  const adminSecret = process.env.REVIEW_ADMIN_SECRET!
+  const moderateBase = `${SITE}/api/review/moderate`
+  notifyNanobot('/hooks/foolish-storefront-review', {
+    reviewId: review.id,
+    productName,
+    productSlug: payload.productSlug,
+    rating: body.rating,
+    body: body.reviewText?.trim() || null,
+    reviewerName: body.reviewerName?.trim() || 'Anonimo',
+    photoUrls: body.photoUrls ?? [],
+    publishUrl: `${moderateBase}?id=${review.id}&action=publish&token=${adminSecret}`,
+    removeUrl: `${moderateBase}?id=${review.id}&action=remove&token=${adminSecret}`,
+  })
 
   return NextResponse.json({ ok: true })
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/account-auth'
 import { savePushSubscription, markPushSequenceStep } from '@/lib/account-db'
 import { sendPushToEmail } from '@/lib/push'
+import { notifyNanobot } from '@/lib/nanobot'
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
@@ -39,14 +40,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Notify Frank via nanobot webhook
-    const nanobotUrl = process.env.NANOBOT_WEBHOOK_URL
-    if (nanobotUrl) {
-      fetch(`${nanobotUrl}/hooks/foolish-push-subscribed`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: session.email }),
-      }).catch((e) => console.error('nanobot push notify failed:', e))
-    }
+    notifyNanobot('/hooks/foolish-push-subscribed', { email: session.email })
   }
 
   return NextResponse.json({ ok: true })
