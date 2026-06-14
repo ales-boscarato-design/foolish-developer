@@ -564,6 +564,7 @@ export const Orders: CollectionConfig = {
         { name: 'customerLocale', type: 'text', label: 'Lingua (es. it, en)', admin: { width: '50%' } },
       ],
     },
+    { name: 'customerPhone', type: 'text', label: 'Telefono cliente' },
 
     // ── Importi ───────────────────────────────────────────────────
     {
