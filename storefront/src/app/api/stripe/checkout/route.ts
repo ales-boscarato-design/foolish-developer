@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
   const { items, shippingCost, customer, discountAmount, discountLabel } = await req.json()
+  const phone: string = customer?.phone ?? ''
   const orderRef = `FOOLISH-${Date.now()}`
 
   const lineItems = [
@@ -67,6 +68,7 @@ export async function POST(req: NextRequest) {
       customer_name: customer.name,
       customer_country: customer.country,
       customer_address: `${customer.address}|${customer.city}|${customer.postalCode}`,
+      customer_phone: phone,
       items_json: JSON.stringify(
         items.map((i: CartItem) => ({
           sku: i.sku,
