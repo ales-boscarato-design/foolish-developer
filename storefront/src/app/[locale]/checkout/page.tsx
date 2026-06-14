@@ -55,7 +55,7 @@ export default function CheckoutPage() {
   const [country, setCountry] = useState('IT')
 
   // Shipping form
-  const [form, setForm] = useState({ name: '', email: '', address: '', city: '', postalCode: '' })
+  const [form, setForm] = useState({ name: '', email: '', address: '', city: '', postalCode: '', phone: '' })
   const [fiscalCode, setFiscalCode] = useState('')
 
   // Billing
@@ -71,6 +71,7 @@ export default function CheckoutPage() {
   // Validation state
   const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle')
   const [postalCodeError, setPostalCodeError] = useState(false)
+  const [phoneError, setPhoneError] = useState(false)
 
   // Address autocomplete
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([])
@@ -103,9 +104,13 @@ export default function CheckoutPage() {
   const baseShipping = calculateShipping(cartTotal, country)
   const freeShippingByPromo = promoType === 'free_shipping'
   const shipping = freeShippingByPromo ? { ...baseShipping, cost: 0, isFree: true } : baseShipping
-  const proDiscount = promoType === 'percent_pro' ? (promoData?.discountAmount ?? 0) : 0
+  const proDiscount = (promoType === 'percent_pro' || promoType === 'percent' || promoType === 'amount')
+  ? (promoData?.discountAmount ?? 0)
+  : 0
   const grandTotal = cartTotal + shipping.cost - proDiscount
   const remaining = freeShippingByPromo ? 0 : freeShippingRemaining(cartTotal, country)
+
+  const validatePhone = (phone: string) => /^[\d\s+\-()\u00AD]{6,}$/.test(phone.trim())
 
   const validatePostalCode = (code: string, c: string) => {
     const re = POSTAL_CODE_RE[c]
@@ -115,6 +120,7 @@ export default function CheckoutPage() {
   const canPay =
     !loading &&
     !!form.name && !!form.email && !!form.address && !!form.city && !!form.postalCode &&
+    !!form.phone && !phoneError &&
     emailStatus !== 'invalid' &&
     (!billingDifferent || (!!billing.name && !!billing.address && !!billing.city && !!billing.postalCode))
 
@@ -132,8 +138,10 @@ export default function CheckoutPage() {
       if (data.valid) {
         setPromoType(data.type)
         setPromoStatus('valid')
-        setPromoData(data.type === 'percent_pro'
+        setPromoData(data.type === 'percent_pro' || data.type === 'percent'
           ? { discountPercent: data.discountPercent, discountAmount: data.discountAmount }
+          : data.type === 'amount'
+          ? { discountAmount: data.discountAmount }
           : null)
       } else {
         setPromoStatus('invalid')
@@ -209,7 +217,13 @@ export default function CheckoutPage() {
           billingAddress: billingDifferent ? billing : undefined,
           promoCode: promoStatus === 'valid' ? promoCode : undefined,
           discountAmount: proDiscount > 0 ? proDiscount : undefined,
-          discountLabel: promoData?.discountPercent ? `Sconto Foolish Pro ${promoData.discountPercent}%` : undefined,
+          discountLabel: promoType === 'percent_pro' && promoData?.discountPercent
+            ? `Sconto Foolish Pro ${promoData.discountPercent}%`
+            : promoType === 'percent' && promoData?.discountPercent
+            ? `Sconto ${promoData.discountPercent}%`
+            : promoType === 'amount'
+            ? 'Sconto promozionale'
+            : undefined,
         }),
       })
       const data = await res.json()
@@ -243,10 +257,12 @@ export default function CheckoutPage() {
     const focused = focusedField === field
     const isInvalid =
       (field === 'email' && emailStatus === 'invalid') ||
-      (field === 'postalCode' && postalCodeError)
+      (field === 'postalCode' && postalCodeError) ||
+      (field === 'phone' && phoneError)
     const isValid = overrideValid ||
       (field === 'email' && emailStatus === 'valid') ||
-      (field === 'postalCode' && !postalCodeError && !!form.postalCode)
+      (field === 'postalCode' && !postalCodeError && !!form.postalCode) ||
+      (field === 'phone' && !phoneError && !!form.phone)
     return {
       backgroundColor: 'var(--surface-1)',
       color: 'var(--foreground)',
@@ -447,6 +463,27 @@ export default function CheckoutPage() {
               </div>
               {emailStatus === 'invalid' && (
                 <p className="text-xs mt-1" style={{ color: 'var(--limited)' }}>Email non valida — ricontrolla</p>
+              )}
+            </div>
+
+            {/* Phone */}
+            <div>
+              <div className="relative">
+                <input
+                  type="tel"
+                  placeholder={t('fields.phone')}
+                  value={form.phone}
+                  onChange={(e) => { setForm(f => ({ ...f, phone: e.target.value })); if (phoneError) setPhoneError(false) }}
+                  onFocus={() => setFocusedField('phone')}
+                  onBlur={(e) => { setFocusedField(null); if (e.target.value) setPhoneError(!validatePhone(e.target.value)) }}
+                  className={`${inputBase} pr-8`}
+                  style={inputStyle('phone')}
+                />
+                {phoneError && <XCircle size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--limited)' }} />}
+                {!phoneError && form.phone && <CheckCircle size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#5a9c52' }} />}
+              </div>
+              {phoneError && (
+                <p className="text-xs mt-1" style={{ color: 'var(--limited)' }}>Numero di telefono non valido</p>
               )}
             </div>
 
@@ -688,7 +725,13 @@ export default function CheckoutPage() {
                 >
                   <span className="flex items-center gap-2">
                     <CheckCircle size={14} />
-                    {promoCode} · {promoData?.discountPercent ? `−${promoData.discountPercent}%` : 'Spedizione gratuita'}
+                    {promoCode} · {
+                      promoData?.discountPercent
+                        ? `−${promoData.discountPercent}%`
+                        : promoType === 'amount' && promoData?.discountAmount
+                        ? `−€${promoData.discountAmount.toFixed(2)}`
+                        : 'Spedizione gratuita'
+                    }
                   </span>
                   <button onClick={removePromo} className="text-label" style={{ color: 'var(--muted-fg)' }}>
                     Rimuovi

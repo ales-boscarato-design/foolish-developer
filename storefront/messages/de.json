@@ -43,7 +43,8 @@
       "address": "Adresse",
       "city": "Stadt",
       "postalCode": "Postleitzahl",
-      "fiscalCode": "Steuer-ID / USt-IdNr."
+      "fiscalCode": "Steuer-ID / USt-IdNr.",
+      "phone": "Telefonnummer"
     },
     "emailInvalid": "Ungültige oder nicht existierende E-Mail — bitte Domain prüfen",
     "postalCodeInvalid": "Ungültige Postleitzahl für das gewählte Land",

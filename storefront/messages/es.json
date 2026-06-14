@@ -43,7 +43,8 @@
       "address": "Dirección",
       "city": "Ciudad",
       "postalCode": "Código postal",
-      "fiscalCode": "NIF / CIF / VAT"
+      "fiscalCode": "NIF / CIF / VAT",
+      "phone": "Número de teléfono"
     },
     "emailInvalid": "Email inválido o inexistente — comprueba el dominio",
     "postalCodeInvalid": "Código postal inválido para el país seleccionado",

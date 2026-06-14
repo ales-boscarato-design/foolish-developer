@@ -43,7 +43,8 @@
       "address": "Adresse",
       "city": "Ville",
       "postalCode": "Code postal",
-      "fiscalCode": "N° fiscal / TVA intracommunautaire"
+      "fiscalCode": "N° fiscal / TVA intracommunautaire",
+      "phone": "Numéro de téléphone"
     },
     "emailInvalid": "Email invalide ou inexistante — vérifiez le domaine",
     "postalCodeInvalid": "Code postal invalide pour le pays sélectionné",

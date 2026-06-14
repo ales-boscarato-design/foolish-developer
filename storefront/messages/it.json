@@ -43,7 +43,8 @@
       "address": "Indirizzo",
       "city": "Città",
       "postalCode": "CAP",
-      "fiscalCode": "Codice Fiscale / P.IVA"
+      "fiscalCode": "Codice Fiscale / P.IVA",
+      "phone": "Numero di telefono"
     },
     "emailInvalid": "Email non valida o inesistente — controlla il dominio",
     "postalCodeInvalid": "CAP non valido per il paese selezionato",
