@@ -41,6 +41,7 @@ async function createOrderInCMS(session: Stripe.Checkout.Session): Promise<void>
   const meta = session.metadata ?? {}
   const orderRef = meta.order_ref ?? `FOOLISH-${session.id}`
   const customerName = meta.customer_name ?? session.customer_details?.name ?? ''
+  const customerPhone = meta.customer_phone ?? ''
   const customerEmail = session.customer_email ?? session.customer_details?.email ?? ''
   const total = (session.amount_total ?? 0) / 100
 
@@ -112,6 +113,7 @@ async function createOrderInCMS(session: Stripe.Checkout.Session): Promise<void>
       source: 'storefront',
       customerEmail,
       customerName,
+      customerPhone: customerPhone || undefined,
       lineItems,
       total,
       shippingCost,
