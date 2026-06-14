@@ -19,6 +19,11 @@ function calcProDiscount(total: number): { discountPercent: number; discountAmou
   return { discountPercent, discountAmount }
 }
 
+function isExpired(expiresAt: string | null | undefined): boolean {
+  if (!expiresAt) return false
+  return new Date(expiresAt) < new Date()
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json()
   const { code, total } = body as { code?: string; total?: number }
@@ -39,11 +44,25 @@ export async function POST(req: NextRequest) {
       const cmsData = await cmsRes.json()
       const cmsCode = cmsData.docs?.[0]
       if (cmsCode) {
+        if (isExpired(cmsCode.expiresAt)) {
+          return NextResponse.json({ valid: false })
+        }
         if (cmsCode.type === 'percent_pro') {
           const cartTotal = typeof total === 'number' && total > 0 ? total : 0
           const { discountPercent, discountAmount } = calcProDiscount(cartTotal)
           return NextResponse.json({ valid: true, type: 'percent_pro', discountPercent, discountAmount })
         }
+        if (cmsCode.type === 'percent') {
+          const cartTotal = typeof total === 'number' && total > 0 ? total : 0
+          const discountPercent = cmsCode.discountPercent as number
+          const discountAmount = parseFloat(((cartTotal * discountPercent) / 100).toFixed(2))
+          return NextResponse.json({ valid: true, type: 'percent', discountPercent, discountAmount })
+        }
+        if (cmsCode.type === 'amount') {
+          const discountAmount = cmsCode.discountAmount as number
+          return NextResponse.json({ valid: true, type: 'amount', discountAmount })
+        }
+        // free_shipping
         return NextResponse.json({ valid: true, type: cmsCode.type })
       }
     }
