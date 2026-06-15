@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import { Package, ArrowRight, CheckCircle } from 'lucide-react'
@@ -128,9 +129,12 @@ async function OrderVerifier({ sessionId }: { sessionId: string }) {
   )
 }
 
-export async function generateMetadata() {
+export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('grazie')
-  return { title: `${t('title')} — The Foolish Butcher` }
+  return {
+    title: `${t('title')} — The Foolish Butcher`,
+    robots: { index: false, follow: false },
+  }
 }
 
 export default async function GraziePage({ searchParams }: GraziePageProps) {
