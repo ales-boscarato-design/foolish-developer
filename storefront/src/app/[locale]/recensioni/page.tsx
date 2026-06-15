@@ -2,8 +2,12 @@ import { getAllPublishedReviews } from '@/lib/reviews-db'
 import { getProducts, cmsImageUrl } from '@/lib/cms'
 import { getLocale } from 'next-intl/server'
 import Image from 'next/image'
+import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
+
+const BASE = 'https://thefoolishbutcher.com'
+const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
 
 interface Props {
   searchParams: Promise<{ prodotto?: string; stelle?: string }>
@@ -11,6 +15,33 @@ interface Props {
 
 function Stars({ rating }: { rating: number }) {
   return <span style={{ color: '#c8a97e' }}>{'★'.repeat(rating)}{'☆'.repeat(5 - rating)}</span>
+}
+
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>
+  searchParams: Promise<{ prodotto?: string; stelle?: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  const { prodotto, stelle } = await searchParams
+  const isFiltered = !!(prodotto || stelle)
+  const langs = Object.fromEntries(LOCALES.map(l => [l, `${BASE}/${l}/recensioni`]))
+  return {
+    title: locale === 'it' ? 'Recensioni — The Foolish Butcher' : 'Reviews — The Foolish Butcher',
+    description:
+      locale === 'it'
+        ? 'Recensioni verificate da acquirenti reali di pelle sintetica per tattoo e PMU.'
+        : 'Verified reviews from real buyers of synthetic tattoo and PMU practice skin.',
+    robots: isFiltered ? { index: false, follow: false } : { index: true, follow: true },
+    alternates: isFiltered
+      ? undefined
+      : {
+          canonical: `${BASE}/${locale}/recensioni`,
+          languages: { ...langs, 'x-default': `${BASE}/it/recensioni` },
+        },
+  }
 }
 
 export default async function RecensioniPage({ searchParams }: Props) {
