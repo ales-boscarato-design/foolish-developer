@@ -28,8 +28,21 @@ export default async function PmuPage() {
   const t = await getTranslations('sections')
   const locale = await getLocale()
   const products = await getProducts('pmu', locale)
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: `${BASE}/${locale}` },
+      { '@type': 'ListItem', position: 2, name: 'PMU Practice Skin', item: `${BASE}/${locale}/pmu` },
+    ],
+  }
   return (
-    <div className="max-w-6xl mx-auto px-4 py-12">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <div className="max-w-6xl mx-auto px-4 py-12">
       <div className="mb-10">
         <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--muted-fg)' }}>{t('label')}</p>
         <h1 className="text-3xl font-bold">{t('pmu.title')}</h1>
@@ -39,5 +52,6 @@ export default async function PmuPage() {
         {products.map((p) => <ProductCard key={p.id} product={p} />)}
       </div>
     </div>
+    </>
   )
 }

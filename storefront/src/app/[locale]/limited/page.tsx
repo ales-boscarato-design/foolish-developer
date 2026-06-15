@@ -30,8 +30,21 @@ export default async function LimitedPage() {
   const locale = await getLocale()
   const products = await getLimitedProducts(locale)
   if (products.length === 0) redirect('/')
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: `${BASE}/${locale}` },
+      { '@type': 'ListItem', position: 2, name: 'Limited Edition', item: `${BASE}/${locale}/limited` },
+    ],
+  }
   return (
-    <div className="max-w-6xl mx-auto px-4 py-12">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <div className="max-w-6xl mx-auto px-4 py-12">
       <div className="mb-10">
         <span className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--limited)' }}>{t('badge')}</span>
         <h1 className="text-3xl font-bold mt-2">{t('title')}</h1>
@@ -41,5 +54,6 @@ export default async function LimitedPage() {
         {products.map((p) => <ProductCard key={p.id} product={p} />)}
       </div>
     </div>
+    </>
   )
 }
