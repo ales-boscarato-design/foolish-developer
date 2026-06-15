@@ -66,7 +66,26 @@ const nextConfig: NextConfig = {
       // About / chi siamo (non esiste nel nuovo sito)
       { source: '/en/about', destination: '/en/', permanent: true },
       { source: '/it/about', destination: '/it/', permanent: true },
-      // WordPress admin/cron (bot spam — 410 Gone via redirect a pagina inesistente non funziona in Next.js, skippiamo)
+      // Legacy Shopify collections (no locale prefix on old Shopify store)
+      { source: '/collections/:slug*', destination: '/it/', permanent: true },
+      // Legacy Shopify product URLs → new prodotto routes
+      { source: '/products/duoskin',  destination: '/it/prodotto/t-sheet-duoskin', permanent: true },
+      { source: '/products/:slug',    destination: '/it/', permanent: true },
+      // Legacy Shopify blog
+      { source: '/blogs/:path*', destination: '/it/', permanent: true },
+      // Legacy Shopify pages
+      { source: '/pages/:slug', destination: '/it/', permanent: true },
+      // Legacy product lines (old landing pages)
+      ...LOCALES.map((locale) => ({
+        source: `/${locale}/duoskin`,
+        destination: `/${locale}/prodotto/t-sheet-duoskin`,
+        permanent: true,
+      })),
+      ...LOCALES.map((locale) => ({
+        source: `/${locale}/woodskin`,
+        destination: `/${locale}/`,
+        permanent: true,
+      })),
     ]
 
     // Old WooCommerce product-category URLs
