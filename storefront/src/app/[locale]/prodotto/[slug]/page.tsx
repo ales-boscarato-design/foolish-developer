@@ -57,7 +57,7 @@ export default async function ProductPage({ params }: Props) {
     product.basePrice,
   ) ?? product.basePrice
 
-  const productSchema = {
+  const productSchema: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
@@ -71,6 +71,15 @@ export default async function ProductPage({ params }: Props) {
       availability: 'https://schema.org/InStock',
       url: `${BASE}/${locale}/prodotto/${slug}`,
     },
+    ...(reviewSummary.count > 0 && {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: reviewSummary.average.toFixed(1),
+        reviewCount: reviewSummary.count,
+        bestRating: '5',
+        worstRating: '1',
+      },
+    }),
   }
 
   return (
