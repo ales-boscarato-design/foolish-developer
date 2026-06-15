@@ -43,9 +43,22 @@ const orgSchema = {
   name: 'The Foolish Butcher',
   url: BASE,
   logo: `${BASE}/logo.png`,
+  foundingDate: '2012',
   sameAs: ['https://www.instagram.com/thefoolishbutcher'],
   description:
     'Artigiano italiano specializzato in pelle sintetica per la pratica del tattoo e PMU. Ogni foglio è fatto a mano.',
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: 'Chieri',
+    addressRegion: 'TO',
+    addressCountry: 'IT',
+  },
+  contactPoint: {
+    '@type': 'ContactPoint',
+    email: 'support.foolish@agentmail.to',
+    contactType: 'customer service',
+    availableLanguage: ['Italian', 'English'],
+  },
 }
 
 /* ─── Marquee cinetico — puro CSS, nessun JS ──────────────────────── */
