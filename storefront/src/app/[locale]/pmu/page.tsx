@@ -17,9 +17,17 @@ export async function generateMetadata({
   const langs = Object.fromEntries(LOCALES.map(l => [l, `${BASE}/${l}/pmu`]))
   return {
     title: t('meta'),
+    description:
+      locale === 'it'
+        ? 'Pelle sintetica per la pratica del PMU (trucco semipermanente). Texture realistica, produzione artigianale italiana.'
+        : 'Synthetic practice skin for PMU (permanent makeup). Realistic texture, Italian artisan production.',
     alternates: {
       canonical: `${BASE}/${locale}/pmu`,
       languages: { ...langs, 'x-default': `${BASE}/it/pmu` },
+    },
+    openGraph: {
+      url: `${BASE}/${locale}/pmu`,
+      images: [{ url: '/og/home.jpg', width: 1200, height: 630, alt: 'PMU Practice Skin — The Foolish Butcher' }],
     },
   }
 }

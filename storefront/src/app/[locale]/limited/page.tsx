@@ -18,9 +18,17 @@ export async function generateMetadata({
   const langs = Object.fromEntries(LOCALES.map(l => [l, `${BASE}/${l}/limited`]))
   return {
     title: t('meta'),
+    description:
+      locale === 'it'
+        ? 'Edizioni limitate di pelle sintetica The Foolish Butcher. Disponibilità ristretta, qualità artigianale italiana.'
+        : 'Limited edition synthetic practice skin by The Foolish Butcher. Restricted availability, Italian artisan quality.',
     alternates: {
       canonical: `${BASE}/${locale}/limited`,
       languages: { ...langs, 'x-default': `${BASE}/it/limited` },
+    },
+    openGraph: {
+      url: `${BASE}/${locale}/limited`,
+      images: [{ url: '/og/home.jpg', width: 1200, height: 630, alt: 'Limited Edition — The Foolish Butcher' }],
     },
   }
 }

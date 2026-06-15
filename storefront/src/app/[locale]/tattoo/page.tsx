@@ -17,9 +17,17 @@ export async function generateMetadata({
   const langs = Object.fromEntries(LOCALES.map(l => [l, `${BASE}/${l}/tattoo`]))
   return {
     title: t('meta'),
+    description:
+      locale === 'it'
+        ? 'Pelle sintetica artigianale per la pratica del tattoo. Fogli A5, A4, XXL e pelli 3D. Produzione italiana.'
+        : 'Handcrafted synthetic practice skin for tattooing. A5, A4, XXL sheets and 3D skins. Made in Italy.',
     alternates: {
       canonical: `${BASE}/${locale}/tattoo`,
       languages: { ...langs, 'x-default': `${BASE}/it/tattoo` },
+    },
+    openGraph: {
+      url: `${BASE}/${locale}/tattoo`,
+      images: [{ url: '/og/home.jpg', width: 1200, height: 630, alt: 'Tattoo Practice Skin — The Foolish Butcher' }],
     },
   }
 }
