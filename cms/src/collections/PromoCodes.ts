@@ -13,6 +13,16 @@ export const PromoCodes: CollectionConfig = {
     update: ({ req }) => !!req.user,
     delete: ({ req }) => !!req.user,
   },
+  hooks: {
+    beforeChange: [
+      ({ data }) => {
+        if (data.code && typeof data.code === 'string') {
+          data.code = data.code.toUpperCase().trim()
+        }
+        return data
+      },
+    ],
+  },
   fields: [
     { name: 'code', type: 'text', required: true, unique: true, label: 'Codice' },
     {
