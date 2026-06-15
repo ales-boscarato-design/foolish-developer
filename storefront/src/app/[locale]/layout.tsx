@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Outfit, Cormorant_Garamond } from 'next/font/google'
 import Script from 'next/script'
 import '../globals.css'
@@ -53,7 +53,18 @@ export async function generateMetadata({
       apple: '/apple-touch-icon.png',
     },
     robots: { index: true, follow: true },
+    twitter: {
+      card: 'summary_large_image',
+      site: '@thefoolishbutcher',
+      creator: '@thefoolishbutcher',
+    },
   }
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#0d0d0d',
 }
 
 export default async function LocaleLayout({
