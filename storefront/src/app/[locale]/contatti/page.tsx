@@ -1,9 +1,20 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 
-export const metadata: Metadata = {
-  title: 'Contatti — The Foolish Butcher',
-  description: 'Contatta The Foolish Butcher per ordini, supporto o informazioni sui prodotti.',
+const BASE = 'https://thefoolishbutcher.com'
+const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params
+  const langs = Object.fromEntries(LOCALES.map(l => [l, `${BASE}/${l}/contatti`]))
+  return {
+    title: 'Contatti — The Foolish Butcher',
+    description: 'Contatta The Foolish Butcher per ordini, supporto o informazioni sui prodotti.',
+    alternates: {
+      canonical: `${BASE}/${locale}/contatti`,
+      languages: { ...langs, 'x-default': `${BASE}/it/contatti` },
+    },
+  }
 }
 
 export default async function ContattiPage() {

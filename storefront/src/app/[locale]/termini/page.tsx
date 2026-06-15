@@ -1,11 +1,19 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 
+const BASE = 'https://thefoolishbutcher.com'
+const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
+
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'termini' })
+  const langs = Object.fromEntries(LOCALES.map(l => [l, `${BASE}/${l}/termini`]))
   return {
     title: t('meta'),
+    alternates: {
+      canonical: `${BASE}/${locale}/termini`,
+      languages: { ...langs, 'x-default': `${BASE}/it/termini` },
+    },
   }
 }
 

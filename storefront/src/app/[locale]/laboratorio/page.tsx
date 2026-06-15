@@ -3,14 +3,23 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations('laboratorio')
+const BASE = 'https://thefoolishbutcher.com'
+const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: 'laboratorio' })
+  const langs = Object.fromEntries(LOCALES.map(l => [l, `${BASE}/${l}/laboratorio`]))
   return {
     title: 'Il Laboratorio — The Foolish Butcher',
     description: t('meta.description'),
     openGraph: {
       title: 'Il Laboratorio — The Foolish Butcher',
       description: t('meta.description'),
+    },
+    alternates: {
+      canonical: `${BASE}/${locale}/laboratorio`,
+      languages: { ...langs, 'x-default': `${BASE}/it/laboratorio` },
     },
   }
 }

@@ -7,14 +7,23 @@ import wallDataRaw from '@/data/sebo-wall.json'
 interface WallEntry { id: string; image: string; line: string; date: string; platform_url?: string }
 const wallData = wallDataRaw as WallEntry[]
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations('sebo')
+const BASE = 'https://thefoolishbutcher.com'
+const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: 'sebo' })
+  const langs = Object.fromEntries(LOCALES.map(l => [l, `${BASE}/${l}/sebo`]))
   return {
     title: 'Sebo — The Foolish Butcher',
     description: t('meta.description'),
     openGraph: {
       title: 'Sebo — The Foolish Butcher',
       description: t('meta.description'),
+    },
+    alternates: {
+      canonical: `${BASE}/${locale}/sebo`,
+      languages: { ...langs, 'x-default': `${BASE}/it/sebo` },
     },
   }
 }
