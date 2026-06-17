@@ -5,7 +5,12 @@
     "heading": "",
     "body": "Grazie per il tuo ordine! 🥳\n\nIl tuo ordine è stato regolarmente ricevuto e registrato.\n\nCi vorranno circa 48 ore per produrre il tuo ordine, impacchettarlo e darlo ai corrieri. Ti avviseremo non appena sarà pronto a partire e ti invieremo il codice di tracciamento.\n\nNel frattempo hai tre canali dove seguire tutto:",
     "cta": "Vai alla tua pagina",
-    "cta_url": "https://thefoolishbutcher.com/account"
+    "cta_url": "https://thefoolishbutcher.com/account",
+    "channels": [
+      {"before": "La tua ", "link": "pagina personale", "url": "https://thefoolishbutcher.com/account", "after": " — ordini, stato, file, tutto lì."},
+      {"before": "", "link": "@the_foolish_butcher_bot", "url": "https://t.me/the_foolish_butcher_bot", "after": " su Telegram — assistenza diretta, in tempo reale."},
+      {"before": "", "link": "Frank", "url": "mailto:support.foolish@agentmail.to", "after": " — rispondo io a qualsiasi domanda sul tuo ordine."}
+    ]
   },
   "abandoned_cart": {
     "subject": "Hai lasciato qualcosa nel carrello",
