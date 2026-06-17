@@ -1,42 +1,47 @@
 {
   "welcome": {
-    "subject": "Danke — deine Bestellung ist bestätigt",
-    "preview": "Handgefertigt auf Bestellung.",
-    "heading": "Bestellung eingegangen.",
-    "body": "Handgefertigt auf Bestellung. Jede Lage, die ich herstelle, ist einzigartig — keine zwei sind gleich. Ich melde mich, sobald sie fertig ist, mit Fotos von genau dem, was ich dir schicke.",
-    "cta": "Zurück zur Website",
-    "cta_url": "https://thefoolishbutcher.com"
+    "subject": "Bestellung erhalten — wir sind dran",
+    "preview": "Danke für deine Bestellung. Verfolge alles in Echtzeit.",
+    "heading": "",
+    "body": "Danke für deine Bestellung! 🥳\n\nDeine Bestellung ist eingegangen und registriert.\n\nEs dauert etwa 48 Stunden, um deine Bestellung zu produzieren, zu verpacken und dem Kurier zu übergeben. Wir melden uns, sobald sie versandbereit ist, und schicken dir den Tracking-Code.\n\nIn der Zwischenzeit hast du drei Möglichkeiten, alles zu verfolgen:",
+    "cta": "Zu deiner Seite",
+    "cta_url": "https://thefoolishbutcher.com/account",
+    "channels": [
+      {"before": "Deine ", "link": "persönliche Seite", "url": "https://thefoolishbutcher.com/account", "after": " — Bestellungen, Status, Dateien, alles da."},
+      {"before": "", "link": "@the_foolish_butcher_bot", "url": "https://t.me/the_foolish_butcher_bot", "after": " auf Telegram — direkter Support in Echtzeit."},
+      {"before": "", "link": "Frank", "url": "mailto:support.foolish@agentmail.to", "after": " — ich beantworte alle Fragen zu deiner Bestellung."}
+    ]
   },
   "abandoned_cart": {
     "subject": "Du hast etwas im Warenkorb gelassen",
     "preview": "Auf Bestellung gefertigt — Plätze sind begrenzt.",
     "heading": "Noch da?",
-    "body": "Du hast einige Artikel im Warenkorb gelassen. Ich produziere auf Bestellung: wenn eine Charge fertig ist, ist sie weg. Falls du noch interessiert bist, besser bald.",
+    "body": "Du hast Artikel im Warenkorb gelassen. Ich produziere auf Bestellung: Wenn ein Los fertig ist, ist es fertig. Wenn du noch Interesse hast, besser schnell sein.",
     "cta": "Bestellung abschließen",
-    "footer_note": "Handwerkliche Produktion — jede Lage ist einzigartig."
+    "footer_note": "Handgefertigt — jedes Blatt ist ein Unikat."
   },
   "review_request": {
     "subject": "Wie ist es angekommen?",
     "preview": "Deine Bestellung ist vor ein paar Tagen angekommen.",
-    "heading": "Lass es mich wissen.",
-    "body": "Deine Bestellung ist vor ein paar Tagen angekommen. Hast du schon darauf tätowiert? Jedes Feedback hilft mir, die nächste Charge zu verbessern — antworte einfach auf diese E-Mail.",
-    "cta": "Bewertung schreiben"
+    "heading": "Sag mir Bescheid.",
+    "body": "Deine Bestellung ist vor ein paar Tagen angekommen. Hast du schon darauf tätowiert? Jedes Feedback hilft mir, das nächste Los zu verbessern — antworte einfach auf diese E-Mail.",
+    "cta": "Bewertung hinterlassen"
   },
   "reengagement": {
-    "subject": "Noch hier.",
-    "preview": "Es ist eine Weile her.",
-    "heading": "Verschwinde nicht.",
-    "body": "Es ist eine Weile her. Wann immer du wieder bestellen möchtest, bin ich da — in der Zwischenzeit produziere und verbessere ich weiter.",
+    "subject": "Immer noch da.",
+    "preview": "Ist eine Weile her.",
+    "heading": "Nicht verschwinden.",
+    "body": "Ist eine Weile her. Wenn du wieder bestellen möchtest, ich bin da — in der Zwischenzeit produziere und verbessere ich weiter.",
     "cta": "Neuheiten entdecken",
     "cta_url": "https://thefoolishbutcher.com"
   },
   "pwa_invite": {
     "subject": "Dein persönlicher Bereich wartet",
     "preview": "Verfolge deine Bestellung und entdecke dein exklusives Angebot.",
-    "heading": "Deine Bestellung wird gefertigt.",
+    "heading": "Deine Bestellung ist in Produktion.",
     "body": "Du hast einen persönlichen Bereich auf thefoolishbutcher.com, wo du deine Bestellung in Echtzeit verfolgen, deine Dateien herunterladen und eine kleine Überraschung nur für dich finden kannst.",
-    "cta": "Zu deinem Konto",
-    "pwa_hint": "Du kannst die App auch auf deinem Handy installieren — tippe im Browser auf 'Zum Startbildschirm hinzufügen'."
+    "cta": "Zum Konto",
+    "pwa_hint": "Du kannst die App auch auf deinem Handy installieren — tippe auf 'Zum Home-Bildschirm' im Browser."
   },
   "footer": {
     "unsubscribe_text": "Keine E-Mails mehr erhalten?",

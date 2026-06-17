@@ -1,42 +1,47 @@
 {
   "welcome": {
-    "subject": "Gracias — tu pedido está confirmado",
-    "preview": "Hecho a mano, bajo pedido.",
-    "heading": "Pedido recibido.",
-    "body": "Hecho a mano, bajo pedido. Cada lámina que hago es única — no hay dos iguales. Te escribo en cuanto esté lista, con fotos de exactamente lo que te voy a enviar.",
-    "cta": "Volver al sitio",
-    "cta_url": "https://thefoolishbutcher.com"
+    "subject": "Pedido recibido — estamos en ello",
+    "preview": "Gracias por tu pedido. Síguelo todo en tiempo real.",
+    "heading": "",
+    "body": "¡Gracias por tu pedido! 🥳\n\nTu pedido ha sido recibido y registrado.\n\nTardaremos unas 48 horas en producir tu pedido, empaquetarlo y entregarlo al mensajero. Te avisaremos en cuanto esté listo para enviar y te mandaremos el código de seguimiento.\n\nMientras tanto, tienes tres canales para seguir todo:",
+    "cta": "Ir a tu página",
+    "cta_url": "https://thefoolishbutcher.com/account",
+    "channels": [
+      {"before": "Tu ", "link": "página personal", "url": "https://thefoolishbutcher.com/account", "after": " — pedidos, estado, archivos, todo allí."},
+      {"before": "", "link": "@the_foolish_butcher_bot", "url": "https://t.me/the_foolish_butcher_bot", "after": " en Telegram — asistencia directa, en tiempo real."},
+      {"before": "", "link": "Frank", "url": "mailto:support.foolish@agentmail.to", "after": " — respondo a cualquier duda sobre tu pedido."}
+    ]
   },
   "abandoned_cart": {
     "subject": "Dejaste algo en el carrito",
-    "preview": "Producción bajo pedido — las plazas no duran.",
+    "preview": "Hecho sobre pedido — los cupos no duran.",
     "heading": "¿Sigues ahí?",
-    "body": "Dejaste algunos productos en el carrito. Produzco bajo pedido: cuando termino un lote, se acaba. Si todavía te interesa, mejor no esperar.",
+    "body": "Dejaste algunos productos en el carrito. Produzco sobre pedido: cuando un lote se termina, se termina. Si todavía te interesa, mejor date prisa.",
     "cta": "Completar el pedido",
-    "footer_note": "Producción artesanal — cada lámina es irrepetible."
+    "footer_note": "Producción artesanal — cada hoja es irrepetible."
   },
   "review_request": {
     "subject": "¿Cómo llegó?",
     "preview": "Tu pedido llegó hace unos días.",
     "heading": "Cuéntame.",
-    "body": "Tu pedido llegó hace unos días. ¿Ya has tatuado sobre él? Cualquier opinión me ayuda a mejorar el próximo lote — responde directamente a este correo.",
-    "cta": "Dejar reseña"
+    "body": "Tu pedido llegó hace unos días. ¿Ya probaste a tatuar sobre él? Cada comentario me ayuda a mejorar el próximo lote — responde directamente a este correo.",
+    "cta": "Dejar tu reseña"
   },
   "reengagement": {
     "subject": "Sigo aquí.",
     "preview": "Ha pasado un tiempo.",
     "heading": "No desaparezcas.",
-    "body": "Ha pasado un tiempo. Cuando estés listo para volver a pedir, aquí estoy — mientras tanto sigo produciendo y mejorando.",
-    "cta": "Ver las novedades",
+    "body": "Ha pasado un tiempo. Cuando estés listo para pedir de nuevo, estoy aquí — mientras tanto sigo produciendo y mejorando.",
+    "cta": "Ver novedades",
     "cta_url": "https://thefoolishbutcher.com"
   },
   "pwa_invite": {
     "subject": "Tu espacio personal te espera",
     "preview": "Sigue tu pedido y descubre tu oferta exclusiva.",
     "heading": "Tu pedido está en producción.",
-    "body": "Tienes un espacio personal en thefoolishbutcher.com donde puedes seguir tu pedido en tiempo real, descargar tus archivos y encontrar una pequeña sorpresa solo para ti.",
-    "cta": "Accede a tu cuenta",
-    "pwa_hint": "También puedes instalar la app en tu móvil — toca 'Agregar a pantalla de inicio' desde tu navegador."
+    "body": "Tienes un espacio personal en thefoolishbutcher.com donde puedes seguir tu pedido en tiempo real, descargar tus archivos y encontrar una pequeña sorpresa reservada para ti.",
+    "cta": "Acceder a tu cuenta",
+    "pwa_hint": "También puedes instalar la app en tu teléfono — toca 'Añadir a pantalla de inicio' desde el navegador."
   },
   "footer": {
     "unsubscribe_text": "¿No quieres recibir más correos?",

@@ -1,45 +1,50 @@
 {
   "welcome": {
-    "subject": "Merci — votre commande est confirmée",
-    "preview": "Fait main, sur commande.",
-    "heading": "Commande reçue.",
-    "body": "Fait main, sur commande. Chaque feuille que je fabrique est unique — aucune n'est identique. Je vous écris dès qu'elle est prête, avec des photos de ce que je vous envoie.",
-    "cta": "Retour au site",
-    "cta_url": "https://thefoolishbutcher.com"
+    "subject": "Commande reçue — on s'en occupe",
+    "preview": "Merci pour votre commande. Suivez tout en temps réel.",
+    "heading": "",
+    "body": "Merci pour votre commande ! 🥳\n\nVotre commande a bien été reçue et enregistrée.\n\nIl nous faudra environ 48 heures pour produire votre commande, l'emballer et la remettre au transporteur. Nous vous préviendrons dès qu'elle sera prête à partir et nous vous enverrons le code de suivi.\n\nEn attendant, voici trois canaux pour tout suivre :",
+    "cta": "Voir votre page",
+    "cta_url": "https://thefoolishbutcher.com/account",
+    "channels": [
+      {"before": "Votre ", "link": "page personnelle", "url": "https://thefoolishbutcher.com/account", "after": " — commandes, statut, fichiers, tout y est."},
+      {"before": "", "link": "@the_foolish_butcher_bot", "url": "https://t.me/the_foolish_butcher_bot", "after": " sur Telegram — assistance directe, en temps réel."},
+      {"before": "", "link": "Frank", "url": "mailto:support.foolish@agentmail.to", "after": " — je réponds à toutes vos questions sur votre commande."}
+    ]
   },
   "abandoned_cart": {
     "subject": "Vous avez laissé quelque chose dans votre panier",
-    "preview": "Production sur commande — les places ne durent pas.",
-    "heading": "Toujours là ?",
-    "body": "Vous avez laissé des produits dans votre panier. Je produis sur commande : quand un lot est terminé, c'est terminé. Si vous êtes toujours intéressé, mieux vaut ne pas attendre.",
+    "preview": "Fait sur commande — les places sont limitées.",
+    "heading": "Encore là ?",
+    "body": "Vous avez laissé des articles dans votre panier. Je produis sur commande : quand un lot est terminé, il est terminé. Si vous êtes toujours intéressé, mieux vaut ne pas tarder.",
     "cta": "Finaliser la commande",
     "footer_note": "Production artisanale — chaque feuille est unique."
   },
   "review_request": {
-    "subject": "Comment est-il arrivé ?",
+    "subject": "Comment c'est arrivé ?",
     "preview": "Votre commande est arrivée il y a quelques jours.",
     "heading": "Dites-moi.",
-    "body": "Votre commande est arrivée il y a quelques jours. Avez-vous déjà tatoué dessus ? Chaque retour m'aide à améliorer le prochain lot — répondez directement à cet email.",
+    "body": "Votre commande est arrivée il y a quelques jours. Vous avez déjà essayé de tatouer dessus ? Chaque retour m'aide à améliorer le prochain lot — répondez directement à cet email.",
     "cta": "Laisser votre avis"
   },
   "reengagement": {
-    "subject": "Je suis toujours là.",
+    "subject": "Toujours là.",
     "preview": "Ça fait un moment.",
     "heading": "Ne disparaissez pas.",
-    "body": "Ça fait un moment. Quand vous êtes prêt à commander à nouveau, je suis là — en attendant, je continue à produire et à m'améliorer.",
+    "body": "Ça fait un moment. Quand vous serez prêt à commander à nouveau, je suis là — en attendant, je continue à produire et à améliorer.",
     "cta": "Voir les nouveautés",
     "cta_url": "https://thefoolishbutcher.com"
   },
   "pwa_invite": {
     "subject": "Votre espace personnel vous attend",
     "preview": "Suivez votre commande et découvrez votre offre exclusive.",
-    "heading": "Votre commande est en cours de fabrication.",
-    "body": "Vous avez un espace personnel sur thefoolishbutcher.com où vous pouvez suivre votre commande en temps réel, télécharger vos fichiers et trouver une petite surprise rien que pour vous.",
+    "heading": "Votre commande est en production.",
+    "body": "Vous avez un espace personnel sur thefoolishbutcher.com où vous pouvez suivre votre commande en temps réel, télécharger vos fichiers et trouver une petite surprise réservée pour vous.",
     "cta": "Accéder à votre compte",
-    "pwa_hint": "Vous pouvez aussi installer l'app sur votre téléphone — appuyez sur 'Ajouter à l'écran d'accueil' depuis votre navigateur."
+    "pwa_hint": "Vous pouvez aussi installer l'app sur votre téléphone — touchez 'Ajouter à l'écran d'accueil' depuis le navigateur."
   },
   "footer": {
-    "unsubscribe_text": "Vous ne souhaitez plus recevoir d'emails ?",
+    "unsubscribe_text": "Vous ne voulez plus recevoir d'emails ?",
     "unsubscribe_cta": "Se désabonner",
     "site": "thefoolishbutcher.com"
   }

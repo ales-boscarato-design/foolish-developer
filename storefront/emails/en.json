@@ -1,11 +1,16 @@
 {
   "welcome": {
-    "subject": "Thank you — your order is confirmed",
-    "preview": "Handcrafted, made to order.",
-    "heading": "Order received.",
-    "body": "Handcrafted, made to order. Every sheet I make is unique — no two are the same. I'll write to you as soon as it's ready, with photos of exactly what I'm sending you.",
-    "cta": "Back to the site",
-    "cta_url": "https://thefoolishbutcher.com"
+    "subject": "Order received — we're on it",
+    "preview": "Thanks for your order. Track everything in real time.",
+    "heading": "",
+    "body": "Thanks for your order! 🥳\n\nYour order has been received and registered.\n\nIt will take about 48 hours to produce your order, pack it, and hand it to the courier. We'll let you know as soon as it's ready to ship and send you the tracking code.\n\nIn the meantime, here are three ways to follow everything:",
+    "cta": "Go to your page",
+    "cta_url": "https://thefoolishbutcher.com/account",
+    "channels": [
+      {"before": "Your ", "link": "personal page", "url": "https://thefoolishbutcher.com/account", "after": " — orders, status, files, all there."},
+      {"before": "", "link": "@the_foolish_butcher_bot", "url": "https://t.me/the_foolish_butcher_bot", "after": " on Telegram — direct, real-time support."},
+      {"before": "", "link": "Frank", "url": "mailto:support.foolish@agentmail.to", "after": " — I answer any questions about your order."}
+    ]
   },
   "abandoned_cart": {
     "subject": "You left something in your cart",
