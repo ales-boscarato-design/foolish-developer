@@ -73,6 +73,9 @@ export interface Config {
     media: Media;
     'pro-members': ProMember;
     'promo-codes': PromoCode;
+    'customer-files': CustomerFile;
+    'push-sequences': PushSequence;
+    'offer-config': OfferConfig;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -87,6 +90,9 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     'pro-members': ProMembersSelect<false> | ProMembersSelect<true>;
     'promo-codes': PromoCodesSelect<false> | PromoCodesSelect<true>;
+    'customer-files': CustomerFilesSelect<false> | CustomerFilesSelect<true>;
+    'push-sequences': PushSequencesSelect<false> | PushSequencesSelect<true>;
+    'offer-config': OfferConfigSelect<false> | OfferConfigSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -144,12 +150,27 @@ export interface Product {
    */
   slug: string;
   section: 'tattoo' | 'pmu';
+  /**
+   * Se disattivato, il prodotto non appare nelle griglie ma rimane accessibile via URL diretto e nei kit.
+   */
   active?: boolean | null;
   limitedStock?: boolean | null;
   /**
    * Numero piu basso = appare prima
    */
   order?: number | null;
+  /**
+   * Attiva per prodotti che vengono lavorati dopo l'acquisto. Mostra tempi di produzione + spedizione.
+   */
+  madeToOrder?: boolean | null;
+  /**
+   * Giorni lavorativi per produrre il pezzo (solo su ordinazione)
+   */
+  productionDays?: number | null;
+  /**
+   * Giorni lavorativi dalla spedizione alla consegna
+   */
+  shippingDays?: number | null;
   /**
    * Max 120 caratteri — appare nella card prodotto
    */
@@ -181,9 +202,33 @@ export interface Product {
       }[]
     | null;
   /**
+   * Video demo del prodotto (MP4 o WebM, max 50MB). Appaiono prima delle immagini nella gallery.
+   */
+  videos?:
+    | {
+        video: number | Media;
+        id?: string | null;
+      }[]
+    | null;
+  /**
    * Prezzo del formato piu piccolo/entry. Le varianti hanno prezzi specifici.
    */
   basePrice: number;
+  /**
+   * Mostra questo prodotto nel portale rivenditori
+   */
+  resellerVisible?: boolean | null;
+  /**
+   * Sconto % per fascia di quantità. Lascia vuoto per non applicare sconti rivenditori.
+   */
+  priceTiers?:
+    | {
+        minQty: number;
+        maxQty?: number | null;
+        discountPercent: number;
+        id?: string | null;
+      }[]
+    | null;
   /**
    * Ogni riga = un formato disponibile (A5, A4, XXL). Ogni variante ha il suo prezzo.
    */
@@ -203,6 +248,14 @@ export interface Product {
          * Mostra "X pezzi rimasti" se compilato
          */
         limitedQty?: number | null;
+        /**
+         * Se presente, viene mostrata al posto delle immagini prodotto quando il cliente seleziona questa variante.
+         */
+        image?: (number | null) | Media;
+        /**
+         * Appare sotto i bottoni variante quando il cliente seleziona questa. Es: "Stai per acquistare un foglio 30×20×4mm — il formato ideale per braccia e gambe."
+         */
+        description?: string | null;
         /**
          * Es. "30x20 cm"
          */
@@ -280,12 +333,36 @@ export interface Product {
    */
   components?: (number | Product)[] | null;
   /**
+   * Offerte bundle con sconto. Es: "3 fogli -10%". Appaiono come cards di upsell sulla pagina prodotto.
+   */
+  packs?:
+    | {
+        /**
+         * Es: "Starter Kit", "Pro Bundle"
+         */
+        name: string;
+        /**
+         * Quanti pezzi include il pack
+         */
+        quantity: number;
+        /**
+         * Es: 10 = 10% di sconto sul prezzo unitario × quantità
+         */
+        discountPercent: number;
+        /**
+         * Es: "Più venduto", "Miglior valore" — appare come tag colorato sulla card
+         */
+        badgeText?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
    * Lista di cosa contiene la confezione. Se vuoto, viene usato il default.
    */
   whatsInTheBox?:
     | {
-        label: string;
-        description: string;
+        label?: string | null;
+        description?: string | null;
         id?: string | null;
       }[]
     | null;
@@ -344,29 +421,6 @@ export interface Media {
 export interface Order {
   id: number;
   orderNumber: string;
-  source?: ('storefront' | 'woocommerce' | 'manual') | null;
-  customerEmail: string;
-  customerName?: string | null;
-  customerTelegramId?: string | null;
-  lineItems:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  total: number;
-  shippingCost?: number | null;
-  shippingAddress?: {
-    name?: string | null;
-    address1?: string | null;
-    address2?: string | null;
-    city?: string | null;
-    postalCode?: string | null;
-    country?: string | null;
-  };
   pipelineState?:
     | (
         | 'received'
@@ -382,20 +436,52 @@ export interface Order {
         | 'closed'
       )
     | null;
-  revolutOrderId?: string | null;
-  revolutStatus?: string | null;
+  customerEmail: string;
+  customerName?: string | null;
+  customerTelegramId?: string | null;
+  customerLocale?: string | null;
+  customerPhone?: string | null;
+  total: number;
+  shippingCost?: number | null;
+  productionEtaDays?: number | null;
+  lineItems:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   trackingNumber?: string | null;
   trackingCarrier?: string | null;
-  productionEtaDays?: number | null;
+  shippingAddress?: {
+    name?: string | null;
+    address1?: string | null;
+    address2?: string | null;
+    city?: string | null;
+    postalCode?: string | null;
+    country?: string | null;
+  };
   notes?: string | null;
+  billingSameAsShipping?: boolean | null;
+  billingCompanyName?: string | null;
   /**
-   * Codice ISO 639-1. Usato per localizzare la pagina cliente.
+   * IT12345678901
    */
-  customerLocale?: string | null;
+  billingVatNumber?: string | null;
   /**
-   * UUID generato automaticamente. Usato come URL sicuro per la pagina cliente.
+   * Es. 0000000
    */
-  pageToken?: string | null;
+  billingSdiCode?: string | null;
+  billingAddress?: {
+    name?: string | null;
+    address1?: string | null;
+    address2?: string | null;
+    city?: string | null;
+    postalCode?: string | null;
+    country?: string | null;
+  };
   /**
    * Foto dei fogli fisici abbinati a questo ordine.
    */
@@ -406,9 +492,6 @@ export interface Order {
         id?: string | null;
       }[]
     | null;
-  /**
-   * Frank popola questi blocchi: guide, offerte, annunci. Visibili nella pagina cliente.
-   */
   contentBlocks?:
     | {
         type: 'guide' | 'announcement' | 'offer' | 'tip';
@@ -421,6 +504,10 @@ export interface Order {
         id?: string | null;
       }[]
     | null;
+  source?: ('storefront' | 'woocommerce' | 'manual' | 'reseller') | null;
+  pageToken?: string | null;
+  revolutOrderId?: string | null;
+  revolutStatus?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -476,10 +563,114 @@ export interface ProMember {
 export interface PromoCode {
   id: number;
   code: string;
-  type: 'free_shipping' | 'percent_pro';
+  type: 'free_shipping' | 'percent_pro' | 'percent' | 'amount';
+  /**
+   * Es. 20 per il 20% di sconto
+   */
+  discountPercent?: number | null;
+  /**
+   * Es. 15 per €15 di sconto
+   */
+  discountAmount?: number | null;
   active?: boolean | null;
+  /**
+   * Lascia vuoto per codice senza scadenza
+   */
+  expiresAt?: string | null;
   proMember?: (number | null) | ProMember;
   usageCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * File e risorse per i clienti. Lascia "Cliente" vuoto per renderlo visibile a tutti.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-files".
+ */
+export interface CustomerFile {
+  id: number;
+  title: string;
+  file: number | Media;
+  /**
+   * Lascia vuoto per rendere il file visibile a tutti i clienti registrati.
+   */
+  customer?: (number | null) | Customer;
+  fileType: 'guide' | 'video' | 'resource';
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Sequenze di notifiche push automatiche per i clienti. Ogni sequenza ha un trigger e una lista di step con ritardo e testo.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "push-sequences".
+ */
+export interface PushSequence {
+  id: number;
+  /**
+   * Es. "Benvenuto all'attivazione", "Follow-up post-consegna"
+   */
+  name: string;
+  /**
+   * Quando parte questa sequenza.
+   */
+  trigger: 'on_subscribe' | 'on_order_shipped' | 'on_order_delivered' | 'manual';
+  /**
+   * Disattiva per mettere in pausa tutta la sequenza.
+   */
+  active?: boolean | null;
+  /**
+   * Ogni step viene inviato dopo il ritardo specificato dal trigger.
+   */
+  steps?:
+    | {
+        /**
+         * Es. "welcome", "discount_48h", "review_7d". Non cambiare dopo il lancio.
+         */
+        step_key: string;
+        /**
+         * 0 = immediato. 48 = dopo 2 giorni. 168 = dopo 1 settimana.
+         */
+        delay_hours: number;
+        title: string;
+        body: string;
+        /**
+         * Path relativo. Es. "/account/ordini", "/it", "/account".
+         */
+        url?: string | null;
+        active?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Configurazione offerta post-ordine. Crea un solo documento attivo.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "offer-config".
+ */
+export interface OfferConfig {
+  id: number;
+  title: string;
+  /**
+   * Disattiva per non generare offerte sui nuovi ordini.
+   */
+  active?: boolean | null;
+  /**
+   * Il prodotto mostrato nella sezione Collezione dopo un ordine.
+   */
+  product: number | Product;
+  /**
+   * Ordini sotto questa cifra ricevono lo sconto minore, sopra quello maggiore.
+   */
+  threshold: number;
+  discountBelow: number;
+  discountAbove: number;
+  validityHours: number;
   updatedAt: string;
   createdAt: string;
 }
@@ -557,6 +748,18 @@ export interface PayloadLockedDocument {
         value: number | PromoCode;
       } | null)
     | ({
+        relationTo: 'customer-files';
+        value: number | CustomerFile;
+      } | null)
+    | ({
+        relationTo: 'push-sequences';
+        value: number | PushSequence;
+      } | null)
+    | ({
+        relationTo: 'offer-config';
+        value: number | OfferConfig;
+      } | null)
+    | ({
         relationTo: 'users';
         value: number | User;
       } | null);
@@ -613,6 +816,9 @@ export interface ProductsSelect<T extends boolean = true> {
   active?: T;
   limitedStock?: T;
   order?: T;
+  madeToOrder?: T;
+  productionDays?: T;
+  shippingDays?: T;
   shortDescription?: T;
   description?: T;
   uniqueNote?: T;
@@ -623,7 +829,22 @@ export interface ProductsSelect<T extends boolean = true> {
         alt?: T;
         id?: T;
       };
+  videos?:
+    | T
+    | {
+        video?: T;
+        id?: T;
+      };
   basePrice?: T;
+  resellerVisible?: T;
+  priceTiers?:
+    | T
+    | {
+        minQty?: T;
+        maxQty?: T;
+        discountPercent?: T;
+        id?: T;
+      };
   variants?:
     | T
     | {
@@ -632,6 +853,8 @@ export interface ProductsSelect<T extends boolean = true> {
         price?: T;
         stockStatus?: T;
         limitedQty?: T;
+        image?: T;
+        description?: T;
         dimensions?: T;
         thicknessMm?: T;
         validCombinations?:
@@ -676,6 +899,15 @@ export interface ProductsSelect<T extends boolean = true> {
         id?: T;
       };
   components?: T;
+  packs?:
+    | T
+    | {
+        name?: T;
+        quantity?: T;
+        discountPercent?: T;
+        badgeText?: T;
+        id?: T;
+      };
   whatsInTheBox?:
     | T
     | {
@@ -692,13 +924,18 @@ export interface ProductsSelect<T extends boolean = true> {
  */
 export interface OrdersSelect<T extends boolean = true> {
   orderNumber?: T;
-  source?: T;
+  pipelineState?: T;
   customerEmail?: T;
   customerName?: T;
   customerTelegramId?: T;
-  lineItems?: T;
+  customerLocale?: T;
+  customerPhone?: T;
   total?: T;
   shippingCost?: T;
+  productionEtaDays?: T;
+  lineItems?: T;
+  trackingNumber?: T;
+  trackingCarrier?: T;
   shippingAddress?:
     | T
     | {
@@ -709,15 +946,21 @@ export interface OrdersSelect<T extends boolean = true> {
         postalCode?: T;
         country?: T;
       };
-  pipelineState?: T;
-  revolutOrderId?: T;
-  revolutStatus?: T;
-  trackingNumber?: T;
-  trackingCarrier?: T;
-  productionEtaDays?: T;
   notes?: T;
-  customerLocale?: T;
-  pageToken?: T;
+  billingSameAsShipping?: T;
+  billingCompanyName?: T;
+  billingVatNumber?: T;
+  billingSdiCode?: T;
+  billingAddress?:
+    | T
+    | {
+        name?: T;
+        address1?: T;
+        address2?: T;
+        city?: T;
+        postalCode?: T;
+        country?: T;
+      };
   sheetPhotos?:
     | T
     | {
@@ -737,6 +980,10 @@ export interface OrdersSelect<T extends boolean = true> {
         expiresAt?: T;
         id?: T;
       };
+  source?: T;
+  pageToken?: T;
+  revolutOrderId?: T;
+  revolutStatus?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -836,9 +1083,62 @@ export interface ProMembersSelect<T extends boolean = true> {
 export interface PromoCodesSelect<T extends boolean = true> {
   code?: T;
   type?: T;
+  discountPercent?: T;
+  discountAmount?: T;
   active?: T;
+  expiresAt?: T;
   proMember?: T;
   usageCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-files_select".
+ */
+export interface CustomerFilesSelect<T extends boolean = true> {
+  title?: T;
+  file?: T;
+  customer?: T;
+  fileType?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "push-sequences_select".
+ */
+export interface PushSequencesSelect<T extends boolean = true> {
+  name?: T;
+  trigger?: T;
+  active?: T;
+  steps?:
+    | T
+    | {
+        step_key?: T;
+        delay_hours?: T;
+        title?: T;
+        body?: T;
+        url?: T;
+        active?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "offer-config_select".
+ */
+export interface OfferConfigSelect<T extends boolean = true> {
+  title?: T;
+  active?: T;
+  product?: T;
+  threshold?: T;
+  discountBelow?: T;
+  discountAbove?: T;
+  validityHours?: T;
   updatedAt?: T;
   createdAt?: T;
 }
