@@ -740,6 +740,7 @@ export const Orders: CollectionConfig = {
             { label: 'Storefront', value: 'storefront' },
             { label: 'WooCommerce', value: 'woocommerce' },
             { label: 'Manuale', value: 'manual' },
+            { label: 'Rivenditore', value: 'reseller' },
           ],
         },
         { name: 'pageToken', type: 'text', unique: true, label: 'Token pagina cliente', admin: { readOnly: true } },

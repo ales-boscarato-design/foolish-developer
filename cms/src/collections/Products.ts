@@ -154,6 +154,50 @@ export const Products: CollectionConfig = {
       admin: { description: 'Prezzo del formato piu piccolo/entry. Le varianti hanno prezzi specifici.' },
     },
 
+    // RIVENDITORI
+    {
+      name: 'resellerVisible',
+      type: 'checkbox',
+      label: 'Visibile ai rivenditori',
+      defaultValue: false,
+      admin: {
+        description: 'Mostra questo prodotto nel portale rivenditori',
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'priceTiers',
+      type: 'array',
+      label: 'Fasce prezzo rivenditori',
+      admin: {
+        description: 'Sconto % per fascia di quantità. Lascia vuoto per non applicare sconti rivenditori.',
+        condition: (data) => data.resellerVisible,
+      },
+      fields: [
+        {
+          name: 'minQty',
+          type: 'number',
+          label: 'Qtà minima',
+          required: true,
+          min: 1,
+        },
+        {
+          name: 'maxQty',
+          type: 'number',
+          label: 'Qtà massima (lascia vuoto = illimitato)',
+          min: 1,
+        },
+        {
+          name: 'discountPercent',
+          type: 'number',
+          label: 'Sconto %',
+          required: true,
+          min: 0,
+          max: 100,
+        },
+      ],
+    },
+
     // VARIANTI — formati con prezzo proprio
     {
       name: 'variants',
