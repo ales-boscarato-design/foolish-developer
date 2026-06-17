@@ -42,12 +42,25 @@ export function WelcomeEmail({ name, locale, unsubscribeUrl }: Props) {
                 {greeting},
               </Text>
             )}
-            <Text style={{ color: '#f0ede8', fontSize: '22px', fontWeight: 'bold', margin: '0 0 20px', lineHeight: '1.3' }}>
-              {copy.heading}
-            </Text>
-            <Text style={{ color: '#f0ede8', fontSize: '15px', lineHeight: '1.7', margin: '0 0 32px' }}>
+            {copy.heading ? (
+              <Text style={{ color: '#f0ede8', fontSize: '22px', fontWeight: 'bold', margin: '0 0 20px', lineHeight: '1.3' }}>
+                {copy.heading}
+              </Text>
+            ) : null}
+            <Text style={{ color: '#f0ede8', fontSize: '15px', lineHeight: '1.7', margin: '0 0 24px' }}>
               {copy.body}
             </Text>
+            <Section style={{ margin: '0 0 32px' }}>
+              <Text style={{ color: '#f0ede8', fontSize: '14px', lineHeight: '1.8', margin: '0 0 4px' }}>
+                • La tua <a href="https://thefoolishbutcher.com/account" style={{ color: '#c8a97e', textDecoration: 'underline' }}>pagina personale</a> — ordini, stato, file, tutto lì.
+              </Text>
+              <Text style={{ color: '#f0ede8', fontSize: '14px', lineHeight: '1.8', margin: '0 0 4px' }}>
+                • <a href="https://t.me/the_foolish_butcher_bot" style={{ color: '#c8a97e', textDecoration: 'underline' }}>@the_foolish_butcher_bot</a> su Telegram — assistenza diretta, in tempo reale.
+              </Text>
+              <Text style={{ color: '#f0ede8', fontSize: '14px', lineHeight: '1.8', margin: 0 }}>
+                • <a href="mailto:support.foolish@agentmail.to" style={{ color: '#c8a97e', textDecoration: 'underline' }}>Frank</a> — rispondo io a qualsiasi domanda sul tuo ordine.
+              </Text>
+            </Section>
             <Button
               href={copy.cta_url}
               style={{

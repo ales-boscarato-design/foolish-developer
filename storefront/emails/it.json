@@ -1,11 +1,11 @@
 {
   "welcome": {
-    "subject": "Grazie — il tuo ordine è confermato",
-    "preview": "Produzione artigianale su ordinazione.",
-    "heading": "Ordine ricevuto.",
-    "body": "Produzione artigianale su ordinazione. Ogni foglio che faccio è unico — nessuna ripetizione. Ti scrivo non appena è pronto, con le foto di quello che ti sto per spedire.",
-    "cta": "Torna al sito",
-    "cta_url": "https://thefoolishbutcher.com"
+    "subject": "Ordine ricevuto — siamo al lavoro",
+    "preview": "Grazie per il tuo ordine. Segui tutto in tempo reale.",
+    "heading": "",
+    "body": "Grazie per il tuo ordine! 🥳\n\nIl tuo ordine è stato regolarmente ricevuto e registrato.\n\nCi vorranno circa 48 ore per produrre il tuo ordine, impacchettarlo e darlo ai corrieri. Ti avviseremo non appena sarà pronto a partire e ti invieremo il codice di tracciamento.\n\nNel frattempo hai tre canali dove seguire tutto:",
+    "cta": "Vai alla tua pagina",
+    "cta_url": "https://thefoolishbutcher.com/account"
   },
   "abandoned_cart": {
     "subject": "Hai lasciato qualcosa nel carrello",
