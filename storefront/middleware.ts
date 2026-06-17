@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import createNextIntlMiddleware from 'next-intl/middleware'
 import { routing } from './src/i18n/routing'
 
@@ -10,9 +10,18 @@ const intlMiddleware = createNextIntlMiddleware({
 export default function middleware(request: NextRequest) {
   const headers = new Headers(request.headers)
 
-  const host = headers.get('host') || ''
-  if (host.includes(':')) {
-    headers.set('host', host.split(':')[0])
+  // Redirect www → apex domain (canonical URL)
+  const rawHost = headers.get('host') || headers.get('x-forwarded-host') || ''
+  const cleanHost = rawHost.split(':')[0]
+  if (cleanHost === 'www.thefoolishbutcher.com') {
+    const url = new URL(request.url)
+    url.hostname = 'thefoolishbutcher.com'
+    url.port = ''
+    return NextResponse.redirect(url.toString(), { status: 301 })
+  }
+
+  if (rawHost.includes(':')) {
+    headers.set('host', cleanHost)
   }
 
   const forwardedHost = headers.get('x-forwarded-host')

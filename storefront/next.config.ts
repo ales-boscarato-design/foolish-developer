@@ -30,6 +30,11 @@ const securityHeaders = [
 const LOCALES = ['it', 'en', 'fr', 'es', 'de']
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      allowedOrigins: ['thefoolishbutcher.com', 'www.thefoolishbutcher.com'],
+    },
+  },
   // Le immagini CMS sono proxiate via /cms-media/* (Route Handler) — path locale, no remotePatterns necessari
   images: {
     remotePatterns: [
