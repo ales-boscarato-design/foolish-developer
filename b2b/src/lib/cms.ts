@@ -24,6 +24,7 @@ export interface ResellerProduct {
   images: { url: string; alt?: string }[]
   uniqueNote?: string
   resellerDescription?: string
+  resellerQtyPresets?: string
 }
 
 // Payload returns images as array of { image: { url, alt }, alt }
@@ -40,6 +41,7 @@ function normalizeProduct(doc: any): ResellerProduct {
     variants: doc.variants ?? [],
     uniqueNote: typeof doc.uniqueNote === 'string' ? doc.uniqueNote : undefined,
     resellerDescription: typeof doc.resellerDescription === 'string' ? doc.resellerDescription : undefined,
+    resellerQtyPresets: typeof doc.resellerQtyPresets === 'string' ? doc.resellerQtyPresets : undefined,
     images: (doc.images ?? []).map((item: any) => ({
       url: item.image?.url ?? item.url ?? '',
       alt: item.alt ?? item.image?.alt ?? undefined,

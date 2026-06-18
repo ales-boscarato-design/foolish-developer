@@ -176,6 +176,16 @@ export const Products: CollectionConfig = {
       },
     },
     {
+      name: 'resellerQtyPresets',
+      type: 'text',
+      label: 'Quantità rapide rivenditori',
+      admin: {
+        description: 'Preset quantità separati da virgola. Es: "1,5,10,20" per prodotti singoli, "50,100,200,500" per fogli (default).',
+        condition: (data) => data.resellerVisible,
+        placeholder: '50,100,200,500',
+      },
+    },
+    {
       name: 'priceTiers',
       type: 'array',
       label: 'Fasce prezzo rivenditori',

@@ -6,14 +6,20 @@ import { calculateUnitPrice, calculateLineTotal, formatPrice } from '@/lib/prici
 import { PriceTierTable } from '@/components/PriceTierTable'
 import { useCart } from '@/lib/cart'
 
-const QTY_PRESETS = [50, 100, 200, 500]
+const DEFAULT_QTY_PRESETS = [50, 100, 200, 500]
+
+function parseQtyPresets(raw: string | undefined): number[] {
+  if (!raw) return DEFAULT_QTY_PRESETS
+  const parsed = raw.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n) && n >= 1)
+  return parsed.length > 0 ? parsed : DEFAULT_QTY_PRESETS
+}
 
 export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const [slug, setSlug] = useState<string | null>(null)
   const [product, setProduct] = useState<ResellerProduct | null>(null)
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
-  const [qty, setQty] = useState(50)
-  const [qtyInput, setQtyInput] = useState('50')
+  const [qty, setQty] = useState(DEFAULT_QTY_PRESETS[0])
+  const [qtyInput, setQtyInput] = useState(String(DEFAULT_QTY_PRESETS[0]))
   const [added, setAdded] = useState(false)
   const [notFound, setNotFound] = useState(false)
   const { addItem } = useCart()
@@ -35,6 +41,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         if (!data) return
         setProduct(data)
         setSelectedVariant(data.variants?.[0] ?? null)
+        const firstPreset = parseQtyPresets(data.resellerQtyPresets)[0]
+        setQty(firstPreset)
+        setQtyInput(String(firstPreset))
       })
       .catch(() => setNotFound(true))
   }, [slug])
@@ -57,7 +66,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
   function handleQtyInputBlur() {
     const n = parseInt(qtyInput, 10)
-    applyQty(isNaN(n) ? QTY_PRESETS[0] : n)
+    const presets = parseQtyPresets(product?.resellerQtyPresets)
+    applyQty(isNaN(n) ? presets[0] : n)
   }
 
   if (notFound) return (
@@ -185,7 +195,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
             {/* Preset buttons */}
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-              {QTY_PRESETS.map(p => (
+              {parseQtyPresets(product?.resellerQtyPresets).map(p => (
                 <button
                   key={p}
                   onClick={() => applyQty(p)}
