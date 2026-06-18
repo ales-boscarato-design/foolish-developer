@@ -1,4 +1,5 @@
 import * as migration_20260519_103000_add_stencil_column from './20260519_103000_add_stencil_column';
+import * as migration_20260619_090000_add_kit_section from './20260619_090000_add_kit_section';
 import * as migration_20260618_100000_add_reseller_description from './20260618_100000_add_reseller_description';
 import * as migration_20260519_213245_add_feature_highlights_usageSteps_whatsInTheBox from './20260519_213245_add_feature_highlights_usageSteps_whatsInTheBox';
 import * as migration_20260530_085019_add_customers_and_orders from './20260530_085019_add_customers_and_orders';
@@ -149,5 +150,10 @@ export const migrations = [
     up: migration_20260618_100000_add_reseller_description.up,
     down: migration_20260618_100000_add_reseller_description.down,
     name: '20260618_100000_add_reseller_description',
+  },
+  {
+    up: migration_20260619_090000_add_kit_section.up,
+    down: migration_20260619_090000_add_kit_section.down,
+    name: '20260619_090000_add_kit_section',
   },
 ];
