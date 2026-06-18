@@ -40,13 +40,25 @@ function PayForm({ orderNumber }: { orderNumber: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       <PaymentElement />
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {error && <p style={{ color: '#f87171', fontSize: '0.875rem' }}>{error}</p>}
       <button
         type="submit"
         disabled={loading || !stripe || !elements}
-        className="w-full bg-stone-900 text-white py-3 rounded text-sm hover:bg-stone-700 disabled:opacity-50"
+        style={{
+          background: loading || !stripe || !elements ? 'rgba(200,169,126,0.3)' : 'var(--accent)',
+          color: '#080808',
+          border: 'none',
+          borderRadius: '0.625rem',
+          padding: '0.875rem',
+          fontSize: '0.875rem',
+          fontWeight: 600,
+          cursor: loading || !stripe || !elements ? 'not-allowed' : 'pointer',
+          width: '100%',
+          letterSpacing: '0.04em',
+          transition: 'background var(--dur-fast)',
+        }}
       >
         {loading ? 'Elaborazione...' : 'Paga ora'}
       </button>
@@ -73,14 +85,31 @@ export default function StripePayPage() {
     }
   }, [router])
 
-  if (!stripeData) return <p className="text-stone-400">Caricamento...</p>
+  if (!stripeData) return <p style={{ color: 'var(--muted-fg)' }}>Caricamento...</p>
 
   return (
-    <div className="max-w-md mx-auto mt-10">
-      <h1 className="text-xl font-semibold mb-6">Pagamento con carta</h1>
+    <div style={{ maxWidth: '28rem', margin: '0 auto', marginTop: '2.5rem' }}>
+      <h1 style={{ fontFamily: 'var(--font-cormorant)', fontStyle: 'italic', fontWeight: 600, fontSize: '1.75rem', color: 'var(--foreground)', marginBottom: '1.75rem' }}>
+        Pagamento con carta
+      </h1>
       <Elements
         stripe={stripePromise}
-        options={{ clientSecret: stripeData.clientSecret, locale: 'it' }}
+        options={{
+          clientSecret: stripeData.clientSecret,
+          locale: 'it',
+          appearance: {
+            theme: 'night',
+            variables: {
+              colorPrimary: '#c8a97e',
+              colorBackground: '#111110',
+              colorText: '#f0ede8',
+              colorTextSecondary: '#9c9890',
+              colorDanger: '#f87171',
+              borderRadius: '8px',
+              fontFamily: 'Outfit, sans-serif',
+            },
+          },
+        }}
       >
         <PayForm orderNumber={stripeData.orderNumber} />
       </Elements>

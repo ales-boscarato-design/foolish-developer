@@ -36,13 +36,16 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
   if (notFound) return (
     <div>
-      <button onClick={() => router.back()} className="text-sm text-stone-400 mb-6 hover:underline">
+      <button
+        onClick={() => router.back()}
+        style={{ fontSize: '0.8rem', color: 'var(--muted-fg)', marginBottom: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'block' }}
+      >
         ← Torna al catalogo
       </button>
-      <p className="text-stone-400">Prodotto non trovato.</p>
+      <p style={{ color: 'var(--muted-fg)' }}>Prodotto non trovato.</p>
     </div>
   )
-  if (!product) return <p className="text-stone-400">Caricamento...</p>
+  if (!product) return <p style={{ color: 'var(--muted-fg)' }}>Caricamento...</p>
 
   const tiers = product.priceTiers ?? []
   const basePrice = selectedVariant?.price ?? product.basePrice
@@ -65,27 +68,52 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     setTimeout(() => setAdded(false), 2000)
   }
 
+  const image = product.images?.[0]
+
   return (
-    <div className="max-w-2xl">
-      <button onClick={() => router.back()} className="text-sm text-stone-400 mb-6 hover:underline">
+    <div style={{ maxWidth: '42rem' }}>
+      <button
+        onClick={() => router.back()}
+        style={{ fontSize: '0.8rem', color: 'var(--muted-fg)', marginBottom: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'block' }}
+      >
         ← Torna al catalogo
       </button>
 
-      <h1 className="text-2xl font-semibold mb-2">{product.name}</h1>
+      {image && (
+        <div style={{ borderRadius: '1rem', overflow: 'hidden', marginBottom: '2rem', background: 'var(--surface-2)', aspectRatio: '16/9' }}>
+          <img
+            src={`${process.env.NEXT_PUBLIC_CMS_URL}${image.url}`}
+            alt={image.alt ?? product.name}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        </div>
+      )}
+
+      <h1 style={{ fontFamily: 'var(--font-cormorant)', fontStyle: 'italic', fontWeight: 600, fontSize: '2rem', color: 'var(--foreground)', marginBottom: '0.375rem' }}>
+        {product.name}
+      </h1>
 
       {product.variants && product.variants.length > 0 && (
-        <div className="mb-4">
-          <label className="block text-sm text-stone-500 mb-2">Formato</label>
-          <div className="flex gap-2 flex-wrap">
+        <div style={{ marginTop: '1.5rem', marginBottom: '0.5rem' }}>
+          <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--muted-fg)', marginBottom: '0.75rem' }}>
+            Formato
+          </p>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             {product.variants.map(v => (
               <button
                 key={v.sku}
                 onClick={() => setSelectedVariant(v)}
-                className={`border rounded px-3 py-1.5 text-sm transition-colors ${
-                  selectedVariant?.sku === v.sku
-                    ? 'border-stone-900 bg-stone-900 text-white'
-                    : 'border-stone-300 hover:border-stone-500'
-                }`}
+                style={{
+                  border: `1px solid ${selectedVariant?.sku === v.sku ? 'var(--accent)' : 'var(--border)'}`,
+                  borderRadius: '0.5rem',
+                  padding: '0.4rem 0.9rem',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  transition: 'border-color var(--dur-fast), background var(--dur-fast), color var(--dur-fast)',
+                  background: selectedVariant?.sku === v.sku ? 'rgba(200,169,126,0.1)' : 'transparent',
+                  color: selectedVariant?.sku === v.sku ? 'var(--accent)' : 'var(--foreground)',
+                  fontWeight: selectedVariant?.sku === v.sku ? 500 : 400,
+                }}
               >
                 {v.label} — {formatPrice(v.price)}
               </button>
@@ -94,31 +122,60 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         </div>
       )}
 
-      <div className="flex items-center gap-4 mb-4">
-        <label className="text-sm text-stone-500">Quantità</label>
-        <div className="flex items-center border border-stone-300 rounded">
-          <button onClick={() => setQty(q => Math.max(1, q - 1))} className="px-3 py-1 text-lg">−</button>
-          <span className="px-4 text-sm">{qty}</span>
-          <button onClick={() => setQty(q => q + 1)} className="px-3 py-1 text-lg">+</button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginTop: '1.5rem' }}>
+        <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--muted-fg)' }}>
+          Quantità
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border)', borderRadius: '0.5rem', overflow: 'hidden' }}>
+          <button
+            onClick={() => setQty(q => Math.max(1, q - 1))}
+            style={{ padding: '0.4rem 0.75rem', fontSize: '1.1rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--foreground)', lineHeight: 1 }}
+          >
+            −
+          </button>
+          <span style={{ padding: '0 0.75rem', fontSize: '0.875rem', color: 'var(--foreground)', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>
+            {qty}
+          </span>
+          <button
+            onClick={() => setQty(q => q + 1)}
+            style={{ padding: '0.4rem 0.75rem', fontSize: '1.1rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--foreground)', lineHeight: 1 }}
+          >
+            +
+          </button>
         </div>
-        <div className="text-sm">
-          <span className="text-stone-500">Prezzo/pz: </span>
-          <span className="font-medium">{formatPrice(unitPrice)}</span>
+        <div style={{ fontSize: '0.875rem', color: 'var(--muted-fg)' }}>
+          <span>Prezzo/pz: </span>
+          <span style={{ color: 'var(--foreground)', fontWeight: 500 }}>{formatPrice(unitPrice)}</span>
           {unitPrice < basePrice && (
-            <span className="text-stone-400 line-through ml-2">{formatPrice(basePrice)}</span>
+            <span style={{ color: 'var(--muted-fg)', textDecoration: 'line-through', marginLeft: '0.5rem', fontSize: '0.8rem' }}>
+              {formatPrice(basePrice)}
+            </span>
           )}
         </div>
       </div>
 
       <PriceTierTable tiers={tiers} basePrice={basePrice} currentQty={qty} />
 
-      <div className="mt-6 flex items-center gap-4">
-        <div className="text-lg font-semibold">Totale: {formatPrice(lineTotal)}</div>
+      <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+        <p style={{ fontFamily: 'var(--font-cormorant)', fontStyle: 'italic', fontWeight: 600, fontSize: '1.5rem', color: 'var(--foreground)' }}>
+          {formatPrice(lineTotal)}
+        </p>
         <button
           onClick={handleAdd}
-          className="bg-stone-900 text-white px-6 py-2 rounded text-sm hover:bg-stone-700 transition-colors"
+          style={{
+            background: added ? 'rgba(200,169,126,0.15)' : 'var(--accent)',
+            color: added ? 'var(--accent)' : '#080808',
+            border: added ? '1px solid var(--accent)' : '1px solid transparent',
+            borderRadius: '0.625rem',
+            padding: '0.65rem 1.75rem',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'background var(--dur-fast), color var(--dur-fast), border-color var(--dur-fast)',
+            letterSpacing: '0.04em',
+          }}
         >
-          {added ? '✓ Aggiunto' : 'Aggiungi al carrello'}
+          {added ? '✓ Aggiunto al carrello' : 'Aggiungi al carrello'}
         </button>
       </div>
     </div>
