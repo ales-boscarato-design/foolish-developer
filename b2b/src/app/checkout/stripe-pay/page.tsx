@@ -45,7 +45,7 @@ function PayForm({ orderNumber }: { orderNumber: string }) {
       {error && <p className="text-red-600 text-sm">{error}</p>}
       <button
         type="submit"
-        disabled={loading || !stripe}
+        disabled={loading || !stripe || !elements}
         className="w-full bg-stone-900 text-white py-3 rounded text-sm hover:bg-stone-700 disabled:opacity-50"
       >
         {loading ? 'Elaborazione...' : 'Paga ora'}
@@ -63,9 +63,14 @@ export default function StripePayPage() {
   useEffect(() => {
     const data = sessionStorage.getItem('stripe_order')
     if (!data) { router.replace('/carrello'); return }
-    const parsed = JSON.parse(data) as { clientSecret: string; orderNumber: string }
-    sessionStorage.removeItem('stripe_order')
-    setStripeData({ clientSecret: parsed.clientSecret, orderNumber: parsed.orderNumber })
+    try {
+      const parsed = JSON.parse(data) as { clientSecret: string; orderNumber: string }
+      sessionStorage.removeItem('stripe_order')
+      setStripeData({ clientSecret: parsed.clientSecret, orderNumber: parsed.orderNumber })
+    } catch {
+      sessionStorage.removeItem('stripe_order')
+      router.replace('/carrello')
+    }
   }, [router])
 
   if (!stripeData) return <p className="text-stone-400">Caricamento...</p>

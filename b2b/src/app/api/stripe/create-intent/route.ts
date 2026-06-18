@@ -60,16 +60,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Errore creazione ordine' }, { status: 500 })
   }
 
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: amountCents,
-    currency: 'eur',
-    metadata: {
-      orderId: String(orderId),
-      orderNumber,
-      resellerEmail: session.email,
-    },
-    automatic_payment_methods: { enabled: true },
-  })
+  let paymentIntent: Stripe.PaymentIntent
+  try {
+    paymentIntent = await stripe.paymentIntents.create({
+      amount: amountCents,
+      currency: 'eur',
+      metadata: {
+        orderId: String(orderId),
+        orderNumber,
+        resellerEmail: session.email,
+      },
+      automatic_payment_methods: { enabled: true },
+    })
+  } catch (err) {
+    console.error('[stripe/create-intent] stripe.paymentIntents.create failed (orderId=%s):', orderId, err)
+    return NextResponse.json({ error: 'Errore pagamento' }, { status: 502 })
+  }
 
   return NextResponse.json({
     clientSecret: paymentIntent.client_secret,
