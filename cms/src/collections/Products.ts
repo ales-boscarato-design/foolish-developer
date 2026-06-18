@@ -166,6 +166,15 @@ export const Products: CollectionConfig = {
       },
     },
     {
+      name: 'resellerDescription',
+      type: 'textarea',
+      label: 'Descrizione per rivenditori',
+      admin: {
+        description: 'Testo mostrato solo nel portale rivenditori — non appare sul sito pubblico. Spiega il prodotto dal punto di vista del rivenditore.',
+        condition: (data) => data.resellerVisible,
+      },
+    },
+    {
       name: 'priceTiers',
       type: 'array',
       label: 'Fasce prezzo rivenditori',

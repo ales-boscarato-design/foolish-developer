@@ -114,18 +114,17 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             <div style={{
               borderRadius: '1rem', overflow: 'hidden',
               background: 'var(--surface-2)',
-              aspectRatio: '3 / 4',
             }}>
               <img
                 src={image.url}
                 alt={image.alt ?? product.name}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                style={{ width: '100%', height: 'auto', display: 'block' }}
               />
             </div>
           ) : (
             <div style={{
               borderRadius: '1rem', background: 'var(--surface-3)',
-              aspectRatio: '3 / 4',
+              aspectRatio: '1 / 1',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <span style={{ color: 'var(--muted-fg)', fontSize: '0.75rem' }}>Nessuna immagine</span>
@@ -142,9 +141,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             {product.name}
           </h1>
 
-          {product.uniqueNote && (
+          {(product.resellerDescription || product.uniqueNote) && (
             <p style={{ fontSize: '0.875rem', color: 'var(--muted-fg)', lineHeight: 1.7, marginBottom: '1.5rem' }}>
-              {product.uniqueNote}
+              {product.resellerDescription ?? product.uniqueNote}
             </p>
           )}
 
