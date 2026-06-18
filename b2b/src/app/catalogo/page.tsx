@@ -1,7 +1,7 @@
 import { fetchResellerProducts } from '@/lib/cms'
 import { ProductCard } from '@/components/ProductCard'
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 export default async function CatalogoPage() {
   const products = await fetchResellerProducts()

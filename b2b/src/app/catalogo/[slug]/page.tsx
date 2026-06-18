@@ -12,6 +12,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
   const [qty, setQty] = useState(1)
   const [added, setAdded] = useState(false)
+  const [notFound, setNotFound] = useState(false)
   const { addItem } = useCart()
   const router = useRouter()
 
@@ -22,13 +23,25 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   useEffect(() => {
     if (!slug) return
     fetch(`/api/catalog?slug=${slug}`)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) { setNotFound(true); return null }
+        return r.json()
+      })
       .then(data => {
+        if (!data) return
         setProduct(data)
-        setSelectedVariant(data?.variants?.[0] ?? null)
+        setSelectedVariant(data.variants?.[0] ?? null)
       })
   }, [slug])
 
+  if (notFound) return (
+    <div>
+      <button onClick={() => router.back()} className="text-sm text-stone-400 mb-6 hover:underline">
+        ← Torna al catalogo
+      </button>
+      <p className="text-stone-400">Prodotto non trovato.</p>
+    </div>
+  )
   if (!product) return <p className="text-stone-400">Caricamento...</p>
 
   const tiers = product.priceTiers ?? []
