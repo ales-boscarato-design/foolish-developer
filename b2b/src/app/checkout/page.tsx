@@ -46,6 +46,7 @@ export default function CheckoutPage() {
           }))
         }
       })
+      .catch(() => { /* pre-fill is best-effort; form remains blank */ })
   }, [])
 
   useEffect(() => {

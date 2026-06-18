@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { verifySessionToken, SESSION_COOKIE } from '@/lib/auth'
+import { getServerSession } from '@/lib/auth'
 import { createResellerOrder } from '@/lib/db'
 import { sendOrderConfirmation } from '@/lib/resend'
 import { calculateLineTotal } from '@/lib/pricing'
+import type { PriceTier } from '@/lib/cms'
 
 function generateOrderNumber(): string {
   const date = new Date()
@@ -14,56 +14,64 @@ function generateOrderNumber(): string {
 }
 
 export async function POST(req: NextRequest) {
-  const cookieStore = await cookies()
-  const token = cookieStore.get(SESSION_COOKIE.name)?.value
-  if (!token) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const session = await getServerSession()
+  if (!session) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
-  const session = await verifySessionToken(token)
-  if (!session) return NextResponse.json({ error: 'Sessione scaduta' }, { status: 401 })
+  const { form, items } = await req.json()
 
-  const { form, items, total } = await req.json()
-
-  const orderNumber = generateOrderNumber()
-
-  const lineItemsForEmail = items.map((item: {
-    productName: string; variantLabel: string; qty: number; unitPrice: number; priceTiers: []
-  }) => ({
+  // Recalculate total server-side — never trust client-supplied amounts
+  const lineItemsForEmail = (items as {
+    productName: string; variantLabel: string; qty: number; unitPrice: number; priceTiers: PriceTier[]
+  }[]).map(item => ({
     name: `${item.productName} — ${item.variantLabel}`,
     qty: item.qty,
     total: calculateLineTotal(item.unitPrice, item.qty, item.priceTiers),
   }))
+  const serverTotal = lineItemsForEmail.reduce((sum, i) => sum + i.total, 0)
 
-  await createResellerOrder({
-    orderNumber,
-    customerEmail: session.email,
-    customerName: form.shippingName,
-    vatNumber: form.vatNumber,
-    businessName: form.businessName,
-    sdiCode: form.sdiCode,
-    billingAddress1: form.billingAddress1,
-    billingCity: form.billingCity,
-    billingPostalCode: form.billingPostalCode,
-    billingCountry: form.billingCountry,
-    shippingAddressName: form.shippingName,
-    shippingAddress1: form.shippingAddress1,
-    shippingCity: form.shippingCity,
-    shippingPostalCode: form.shippingPostalCode,
-    shippingCountry: form.shippingCountry,
-    lineItems: items,
-    total,
-    shippingCost: 0,
-    paymentMethod: 'bonifico',
-    notes: form.notes,
-  })
+  const orderNumber = generateOrderNumber()
 
-  await sendOrderConfirmation({
-    email: session.email,
-    contactName: session.contactName,
-    orderNumber,
-    total,
-    paymentMethod: 'bonifico',
-    lineItems: lineItemsForEmail,
-  })
+  try {
+    await createResellerOrder({
+      orderNumber,
+      customerEmail: session.email,
+      customerName: form.shippingName,
+      vatNumber: form.vatNumber,
+      businessName: form.businessName,
+      sdiCode: form.sdiCode,
+      billingAddress1: form.billingAddress1,
+      billingCity: form.billingCity,
+      billingPostalCode: form.billingPostalCode,
+      billingCountry: form.billingCountry,
+      shippingAddressName: form.shippingName,
+      shippingAddress1: form.shippingAddress1,
+      shippingCity: form.shippingCity,
+      shippingPostalCode: form.shippingPostalCode,
+      shippingCountry: form.shippingCountry,
+      lineItems: items,
+      total: serverTotal,
+      shippingCost: 0,
+      paymentMethod: 'bonifico',
+      notes: form.notes,
+    })
+  } catch (err) {
+    console.error('[checkout] createResellerOrder failed:', err)
+    return NextResponse.json({ error: 'Errore creazione ordine' }, { status: 500 })
+  }
+
+  try {
+    await sendOrderConfirmation({
+      email: session.email,
+      contactName: session.contactName,
+      orderNumber,
+      total: serverTotal,
+      paymentMethod: 'bonifico',
+      lineItems: lineItemsForEmail,
+    })
+  } catch (err) {
+    console.error('[checkout] sendOrderConfirmation failed:', err)
+    // Order is already saved — don't fail the request
+  }
 
   return NextResponse.json({ orderNumber })
 }
