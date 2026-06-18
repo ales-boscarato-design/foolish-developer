@@ -41,6 +41,7 @@ export const Products: CollectionConfig = {
       options: [
         { label: 'Tattoo', value: 'tattoo' },
         { label: 'PMU (Permanent Make-up)', value: 'pmu' },
+        { label: 'Kit rivenditori', value: 'kit' },
       ],
     },
     {
