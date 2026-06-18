@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { formatPrice } from '@/lib/pricing'
 
 interface Order {
@@ -29,10 +30,14 @@ export default function AccountPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [session, setSession] = useState<SessionData | null>(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
     fetch('/api/account/orders')
-      .then(r => r.ok ? r.json() : null)
+      .then(r => {
+        if (r.status === 401) { router.replace('/login'); return null }
+        return r.ok ? r.json() : null
+      })
       .then(data => {
         if (data) {
           setSession(data.session)
@@ -41,7 +46,7 @@ export default function AccountPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [])
+  }, [router])
 
   if (loading) return <p className="text-stone-400">Caricamento...</p>
 
