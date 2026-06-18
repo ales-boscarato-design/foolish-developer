@@ -17,6 +17,7 @@ export interface ResellerProduct {
   id: number
   slug: string
   name: string
+  section: 'tattoo' | 'pmu'
   basePrice: number
   priceTiers: PriceTier[]
   variants: ProductVariant[]
@@ -33,6 +34,7 @@ function normalizeProduct(doc: any): ResellerProduct {
     id: doc.id,
     slug: doc.slug,
     name: doc.name,
+    section: doc.section,
     basePrice: doc.basePrice,
     priceTiers: doc.priceTiers ?? [],
     variants: doc.variants ?? [],

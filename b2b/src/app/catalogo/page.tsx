@@ -77,29 +77,44 @@ export default async function CatalogoPage() {
       </section>
 
       {/* ── CATALOGO ── */}
-      <section>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '1.75rem' }}>
-          <h2 style={{
-            fontFamily: 'var(--font-cormorant)', fontStyle: 'italic', fontWeight: 600,
-            fontSize: '1.5rem', color: 'var(--foreground)',
-          }}>
-            Catalogo
-          </h2>
-          <p style={{ fontSize: '0.75rem', color: 'var(--muted-fg)' }}>
-            Prezzi riservati ai rivenditori autorizzati
-          </p>
+      {products.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '4rem 0', color: 'var(--muted-fg)' }}>
+          <p>Nessun prodotto disponibile al momento.</p>
         </div>
-
-        {products.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '4rem 0', color: 'var(--muted-fg)' }}>
-            <p>Nessun prodotto disponibile al momento.</p>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1.25rem' }}>
-            {products.map(p => <ProductCard key={p.id} product={p} />)}
-          </div>
-        )}
-      </section>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem' }}>
+          {(
+            [
+              { key: 'tattoo', label: 'Tattoo', description: 'Pelli sintetiche per pratica e formazione nel tatuaggio' },
+              { key: 'pmu', label: 'PMU', description: 'Supporti per Permanent Make-up — sopracciglia, labbra, eyeliner' },
+            ] as const
+          ).map(({ key, label, description }) => {
+            const section = products.filter(p => p.section === key)
+            if (section.length === 0) return null
+            return (
+              <section key={key}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem', marginBottom: '0.5rem' }}>
+                  <h2 style={{
+                    fontFamily: 'var(--font-cormorant)', fontStyle: 'italic', fontWeight: 600,
+                    fontSize: '1.75rem', color: 'var(--foreground)',
+                  }}>
+                    {label}
+                  </h2>
+                  <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--accent)' }}>
+                    {section.length} {section.length === 1 ? 'prodotto' : 'prodotti'}
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--muted-fg)', marginBottom: '1.5rem' }}>
+                  {description}
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1.25rem' }}>
+                  {section.map(p => <ProductCard key={p.id} product={p} />)}
+                </div>
+              </section>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
