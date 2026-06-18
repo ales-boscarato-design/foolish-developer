@@ -62,12 +62,12 @@ export default async function CatalogoPage() {
         }}>
           {PILLARS.map((p) => (
             <div key={p.title} style={{ background: 'var(--card)', padding: '1.75rem 1.5rem' }}>
-              <span style={{ fontSize: '1.1rem', color: 'var(--accent)', display: 'block', marginBottom: '0.875rem' }}>
+              <span aria-hidden="true" style={{ fontSize: '1.1rem', color: 'var(--accent)', display: 'block', marginBottom: '0.875rem' }}>
                 {p.icon}
               </span>
-              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--foreground)', marginBottom: '0.5rem' }}>
+              <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--foreground)', marginBottom: '0.5rem' }}>
                 {p.title}
-              </h3>
+              </p>
               <p style={{ fontSize: '0.8rem', color: 'var(--muted-fg)', lineHeight: 1.65 }}>
                 {p.body}
               </p>
