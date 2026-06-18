@@ -48,51 +48,59 @@ export default function AccountPage() {
       .finally(() => setLoading(false))
   }, [router])
 
-  if (loading) return <p className="text-stone-400">Caricamento...</p>
+  if (loading) return <p style={{ color: 'var(--muted-fg)', fontSize: '0.85rem' }}>Caricamento...</p>
 
   return (
-    <div className="max-w-3xl">
-      <h1 className="text-2xl font-semibold mb-8">Il mio account</h1>
+    <div style={{ maxWidth: '48rem' }}>
+      <h1 style={{ fontFamily: 'var(--font-cormorant)', fontStyle: 'italic', fontWeight: 600, fontSize: '2rem', marginBottom: '2.5rem' }}>
+        Il mio account
+      </h1>
 
       {/* Profile */}
       {session && (
-        <section className="mb-10">
-          <h2 className="font-medium mb-3 pb-2 border-b border-stone-100">Profilo aziendale</h2>
-          <dl className="grid grid-cols-2 gap-2 text-sm">
-            <dt className="text-stone-500">Ragione sociale</dt>
-            <dd>{session.businessName}</dd>
-            <dt className="text-stone-500">Referente</dt>
-            <dd>{session.contactName}</dd>
-            <dt className="text-stone-500">Email</dt>
-            <dd>{session.email}</dd>
-            <dt className="text-stone-500">P.IVA</dt>
-            <dd>{session.vatNumber}</dd>
-          </dl>
+        <section style={{ marginBottom: '2.5rem' }}>
+          <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--muted-fg)', marginBottom: '0.75rem' }}>
+            Profilo aziendale
+          </p>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '1rem', padding: '1.5rem' }}>
+            <dl style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1.5rem', fontSize: '0.85rem' }}>
+              <dt style={{ color: 'var(--muted-fg)' }}>Ragione sociale</dt>
+              <dd style={{ margin: 0 }}>{session.businessName}</dd>
+              <dt style={{ color: 'var(--muted-fg)' }}>Referente</dt>
+              <dd style={{ margin: 0 }}>{session.contactName}</dd>
+              <dt style={{ color: 'var(--muted-fg)' }}>Email</dt>
+              <dd style={{ margin: 0 }}>{session.email}</dd>
+              <dt style={{ color: 'var(--muted-fg)' }}>P.IVA</dt>
+              <dd style={{ margin: 0 }}>{session.vatNumber}</dd>
+            </dl>
+          </div>
         </section>
       )}
 
       {/* Orders */}
       <section>
-        <h2 className="font-medium mb-3 pb-2 border-b border-stone-100">Storico ordini</h2>
+        <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--muted-fg)', marginBottom: '0.75rem' }}>
+          Storico ordini
+        </p>
         {orders.length === 0 ? (
-          <p className="text-stone-400 text-sm">Nessun ordine ancora.</p>
+          <p style={{ color: 'var(--muted-fg)', fontSize: '0.85rem' }}>Nessun ordine ancora.</p>
         ) : (
-          <div className="space-y-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {orders.map(order => (
-              <div key={order.id} className="border border-stone-200 rounded-lg p-4 text-sm">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-medium">{order.order_number}</span>
-                  <span className="text-xs bg-stone-100 text-stone-600 px-2 py-0.5 rounded">
+              <div key={order.id} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '1rem', padding: '1rem 1.25rem', fontSize: '0.85rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ fontWeight: 500 }}>{order.order_number}</span>
+                  <span style={{ background: 'rgba(200,169,126,0.1)', color: 'var(--accent)', fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '0.375rem' }}>
                     {stateLabels[order.pipeline_state] ?? order.pipeline_state}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-stone-500">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--muted-fg)' }}>
                   <span>{new Date(order.created_at).toLocaleDateString('it-IT')}</span>
-                  <span className="font-medium text-stone-900">{formatPrice(order.total)}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--accent)' }}>{formatPrice(order.total)}</span>
                 </div>
                 {order.tracking_number && (
-                  <p className="mt-1 text-xs text-stone-400">
-                    Tracking: <span className="font-mono">{order.tracking_number}</span>
+                  <p style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--muted-fg)' }}>
+                    Tracking: <span style={{ fontFamily: 'monospace', color: 'var(--muted-fg)' }}>{order.tracking_number}</span>
                   </p>
                 )}
               </div>

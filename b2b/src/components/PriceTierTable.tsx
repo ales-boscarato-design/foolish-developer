@@ -1,44 +1,45 @@
 import type { PriceTier } from '@/lib/cms'
 import { formatPrice } from '@/lib/pricing'
 
-interface Props {
-  tiers: PriceTier[]
-  basePrice: number
-  currentQty?: number
-}
+interface Props { tiers: PriceTier[]; basePrice: number; currentQty?: number }
 
 export function PriceTierTable({ tiers, basePrice, currentQty = 0 }: Props) {
   if (!tiers || tiers.length === 0) return null
 
   return (
-    <div className="mt-4">
-      <p className="text-xs text-stone-500 uppercase tracking-wide mb-2">Prezzi a volume</p>
-      <table className="w-full text-sm border border-stone-200 rounded overflow-hidden">
-        <thead className="bg-stone-100">
-          <tr>
-            <th className="text-left px-3 py-2">Quantità</th>
-            <th className="text-left px-3 py-2">Sconto</th>
-            <th className="text-right px-3 py-2">Prezzo/pz</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tiers.map((tier, i) => {
-            const isActive = currentQty >= tier.minQty && (tier.maxQty === null || currentQty <= tier.maxQty)
-            const discountedPrice = basePrice * (1 - tier.discountPercent / 100)
-            const label = tier.maxQty ? `${tier.minQty}–${tier.maxQty} pz` : `${tier.minQty}+ pz`
-            return (
-              <tr
-                key={i}
-                className={isActive ? 'bg-green-50 font-medium' : 'border-t border-stone-100'}
-              >
-                <td className="px-3 py-2">{label}</td>
-                <td className="px-3 py-2 text-green-700">-{tier.discountPercent}%</td>
-                <td className="px-3 py-2 text-right">{formatPrice(discountedPrice)}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+    <div style={{ marginTop: '1.5rem' }}>
+      <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--muted-fg)', marginBottom: '0.75rem' }}>
+        Prezzi a volume
+      </p>
+      <div style={{ border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-3)' }}>
+              {['Quantità', 'Sconto', 'Prezzo/pz'].map(h => (
+                <th key={h} style={{ padding: '0.6rem 1rem', textAlign: h === 'Prezzo/pz' ? 'right' : 'left', fontWeight: 500, fontSize: '0.75rem', color: 'var(--muted-fg)', letterSpacing: '0.04em' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {tiers.map((tier, i) => {
+              const isActive = currentQty >= tier.minQty && (tier.maxQty === null || currentQty <= tier.maxQty)
+              const price = basePrice * (1 - tier.discountPercent / 100)
+              const label = tier.maxQty ? `${tier.minQty}–${tier.maxQty} pz` : `${tier.minQty}+ pz`
+              return (
+                <tr key={i} style={{
+                  borderTop: i > 0 ? '1px solid var(--border)' : undefined,
+                  background: isActive ? 'rgba(200,169,126,0.06)' : 'transparent',
+                  transition: `background var(--dur-fast)`,
+                }}>
+                  <td style={{ padding: '0.65rem 1rem', fontWeight: isActive ? 500 : 400 }}>{label}</td>
+                  <td style={{ padding: '0.65rem 1rem', color: 'var(--accent)', fontWeight: isActive ? 600 : 400 }}>-{tier.discountPercent}%</td>
+                  <td style={{ padding: '0.65rem 1rem', textAlign: 'right', fontWeight: isActive ? 600 : 400, color: isActive ? 'var(--accent)' : 'var(--foreground)' }}>{formatPrice(price)}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
