@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ResellerProduct, ProductVariant } from '@/lib/cms'
 import { calculateUnitPrice, calculateLineTotal, formatPrice } from '@/lib/pricing'
@@ -18,6 +18,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const [notFound, setNotFound] = useState(false)
   const { addItem } = useCart()
   const router = useRouter()
+  const addedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     params.then(p => setSlug(p.slug))
@@ -35,7 +36,12 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         setProduct(data)
         setSelectedVariant(data.variants?.[0] ?? null)
       })
+      .catch(() => setNotFound(true))
   }, [slug])
+
+  useEffect(() => () => {
+    if (addedTimerRef.current) clearTimeout(addedTimerRef.current)
+  }, [])
 
   function applyQty(value: number) {
     const clamped = Math.max(1, value)
@@ -51,7 +57,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
   function handleQtyInputBlur() {
     const n = parseInt(qtyInput, 10)
-    applyQty(isNaN(n) ? 50 : n)
+    applyQty(isNaN(n) ? QTY_PRESETS[0] : n)
   }
 
   if (notFound) return (
@@ -86,7 +92,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
       priceTiers: tiers,
     })
     setAdded(true)
-    setTimeout(() => setAdded(false), 2000)
+    if (addedTimerRef.current) clearTimeout(addedTimerRef.current)
+    addedTimerRef.current = setTimeout(() => setAdded(false), 2000)
   }
 
   return (
@@ -245,7 +252,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
               onClick={handleAdd}
               style={{
                 background: added ? 'rgba(200,169,126,0.15)' : 'var(--accent)',
-                color: added ? 'var(--accent)' : '#080808',
+                color: added ? 'var(--accent)' : 'var(--background)',
                 border: added ? '1px solid var(--accent)' : '1px solid transparent',
                 borderRadius: '0.625rem',
                 padding: '0.75rem 2rem',
