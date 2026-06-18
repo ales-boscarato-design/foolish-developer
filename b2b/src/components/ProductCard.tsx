@@ -1,3 +1,4 @@
+'use client'
 import Link from 'next/link'
 import type { ResellerProduct } from '@/lib/cms'
 import { formatPrice } from '@/lib/pricing'
