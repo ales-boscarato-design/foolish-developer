@@ -5,7 +5,7 @@ import { createResellerOrder } from '@/lib/db'
 import { calculateLineTotal } from '@/lib/pricing'
 import type { PriceTier } from '@/lib/cms'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY!)
 
 function generateOrderNumber(): string {
   const date = new Date()
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
 
   let paymentIntent: Stripe.PaymentIntent
   try {
-    paymentIntent = await stripe.paymentIntents.create({
+    paymentIntent = await getStripe().paymentIntents.create({
       amount: amountCents,
       currency: 'eur',
       metadata: {

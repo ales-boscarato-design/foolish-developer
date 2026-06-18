@@ -3,8 +3,8 @@ import Stripe from 'stripe'
 import sql from '@/lib/db'
 import { sendOrderConfirmation } from '@/lib/resend'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-const webhookSecret = process.env.STRIPE_B2B_WEBHOOK_SECRET!
+const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY!)
+const getWebhookSecret = () => process.env.STRIPE_B2B_WEBHOOK_SECRET!
 
 export async function POST(req: NextRequest) {
   const body = await req.text()
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
   let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+    event = getStripe().webhooks.constructEvent(body, signature, getWebhookSecret())
   } catch {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }

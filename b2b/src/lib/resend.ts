@@ -1,11 +1,11 @@
 import { Resend } from 'resend'
 import { formatPrice } from './pricing'
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
 const FROM = 'The Foolish Butcher <ordini@updates.thefoolishbutcher.com>'
+const getResend = () => new Resend(process.env.RESEND_API_KEY!)
 
 export async function sendMagicLink(email: string, link: string, contactName: string) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to: email,
     subject: 'Accesso area rivenditori — The Foolish Butcher',
@@ -34,7 +34,7 @@ export async function sendOrderConfirmation(params: {
     ? `<p><strong>Pagamento:</strong> Bonifico bancario. Riceverai le coordinate bancarie a breve via email.</p>`
     : `<p><strong>Pagamento:</strong> Carta di credito (Stripe). Il pagamento è stato confermato.</p>`
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to: params.email,
     subject: `Ordine ${params.orderNumber} confermato — The Foolish Butcher`,
