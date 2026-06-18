@@ -82,7 +82,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
       {image && (
         <div style={{ borderRadius: '1rem', overflow: 'hidden', marginBottom: '2rem', background: 'var(--surface-2)', aspectRatio: '16/9' }}>
           <img
-            src={`${process.env.NEXT_PUBLIC_CMS_URL}${image.url}`}
+            src={image.url}
             alt={image.alt ?? product.name}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />

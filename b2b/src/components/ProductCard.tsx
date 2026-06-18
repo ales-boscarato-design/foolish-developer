@@ -32,7 +32,7 @@ export function ProductCard({ product }: Props) {
         {image ? (
           <div style={{ aspectRatio: '1', overflow: 'hidden', background: 'var(--surface-2)' }}>
             <img
-              src={`${process.env.NEXT_PUBLIC_CMS_URL}${image.url}`}
+              src={image.url}
               alt={image.alt ?? product.name}
               style={{ width: '100%', height: '100%', objectFit: 'cover', transition: `transform var(--dur-slow)` }}
             />
