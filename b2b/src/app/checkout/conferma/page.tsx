@@ -18,7 +18,7 @@ export default async function ConfermaPage({
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-left text-sm">
           <p className="font-medium mb-2">Coordinate per il bonifico:</p>
           <p>Intestatario: <strong>The Foolish Butcher Srl</strong></p>
-          <p>IBAN: <strong>DA_COMPLETARE</strong></p>
+          <p>IBAN: <strong>LT62 3250 0124 6419 4276</strong></p>
           <p className="text-stone-400 text-xs mt-2">
             Causale: {ordine} — inserisci il numero d&apos;ordine come causale.
           </p>
