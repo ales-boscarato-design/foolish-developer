@@ -1,5 +1,6 @@
 import { fetchResellerProducts } from '@/lib/cms'
 import { ProductCard } from '@/components/ProductCard'
+import { KitCard } from '@/components/KitCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -116,6 +117,33 @@ export default async function CatalogoPage() {
         </div>
       )}
 
+      {/* ── KIT RIVENDITORI ── */}
+      {(() => {
+        const kits = products.filter(p => p.section === 'kit')
+        if (kits.length === 0) return null
+        return (
+          <section style={{ marginTop: '4rem', paddingTop: '3rem', borderTop: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem', marginBottom: '0.5rem' }}>
+              <h2 style={{
+                fontFamily: 'var(--font-cormorant)', fontStyle: 'italic', fontWeight: 600,
+                fontSize: '1.75rem', color: 'var(--foreground)',
+              }}>
+                Kit per iniziare
+              </h2>
+              <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--accent)' }}>
+                Solo rivenditori
+              </span>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--muted-fg)', marginBottom: '1.75rem' }}>
+              Prova i nostri prodotti prima di ordinare in quantità — scontati e riservati ai partner.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.5rem' }}>
+              {kits.map((kit, i) => <KitCard key={kit.id} product={kit} featured={i === 1} />)}
+            </div>
+          </section>
+        )
+      })()}
+
       {/* ── INFO RIVENDITORI ── */}
       <section style={{ marginTop: '5rem', paddingTop: '3.5rem', borderTop: '1px solid var(--border)' }}>
         <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--accent)', marginBottom: '2.5rem' }}>
@@ -160,50 +188,6 @@ export default async function CatalogoPage() {
             </p>
           </div>
 
-        </div>
-      </section>
-
-      {/* ── KIT TEST ── */}
-      <section style={{ marginTop: '3rem' }}>
-        <div style={{
-          background: 'var(--card)',
-          border: '1px solid rgba(200,169,126,0.2)',
-          borderRadius: '1rem',
-          padding: '2rem 2.25rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '2rem',
-          flexWrap: 'wrap',
-        }}>
-          <div>
-            <h3 style={{ fontFamily: 'var(--font-cormorant)', fontStyle: 'italic', fontWeight: 600, fontSize: '1.35rem', color: 'var(--foreground)', marginBottom: '0.5rem' }}>
-              Vuoi provare prima di ordinare in quantità?
-            </h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--muted-fg)', lineHeight: 1.7, maxWidth: '36rem' }}>
-              Acquista direttamente il kit test prodotti, scontato del 45%: il modo più semplice per toccare con mano consistenze e colorazioni e scegliere cosa portare ai tuoi clienti.
-            </p>
-          </div>
-          <a
-            href="https://thefoolishbutcher.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-block',
-              background: 'var(--accent)',
-              color: 'var(--background)',
-              borderRadius: '0.625rem',
-              padding: '0.75rem 1.75rem',
-              fontSize: '0.875rem',
-              fontWeight: 600,
-              textDecoration: 'none',
-              whiteSpace: 'nowrap',
-              letterSpacing: '0.04em',
-              flexShrink: 0,
-            }}
-          >
-            Scopri il kit test →
-          </a>
         </div>
       </section>
 
