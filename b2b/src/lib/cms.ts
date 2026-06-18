@@ -17,7 +17,7 @@ export interface ResellerProduct {
   id: number
   slug: string
   name: string
-  section: 'tattoo' | 'pmu'
+  section: 'tattoo' | 'pmu' | 'kit'
   basePrice: number
   priceTiers: PriceTier[]
   variants: ProductVariant[]
