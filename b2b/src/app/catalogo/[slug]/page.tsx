@@ -6,11 +6,14 @@ import { calculateUnitPrice, calculateLineTotal, formatPrice } from '@/lib/prici
 import { PriceTierTable } from '@/components/PriceTierTable'
 import { useCart } from '@/lib/cart'
 
+const QTY_PRESETS = [50, 100, 200, 500]
+
 export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const [slug, setSlug] = useState<string | null>(null)
   const [product, setProduct] = useState<ResellerProduct | null>(null)
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
-  const [qty, setQty] = useState(1)
+  const [qty, setQty] = useState(50)
+  const [qtyInput, setQtyInput] = useState('50')
   const [added, setAdded] = useState(false)
   const [notFound, setNotFound] = useState(false)
   const { addItem } = useCart()
@@ -34,6 +37,23 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
       })
   }, [slug])
 
+  function applyQty(value: number) {
+    const clamped = Math.max(1, value)
+    setQty(clamped)
+    setQtyInput(String(clamped))
+  }
+
+  function handleQtyInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setQtyInput(e.target.value)
+    const n = parseInt(e.target.value, 10)
+    if (!isNaN(n) && n >= 1) setQty(n)
+  }
+
+  function handleQtyInputBlur() {
+    const n = parseInt(qtyInput, 10)
+    applyQty(isNaN(n) ? 50 : n)
+  }
+
   if (notFound) return (
     <div>
       <button
@@ -51,6 +71,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const basePrice = selectedVariant?.price ?? product.basePrice
   const unitPrice = calculateUnitPrice(basePrice, qty, tiers)
   const lineTotal = calculateLineTotal(basePrice, qty, tiers)
+  const image = product.images?.[0]
 
   function handleAdd() {
     if (!selectedVariant) return
@@ -68,115 +89,177 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     setTimeout(() => setAdded(false), 2000)
   }
 
-  const image = product.images?.[0]
-
   return (
-    <div style={{ maxWidth: '42rem' }}>
+    <div>
       <button
         onClick={() => router.back()}
-        style={{ fontSize: '0.8rem', color: 'var(--muted-fg)', marginBottom: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'block' }}
+        style={{ fontSize: '0.8rem', color: 'var(--muted-fg)', marginBottom: '1.75rem', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'block' }}
       >
         ← Torna al catalogo
       </button>
 
-      {image && (
-        <div style={{ borderRadius: '1rem', overflow: 'hidden', marginBottom: '2rem', background: 'var(--surface-2)', aspectRatio: '16/9' }}>
-          <img
-            src={image.url}
-            alt={image.alt ?? product.name}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        </div>
-      )}
+      {/* Layout a due colonne */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 3fr)', gap: '3rem', alignItems: 'start' }}>
 
-      <h1 style={{ fontFamily: 'var(--font-cormorant)', fontStyle: 'italic', fontWeight: 600, fontSize: '2rem', color: 'var(--foreground)', marginBottom: '0.375rem' }}>
-        {product.name}
-      </h1>
-
-      {product.variants && product.variants.length > 0 && (
-        <div style={{ marginTop: '1.5rem', marginBottom: '0.5rem' }}>
-          <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--muted-fg)', marginBottom: '0.75rem' }}>
-            Formato
-          </p>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {product.variants.map(v => (
-              <button
-                key={v.sku}
-                onClick={() => setSelectedVariant(v)}
-                style={{
-                  border: `1px solid ${selectedVariant?.sku === v.sku ? 'var(--accent)' : 'var(--border)'}`,
-                  borderRadius: '0.5rem',
-                  padding: '0.4rem 0.9rem',
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
-                  transition: 'border-color var(--dur-fast), background var(--dur-fast), color var(--dur-fast)',
-                  background: selectedVariant?.sku === v.sku ? 'rgba(200,169,126,0.1)' : 'transparent',
-                  color: selectedVariant?.sku === v.sku ? 'var(--accent)' : 'var(--foreground)',
-                  fontWeight: selectedVariant?.sku === v.sku ? 500 : 400,
-                }}
-              >
-                {v.label} — {formatPrice(v.price)}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginTop: '1.5rem' }}>
-        <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--muted-fg)' }}>
-          Quantità
-        </p>
-        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border)', borderRadius: '0.5rem', overflow: 'hidden' }}>
-          <button
-            onClick={() => setQty(q => Math.max(1, q - 1))}
-            style={{ padding: '0.4rem 0.75rem', fontSize: '1.1rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--foreground)', lineHeight: 1 }}
-          >
-            −
-          </button>
-          <span style={{ padding: '0 0.75rem', fontSize: '0.875rem', color: 'var(--foreground)', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>
-            {qty}
-          </span>
-          <button
-            onClick={() => setQty(q => q + 1)}
-            style={{ padding: '0.4rem 0.75rem', fontSize: '1.1rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--foreground)', lineHeight: 1 }}
-          >
-            +
-          </button>
-        </div>
-        <div style={{ fontSize: '0.875rem', color: 'var(--muted-fg)' }}>
-          <span>Prezzo/pz: </span>
-          <span style={{ color: 'var(--foreground)', fontWeight: 500 }}>{formatPrice(unitPrice)}</span>
-          {unitPrice < basePrice && (
-            <span style={{ color: 'var(--muted-fg)', textDecoration: 'line-through', marginLeft: '0.5rem', fontSize: '0.8rem' }}>
-              {formatPrice(basePrice)}
-            </span>
+        {/* ── IMMAGINE ── */}
+        <div>
+          {image ? (
+            <div style={{
+              borderRadius: '1rem', overflow: 'hidden',
+              background: 'var(--surface-2)',
+              aspectRatio: '3 / 4',
+            }}>
+              <img
+                src={image.url}
+                alt={image.alt ?? product.name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            </div>
+          ) : (
+            <div style={{
+              borderRadius: '1rem', background: 'var(--surface-3)',
+              aspectRatio: '3 / 4',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <span style={{ color: 'var(--muted-fg)', fontSize: '0.75rem' }}>Nessuna immagine</span>
+            </div>
           )}
         </div>
-      </div>
 
-      <PriceTierTable tiers={tiers} basePrice={basePrice} currentQty={qty} />
+        {/* ── DETTAGLI ── */}
+        <div>
+          <h1 style={{
+            fontFamily: 'var(--font-cormorant)', fontStyle: 'italic', fontWeight: 600,
+            fontSize: '2.25rem', color: 'var(--foreground)', marginBottom: '0.5rem', lineHeight: 1.1,
+          }}>
+            {product.name}
+          </h1>
 
-      <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-        <p style={{ fontFamily: 'var(--font-cormorant)', fontStyle: 'italic', fontWeight: 600, fontSize: '1.5rem', color: 'var(--foreground)' }}>
-          {formatPrice(lineTotal)}
-        </p>
-        <button
-          onClick={handleAdd}
-          style={{
-            background: added ? 'rgba(200,169,126,0.15)' : 'var(--accent)',
-            color: added ? 'var(--accent)' : '#080808',
-            border: added ? '1px solid var(--accent)' : '1px solid transparent',
-            borderRadius: '0.625rem',
-            padding: '0.65rem 1.75rem',
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: 'background var(--dur-fast), color var(--dur-fast), border-color var(--dur-fast)',
-            letterSpacing: '0.04em',
-          }}
-        >
-          {added ? '✓ Aggiunto al carrello' : 'Aggiungi al carrello'}
-        </button>
+          {product.description && (
+            <p style={{ fontSize: '0.875rem', color: 'var(--muted-fg)', lineHeight: 1.7, marginBottom: '1.5rem' }}>
+              {product.description}
+            </p>
+          )}
+
+          {/* Varianti */}
+          {product.variants && product.variants.length > 0 && (
+            <div style={{ marginBottom: '1.75rem' }}>
+              <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--muted-fg)', marginBottom: '0.75rem' }}>
+                Formato
+              </p>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {product.variants.map(v => (
+                  <button
+                    key={v.sku}
+                    onClick={() => setSelectedVariant(v)}
+                    style={{
+                      border: `1px solid ${selectedVariant?.sku === v.sku ? 'var(--accent)' : 'var(--border)'}`,
+                      borderRadius: '0.5rem',
+                      padding: '0.4rem 0.9rem',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      background: selectedVariant?.sku === v.sku ? 'rgba(200,169,126,0.1)' : 'transparent',
+                      color: selectedVariant?.sku === v.sku ? 'var(--accent)' : 'var(--foreground)',
+                      fontWeight: selectedVariant?.sku === v.sku ? 500 : 400,
+                      transition: 'border-color var(--dur-fast), background var(--dur-fast), color var(--dur-fast)',
+                    }}
+                  >
+                    {v.label} — {formatPrice(v.price)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Selettore quantità */}
+          <div style={{ marginBottom: '1.75rem' }}>
+            <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--muted-fg)', marginBottom: '0.75rem' }}>
+              Quantità
+            </p>
+
+            {/* Preset buttons */}
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+              {QTY_PRESETS.map(p => (
+                <button
+                  key={p}
+                  onClick={() => applyQty(p)}
+                  style={{
+                    border: `1px solid ${qty === p ? 'var(--accent)' : 'var(--border)'}`,
+                    borderRadius: '0.5rem',
+                    padding: '0.35rem 0.75rem',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    background: qty === p ? 'rgba(200,169,126,0.1)' : 'transparent',
+                    color: qty === p ? 'var(--accent)' : 'var(--muted-fg)',
+                    fontWeight: qty === p ? 500 : 400,
+                    transition: 'border-color var(--dur-fast), background var(--dur-fast), color var(--dur-fast)',
+                  }}
+                >
+                  {p} pz
+                </button>
+              ))}
+            </div>
+
+            {/* Input numerico libero */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <input
+                type="number"
+                min={1}
+                value={qtyInput}
+                onChange={handleQtyInputChange}
+                onBlur={handleQtyInputBlur}
+                style={{
+                  width: '6rem',
+                  border: '1px solid var(--border)',
+                  borderRadius: '0.5rem',
+                  padding: '0.4rem 0.75rem',
+                  fontSize: '0.875rem',
+                  background: 'var(--surface-2)',
+                  color: 'var(--foreground)',
+                  outline: 'none',
+                }}
+              />
+              <span style={{ fontSize: '0.8rem', color: 'var(--muted-fg)' }}>
+                Prezzo/pz: <span style={{ color: 'var(--foreground)', fontWeight: 500 }}>{formatPrice(unitPrice)}</span>
+                {unitPrice < basePrice && (
+                  <span style={{ textDecoration: 'line-through', marginLeft: '0.5rem', opacity: 0.5, fontSize: '0.75rem' }}>
+                    {formatPrice(basePrice)}
+                  </span>
+                )}
+              </span>
+            </div>
+          </div>
+
+          {/* Tabella fasce prezzo */}
+          <PriceTierTable tiers={tiers} basePrice={basePrice} currentQty={qty} />
+
+          {/* CTA */}
+          <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <p style={{
+              fontFamily: 'var(--font-cormorant)', fontStyle: 'italic', fontWeight: 600,
+              fontSize: '1.75rem', color: 'var(--foreground)',
+            }}>
+              {formatPrice(lineTotal)}
+            </p>
+            <button
+              onClick={handleAdd}
+              style={{
+                background: added ? 'rgba(200,169,126,0.15)' : 'var(--accent)',
+                color: added ? 'var(--accent)' : '#080808',
+                border: added ? '1px solid var(--accent)' : '1px solid transparent',
+                borderRadius: '0.625rem',
+                padding: '0.75rem 2rem',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'background var(--dur-fast), color var(--dur-fast), border-color var(--dur-fast)',
+                letterSpacing: '0.04em',
+              }}
+            >
+              {added ? '✓ Aggiunto al carrello' : 'Aggiungi al carrello'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )
