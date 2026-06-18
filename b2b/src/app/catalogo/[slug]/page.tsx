@@ -142,9 +142,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             {product.name}
           </h1>
 
-          {product.description && (
+          {product.uniqueNote && (
             <p style={{ fontSize: '0.875rem', color: 'var(--muted-fg)', lineHeight: 1.7, marginBottom: '1.5rem' }}>
-              {product.description}
+              {product.uniqueNote}
             </p>
           )}
 

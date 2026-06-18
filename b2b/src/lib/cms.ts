@@ -21,7 +21,7 @@ export interface ResellerProduct {
   priceTiers: PriceTier[]
   variants: ProductVariant[]
   images: { url: string; alt?: string }[]
-  description?: string
+  uniqueNote?: string
 }
 
 // Payload returns images as array of { image: { url, alt }, alt }
@@ -35,7 +35,7 @@ function normalizeProduct(doc: any): ResellerProduct {
     basePrice: doc.basePrice,
     priceTiers: doc.priceTiers ?? [],
     variants: doc.variants ?? [],
-    description: doc.description,
+    uniqueNote: typeof doc.uniqueNote === 'string' ? doc.uniqueNote : undefined,
     images: (doc.images ?? []).map((item: any) => ({
       url: item.image?.url ?? item.url ?? '',
       alt: item.alt ?? item.image?.alt ?? undefined,
