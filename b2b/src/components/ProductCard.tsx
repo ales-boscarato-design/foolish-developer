@@ -66,6 +66,31 @@ export function ProductCard({ product }: Props) {
               {t('finoA', { n: maxDiscount })}
             </span>
           )}
+          <button
+            onClick={e => {
+              e.preventDefault()
+              e.stopPropagation()
+              const subject = encodeURIComponent(`Preventivo — ${product.name}`)
+              const body = encodeURIComponent(`Salve,\n\nSono un rivenditore autorizzato di The Foolish Butcher e vorrei richiedere un preventivo per:\n\nProdotto: ${product.name}\nQuantità richiesta: \nNote / personalizzazioni: \n\nGrazie`)
+              window.location.href = `mailto:wholesale@thefoolishbutcher.com?subject=${subject}&body=${body}`
+            }}
+            style={{
+              display: 'block',
+              marginTop: '0.75rem',
+              background: 'transparent',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              fontSize: '0.72rem',
+              color: 'var(--muted-fg)',
+              textDecoration: 'underline',
+              textUnderlineOffset: '2px',
+              letterSpacing: '0.02em',
+              textAlign: 'left',
+            }}
+          >
+            {t('preventivo')}
+          </button>
         </div>
       </div>
     </Link>
