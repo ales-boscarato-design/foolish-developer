@@ -278,6 +278,25 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
               {added ? t('aggiunto') : t('aggiungiCarrello')}
             </button>
           </div>
+
+          {/* Preventivo personalizzato */}
+          <div style={{ marginTop: '1rem' }}>
+            <a
+              href={`mailto:wholesale@thefoolishbutcher.com?subject=${encodeURIComponent(`Preventivo — ${product.name}`)}&body=${encodeURIComponent(`Salve,\n\nSono un rivenditore autorizzato di The Foolish Butcher e vorrei richiedere un preventivo per:\n\nProdotto: ${product.name}\nVariante: ${selectedVariant?.label ?? ''}\nQuantità richiesta: \nNote / personalizzazioni: \n\nGrazie`)}`}
+              style={{
+                fontSize: '0.78rem',
+                color: 'var(--muted-fg)',
+                textDecoration: 'underline',
+                textUnderlineOffset: '2px',
+                letterSpacing: '0.02em',
+              }}
+            >
+              {t('preventivo')}
+            </a>
+            <span style={{ fontSize: '0.72rem', color: 'var(--muted-fg)', opacity: 0.6, marginLeft: '0.5rem' }}>
+              — {t('preventivoDesc')}
+            </span>
+          </div>
         </div>
       </div>
     </div>
