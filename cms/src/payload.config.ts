@@ -14,6 +14,7 @@ import { PromoCodes } from './collections/PromoCodes'
 import { CustomerFiles } from './collections/CustomerFiles'
 import { PushSequences } from './collections/PushSequences'
 import { OfferConfig } from './collections/OfferConfig'
+import { Announcements } from './collections/Announcements'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -52,6 +53,7 @@ export default buildConfig({
     CustomerFiles,
     PushSequences,
     OfferConfig,
+    Announcements,
     {
       slug: 'users',
       auth: {

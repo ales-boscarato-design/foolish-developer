@@ -1,0 +1,61 @@
+import type { CollectionConfig } from 'payload'
+
+export const Announcements: CollectionConfig = {
+  slug: 'announcements',
+  admin: {
+    useAsTitle: 'title',
+    description: 'Annunci e comunicazioni per i rivenditori. Mantieni un solo annuncio attivo alla volta.',
+    defaultColumns: ['title', 'active', 'startDate', 'endDate', 'updatedAt'],
+    group: 'Marketing',
+  },
+  access: {
+    read: () => true,
+    create: ({ req }) => !!req.user,
+    update: ({ req }) => !!req.user,
+    delete: ({ req }) => !!req.user,
+  },
+  fields: [
+    {
+      name: 'title',
+      type: 'text',
+      required: true,
+      label: 'Titolo (visibile nel banner)',
+      admin: { description: 'Es. "Ordina entro il 31 luglio — consegna a settembre + 5% extra"' },
+    },
+    {
+      name: 'body',
+      type: 'textarea',
+      label: 'Testo breve (banner)',
+      admin: { description: '1–2 righe mostrate nel banner del catalogo.' },
+    },
+    {
+      name: 'content',
+      type: 'textarea',
+      label: 'Contenuto completo (pagina /offerte)',
+      admin: {
+        description: 'Testo esteso della comunicazione: condizioni, date, pagamento anticipato, ecc. Vai a capo per separare i paragrafi.',
+        rows: 12,
+      },
+    },
+    {
+      name: 'startDate',
+      type: 'date',
+      label: 'Data inizio visibilità',
+      admin: { description: 'Lascia vuoto per mostrare subito.' },
+    },
+    {
+      name: 'endDate',
+      type: 'date',
+      label: 'Data fine visibilità',
+      admin: { description: 'Lascia vuoto per non scadere mai.' },
+    },
+    {
+      name: 'active',
+      type: 'checkbox',
+      required: true,
+      defaultValue: false,
+      label: 'Attivo',
+      admin: { description: 'Deve essere true perché il banner appaia.' },
+    },
+  ],
+}
