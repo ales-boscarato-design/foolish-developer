@@ -37,6 +37,7 @@ export async function sendOrderConfirmation(params: {
   await getResend().emails.send({
     from: FROM,
     to: params.email,
+    bcc: 'boscaratoa@icloud.com',
     subject: `Ordine ${params.orderNumber} confermato — The Foolish Butcher`,
     html: `
       <p>Ciao ${params.contactName},</p>
