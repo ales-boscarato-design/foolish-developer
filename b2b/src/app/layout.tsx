@@ -13,9 +13,12 @@ const cormorant = Cormorant_Garamond({
   variable: '--font-cormorant',
 })
 
-export const metadata: Metadata = {
-  title: 'The Foolish Butcher — Reseller Portal',
-  robots: 'noindex, nofollow',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('Layout')
+  return {
+    title: `The Foolish Butcher — ${t('areaRivenditori')}`,
+    robots: 'noindex, nofollow',
+  }
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

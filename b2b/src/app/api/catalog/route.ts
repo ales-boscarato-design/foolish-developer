@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchResellerProducts, fetchResellerProductBySlug } from '@/lib/cms'
-
-const VALID_LOCALES = ['it', 'fr', 'en', 'es']
+import { routing } from '@/i18n/routing'
 
 export async function GET(req: NextRequest) {
   const slug = req.nextUrl.searchParams.get('slug')
   const localeParam = req.nextUrl.searchParams.get('locale')
   const cookieLocale = req.cookies.get('NEXT_LOCALE')?.value
-  const locale = VALID_LOCALES.includes(localeParam ?? '') ? localeParam!
-    : VALID_LOCALES.includes(cookieLocale ?? '') ? cookieLocale!
-    : 'it'
+  const locale = (routing.locales as readonly string[]).includes(localeParam ?? '') ? localeParam!
+    : (routing.locales as readonly string[]).includes(cookieLocale ?? '') ? cookieLocale!
+    : routing.defaultLocale
 
   if (slug) {
     const product = await fetchResellerProductBySlug(slug, locale)

@@ -67,7 +67,9 @@
     "quantita": "Quantità",
     "aggiunto": "✓ Aggiunto!",
     "aggiungiCarrello": "Aggiungi al carrello",
-    "caricamento": "Caricamento..."
+    "caricamento": "Caricamento...",
+    "nessunaImmagine": "Nessuna immagine",
+    "pz": "pz"
   },
   "ProductCard": {
     "nessunaImmagine": "Nessuna immagine",

@@ -67,7 +67,9 @@
     "quantita": "Cantidad",
     "aggiunto": "✓ ¡Añadido!",
     "aggiungiCarrello": "Añadir al carrito",
-    "caricamento": "Cargando..."
+    "caricamento": "Cargando...",
+    "nessunaImmagine": "Sin imagen",
+    "pz": "ud."
   },
   "ProductCard": {
     "nessunaImmagine": "Sin imagen",

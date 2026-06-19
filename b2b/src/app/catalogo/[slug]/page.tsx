@@ -140,7 +140,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
               aspectRatio: '1 / 1',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <span style={{ color: 'var(--muted-fg)', fontSize: '0.75rem' }}>Nessuna immagine</span>
+              <span style={{ color: 'var(--muted-fg)', fontSize: '0.75rem' }}>{t('nessunaImmagine')}</span>
             </div>
           )}
         </div>
@@ -214,7 +214,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                     transition: 'border-color var(--dur-fast), background var(--dur-fast), color var(--dur-fast)',
                   }}
                 >
-                  {p} pz
+                  {p} {t('pz')}
                 </button>
               ))}
             </div>

@@ -58,7 +58,7 @@ export async function fetchResellerProducts(locale = 'it'): Promise<ResellerProd
 }
 
 export async function fetchResellerProductBySlug(slug: string, locale = 'it'): Promise<ResellerProduct | null> {
-  const url = `${CMS_URL}/api/products?where[slug][equals]=${slug}&where[resellerVisible][equals]=true&depth=1&limit=1&locale=${locale}`
+  const url = `${CMS_URL}/api/products?where[slug][equals]=${encodeURIComponent(slug)}&where[resellerVisible][equals]=true&depth=1&limit=1&locale=${locale}`
   const res = await fetch(url, { next: { revalidate: 60 } })
   if (!res.ok) return null
   const data = await res.json()
