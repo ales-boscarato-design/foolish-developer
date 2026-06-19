@@ -1,12 +1,32 @@
 'use client'
+import { useEffect, useState } from 'react'
 import { useCart } from '@/lib/cart'
 import { calculateLineTotal, formatPrice } from '@/lib/pricing'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import Link from 'next/link'
 
 export default function CarrelloPage() {
   const { items, updateQty, removeItem, total } = useCart()
   const t = useTranslations('Carrello')
+  const locale = useLocale()
+  const [localizedNames, setLocalizedNames] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    if (items.length === 0) return
+    const slugs = [...new Set(items.map(i => i.productSlug))]
+    Promise.all(
+      slugs.map(slug =>
+        fetch(`/api/catalog?slug=${encodeURIComponent(slug)}&locale=${locale}`)
+          .then(r => r.ok ? r.json() : null)
+          .then(data => data?.name ? { slug, name: data.name as string } : null)
+          .catch(() => null)
+      )
+    ).then(results => {
+      const map: Record<string, string> = {}
+      results.forEach(r => { if (r) map[r.slug] = r.name })
+      setLocalizedNames(map)
+    })
+  }, [locale, items.length])
 
   if (items.length === 0) {
     return (
@@ -45,7 +65,7 @@ export default function CarrelloPage() {
               borderTop: idx > 0 ? '1px solid var(--border)' : undefined,
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontWeight: 500, fontSize: '0.9rem', marginBottom: '0.2rem' }}>{item.productName}</p>
+                <p style={{ fontWeight: 500, fontSize: '0.9rem', marginBottom: '0.2rem' }}>{localizedNames[item.productSlug] ?? item.productName}</p>
                 <p style={{ fontSize: '0.78rem', color: 'var(--muted-fg)' }}>{item.variantLabel}</p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border)', borderRadius: '0.5rem', overflow: 'hidden' }}>
