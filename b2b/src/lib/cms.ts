@@ -76,7 +76,7 @@ export interface Announcement {
 }
 
 export async function fetchActiveAnnouncement(): Promise<Announcement | null> {
-  const now = new Date().toISOString()
+  const nowMs = Date.now()
   const url = `${CMS_URL}/api/announcements?where[active][equals]=true&sort=-updatedAt&limit=10`
   try {
     const res = await fetch(url, { cache: 'no-store' })
@@ -84,8 +84,8 @@ export async function fetchActiveAnnouncement(): Promise<Announcement | null> {
     const data = await res.json()
     const docs: Announcement[] = data.docs ?? []
     const valid = docs.find(doc => {
-      const afterStart = !doc.startDate || doc.startDate <= now
-      const beforeEnd = !doc.endDate || doc.endDate >= now
+      const afterStart = !doc.startDate || new Date(doc.startDate).getTime() <= nowMs
+      const beforeEnd = !doc.endDate || new Date(doc.endDate).getTime() >= nowMs
       return afterStart && beforeEnd
     })
     return valid ?? null
