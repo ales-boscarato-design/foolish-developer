@@ -97,8 +97,8 @@ export function NavBar() {
           </span>
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="desktop-nav">
+        {/* Desktop nav — nascosta su mobile via Tailwind */}
+        <nav className="hidden md:flex" style={{ gap: '0.25rem', alignItems: 'center' }}>
           {navLinks.map(item => (
             <a key={item.href} href={item.href} style={{
               padding: '0.4rem 0.75rem', fontSize: '0.8rem',
@@ -119,8 +119,8 @@ export function NavBar() {
           </a>
         </nav>
 
-        {/* Mobile controls */}
-        <div className="mobile-nav-controls">
+        {/* Mobile controls — visibile solo su mobile via Tailwind */}
+        <div className="flex md:hidden" style={{ gap: '0.25rem', alignItems: 'center' }}>
           <CartBadge count={cartCount} />
           <button
             onClick={() => setMenuOpen(true)}
