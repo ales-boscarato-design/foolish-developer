@@ -62,13 +62,13 @@ body::after {
 }
 
 .desktop-nav {
-  display: flex;
+  display: flex !important;
   gap: 0.25rem;
   align-items: center;
 }
 
 .mobile-nav-controls {
-  display: none;
+  display: none !important;
   gap: 0.25rem;
   align-items: center;
 }
@@ -81,8 +81,8 @@ body::after {
 }
 
 @media (max-width: 768px) {
-  .desktop-nav { display: none; }
-  .mobile-nav-controls { display: flex; }
+  .desktop-nav { display: none !important; }
+  .mobile-nav-controls { display: flex !important; }
 }
 
 @media (max-width: 640px) {
