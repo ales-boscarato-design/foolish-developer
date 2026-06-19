@@ -58,7 +58,7 @@ function CartBadge({ count, onClick }: { count: number; onClick?: () => void }) 
       {count > 0 && (
         <span style={{
           position: 'absolute', top: '1px', right: '-2px',
-          background: 'var(--accent)', color: '#080808',
+          backgroundColor: 'var(--accent)', color: '#080808',
           fontSize: '0.6rem', fontWeight: 700,
           minWidth: '16px', height: '16px',
           borderRadius: '99px', padding: '0 3px',
@@ -86,8 +86,8 @@ export function NavBar() {
 
   return (
     <>
+      {/* ── Header ── */}
       <div className="header-inner">
-        {/* Brand */}
         <Link href="/catalogo" style={{ textDecoration: 'none' }}>
           <span style={{ fontFamily: 'var(--font-cormorant)', fontWeight: 600, fontStyle: 'italic', fontSize: '1.1rem', color: 'var(--accent)', letterSpacing: '0.01em', display: 'block' }}>
             The Foolish Butcher
@@ -119,7 +119,7 @@ export function NavBar() {
           </a>
         </nav>
 
-        {/* Mobile: cart badge + hamburger */}
+        {/* Mobile controls */}
         <div className="mobile-nav-controls">
           <CartBadge count={cartCount} />
           <button
@@ -132,25 +132,28 @@ export function NavBar() {
         </div>
       </div>
 
-      {/* Mobile drawer overlay */}
+      {/* ── Mobile drawer ── */}
       {menuOpen && (
-        <div
-          onClick={() => setMenuOpen(false)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 100,
-            background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)',
-          }}
-        >
+        <>
+          {/* Scrim */}
+          <div
+            onClick={() => setMenuOpen(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 100, backgroundColor: 'rgba(0,0,0,0.7)' }}
+          />
+
+          {/* Pannello — z-index sopra lo scrim, background solido */}
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              position: 'absolute', top: 0, right: 0,
-              width: 'min(85vw, 300px)', height: '100%',
-              background: '#1c1a18',
-              borderLeft: '1px solid rgba(200,169,126,0.15)',
-              boxShadow: '-8px 0 40px rgba(0,0,0,0.85)',
+              position: 'fixed', top: 0, right: 0, bottom: 0,
+              width: 'min(85vw, 300px)',
+              zIndex: 101,
+              backgroundColor: '#1a1714',
+              borderLeft: '1px solid rgba(200,169,126,0.2)',
+              boxShadow: '-12px 0 48px rgba(0,0,0,0.9)',
               display: 'flex', flexDirection: 'column',
               padding: '1.25rem 1.5rem',
+              overflowY: 'auto',
             }}
           >
             {/* Header drawer */}
@@ -176,8 +179,8 @@ export function NavBar() {
                   onClick={() => setMenuOpen(false)}
                   style={{
                     padding: '1rem 0', fontSize: '1rem',
-                    color: 'var(--foreground)', textDecoration: 'none',
-                    borderBottom: '1px solid var(--border)',
+                    color: '#f0ede8', textDecoration: 'none',
+                    borderBottom: '1px solid rgba(255,255,255,0.08)',
                     letterSpacing: '0.01em',
                   }}
                 >
@@ -191,15 +194,15 @@ export function NavBar() {
                 onClick={() => setMenuOpen(false)}
                 style={{
                   padding: '1rem 0', fontSize: '1rem',
-                  color: 'var(--foreground)', textDecoration: 'none',
-                  borderBottom: '1px solid var(--border)',
+                  color: '#f0ede8', textDecoration: 'none',
+                  borderBottom: '1px solid rgba(255,255,255,0.08)',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 }}
               >
                 {t('carrello')}
                 {cartCount > 0 && (
                   <span style={{
-                    background: 'var(--accent)', color: '#080808',
+                    backgroundColor: 'var(--accent)', color: '#080808',
                     fontSize: '0.7rem', fontWeight: 700,
                     padding: '0.15rem 0.6rem', borderRadius: '99px',
                   }}>
@@ -209,8 +212,8 @@ export function NavBar() {
               </a>
             </div>
 
-            {/* Bottom: lingua + esci */}
-            <div style={{ paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
+            {/* Lingua + Esci */}
+            <div style={{ paddingTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
               <p style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--muted-fg)', marginBottom: '0.75rem' }}>
                 Lingua
               </p>
@@ -221,11 +224,11 @@ export function NavBar() {
                     onClick={() => switchLocale(code)}
                     disabled={code === locale}
                     style={{
-                      background: code === locale ? 'rgba(200,169,126,0.12)' : 'transparent',
-                      border: `1px solid ${code === locale ? 'var(--accent)' : 'var(--border)'}`,
+                      backgroundColor: code === locale ? 'rgba(200,169,126,0.15)' : 'rgba(255,255,255,0.06)',
+                      border: `1px solid ${code === locale ? 'var(--accent)' : 'rgba(255,255,255,0.12)'}`,
                       padding: '0.4rem 0.875rem', fontSize: '0.8rem',
                       fontWeight: code === locale ? 600 : 400,
-                      color: code === locale ? 'var(--accent)' : 'var(--muted-fg)',
+                      color: code === locale ? 'var(--accent)' : '#f0ede8',
                       cursor: code === locale ? 'default' : 'pointer',
                       borderRadius: '0.5rem',
                     }}
@@ -242,7 +245,7 @@ export function NavBar() {
               </a>
             </div>
           </div>
-        </div>
+        </>
       )}
     </>
   )
