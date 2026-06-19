@@ -169,6 +169,7 @@ export const Products: CollectionConfig = {
     {
       name: 'resellerDescription',
       type: 'textarea',
+      localized: true,
       label: 'Descrizione per rivenditori',
       admin: {
         description: 'Testo mostrato solo nel portale rivenditori — non appare sul sito pubblico. Spiega il prodotto dal punto di vista del rivenditore.',
