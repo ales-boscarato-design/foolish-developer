@@ -29,60 +29,54 @@ export async function AnnouncementBanner({ announcement }: Props) {
       borderRadius: '1rem',
       padding: '1.25rem 1.5rem',
       marginBottom: '3rem',
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: '1rem',
     }}>
-      {/* Icona / badge */}
       <span style={{
-        flexShrink: 0,
+        display: 'block',
         fontSize: '0.6rem',
         textTransform: 'uppercase',
         letterSpacing: '0.14em',
         color: 'var(--accent)',
         fontWeight: 600,
-        marginTop: '0.15rem',
-        whiteSpace: 'nowrap',
+        marginBottom: '0.6rem',
       }}>
         ✦ {t('annuncio')}
       </span>
 
-      {/* Content + link */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <p style={{
+        fontFamily: 'var(--font-cormorant)',
+        fontStyle: 'italic',
+        fontWeight: 600,
+        fontSize: '1.1rem',
+        color: 'var(--foreground)',
+        marginBottom: body ? '0.4rem' : '0.75rem',
+        lineHeight: 1.3,
+      }}>
+        {title}
+      </p>
+
+      {body && (
         <p style={{
-          fontFamily: 'var(--font-cormorant)',
-          fontStyle: 'italic',
-          fontWeight: 600,
-          fontSize: '1.1rem',
-          color: 'var(--foreground)',
-          marginBottom: body ? '0.4rem' : '0.75rem',
-          lineHeight: 1.3,
+          fontSize: '0.83rem',
+          color: 'var(--muted-fg)',
+          lineHeight: 1.65,
+          marginBottom: '0.75rem',
         }}>
-          {title}
+          {body}
         </p>
-        {body && (
-          <p style={{
-            fontSize: '0.83rem',
-            color: 'var(--muted-fg)',
-            lineHeight: 1.65,
-            marginBottom: '0.75rem',
-          }}>
-            {body}
-          </p>
-        )}
-        <Link
-          href="/offerte"
-          style={{
-            fontSize: '0.78rem',
-            color: 'var(--accent)',
-            textDecoration: 'none',
-            fontWeight: 500,
-            letterSpacing: '0.02em',
-          }}
-        >
-          {t('leggiOfferta')}
-        </Link>
-      </div>
+      )}
+
+      <Link
+        href="/offerte"
+        style={{
+          fontSize: '0.78rem',
+          color: 'var(--accent)',
+          textDecoration: 'none',
+          fontWeight: 500,
+          letterSpacing: '0.02em',
+        }}
+      >
+        {t('leggiOfferta')}
+      </Link>
     </div>
   )
 }
