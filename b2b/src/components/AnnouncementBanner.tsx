@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getTranslations } from 'next-intl/server'
+import { getTranslations, getLocale } from 'next-intl/server'
 import type { Announcement } from '@/lib/cms'
 
 interface Props {
@@ -8,6 +8,19 @@ interface Props {
 
 export async function AnnouncementBanner({ announcement }: Props) {
   const t = await getTranslations('Catalogo')
+  const locale = await getLocale()
+
+  const title =
+    (locale === 'en' && announcement.titleEn) ||
+    (locale === 'fr' && announcement.titleFr) ||
+    (locale === 'es' && announcement.titleEs) ||
+    announcement.title
+
+  const body =
+    (locale === 'en' && announcement.bodyEn) ||
+    (locale === 'fr' && announcement.bodyFr) ||
+    (locale === 'es' && announcement.bodyEs) ||
+    announcement.body || undefined
 
   return (
     <div style={{
@@ -42,19 +55,19 @@ export async function AnnouncementBanner({ announcement }: Props) {
           fontWeight: 600,
           fontSize: '1.1rem',
           color: 'var(--foreground)',
-          marginBottom: announcement.body ? '0.4rem' : '0.75rem',
+          marginBottom: body ? '0.4rem' : '0.75rem',
           lineHeight: 1.3,
         }}>
-          {announcement.title}
+          {title}
         </p>
-        {announcement.body && (
+        {body && (
           <p style={{
             fontSize: '0.83rem',
             color: 'var(--muted-fg)',
             lineHeight: 1.65,
             marginBottom: '0.75rem',
           }}>
-            {announcement.body}
+            {body}
           </p>
         )}
         <Link

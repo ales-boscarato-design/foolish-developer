@@ -57,5 +57,57 @@ export const Announcements: CollectionConfig = {
       label: 'Attivo',
       admin: { description: 'Deve essere true perché il banner appaia.' },
     },
+    // ── Traduzioni ──────────────────────────────────────────────────────────
+    {
+      name: 'titleEn',
+      type: 'text',
+      label: 'Titolo (EN)',
+      admin: { description: 'Se vuoto, usa il titolo italiano come fallback.' },
+    },
+    {
+      name: 'bodyEn',
+      type: 'textarea',
+      label: 'Testo breve (EN)',
+    },
+    {
+      name: 'contentEn',
+      type: 'textarea',
+      label: 'Contenuto completo (EN)',
+      admin: { rows: 12 },
+    },
+    {
+      name: 'titleFr',
+      type: 'text',
+      label: 'Titolo (FR)',
+      admin: { description: 'Se vuoto, usa il titolo italiano come fallback.' },
+    },
+    {
+      name: 'bodyFr',
+      type: 'textarea',
+      label: 'Testo breve (FR)',
+    },
+    {
+      name: 'contentFr',
+      type: 'textarea',
+      label: 'Contenuto completo (FR)',
+      admin: { rows: 12 },
+    },
+    {
+      name: 'titleEs',
+      type: 'text',
+      label: 'Titolo (ES)',
+      admin: { description: 'Se vuoto, usa il titolo italiano come fallback.' },
+    },
+    {
+      name: 'bodyEs',
+      type: 'textarea',
+      label: 'Testo breve (ES)',
+    },
+    {
+      name: 'contentEs',
+      type: 'textarea',
+      label: 'Contenuto completo (ES)',
+      admin: { rows: 12 },
+    },
   ],
 }

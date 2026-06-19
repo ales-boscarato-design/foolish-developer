@@ -1,11 +1,12 @@
 import Link from 'next/link'
-import { getTranslations } from 'next-intl/server'
+import { getTranslations, getLocale } from 'next-intl/server'
 import { fetchActiveAnnouncement } from '@/lib/cms'
 
 export const dynamic = 'force-dynamic'
 
 export default async function OffertePage() {
   const t = await getTranslations('Offerte')
+  const locale = await getLocale()
   const announcement = await fetchActiveAnnouncement()
 
   if (!announcement) {
@@ -22,7 +23,25 @@ export default async function OffertePage() {
     )
   }
 
-  const paragraphs = (announcement.content ?? '').split(/\n\n+/).filter(Boolean)
+  const title =
+    (locale === 'en' && announcement.titleEn) ||
+    (locale === 'fr' && announcement.titleFr) ||
+    (locale === 'es' && announcement.titleEs) ||
+    announcement.title
+
+  const content =
+    (locale === 'en' && announcement.contentEn) ||
+    (locale === 'fr' && announcement.contentFr) ||
+    (locale === 'es' && announcement.contentEs) ||
+    announcement.content || ''
+
+  const body =
+    (locale === 'en' && announcement.bodyEn) ||
+    (locale === 'fr' && announcement.bodyFr) ||
+    (locale === 'es' && announcement.bodyEs) ||
+    announcement.body || undefined
+
+  const paragraphs = content.split(/\n\n+/).filter(Boolean)
 
   return (
     <div style={{ maxWidth: '640px' }}>
@@ -45,7 +64,7 @@ export default async function OffertePage() {
         fontSize: 'clamp(1.6rem, 4vw, 2.25rem)', lineHeight: 1.2,
         color: 'var(--foreground)', marginBottom: '2rem',
       }}>
-        {announcement.title}
+        {title}
       </h1>
 
       {paragraphs.length > 0 ? (
@@ -59,12 +78,12 @@ export default async function OffertePage() {
             </p>
           ))}
         </div>
-      ) : announcement.body ? (
+      ) : body ? (
         <p style={{
           fontSize: '0.9rem', color: 'var(--muted-fg)', lineHeight: 1.8,
           whiteSpace: 'pre-line',
         }}>
-          {announcement.body}
+          {body}
         </p>
       ) : null}
     </div>

@@ -73,6 +73,15 @@ export interface Announcement {
   content?: string
   startDate?: string
   endDate?: string
+  titleEn?: string
+  bodyEn?: string
+  contentEn?: string
+  titleFr?: string
+  bodyFr?: string
+  contentFr?: string
+  titleEs?: string
+  bodyEs?: string
+  contentEs?: string
 }
 
 export async function fetchActiveAnnouncement(): Promise<Announcement | null> {
