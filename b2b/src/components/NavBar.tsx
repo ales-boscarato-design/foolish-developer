@@ -146,8 +146,9 @@ export function NavBar() {
             style={{
               position: 'absolute', top: 0, right: 0,
               width: 'min(85vw, 300px)', height: '100%',
-              background: 'var(--card)',
-              borderLeft: '1px solid var(--border)',
+              background: '#1c1a18',
+              borderLeft: '1px solid rgba(200,169,126,0.15)',
+              boxShadow: '-8px 0 40px rgba(0,0,0,0.85)',
               display: 'flex', flexDirection: 'column',
               padding: '1.25rem 1.5rem',
             }}
