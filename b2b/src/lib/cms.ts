@@ -49,16 +49,16 @@ function normalizeProduct(doc: any): ResellerProduct {
   }
 }
 
-export async function fetchResellerProducts(): Promise<ResellerProduct[]> {
-  const url = `${CMS_URL}/api/products?where[resellerVisible][equals]=true&depth=1&limit=100`
+export async function fetchResellerProducts(locale = 'it'): Promise<ResellerProduct[]> {
+  const url = `${CMS_URL}/api/products?where[resellerVisible][equals]=true&depth=1&limit=100&locale=${locale}`
   const res = await fetch(url, { next: { revalidate: 60 } })
   if (!res.ok) throw new Error(`CMS error: ${res.status}`)
   const data = await res.json()
   return (data.docs as any[]).map(normalizeProduct)
 }
 
-export async function fetchResellerProductBySlug(slug: string): Promise<ResellerProduct | null> {
-  const url = `${CMS_URL}/api/products?where[slug][equals]=${slug}&where[resellerVisible][equals]=true&depth=1&limit=1`
+export async function fetchResellerProductBySlug(slug: string, locale = 'it'): Promise<ResellerProduct | null> {
+  const url = `${CMS_URL}/api/products?where[slug][equals]=${slug}&where[resellerVisible][equals]=true&depth=1&limit=1&locale=${locale}`
   const res = await fetch(url, { next: { revalidate: 60 } })
   if (!res.ok) return null
   const data = await res.json()

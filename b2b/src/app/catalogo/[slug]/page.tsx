@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLocale, useTranslations } from 'next-intl'
 import type { ResellerProduct, ProductVariant } from '@/lib/cms'
 import { calculateUnitPrice, calculateLineTotal, formatPrice } from '@/lib/pricing'
 import { PriceTierTable } from '@/components/PriceTierTable'
@@ -24,6 +25,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const [notFound, setNotFound] = useState(false)
   const { addItem } = useCart()
   const router = useRouter()
+  const locale = useLocale()
+  const t = useTranslations('ProductPage')
   const addedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -32,7 +35,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
   useEffect(() => {
     if (!slug) return
-    fetch(`/api/catalog?slug=${slug}`)
+    fetch(`/api/catalog?slug=${slug}&locale=${locale}`)
       .then(r => {
         if (!r.ok) { setNotFound(true); return null }
         return r.json()
@@ -46,7 +49,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         setQtyInput(String(firstPreset))
       })
       .catch(() => setNotFound(true))
-  }, [slug])
+  }, [slug, locale])
 
   useEffect(() => () => {
     if (addedTimerRef.current) clearTimeout(addedTimerRef.current)
@@ -76,12 +79,12 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         onClick={() => router.back()}
         style={{ fontSize: '0.8rem', color: 'var(--muted-fg)', marginBottom: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'block' }}
       >
-        ← Torna al catalogo
+        {t('tornaCatalogo')}
       </button>
-      <p style={{ color: 'var(--muted-fg)' }}>Prodotto non trovato.</p>
+      <p style={{ color: 'var(--muted-fg)' }}>{t('prodottoNonTrovato')}</p>
     </div>
   )
-  if (!product) return <p style={{ color: 'var(--muted-fg)' }}>Caricamento...</p>
+  if (!product) return <p style={{ color: 'var(--muted-fg)' }}>{t('caricamento')}</p>
 
   const tiers = product.priceTiers ?? []
   const basePrice = selectedVariant?.price ?? product.basePrice
@@ -112,7 +115,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         onClick={() => router.back()}
         style={{ fontSize: '0.8rem', color: 'var(--muted-fg)', marginBottom: '1.75rem', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'block' }}
       >
-        ← Torna al catalogo
+        {t('tornaCatalogo')}
       </button>
 
       {/* Layout a due colonne */}
@@ -161,7 +164,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
           {product.variants && product.variants.length > 0 && (
             <div style={{ marginBottom: '1.75rem' }}>
               <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--muted-fg)', marginBottom: '0.75rem' }}>
-                Formato
+                {t('variante')}
               </p>
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 {product.variants.map(v => (
@@ -190,7 +193,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
           {/* Selettore quantità */}
           <div style={{ marginBottom: '1.75rem' }}>
             <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--muted-fg)', marginBottom: '0.75rem' }}>
-              Quantità
+              {t('quantita')}
             </p>
 
             {/* Preset buttons */}
@@ -272,7 +275,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 letterSpacing: '0.04em',
               }}
             >
-              {added ? '✓ Aggiunto al carrello' : 'Aggiungi al carrello'}
+              {added ? t('aggiunto') : t('aggiungiCarrello')}
             </button>
           </div>
         </div>

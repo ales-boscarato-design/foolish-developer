@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function CatalogoPage() {
   const locale = await getLocale()
-  const products = await fetchResellerProducts()
+  const products = await fetchResellerProducts(locale)
   const t = await getTranslations('Catalogo')
 
   return (
