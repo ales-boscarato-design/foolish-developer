@@ -58,7 +58,9 @@
     "info2Body": "We choose our resellers carefully, based on territory and regularity of reorders. By producing artisanally, we don't aim to cover every corner of the market: we prefer a few motivated partners who share our idea of quality.",
     "info3Title": "Packaging: Foolish brand or custom",
     "info3Body1": "Our products arrive with Foolish packaging. For many resellers this is added value: a recognisable brand helps sell and gives credibility to the product.",
-    "info3Body2": "If you prefer to protect your direct relationship with end customers, we can work white label or customise the packaging to your needs. You decide how to present yourself — we'll discuss it and find the right formula."
+    "info3Body2": "If you prefer to protect your direct relationship with end customers, we can work white label or customise the packaging to your needs. You decide how to present yourself — we'll discuss it and find the right formula.",
+    "annuncio": "Reseller update",
+    "leggiOfferta": "Read full details →"
   },
   "ProductPage": {
     "tornaCatalogo": "← Catalogue",
@@ -69,13 +71,16 @@
     "aggiungiCarrello": "Add to cart",
     "caricamento": "Loading...",
     "nessunaImmagine": "No image",
-    "pz": "pcs"
+    "pz": "pcs",
+    "preventivo": "Request a custom quote",
+    "preventivoDesc": "For larger orders or customisations"
   },
   "ProductCard": {
     "nessunaImmagine": "No image",
     "da": "From",
     "alPezzo": "/pc",
-    "finoA": "Up to -{n}%"
+    "finoA": "Up to -{n}%",
+    "preventivo": "Request a quote"
   },
   "KitCard": {
     "kitRivenditori": "Reseller kit",
@@ -164,5 +169,11 @@
       "delivered": "Delivered"
     },
     "tracking": "Tracking:"
+  },
+  "Offerte": {
+    "titolo": "Reseller update",
+    "tornaCatalogo": "← Back to catalogue",
+    "nessunaOfferta": "No active update at the moment.",
+    "aggiornato": "Updated on"
   }
 }

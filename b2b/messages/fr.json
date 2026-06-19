@@ -58,7 +58,9 @@
     "info2Body": "Nous choisissons nos revendeurs avec soin, en fonction du territoire et de la régularité des réassorts. En produisant de manière artisanale, nous ne cherchons pas à couvrir chaque recoin du marché : nous préférons peu de partenaires motivés, partageant notre conception de la qualité.",
     "info3Title": "Le packaging : marque Foolish ou sur mesure",
     "info3Body1": "Nos produits arrivent avec le packaging Foolish. Pour de nombreux revendeurs, c'est une valeur ajoutée : une marque reconnaissable aide à vendre et donne de la crédibilité au produit.",
-    "info3Body2": "Si vous préférez protéger la relation directe avec vos clients finaux, nous pouvons travailler en marque blanche ou personnaliser le packaging selon vos besoins. C'est vous qui décidez — nous en parlons ensemble et trouvons la bonne formule."
+    "info3Body2": "Si vous préférez protéger la relation directe avec vos clients finaux, nous pouvons travailler en marque blanche ou personnaliser le packaging selon vos besoins. C'est vous qui décidez — nous en parlons ensemble et trouvons la bonne formule.",
+    "annuncio": "Communication revendeurs",
+    "leggiOfferta": "Voir les détails →"
   },
   "ProductPage": {
     "tornaCatalogo": "← Catalogue",
@@ -69,13 +71,16 @@
     "aggiungiCarrello": "Ajouter au panier",
     "caricamento": "Chargement...",
     "nessunaImmagine": "Aucune image",
-    "pz": "pcs"
+    "pz": "pcs",
+    "preventivo": "Demander un devis personnalisé",
+    "preventivoDesc": "Pour des commandes plus importantes ou des personnalisations"
   },
   "ProductCard": {
     "nessunaImmagine": "Aucune image",
     "da": "À partir de",
     "alPezzo": "/pcs",
-    "finoA": "Jusqu'à -{n}%"
+    "finoA": "Jusqu'à -{n}%",
+    "preventivo": "Demander un devis"
   },
   "KitCard": {
     "kitRivenditori": "Kit revendeurs",
@@ -164,5 +169,11 @@
       "delivered": "Livrée"
     },
     "tracking": "Suivi :"
+  },
+  "Offerte": {
+    "titolo": "Communication revendeurs",
+    "tornaCatalogo": "← Retour au catalogue",
+    "nessunaOfferta": "Aucune communication active pour le moment.",
+    "aggiornato": "Mis à jour le"
   }
 }

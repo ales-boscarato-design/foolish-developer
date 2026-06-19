@@ -58,7 +58,9 @@
     "info2Body": "Scegliamo i nostri rivenditori con cura, in base al territorio e alla continuità dei riordini. Producendo in modo artigianale, non puntiamo a coprire ogni angolo del mercato: preferiamo pochi partner motivati, che condividano la nostra idea di qualità e capiscano cosa una buona pelle sintetica deve davvero offrire a chi pratica.",
     "info3Title": "Il packaging: a marchio Foolish o su misura",
     "info3Body1": "I nostri prodotti arrivano con il packaging Foolish. Per molti rivenditori è un valore aggiunto: un marchio riconoscibile aiuta a vendere e dà credibilità al prodotto sul banco.",
-    "info3Body2": "Se invece preferisci proteggere il rapporto diretto con i tuoi clienti finali, possiamo lavorare in white label o personalizzare il packaging sulle tue esigenze. Decidi tu come presentarti — ne parliamo insieme e troviamo la formula giusta."
+    "info3Body2": "Se invece preferisci proteggere il rapporto diretto con i tuoi clienti finali, possiamo lavorare in white label o personalizzare il packaging sulle tue esigenze. Decidi tu come presentarti — ne parliamo insieme e troviamo la formula giusta.",
+    "annuncio": "Comunicazione ai rivenditori",
+    "leggiOfferta": "Leggi i dettagli →"
   },
   "ProductPage": {
     "tornaCatalogo": "← Catalogo",
@@ -69,13 +71,16 @@
     "aggiungiCarrello": "Aggiungi al carrello",
     "caricamento": "Caricamento...",
     "nessunaImmagine": "Nessuna immagine",
-    "pz": "pz"
+    "pz": "pz",
+    "preventivo": "Chiedi preventivo personalizzato",
+    "preventivoDesc": "Per ordini maggiori o personalizzazioni"
   },
   "ProductCard": {
     "nessunaImmagine": "Nessuna immagine",
     "da": "Da",
     "alPezzo": "/pz",
-    "finoA": "Fino a -{n}%"
+    "finoA": "Fino a -{n}%",
+    "preventivo": "Chiedi preventivo"
   },
   "KitCard": {
     "kitRivenditori": "Kit rivenditori",
@@ -164,5 +169,11 @@
       "delivered": "Consegnato"
     },
     "tracking": "Tracking:"
+  },
+  "Offerte": {
+    "titolo": "Comunicazione ai rivenditori",
+    "tornaCatalogo": "← Torna al catalogo",
+    "nessunaOfferta": "Nessuna comunicazione attiva al momento.",
+    "aggiornato": "Aggiornato il"
   }
 }

@@ -58,7 +58,9 @@
     "info2Body": "Elegimos a nuestros revendedores con cuidado, en función del territorio y la continuidad de los pedidos. Produciendo de forma artesanal, no pretendemos cubrir cada rincón del mercado: preferimos pocos socios motivados que compartan nuestra idea de calidad.",
     "info3Title": "El packaging: marca Foolish o a medida",
     "info3Body1": "Nuestros productos llegan con el packaging Foolish. Para muchos revendedores es un valor añadido: una marca reconocible ayuda a vender y da credibilidad al producto.",
-    "info3Body2": "Si prefiere proteger la relación directa con sus clientes finales, podemos trabajar en marca blanca o personalizar el packaging según sus necesidades. Usted decide cómo presentarse — lo hablamos juntos y encontramos la fórmula adecuada."
+    "info3Body2": "Si prefiere proteger la relación directa con sus clientes finales, podemos trabajar en marca blanca o personalizar el packaging según sus necesidades. Usted decide cómo presentarse — lo hablamos juntos y encontramos la fórmula adecuada.",
+    "annuncio": "Comunicación a revendedores",
+    "leggiOfferta": "Ver detalles →"
   },
   "ProductPage": {
     "tornaCatalogo": "← Catálogo",
@@ -69,13 +71,16 @@
     "aggiungiCarrello": "Añadir al carrito",
     "caricamento": "Cargando...",
     "nessunaImmagine": "Sin imagen",
-    "pz": "ud."
+    "pz": "ud.",
+    "preventivo": "Pedir presupuesto personalizado",
+    "preventivoDesc": "Para pedidos mayores o personalizaciones"
   },
   "ProductCard": {
     "nessunaImmagine": "Sin imagen",
     "da": "Desde",
     "alPezzo": "/ud.",
-    "finoA": "Hasta -{n}%"
+    "finoA": "Hasta -{n}%",
+    "preventivo": "Pedir presupuesto"
   },
   "KitCard": {
     "kitRivenditori": "Kit revendedores",
@@ -164,5 +169,11 @@
       "delivered": "Entregado"
     },
     "tracking": "Seguimiento:"
+  },
+  "Offerte": {
+    "titolo": "Comunicación a revendedores",
+    "tornaCatalogo": "← Volver al catálogo",
+    "nessunaOfferta": "No hay comunicación activa en este momento.",
+    "aggiornato": "Actualizado el"
   }
 }

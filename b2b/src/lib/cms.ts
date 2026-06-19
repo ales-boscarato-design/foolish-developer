@@ -65,3 +65,31 @@ export async function fetchResellerProductBySlug(slug: string, locale = 'it'): P
   if (!data.docs[0]) return null
   return normalizeProduct(data.docs[0])
 }
+
+export interface Announcement {
+  id: number
+  title: string
+  body?: string
+  content?: string
+  startDate?: string
+  endDate?: string
+}
+
+export async function fetchActiveAnnouncement(): Promise<Announcement | null> {
+  const now = new Date().toISOString()
+  const url = `${CMS_URL}/api/announcements?where[active][equals]=true&sort=-updatedAt&limit=10`
+  try {
+    const res = await fetch(url, { cache: 'no-store' })
+    if (!res.ok) return null
+    const data = await res.json()
+    const docs: Announcement[] = data.docs ?? []
+    const valid = docs.find(doc => {
+      const afterStart = !doc.startDate || doc.startDate <= now
+      const beforeEnd = !doc.endDate || doc.endDate >= now
+      return afterStart && beforeEnd
+    })
+    return valid ?? null
+  } catch {
+    return null
+  }
+}
