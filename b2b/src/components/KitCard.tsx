@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import type { ResellerProduct, ProductVariant } from '@/lib/cms'
 import { formatPrice } from '@/lib/pricing'
 import { useCart } from '@/lib/cart'
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function KitCard({ product, featured = false }: Props) {
+  const t = useTranslations('KitCard')
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     product.variants?.[0] ?? null
   )
@@ -64,7 +66,7 @@ export function KitCard({ product, featured = false }: Props) {
           borderRadius: '99px',
           whiteSpace: 'nowrap',
         }}>
-          Più richiesto
+          {t('piuRichiesto')}
         </span>
       )}
 
@@ -72,7 +74,7 @@ export function KitCard({ product, featured = false }: Props) {
         fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.14em',
         color: 'var(--accent)', marginBottom: '0.5rem',
       }}>
-        Kit rivenditori
+        {t('kitRivenditori')}
       </p>
 
       <h3 style={{
@@ -142,7 +144,7 @@ export function KitCard({ product, featured = false }: Props) {
           marginTop: 'auto',
         }}
       >
-        {added ? '✓ Aggiunto al carrello' : 'Aggiungi al carrello'}
+        {added ? t('aggiunto') : t('aggiungiCarrello')}
       </button>
     </div>
   )

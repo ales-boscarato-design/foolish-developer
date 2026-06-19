@@ -1,11 +1,13 @@
 'use client'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import type { ResellerProduct } from '@/lib/cms'
 import { formatPrice } from '@/lib/pricing'
 
 interface Props { product: ResellerProduct }
 
 export function ProductCard({ product }: Props) {
+  const t = useTranslations('ProductCard')
   const image = product.images?.[0]
   const maxDiscount = product.priceTiers?.length
     ? Math.max(...product.priceTiers.map(t => t.discountPercent))
@@ -40,7 +42,7 @@ export function ProductCard({ product }: Props) {
           </div>
         ) : (
           <div style={{ aspectRatio: '1', background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ color: 'var(--muted-fg)', fontSize: '0.75rem' }}>Nessuna immagine</span>
+            <span style={{ color: 'var(--muted-fg)', fontSize: '0.75rem' }}>{t('nessunaImmagine')}</span>
           </div>
         )}
         <div style={{ padding: '1rem' }}>
@@ -48,7 +50,7 @@ export function ProductCard({ product }: Props) {
             {product.name}
           </h2>
           <p style={{ fontSize: '0.8rem', color: 'var(--muted-fg)', marginBottom: '0.625rem' }}>
-            Da {formatPrice(product.variants?.[0]?.price ?? product.basePrice)}/pz
+            {t('da')} {formatPrice(product.variants?.[0]?.price ?? product.basePrice)}{t('alPezzo')}
           </p>
           {maxDiscount > 0 && (
             <span style={{
@@ -61,7 +63,7 @@ export function ProductCard({ product }: Props) {
               fontWeight: 500,
               letterSpacing: '0.04em',
             }}>
-              Fino a -{maxDiscount}%
+              {t('finoA', { n: maxDiscount })}
             </span>
           )}
         </div>
