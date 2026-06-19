@@ -282,7 +282,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
           {/* Preventivo personalizzato */}
           <div style={{ marginTop: '1rem' }}>
             <a
-              href={`mailto:wholesale@thefoolishbutcher.com?subject=${encodeURIComponent(`Preventivo — ${product.name}`)}&body=${encodeURIComponent(`Salve,\n\nSono un rivenditore autorizzato di The Foolish Butcher e vorrei richiedere un preventivo per:\n\nProdotto: ${product.name}\nVariante: ${selectedVariant?.label ?? ''}\nQuantità richiesta: \nNote / personalizzazioni: \n\nGrazie`)}`}
+              href={`mailto:wholesale@thefoolishbutcher.com?subject=${encodeURIComponent(t('mailSubject', { name: product.name }))}&body=${encodeURIComponent(t('mailBody', { name: product.name, variant: selectedVariant?.label ?? '' }))}`}
               style={{
                 fontSize: '0.78rem',
                 color: 'var(--muted-fg)',

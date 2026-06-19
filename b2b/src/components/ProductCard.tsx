@@ -68,7 +68,7 @@ export function ProductCard({ product }: Props) {
             </span>
           )}
           <a
-            href={`mailto:wholesale@thefoolishbutcher.com?subject=${encodeURIComponent(`Preventivo — ${product.name}`)}&body=${encodeURIComponent(`Salve,\n\nSono un rivenditore autorizzato di The Foolish Butcher e vorrei richiedere un preventivo per:\n\nProdotto: ${product.name}\nQuantità richiesta: \nNote / personalizzazioni: \n\nGrazie`)}`}
+            href={`mailto:wholesale@thefoolishbutcher.com?subject=${encodeURIComponent(t('mailSubject', { name: product.name }))}&body=${encodeURIComponent(t('mailBody', { name: product.name }))}`}
             onClick={e => e.stopPropagation()}
             style={{
               display: 'block',

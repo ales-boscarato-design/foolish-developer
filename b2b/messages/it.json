@@ -73,14 +73,18 @@
     "nessunaImmagine": "Nessuna immagine",
     "pz": "pz",
     "preventivo": "Chiedi preventivo personalizzato",
-    "preventivoDesc": "Per ordini maggiori o personalizzazioni"
+    "preventivoDesc": "Per ordini maggiori o personalizzazioni",
+    "mailSubject": "Preventivo — {name}",
+    "mailBody": "Salve,\n\nSono un rivenditore autorizzato di The Foolish Butcher e vorrei richiedere un preventivo per:\n\nProdotto: {name}\nVariante: {variant}\nQuantità richiesta: \nNote / personalizzazioni: \n\nGrazie"
   },
   "ProductCard": {
     "nessunaImmagine": "Nessuna immagine",
     "da": "Da",
     "alPezzo": "/pz",
     "finoA": "Fino a -{n}%",
-    "preventivo": "Chiedi preventivo"
+    "preventivo": "Chiedi preventivo",
+    "mailSubject": "Preventivo — {name}",
+    "mailBody": "Salve,\n\nSono un rivenditore autorizzato di The Foolish Butcher e vorrei richiedere un preventivo per:\n\nProdotto: {name}\nQuantità richiesta: \nNote / personalizzazioni: \n\nGrazie"
   },
   "KitCard": {
     "kitRivenditori": "Kit rivenditori",

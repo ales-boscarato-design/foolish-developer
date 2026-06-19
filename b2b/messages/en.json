@@ -73,14 +73,18 @@
     "nessunaImmagine": "No image",
     "pz": "pcs",
     "preventivo": "Request a custom quote",
-    "preventivoDesc": "For larger orders or customisations"
+    "preventivoDesc": "For larger orders or customisations",
+    "mailSubject": "Quote — {name}",
+    "mailBody": "Hello,\n\nI am an authorised reseller of The Foolish Butcher and would like to request a quote for:\n\nProduct: {name}\nVariant: {variant}\nRequested quantity: \nNotes / customisations: \n\nThank you"
   },
   "ProductCard": {
     "nessunaImmagine": "No image",
     "da": "From",
     "alPezzo": "/pc",
     "finoA": "Up to -{n}%",
-    "preventivo": "Request a quote"
+    "preventivo": "Request a quote",
+    "mailSubject": "Quote — {name}",
+    "mailBody": "Hello,\n\nI am an authorised reseller of The Foolish Butcher and would like to request a quote for:\n\nProduct: {name}\nRequested quantity: \nNotes / customisations: \n\nThank you"
   },
   "KitCard": {
     "kitRivenditori": "Reseller kit",

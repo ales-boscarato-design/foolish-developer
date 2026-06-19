@@ -73,14 +73,18 @@
     "nessunaImmagine": "Aucune image",
     "pz": "pcs",
     "preventivo": "Demander un devis personnalisé",
-    "preventivoDesc": "Pour des commandes plus importantes ou des personnalisations"
+    "preventivoDesc": "Pour des commandes plus importantes ou des personnalisations",
+    "mailSubject": "Devis — {name}",
+    "mailBody": "Bonjour,\n\nJe suis un revendeur autorisé de The Foolish Butcher et je souhaite demander un devis pour :\n\nProduit : {name}\nVariante : {variant}\nQuantité demandée : \nNotes / personnalisations : \n\nMerci"
   },
   "ProductCard": {
     "nessunaImmagine": "Aucune image",
     "da": "À partir de",
     "alPezzo": "/pcs",
     "finoA": "Jusqu'à -{n}%",
-    "preventivo": "Demander un devis"
+    "preventivo": "Demander un devis",
+    "mailSubject": "Devis — {name}",
+    "mailBody": "Bonjour,\n\nJe suis un revendeur autorisé de The Foolish Butcher et je souhaite demander un devis pour :\n\nProduit : {name}\nQuantité demandée : \nNotes / personnalisations : \n\nMerci"
   },
   "KitCard": {
     "kitRivenditori": "Kit revendeurs",

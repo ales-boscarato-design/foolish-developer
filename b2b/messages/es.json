@@ -73,14 +73,18 @@
     "nessunaImmagine": "Sin imagen",
     "pz": "ud.",
     "preventivo": "Pedir presupuesto personalizado",
-    "preventivoDesc": "Para pedidos mayores o personalizaciones"
+    "preventivoDesc": "Para pedidos mayores o personalizaciones",
+    "mailSubject": "Presupuesto — {name}",
+    "mailBody": "Hola,\n\nSoy un revendedor autorizado de The Foolish Butcher y me gustaría solicitar un presupuesto para:\n\nProducto: {name}\nVariante: {variant}\nCantidad solicitada: \nNotas / personalizaciones: \n\nGracias"
   },
   "ProductCard": {
     "nessunaImmagine": "Sin imagen",
     "da": "Desde",
     "alPezzo": "/ud.",
     "finoA": "Hasta -{n}%",
-    "preventivo": "Pedir presupuesto"
+    "preventivo": "Pedir presupuesto",
+    "mailSubject": "Presupuesto — {name}",
+    "mailBody": "Hola,\n\nSoy un revendedor autorizado de The Foolish Butcher y me gustaría solicitar un presupuesto para:\n\nProducto: {name}\nCantidad solicitada: \nNotas / personalizaciones: \n\nGracias"
   },
   "KitCard": {
     "kitRivenditori": "Kit revendedores",
