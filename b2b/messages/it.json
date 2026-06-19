@@ -1,0 +1,166 @@
+{
+  "Layout": {
+    "areaRivenditori": "Area Rivenditori",
+    "catalogo": "Catalogo",
+    "carrello": "Carrello",
+    "account": "Account",
+    "esci": "Esci"
+  },
+  "Login": {
+    "portaleRivenditori": "Portale Rivenditori",
+    "errors": {
+      "invalid": "Link non valido.",
+      "expired": "Link scaduto. Richiedi un nuovo accesso.",
+      "unauthorized": "Account non autorizzato o sospeso.",
+      "unknown": "Errore sconosciuto."
+    },
+    "emailInviata": "Email inviata",
+    "emailInviataDesc": "Se l'email è registrata, riceverai il link di accesso entro pochi secondi.",
+    "accedi": "Accedi",
+    "desc": "Inserisci la tua email. Ti invieremo un link di accesso sicuro.",
+    "placeholder": "email@azienda.it",
+    "invioInCorso": "Invio in corso…",
+    "riceviLink": "Ricevi link di accesso",
+    "accessoRiservato": "Accesso riservato ai rivenditori autorizzati"
+  },
+  "Catalogo": {
+    "portaleRivenditori": "Portale Rivenditori",
+    "heroTitle": "Ogni foglio di pelle, un'opera irripetibile.",
+    "heroBody": "The Foolish Butcher produce pelli sintetiche per tatuaggio artigianalmente, in piccoli lotti curati uno ad uno. I tempi di consegna sono leggermente superiori alla produzione industriale — non per inefficienza, ma per scelta. Ogni lotto cambia per consistenza e tonalità: questo è il segreto che trasforma i tuoi clienti in",
+    "habitueSuffix": "habitué",
+    "pillars": {
+      "p1icon": "✦",
+      "p1title": "Produzione artigianale",
+      "p1body": "Ogni foglio è lavorato a mano nel nostro laboratorio in piccoli lotti. Non produciamo in serie — e si vede.",
+      "p2icon": "◈",
+      "p2title": "Ogni lotto, unico",
+      "p2body": "Consistenza e colorazione variano naturalmente tra un lotto e l'altro. I tuoi clienti tatueranno sempre su qualcosa di leggermente diverso.",
+      "p3icon": "⟳",
+      "p3title": "Clienti fedeli garantiti",
+      "p3body": "Un prodotto che cambia è un prodotto che non annoia. Chi tatua su Foolish torna per tatuare ancora su Foolish."
+    },
+    "nessuniProdotti": "Nessun prodotto disponibile al momento.",
+    "tattooDesc": "Pelli sintetiche per pratica e formazione nel tatuaggio",
+    "pmuDesc": "Supporti per Permanent Make-up — sopracciglia, labbra, eyeliner",
+    "prodotto": "prodotto",
+    "prodotti": "prodotti",
+    "kitTitle": "Kit per iniziare",
+    "kitBadge": "Solo rivenditori",
+    "kitDesc": "Prova i nostri prodotti prima di ordinare in quantità — scontati e riservati ai partner.",
+    "infoTitle": "Informazioni per i rivenditori",
+    "info1Title": "Come lavoriamo",
+    "info1Body1": "Non lavoriamo a magazzino. Ogni ordine viene preparato nel momento in cui arriva: la pelle viene realizzata giornalmente, e giorno per giorno calibriamo consistenza e colore. Così ricevi sempre un prodotto fresco, mai fermo a scaffale per mesi.",
+    "info1Body2": "Proprio perché ogni pelle nasce su ordinazione e viene controllata una a una, la spedizione richiede in media circa",
+    "info1Days": "10 giorni lavorativi",
+    "info1Body3": ": è il tempo che ci serve per realizzarla a regola d'arte.",
+    "info1Body4": "Ogni pelle rispetta i nostri standard di produzione più alti e viene controllata per essere esente da difetti. Lavorando a mano, però, può capitare che qualcosa ci sfugga: in quel caso la sostituzione è immediata e garantita, senza discussioni.",
+    "info2Title": "Cosa possiamo fare per il rivenditore di fiducia",
+    "info2Body": "Scegliamo i nostri rivenditori con cura, in base al territorio e alla continuità dei riordini. Producendo in modo artigianale, non puntiamo a coprire ogni angolo del mercato: preferiamo pochi partner motivati, che condividano la nostra idea di qualità e capiscano cosa una buona pelle sintetica deve davvero offrire a chi pratica.",
+    "info3Title": "Il packaging: a marchio Foolish o su misura",
+    "info3Body1": "I nostri prodotti arrivano con il packaging Foolish. Per molti rivenditori è un valore aggiunto: un marchio riconoscibile aiuta a vendere e dà credibilità al prodotto sul banco.",
+    "info3Body2": "Se invece preferisci proteggere il rapporto diretto con i tuoi clienti finali, possiamo lavorare in white label o personalizzare il packaging sulle tue esigenze. Decidi tu come presentarti — ne parliamo insieme e troviamo la formula giusta."
+  },
+  "ProductPage": {
+    "tornaCatalogo": "← Catalogo",
+    "prodottoNonTrovato": "Prodotto non trovato.",
+    "variante": "Variante",
+    "quantita": "Quantità",
+    "aggiunto": "✓ Aggiunto!",
+    "aggiungiCarrello": "Aggiungi al carrello",
+    "caricamento": "Caricamento..."
+  },
+  "ProductCard": {
+    "nessunaImmagine": "Nessuna immagine",
+    "da": "Da",
+    "alPezzo": "/pz",
+    "finoA": "Fino a -{n}%"
+  },
+  "KitCard": {
+    "kitRivenditori": "Kit rivenditori",
+    "piuRichiesto": "Più richiesto",
+    "aggiunto": "✓ Aggiunto al carrello",
+    "aggiungiCarrello": "Aggiungi al carrello"
+  },
+  "PriceTierTable": {
+    "prezziVolume": "Prezzi a volume",
+    "quantita": "Quantità",
+    "sconto": "Sconto",
+    "prezzoPz": "Prezzo/pz",
+    "rangePz": "{min}–{max} pz",
+    "minPlusPz": "{min}+ pz"
+  },
+  "Carrello": {
+    "vuoto": "Il carrello è vuoto.",
+    "tornaCatalogo": "Torna al catalogo",
+    "titolo": "Carrello",
+    "totaleIva": "Totale (IVA inclusa)",
+    "spedizione": "+ spedizione calcolata al checkout",
+    "checkout": "Checkout →"
+  },
+  "Checkout": {
+    "titolo": "Checkout",
+    "fatturazione": "Dati fatturazione",
+    "ragioneSociale": "Ragione sociale *",
+    "piva": "P.IVA *",
+    "sdi": "Codice SDI / PEC *",
+    "sdiPlaceholder": "0000000 o pec@email.it",
+    "indirizzoBilling": "Indirizzo di fatturazione *",
+    "citta": "Città *",
+    "cap": "CAP *",
+    "spedizione": "Indirizzo di spedizione",
+    "nomeDestinatario": "Nome / Ragione sociale destinatario *",
+    "indirizzoSpedizione": "Indirizzo *",
+    "pagamento": "Metodo di pagamento",
+    "bonifico": "Bonifico bancario",
+    "bonificoDesc": "Riceverai le coordinate al momento della conferma",
+    "carta": "Carta di credito (Stripe)",
+    "cartaDesc": "Supplemento del 4% per pagamento con carta. Totale con carta: {price}",
+    "note": "Note (opzionale)",
+    "notePlaceholder": "Note per l'ordine, istruzioni di consegna, ecc.",
+    "subtotale": "Subtotale prodotti",
+    "supplementoCarta": "Supplemento carta (4%)",
+    "costoSpedizione": "Spedizione",
+    "daDefinire": "Da definire",
+    "totale": "Totale",
+    "elaborazione": "Elaborazione...",
+    "confermaBonifico": "Conferma ordine (bonifico bancario)",
+    "pagaCarta": "Paga con carta →",
+    "errorOrdine": "Errore durante la creazione dell'ordine. Riprova."
+  },
+  "Conferma": {
+    "ordineConfermato": "Ordine confermato",
+    "numeroOrdine": "Numero ordine:",
+    "coordinateBonifico": "Coordinate per il bonifico:",
+    "intestatario": "Intestatario:",
+    "iban": "IBAN:",
+    "causale": "Causale: {ordine} — inserisci il numero d'ordine come causale.",
+    "pagamentoRicevuto": "Il pagamento è stato ricevuto.",
+    "emailConferma": "Hai ricevuto la conferma d'ordine via email.",
+    "continuaAcquistare": "Continua ad acquistare"
+  },
+  "StripePay": {
+    "caricamento": "Caricamento...",
+    "titolo": "Pagamento con carta",
+    "elaborazione": "Elaborazione...",
+    "pagaOra": "Paga ora",
+    "errore": "Errore pagamento"
+  },
+  "Account": {
+    "caricamento": "Caricamento...",
+    "titolo": "Il mio account",
+    "profiloAziendale": "Profilo aziendale",
+    "ragioneSociale": "Ragione sociale",
+    "referente": "Referente",
+    "email": "Email",
+    "piva": "P.IVA",
+    "storicoOrdini": "Storico ordini",
+    "nessunoOrdine": "Nessun ordine ancora.",
+    "states": {
+      "received": "Ricevuto",
+      "in_production": "In produzione",
+      "shipped": "Spedito",
+      "delivered": "Consegnato"
+    },
+    "tracking": "Tracking:"
+  }
+}

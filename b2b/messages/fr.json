@@ -1,0 +1,166 @@
+{
+  "Layout": {
+    "areaRivenditori": "Espace Revendeurs",
+    "catalogo": "Catalogue",
+    "carrello": "Panier",
+    "account": "Compte",
+    "esci": "Déconnexion"
+  },
+  "Login": {
+    "portaleRivenditori": "Portail Revendeurs",
+    "errors": {
+      "invalid": "Lien invalide.",
+      "expired": "Lien expiré. Demandez un nouvel accès.",
+      "unauthorized": "Compte non autorisé ou suspendu.",
+      "unknown": "Erreur inconnue."
+    },
+    "emailInviata": "E-mail envoyé",
+    "emailInviataDesc": "Si l'adresse e-mail est enregistrée, vous recevrez le lien d'accès dans quelques secondes.",
+    "accedi": "Connexion",
+    "desc": "Saisissez votre adresse e-mail. Nous vous enverrons un lien d'accès sécurisé.",
+    "placeholder": "email@entreprise.fr",
+    "invioInCorso": "Envoi en cours…",
+    "riceviLink": "Recevoir le lien d'accès",
+    "accessoRiservato": "Accès réservé aux revendeurs autorisés"
+  },
+  "Catalogo": {
+    "portaleRivenditori": "Portail Revendeurs",
+    "heroTitle": "Chaque feuille de peau, une œuvre unique.",
+    "heroBody": "The Foolish Butcher produit des peaux synthétiques pour le tatouage de manière artisanale, en petits lots soignés un à un. Les délais de livraison sont légèrement supérieurs à la production industrielle — non par inefficacité, mais par choix. Chaque lot varie en consistance et en teinte : c'est le secret qui transforme vos clients en",
+    "habitueSuffix": "habitués",
+    "pillars": {
+      "p1icon": "✦",
+      "p1title": "Production artisanale",
+      "p1body": "Chaque feuille est travaillée à la main dans notre atelier en petits lots. Nous ne produisons pas en série — et ça se voit.",
+      "p2icon": "◈",
+      "p2title": "Chaque lot, unique",
+      "p2body": "La consistance et la coloration varient naturellement d'un lot à l'autre. Vos clients tatouent toujours sur quelque chose de légèrement différent.",
+      "p3icon": "⟳",
+      "p3title": "Clients fidèles garantis",
+      "p3body": "Un produit qui change est un produit qui ne lasse pas. Ceux qui tatouent sur Foolish reviennent pour tatouer encore sur Foolish."
+    },
+    "nessuniProdotti": "Aucun produit disponible pour le moment.",
+    "tattooDesc": "Peaux synthétiques pour la pratique et la formation en tatouage",
+    "pmuDesc": "Supports pour le maquillage permanent — sourcils, lèvres, eye-liner",
+    "prodotto": "produit",
+    "prodotti": "produits",
+    "kitTitle": "Kits pour commencer",
+    "kitBadge": "Revendeurs uniquement",
+    "kitDesc": "Testez nos produits avant de commander en grande quantité — remisés et réservés aux partenaires.",
+    "infoTitle": "Informations pour les revendeurs",
+    "info1Title": "Notre méthode de travail",
+    "info1Body1": "Nous ne travaillons pas sur stock. Chaque commande est préparée au moment où elle arrive : la peau est fabriquée quotidiennement, et chaque jour nous calibrons la consistance et la couleur. Vous recevez ainsi toujours un produit frais, jamais immobilisé en rayon pendant des mois.",
+    "info1Body2": "Parce que chaque peau est fabriquée sur commande et contrôlée une à une, la livraison prend en moyenne environ",
+    "info1Days": "10 jours ouvrables",
+    "info1Body3": ": c'est le temps qu'il nous faut pour la réaliser dans les règles de l'art.",
+    "info1Body4": "Chaque peau respecte nos standards de production les plus élevés et est contrôlée pour être exempte de défauts. En travaillant à la main, il peut arriver que quelque chose nous échappe : dans ce cas, le remplacement est immédiat et garanti, sans discussion.",
+    "info2Title": "Ce que nous pouvons faire pour notre revendeur de confiance",
+    "info2Body": "Nous choisissons nos revendeurs avec soin, en fonction du territoire et de la régularité des réassorts. En produisant de manière artisanale, nous ne cherchons pas à couvrir chaque recoin du marché : nous préférons peu de partenaires motivés, partageant notre conception de la qualité.",
+    "info3Title": "Le packaging : marque Foolish ou sur mesure",
+    "info3Body1": "Nos produits arrivent avec le packaging Foolish. Pour de nombreux revendeurs, c'est une valeur ajoutée : une marque reconnaissable aide à vendre et donne de la crédibilité au produit.",
+    "info3Body2": "Si vous préférez protéger la relation directe avec vos clients finaux, nous pouvons travailler en marque blanche ou personnaliser le packaging selon vos besoins. C'est vous qui décidez — nous en parlons ensemble et trouvons la bonne formule."
+  },
+  "ProductPage": {
+    "tornaCatalogo": "← Catalogue",
+    "prodottoNonTrovato": "Produit introuvable.",
+    "variante": "Variante",
+    "quantita": "Quantité",
+    "aggiunto": "✓ Ajouté !",
+    "aggiungiCarrello": "Ajouter au panier",
+    "caricamento": "Chargement..."
+  },
+  "ProductCard": {
+    "nessunaImmagine": "Aucune image",
+    "da": "À partir de",
+    "alPezzo": "/pcs",
+    "finoA": "Jusqu'à -{n}%"
+  },
+  "KitCard": {
+    "kitRivenditori": "Kit revendeurs",
+    "piuRichiesto": "Le plus demandé",
+    "aggiunto": "✓ Ajouté au panier",
+    "aggiungiCarrello": "Ajouter au panier"
+  },
+  "PriceTierTable": {
+    "prezziVolume": "Tarifs dégressifs",
+    "quantita": "Quantité",
+    "sconto": "Remise",
+    "prezzoPz": "Prix/pcs",
+    "rangePz": "{min}–{max} pcs",
+    "minPlusPz": "{min}+ pcs"
+  },
+  "Carrello": {
+    "vuoto": "Votre panier est vide.",
+    "tornaCatalogo": "Retour au catalogue",
+    "titolo": "Panier",
+    "totaleIva": "Total (TVA incluse)",
+    "spedizione": "+ frais de port calculés au paiement",
+    "checkout": "Commander →"
+  },
+  "Checkout": {
+    "titolo": "Commande",
+    "fatturazione": "Données de facturation",
+    "ragioneSociale": "Raison sociale *",
+    "piva": "N° TVA intracommunautaire *",
+    "sdi": "Référence facturation électronique *",
+    "sdiPlaceholder": "Réf. EDI ou email comptabilité",
+    "indirizzoBilling": "Adresse de facturation *",
+    "citta": "Ville *",
+    "cap": "Code postal *",
+    "spedizione": "Adresse de livraison",
+    "nomeDestinatario": "Nom / Raison sociale destinataire *",
+    "indirizzoSpedizione": "Adresse *",
+    "pagamento": "Mode de paiement",
+    "bonifico": "Virement bancaire",
+    "bonificoDesc": "Vous recevrez les coordonnées bancaires à la confirmation",
+    "carta": "Carte de crédit (Stripe)",
+    "cartaDesc": "Supplément de 4 % pour paiement par carte. Total avec carte : {price}",
+    "note": "Notes (optionnel)",
+    "notePlaceholder": "Notes pour la commande, instructions de livraison, etc.",
+    "subtotale": "Sous-total produits",
+    "supplementoCarta": "Supplément carte (4 %)",
+    "costoSpedizione": "Livraison",
+    "daDefinire": "À définir",
+    "totale": "Total",
+    "elaborazione": "Traitement en cours...",
+    "confermaBonifico": "Confirmer la commande (virement bancaire)",
+    "pagaCarta": "Payer par carte →",
+    "errorOrdine": "Erreur lors de la création de la commande. Veuillez réessayer."
+  },
+  "Conferma": {
+    "ordineConfermato": "Commande confirmée",
+    "numeroOrdine": "Numéro de commande :",
+    "coordinateBonifico": "Coordonnées pour le virement :",
+    "intestatario": "Bénéficiaire :",
+    "iban": "IBAN :",
+    "causale": "Référence : {ordine} — indiquez le numéro de commande comme référence.",
+    "pagamentoRicevuto": "Le paiement a été reçu.",
+    "emailConferma": "Vous avez reçu la confirmation de commande par e-mail.",
+    "continuaAcquistare": "Continuer mes achats"
+  },
+  "StripePay": {
+    "caricamento": "Chargement...",
+    "titolo": "Paiement par carte",
+    "elaborazione": "Traitement en cours...",
+    "pagaOra": "Payer maintenant",
+    "errore": "Erreur de paiement"
+  },
+  "Account": {
+    "caricamento": "Chargement...",
+    "titolo": "Mon compte",
+    "profiloAziendale": "Profil entreprise",
+    "ragioneSociale": "Raison sociale",
+    "referente": "Référent",
+    "email": "E-mail",
+    "piva": "N° TVA",
+    "storicoOrdini": "Historique des commandes",
+    "nessunoOrdine": "Aucune commande pour le moment.",
+    "states": {
+      "received": "Reçue",
+      "in_production": "En production",
+      "shipped": "Expédiée",
+      "delivered": "Livrée"
+    },
+    "tracking": "Suivi :"
+  }
+}

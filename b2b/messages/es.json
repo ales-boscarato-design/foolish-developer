@@ -1,0 +1,166 @@
+{
+  "Layout": {
+    "areaRivenditori": "Área Revendedores",
+    "catalogo": "Catálogo",
+    "carrello": "Carrito",
+    "account": "Cuenta",
+    "esci": "Cerrar sesión"
+  },
+  "Login": {
+    "portaleRivenditori": "Portal Revendedores",
+    "errors": {
+      "invalid": "Enlace no válido.",
+      "expired": "Enlace caducado. Solicite un nuevo acceso.",
+      "unauthorized": "Cuenta no autorizada o suspendida.",
+      "unknown": "Error desconocido."
+    },
+    "emailInviata": "Email enviado",
+    "emailInviataDesc": "Si el email está registrado, recibirá el enlace de acceso en unos segundos.",
+    "accedi": "Acceder",
+    "desc": "Introduzca su email. Le enviaremos un enlace de acceso seguro.",
+    "placeholder": "email@empresa.es",
+    "invioInCorso": "Enviando…",
+    "riceviLink": "Recibir enlace de acceso",
+    "accessoRiservato": "Acceso reservado a revendedores autorizados"
+  },
+  "Catalogo": {
+    "portaleRivenditori": "Portal Revendedores",
+    "heroTitle": "Cada hoja de piel, una obra irrepetible.",
+    "heroBody": "The Foolish Butcher produce pieles sintéticas para tatuaje de forma artesanal, en pequeños lotes cuidados uno a uno. Los plazos de entrega son ligeramente superiores a la producción industrial — no por ineficiencia, sino por elección. Cada lote varía en consistencia y tonalidad: este es el secreto que convierte a sus clientes en",
+    "habitueSuffix": "habituales",
+    "pillars": {
+      "p1icon": "✦",
+      "p1title": "Producción artesanal",
+      "p1body": "Cada hoja se trabaja a mano en nuestro taller en pequeños lotes. No producimos en serie — y se nota.",
+      "p2icon": "◈",
+      "p2title": "Cada lote, único",
+      "p2body": "La consistencia y la coloración varían de forma natural entre un lote y otro. Sus clientes siempre tatuarán sobre algo ligeramente diferente.",
+      "p3icon": "⟳",
+      "p3title": "Clientes fieles garantizados",
+      "p3body": "Un producto que cambia es un producto que no aburre. Quien tatúa en Foolish vuelve para tatuar de nuevo en Foolish."
+    },
+    "nessuniProdotti": "No hay productos disponibles en este momento.",
+    "tattooDesc": "Pieles sintéticas para práctica y formación en tatuaje",
+    "pmuDesc": "Soportes para maquillaje permanente — cejas, labios, eye-liner",
+    "prodotto": "producto",
+    "prodotti": "productos",
+    "kitTitle": "Kits para empezar",
+    "kitBadge": "Solo revendedores",
+    "kitDesc": "Pruebe nuestros productos antes de pedir en cantidad — con descuento y reservados a los socios.",
+    "infoTitle": "Información para revendedores",
+    "info1Title": "Cómo trabajamos",
+    "info1Body1": "No trabajamos con stock. Cada pedido se prepara en el momento en que llega: la piel se fabrica a diario, y cada día calibramos consistencia y color. Así recibe siempre un producto fresco, nunca parado en un estante durante meses.",
+    "info1Body2": "Precisamente porque cada piel se fabrica bajo pedido y se controla una a una, el envío requiere en promedio unos",
+    "info1Days": "10 días laborables",
+    "info1Body3": ": es el tiempo que necesitamos para realizarla a la perfección.",
+    "info1Body4": "Cada piel respeta nuestros más altos estándares de producción y se controla para estar libre de defectos. Trabajando a mano, puede ocurrir que algo se nos escape: en ese caso, la sustitución es inmediata y garantizada, sin discusión.",
+    "info2Title": "Qué podemos hacer por el revendedor de confianza",
+    "info2Body": "Elegimos a nuestros revendedores con cuidado, en función del territorio y la continuidad de los pedidos. Produciendo de forma artesanal, no pretendemos cubrir cada rincón del mercado: preferimos pocos socios motivados que compartan nuestra idea de calidad.",
+    "info3Title": "El packaging: marca Foolish o a medida",
+    "info3Body1": "Nuestros productos llegan con el packaging Foolish. Para muchos revendedores es un valor añadido: una marca reconocible ayuda a vender y da credibilidad al producto.",
+    "info3Body2": "Si prefiere proteger la relación directa con sus clientes finales, podemos trabajar en marca blanca o personalizar el packaging según sus necesidades. Usted decide cómo presentarse — lo hablamos juntos y encontramos la fórmula adecuada."
+  },
+  "ProductPage": {
+    "tornaCatalogo": "← Catálogo",
+    "prodottoNonTrovato": "Producto no encontrado.",
+    "variante": "Variante",
+    "quantita": "Cantidad",
+    "aggiunto": "✓ ¡Añadido!",
+    "aggiungiCarrello": "Añadir al carrito",
+    "caricamento": "Cargando..."
+  },
+  "ProductCard": {
+    "nessunaImmagine": "Sin imagen",
+    "da": "Desde",
+    "alPezzo": "/ud.",
+    "finoA": "Hasta -{n}%"
+  },
+  "KitCard": {
+    "kitRivenditori": "Kit revendedores",
+    "piuRichiesto": "Más solicitado",
+    "aggiunto": "✓ Añadido al carrito",
+    "aggiungiCarrello": "Añadir al carrito"
+  },
+  "PriceTierTable": {
+    "prezziVolume": "Precios por volumen",
+    "quantita": "Cantidad",
+    "sconto": "Descuento",
+    "prezzoPz": "Precio/ud.",
+    "rangePz": "{min}–{max} ud.",
+    "minPlusPz": "{min}+ ud."
+  },
+  "Carrello": {
+    "vuoto": "El carrito está vacío.",
+    "tornaCatalogo": "Volver al catálogo",
+    "titolo": "Carrito",
+    "totaleIva": "Total (IVA incluido)",
+    "spedizione": "+ gastos de envío calculados al pagar",
+    "checkout": "Pagar →"
+  },
+  "Checkout": {
+    "titolo": "Pago",
+    "fatturazione": "Datos de facturación",
+    "ragioneSociale": "Razón social *",
+    "piva": "N.º IVA *",
+    "sdi": "Referencia factura electrónica *",
+    "sdiPlaceholder": "Código EDI o email contabilidad",
+    "indirizzoBilling": "Dirección de facturación *",
+    "citta": "Ciudad *",
+    "cap": "Código postal *",
+    "spedizione": "Dirección de envío",
+    "nomeDestinatario": "Nombre / Razón social destinatario *",
+    "indirizzoSpedizione": "Dirección *",
+    "pagamento": "Método de pago",
+    "bonifico": "Transferencia bancaria",
+    "bonificoDesc": "Recibirá los datos bancarios en la confirmación",
+    "carta": "Tarjeta de crédito (Stripe)",
+    "cartaDesc": "Suplemento del 4 % por pago con tarjeta. Total con tarjeta: {price}",
+    "note": "Notas (opcional)",
+    "notePlaceholder": "Notas del pedido, instrucciones de entrega, etc.",
+    "subtotale": "Subtotal productos",
+    "supplementoCarta": "Suplemento tarjeta (4 %)",
+    "costoSpedizione": "Envío",
+    "daDefinire": "Por determinar",
+    "totale": "Total",
+    "elaborazione": "Procesando...",
+    "confermaBonifico": "Confirmar pedido (transferencia bancaria)",
+    "pagaCarta": "Pagar con tarjeta →",
+    "errorOrdine": "Error al crear el pedido. Por favor, inténtelo de nuevo."
+  },
+  "Conferma": {
+    "ordineConfermato": "Pedido confirmado",
+    "numeroOrdine": "Número de pedido:",
+    "coordinateBonifico": "Datos para la transferencia:",
+    "intestatario": "Beneficiario:",
+    "iban": "IBAN:",
+    "causale": "Concepto: {ordine} — indique el número de pedido como concepto.",
+    "pagamentoRicevuto": "Pago recibido.",
+    "emailConferma": "Ha recibido la confirmación del pedido por email.",
+    "continuaAcquistare": "Seguir comprando"
+  },
+  "StripePay": {
+    "caricamento": "Cargando...",
+    "titolo": "Pago con tarjeta",
+    "elaborazione": "Procesando...",
+    "pagaOra": "Pagar ahora",
+    "errore": "Error de pago"
+  },
+  "Account": {
+    "caricamento": "Cargando...",
+    "titolo": "Mi cuenta",
+    "profiloAziendale": "Perfil empresarial",
+    "ragioneSociale": "Razón social",
+    "referente": "Contacto",
+    "email": "Email",
+    "piva": "N.º IVA",
+    "storicoOrdini": "Historial de pedidos",
+    "nessunoOrdine": "Aún no hay pedidos.",
+    "states": {
+      "received": "Recibido",
+      "in_production": "En producción",
+      "shipped": "Enviado",
+      "delivered": "Entregado"
+    },
+    "tracking": "Seguimiento:"
+  }
+}

@@ -1,0 +1,166 @@
+{
+  "Layout": {
+    "areaRivenditori": "Reseller Area",
+    "catalogo": "Catalogue",
+    "carrello": "Cart",
+    "account": "Account",
+    "esci": "Logout"
+  },
+  "Login": {
+    "portaleRivenditori": "Reseller Portal",
+    "errors": {
+      "invalid": "Invalid link.",
+      "expired": "Link expired. Request a new access link.",
+      "unauthorized": "Account not authorised or suspended.",
+      "unknown": "Unknown error."
+    },
+    "emailInviata": "Email sent",
+    "emailInviataDesc": "If the email address is registered, you will receive the access link within a few seconds.",
+    "accedi": "Sign in",
+    "desc": "Enter your email address. We will send you a secure access link.",
+    "placeholder": "email@company.com",
+    "invioInCorso": "Sending…",
+    "riceviLink": "Get access link",
+    "accessoRiservato": "Access reserved for authorised resellers"
+  },
+  "Catalogo": {
+    "portaleRivenditori": "Reseller Portal",
+    "heroTitle": "Every sheet of skin, an unrepeatable work.",
+    "heroBody": "The Foolish Butcher crafts synthetic tattoo skins by hand, in small batches cared for one by one. Delivery times are slightly longer than industrial production — not out of inefficiency, but by choice. Every batch varies in consistency and tone: this is the secret that turns your clients into",
+    "habitueSuffix": "regulars",
+    "pillars": {
+      "p1icon": "✦",
+      "p1title": "Artisan production",
+      "p1body": "Every sheet is hand-crafted in our workshop in small batches. We don't mass produce — and it shows.",
+      "p2icon": "◈",
+      "p2title": "Every batch, unique",
+      "p2body": "Consistency and colour vary naturally from batch to batch. Your clients always tattoo on something slightly different.",
+      "p3icon": "⟳",
+      "p3title": "Loyal customers guaranteed",
+      "p3body": "A product that changes is a product that doesn't bore. Those who tattoo on Foolish come back to tattoo on Foolish again."
+    },
+    "nessuniProdotti": "No products available at the moment.",
+    "tattooDesc": "Synthetic skins for tattoo practice and training",
+    "pmuDesc": "Supports for Permanent Make-up — eyebrows, lips, eyeliner",
+    "prodotto": "product",
+    "prodotti": "products",
+    "kitTitle": "Starter kits",
+    "kitBadge": "Resellers only",
+    "kitDesc": "Try our products before ordering in bulk — discounted and reserved for partners.",
+    "infoTitle": "Information for resellers",
+    "info1Title": "How we work",
+    "info1Body1": "We don't work from stock. Every order is prepared as it arrives: skin is made daily, and each day we calibrate consistency and colour. You always receive a fresh product, never sitting on a shelf for months.",
+    "info1Body2": "Because every skin is made to order and checked one by one, shipping takes on average around",
+    "info1Days": "10 working days",
+    "info1Body3": ": that is the time we need to craft it properly.",
+    "info1Body4": "Every skin meets our highest production standards and is checked to be free of defects. Working by hand, something can occasionally slip through: in that case, replacement is immediate and guaranteed, no questions asked.",
+    "info2Title": "What we can do for our trusted reseller",
+    "info2Body": "We choose our resellers carefully, based on territory and regularity of reorders. By producing artisanally, we don't aim to cover every corner of the market: we prefer a few motivated partners who share our idea of quality.",
+    "info3Title": "Packaging: Foolish brand or custom",
+    "info3Body1": "Our products arrive with Foolish packaging. For many resellers this is added value: a recognisable brand helps sell and gives credibility to the product.",
+    "info3Body2": "If you prefer to protect your direct relationship with end customers, we can work white label or customise the packaging to your needs. You decide how to present yourself — we'll discuss it and find the right formula."
+  },
+  "ProductPage": {
+    "tornaCatalogo": "← Catalogue",
+    "prodottoNonTrovato": "Product not found.",
+    "variante": "Variant",
+    "quantita": "Quantity",
+    "aggiunto": "✓ Added!",
+    "aggiungiCarrello": "Add to cart",
+    "caricamento": "Loading..."
+  },
+  "ProductCard": {
+    "nessunaImmagine": "No image",
+    "da": "From",
+    "alPezzo": "/pc",
+    "finoA": "Up to -{n}%"
+  },
+  "KitCard": {
+    "kitRivenditori": "Reseller kit",
+    "piuRichiesto": "Most popular",
+    "aggiunto": "✓ Added to cart",
+    "aggiungiCarrello": "Add to cart"
+  },
+  "PriceTierTable": {
+    "prezziVolume": "Volume pricing",
+    "quantita": "Quantity",
+    "sconto": "Discount",
+    "prezzoPz": "Price/pc",
+    "rangePz": "{min}–{max} pcs",
+    "minPlusPz": "{min}+ pcs"
+  },
+  "Carrello": {
+    "vuoto": "Your cart is empty.",
+    "tornaCatalogo": "Back to catalogue",
+    "titolo": "Cart",
+    "totaleIva": "Total (VAT included)",
+    "spedizione": "+ shipping calculated at checkout",
+    "checkout": "Checkout →"
+  },
+  "Checkout": {
+    "titolo": "Checkout",
+    "fatturazione": "Billing details",
+    "ragioneSociale": "Company name *",
+    "piva": "VAT number *",
+    "sdi": "Electronic invoice reference *",
+    "sdiPlaceholder": "EDI code or accounting email",
+    "indirizzoBilling": "Billing address *",
+    "citta": "City *",
+    "cap": "Postcode *",
+    "spedizione": "Shipping address",
+    "nomeDestinatario": "Name / Company name (recipient) *",
+    "indirizzoSpedizione": "Address *",
+    "pagamento": "Payment method",
+    "bonifico": "Bank transfer",
+    "bonificoDesc": "You will receive bank details upon confirmation",
+    "carta": "Credit card (Stripe)",
+    "cartaDesc": "4% surcharge for card payment. Total with card: {price}",
+    "note": "Notes (optional)",
+    "notePlaceholder": "Order notes, delivery instructions, etc.",
+    "subtotale": "Product subtotal",
+    "supplementoCarta": "Card surcharge (4%)",
+    "costoSpedizione": "Shipping",
+    "daDefinire": "To be confirmed",
+    "totale": "Total",
+    "elaborazione": "Processing...",
+    "confermaBonifico": "Confirm order (bank transfer)",
+    "pagaCarta": "Pay by card →",
+    "errorOrdine": "Error creating the order. Please try again."
+  },
+  "Conferma": {
+    "ordineConfermato": "Order confirmed",
+    "numeroOrdine": "Order number:",
+    "coordinateBonifico": "Bank transfer details:",
+    "intestatario": "Beneficiary:",
+    "iban": "IBAN:",
+    "causale": "Reference: {ordine} — please use the order number as payment reference.",
+    "pagamentoRicevuto": "Payment received.",
+    "emailConferma": "You have received the order confirmation by email.",
+    "continuaAcquistare": "Continue shopping"
+  },
+  "StripePay": {
+    "caricamento": "Loading...",
+    "titolo": "Card payment",
+    "elaborazione": "Processing...",
+    "pagaOra": "Pay now",
+    "errore": "Payment error"
+  },
+  "Account": {
+    "caricamento": "Loading...",
+    "titolo": "My account",
+    "profiloAziendale": "Company profile",
+    "ragioneSociale": "Company name",
+    "referente": "Contact",
+    "email": "Email",
+    "piva": "VAT number",
+    "storicoOrdini": "Order history",
+    "nessunoOrdine": "No orders yet.",
+    "states": {
+      "received": "Received",
+      "in_production": "In production",
+      "shipped": "Shipped",
+      "delivered": "Delivered"
+    },
+    "tracking": "Tracking:"
+  }
+}
