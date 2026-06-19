@@ -51,9 +51,48 @@ body::after {
   align-items: start;
 }
 
+/* Header responsive */
+.header-inner {
+  max-width: 72rem;
+  margin: 0 auto;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-nav {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+/* Checkout form grid */
+.checkout-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
 @media (max-width: 640px) {
   .product-page-grid {
     grid-template-columns: 1fr;
     gap: 1.75rem;
+  }
+
+  .header-inner {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 0.75rem 0;
+    gap: 0.375rem;
+  }
+
+  .header-nav {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .checkout-grid {
+    grid-template-columns: 1fr;
   }
 }

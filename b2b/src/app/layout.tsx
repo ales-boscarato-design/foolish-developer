@@ -39,7 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             zIndex: 40,
             padding: '0 1.5rem',
           }}>
-            <div style={{ maxWidth: '72rem', margin: '0 auto', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="header-inner">
               <div>
                 <span style={{ fontFamily: 'var(--font-cormorant)', fontWeight: 600, fontStyle: 'italic', fontSize: '1.1rem', color: 'var(--accent)', letterSpacing: '0.01em' }}>
                   The Foolish Butcher
@@ -48,7 +48,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   {t('areaRivenditori')}
                 </span>
               </div>
-              <nav style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+              <nav className="header-nav">
                 {[
                   { href: '/catalogo', label: t('catalogo') },
                   { href: '/carrello', label: t('carrello') },

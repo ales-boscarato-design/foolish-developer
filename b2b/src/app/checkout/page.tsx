@@ -151,7 +151,7 @@ export default function CheckoutPage() {
         {/* FATTURAZIONE */}
         <section>
           <h2 style={sectionHeadStyle}>{t('fatturazione')}</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div className="checkout-grid">
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={labelStyle}>{t('ragioneSociale')}</label>
               <input required style={inputStyle} value={form.businessName}
@@ -188,7 +188,7 @@ export default function CheckoutPage() {
         {/* SPEDIZIONE */}
         <section>
           <h2 style={sectionHeadStyle}>{t('spedizione')}</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div className="checkout-grid">
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={labelStyle}>{t('nomeDestinatario')}</label>
               <input required style={inputStyle} value={form.shippingName}
