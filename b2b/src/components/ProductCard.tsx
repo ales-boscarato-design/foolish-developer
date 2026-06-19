@@ -1,5 +1,5 @@
 'use client'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import type { ResellerProduct } from '@/lib/cms'
 import { formatPrice } from '@/lib/pricing'
@@ -8,13 +8,14 @@ interface Props { product: ResellerProduct }
 
 export function ProductCard({ product }: Props) {
   const t = useTranslations('ProductCard')
+  const router = useRouter()
   const image = product.images?.[0]
   const maxDiscount = product.priceTiers?.length
     ? Math.max(...product.priceTiers.map(tier => tier.discountPercent))
     : 0
 
   return (
-    <Link href={`/catalogo/${product.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
+    <div onClick={() => router.push(`/catalogo/${product.slug}`)} style={{ textDecoration: 'none', display: 'block', cursor: 'pointer' }}>
       <div style={{
         background: 'var(--card)',
         border: '1px solid var(--border)',
@@ -66,33 +67,23 @@ export function ProductCard({ product }: Props) {
               {t('finoA', { n: maxDiscount })}
             </span>
           )}
-          <button
-            onClick={e => {
-              e.preventDefault()
-              e.stopPropagation()
-              const subject = encodeURIComponent(`Preventivo — ${product.name}`)
-              const body = encodeURIComponent(`Salve,\n\nSono un rivenditore autorizzato di The Foolish Butcher e vorrei richiedere un preventivo per:\n\nProdotto: ${product.name}\nQuantità richiesta: \nNote / personalizzazioni: \n\nGrazie`)
-              window.location.href = `mailto:wholesale@thefoolishbutcher.com?subject=${subject}&body=${body}`
-            }}
+          <a
+            href={`mailto:wholesale@thefoolishbutcher.com?subject=${encodeURIComponent(`Preventivo — ${product.name}`)}&body=${encodeURIComponent(`Salve,\n\nSono un rivenditore autorizzato di The Foolish Butcher e vorrei richiedere un preventivo per:\n\nProdotto: ${product.name}\nQuantità richiesta: \nNote / personalizzazioni: \n\nGrazie`)}`}
+            onClick={e => e.stopPropagation()}
             style={{
               display: 'block',
               marginTop: '0.75rem',
-              background: 'transparent',
-              border: 'none',
-              padding: 0,
-              cursor: 'pointer',
               fontSize: '0.72rem',
               color: 'var(--muted-fg)',
               textDecoration: 'underline',
               textUnderlineOffset: '2px',
               letterSpacing: '0.02em',
-              textAlign: 'left',
             }}
           >
             {t('preventivo')}
-          </button>
+          </a>
         </div>
       </div>
-    </Link>
+    </div>
   )
 }

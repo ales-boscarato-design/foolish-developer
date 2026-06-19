@@ -1,5 +1,6 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useCart } from '@/lib/cart'
 import { useTranslations, useLocale } from 'next-intl'
 import { LocaleSwitcher } from './LocaleSwitcher'
@@ -77,6 +78,8 @@ export function NavBar() {
   const t = useTranslations('Layout')
   const locale = useLocale()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
   const cartCount = items.reduce((sum, i) => sum + i.qty, 0)
 
   const navLinks = [
@@ -133,12 +136,12 @@ export function NavBar() {
       </div>
 
       {/* ── Mobile drawer ── */}
-      {menuOpen && (
+      {menuOpen && mounted && createPortal(
         <>
           {/* Scrim */}
           <div
             onClick={() => setMenuOpen(false)}
-            style={{ position: 'fixed', inset: 0, zIndex: 100, backgroundColor: 'rgba(0,0,0,0.7)' }}
+            style={{ position: 'fixed', inset: 0, zIndex: 200, backgroundColor: 'rgba(0,0,0,0.7)' }}
           />
 
           {/* Pannello — z-index sopra lo scrim, background solido */}
@@ -147,7 +150,7 @@ export function NavBar() {
             style={{
               position: 'fixed', top: 0, right: 0, bottom: 0,
               width: 'min(85vw, 300px)',
-              zIndex: 101,
+              zIndex: 201,
               backgroundColor: '#1a1714',
               borderLeft: '1px solid rgba(200,169,126,0.2)',
               boxShadow: '-12px 0 48px rgba(0,0,0,0.9)',
@@ -245,7 +248,8 @@ export function NavBar() {
               </a>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </>
   )
