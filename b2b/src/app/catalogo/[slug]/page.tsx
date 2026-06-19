@@ -118,8 +118,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         {t('tornaCatalogo')}
       </button>
 
-      {/* Layout a due colonne */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 3fr)', gap: '3rem', alignItems: 'start' }}>
+      {/* Layout a due colonne — su mobile diventa una colonna via .product-page-grid */}
+      <div className="product-page-grid">
 
         {/* ── IMMAGINE ── */}
         <div>

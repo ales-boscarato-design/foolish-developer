@@ -43,3 +43,17 @@ body::after {
   font-weight: 600;
   font-style: italic;
 }
+
+.product-page-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 3rem;
+  align-items: start;
+}
+
+@media (max-width: 640px) {
+  .product-page-grid {
+    grid-template-columns: 1fr;
+    gap: 1.75rem;
+  }
+}
