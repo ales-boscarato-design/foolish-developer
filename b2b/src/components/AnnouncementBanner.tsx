@@ -34,7 +34,7 @@ export async function AnnouncementBanner({ announcement }: Props) {
         ✦ {t('annuncio')}
       </span>
 
-      {/* Content */}
+      {/* Content + link */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{
           fontFamily: 'var(--font-cormorant)',
@@ -42,7 +42,7 @@ export async function AnnouncementBanner({ announcement }: Props) {
           fontWeight: 600,
           fontSize: '1.1rem',
           color: 'var(--foreground)',
-          marginBottom: announcement.body ? '0.4rem' : 0,
+          marginBottom: announcement.body ? '0.4rem' : '0.75rem',
           lineHeight: 1.3,
         }}>
           {announcement.title}
@@ -52,28 +52,24 @@ export async function AnnouncementBanner({ announcement }: Props) {
             fontSize: '0.83rem',
             color: 'var(--muted-fg)',
             lineHeight: 1.65,
+            marginBottom: '0.75rem',
           }}>
             {announcement.body}
           </p>
         )}
+        <Link
+          href="/offerte"
+          style={{
+            fontSize: '0.78rem',
+            color: 'var(--accent)',
+            textDecoration: 'none',
+            fontWeight: 500,
+            letterSpacing: '0.02em',
+          }}
+        >
+          {t('leggiOfferta')}
+        </Link>
       </div>
-
-      {/* Link */}
-      <Link
-        href="/offerte"
-        style={{
-          flexShrink: 0,
-          fontSize: '0.78rem',
-          color: 'var(--accent)',
-          textDecoration: 'none',
-          fontWeight: 500,
-          letterSpacing: '0.02em',
-          whiteSpace: 'nowrap',
-          alignSelf: 'center',
-        }}
-      >
-        {t('leggiOfferta')}
-      </Link>
     </div>
   )
 }
