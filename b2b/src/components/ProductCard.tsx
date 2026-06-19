@@ -10,7 +10,7 @@ export function ProductCard({ product }: Props) {
   const t = useTranslations('ProductCard')
   const image = product.images?.[0]
   const maxDiscount = product.priceTiers?.length
-    ? Math.max(...product.priceTiers.map(t => t.discountPercent))
+    ? Math.max(...product.priceTiers.map(tier => tier.discountPercent))
     : 0
 
   return (

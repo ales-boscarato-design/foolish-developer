@@ -88,7 +88,7 @@ export async function createResellerOrder(input: CreateOrderInput): Promise<numb
       ${input.shippingAddressName}, ${input.shippingAddress1}, ${input.shippingCity},
       ${input.shippingPostalCode}, ${input.shippingCountry},
       ${JSON.stringify(input.lineItems)}, ${input.total}, ${input.shippingCost},
-      ${input.notes ?? `Pagamento: ${input.paymentMethod}`}, 'received',
+      ${(input.notes ? input.notes + ' — ' : '') + `Pagamento: ${input.paymentMethod}`}, 'received',
       NOW(), NOW()
     )
     RETURNING id

@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server'
+import { CartClearer } from '@/components/CartClearer'
 
 export default async function ConfermaPage({
   searchParams,
@@ -11,6 +12,7 @@ export default async function ConfermaPage({
 
   return (
     <div style={{ maxWidth: '32rem', margin: '0 auto', marginTop: '4rem', textAlign: 'center' }}>
+      <CartClearer />
       <div style={{ fontSize: '4rem', color: 'var(--accent)', marginBottom: '1rem', lineHeight: 1 }}>✓</div>
       <h1 style={{ fontFamily: 'var(--font-cormorant)', fontStyle: 'italic', fontWeight: 600, fontSize: '2rem', marginBottom: '0.5rem' }}>
         {t('ordineConfermato')}

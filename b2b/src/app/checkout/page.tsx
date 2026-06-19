@@ -51,9 +51,11 @@ export default function CheckoutPage() {
       .catch(() => { /* pre-fill is best-effort; form remains blank */ })
   }, [])
 
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => { setHydrated(true) }, [])
   useEffect(() => {
-    if (items.length === 0) router.replace('/carrello')
-  }, [items.length, router])
+    if (hydrated && items.length === 0) router.replace('/carrello')
+  }, [hydrated, items.length, router])
 
   const cartTotal = total()
   const stripeTotal = cartTotal * 1.04

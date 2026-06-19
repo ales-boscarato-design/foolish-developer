@@ -9,11 +9,13 @@ function LoginForm() {
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [fetchError, setFetchError] = useState(false)
   const t = useTranslations('Login')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
+    setFetchError(false)
     try {
       await fetch('/api/auth/magic-link', {
         method: 'POST',
@@ -21,6 +23,8 @@ function LoginForm() {
         body: JSON.stringify({ email }),
       })
       setSent(true)
+    } catch {
+      setFetchError(true)
     } finally {
       setLoading(false)
     }
@@ -43,9 +47,9 @@ function LoginForm() {
         </div>
 
         <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '1rem', padding: '2rem' }}>
-          {errorMsg && (
+          {(errorMsg || fetchError) && (
             <div style={{ background: 'rgba(192,57,43,0.1)', border: '1px solid rgba(192,57,43,0.3)', borderRadius: '0.5rem', padding: '0.75rem 1rem', marginBottom: '1.25rem', fontSize: '0.85rem', color: '#e57373' }}>
-              {errorMsg}
+              {fetchError ? t('errors.unknown') : errorMsg}
             </div>
           )}
 

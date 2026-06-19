@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import sql from '@/lib/db'
 import { sendOrderConfirmation } from '@/lib/resend'
+import { calculateLineTotal } from '@/lib/pricing'
+import type { PriceTier } from '@/lib/cms'
 
 const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY!)
 const getWebhookSecret = () => process.env.STRIPE_B2B_WEBHOOK_SECRET!
@@ -48,12 +50,12 @@ export async function POST(req: NextRequest) {
         SELECT customer_name, total, line_items FROM orders WHERE id = ${orderId}
       `
       if (rows[0]) {
-        const lineItemsRaw = rows[0].line_items as { productName?: string; variantLabel?: string; qty?: number; unitPrice?: number; priceTiers?: [] }[] | null
+        const lineItemsRaw = rows[0].line_items as { productName?: string; variantLabel?: string; qty?: number; unitPrice?: number; priceTiers?: PriceTier[] }[] | null
         const lineItemsForEmail = Array.isArray(lineItemsRaw)
           ? lineItemsRaw.map(i => ({
               name: `${i.productName ?? ''} — ${i.variantLabel ?? ''}`,
               qty: i.qty ?? 0,
-              total: (i.unitPrice ?? 0) * (i.qty ?? 0),
+              total: calculateLineTotal(i.unitPrice ?? 0, i.qty ?? 0, i.priceTiers ?? []),
             }))
           : []
 

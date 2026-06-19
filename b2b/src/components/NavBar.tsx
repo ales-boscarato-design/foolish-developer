@@ -77,7 +77,7 @@ export function NavBar() {
   const t = useTranslations('Layout')
   const locale = useLocale()
   const [menuOpen, setMenuOpen] = useState(false)
-  const cartCount = items.length
+  const cartCount = items.reduce((sum, i) => sum + i.qty, 0)
 
   const navLinks = [
     { href: '/catalogo', label: t('catalogo') },
