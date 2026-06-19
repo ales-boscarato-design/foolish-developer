@@ -1,15 +1,17 @@
 'use client'
 import { useCart } from '@/lib/cart'
 import { calculateLineTotal, formatPrice } from '@/lib/pricing'
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 
 export default function CarrelloPage() {
   const { items, updateQty, removeItem, total } = useCart()
+  const t = useTranslations('Carrello')
 
   if (items.length === 0) {
     return (
       <div style={{ textAlign: 'center', padding: '5rem 0' }}>
-        <p style={{ color: 'var(--muted-fg)', marginBottom: '1.5rem' }}>Il carrello è vuoto.</p>
+        <p style={{ color: 'var(--muted-fg)', marginBottom: '1.5rem' }}>{t('vuoto')}</p>
         <Link href="/catalogo" style={{
           display: 'inline-block',
           border: '1px solid var(--border)',
@@ -19,7 +21,7 @@ export default function CarrelloPage() {
           color: 'var(--foreground)',
           textDecoration: 'none',
         }}>
-          Torna al catalogo
+          {t('tornaCatalogo')}
         </Link>
       </div>
     )
@@ -28,7 +30,7 @@ export default function CarrelloPage() {
   return (
     <div style={{ maxWidth: '680px' }}>
       <h1 style={{ fontFamily: 'var(--font-cormorant)', fontStyle: 'italic', fontWeight: 600, fontSize: '2rem', marginBottom: '2rem' }}>
-        Carrello
+        {t('titolo')}
       </h1>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
@@ -62,9 +64,9 @@ export default function CarrelloPage() {
 
       <div style={{ borderTop: '1px solid var(--border)', marginTop: '0.5rem', paddingTop: '1.5rem', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div>
-          <p style={{ fontSize: '0.75rem', color: 'var(--muted-fg)', marginBottom: '0.25rem' }}>Totale (IVA inclusa)</p>
+          <p style={{ fontSize: '0.75rem', color: 'var(--muted-fg)', marginBottom: '0.25rem' }}>{t('totaleIva')}</p>
           <p style={{ fontSize: '1.75rem', fontWeight: 600, color: 'var(--accent)', fontFamily: 'var(--font-cormorant)', fontStyle: 'italic' }}>{formatPrice(total())}</p>
-          <p style={{ fontSize: '0.75rem', color: 'var(--muted-fg)', marginTop: '0.25rem' }}>+ spedizione calcolata al checkout</p>
+          <p style={{ fontSize: '0.75rem', color: 'var(--muted-fg)', marginTop: '0.25rem' }}>{t('spedizione')}</p>
         </div>
         <Link href="/checkout" style={{
           background: 'var(--accent)',
@@ -76,7 +78,7 @@ export default function CarrelloPage() {
           textDecoration: 'none',
           letterSpacing: '0.02em',
         }}>
-          Checkout →
+          {t('checkout')}
         </Link>
       </div>
     </div>

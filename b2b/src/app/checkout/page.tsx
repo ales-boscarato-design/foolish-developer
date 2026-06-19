@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useCart } from '@/lib/cart'
 import { formatPrice } from '@/lib/pricing'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 interface FormData {
   businessName: string
@@ -24,6 +25,7 @@ interface FormData {
 export default function CheckoutPage() {
   const { items, total, clear } = useCart()
   const router = useRouter()
+  const t = useTranslations('Checkout')
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState<FormData>({
     businessName: '', vatNumber: '', sdiCode: '', billingAddress1: '', billingCity: '',
@@ -88,7 +90,7 @@ export default function CheckoutPage() {
         clear()
         router.push(`/checkout/conferma?ordine=${orderNumber}&metodo=bonifico`)
       } else {
-        alert('Errore durante la creazione dell\'ordine. Riprova.')
+        alert(t('errorOrdine'))
       }
     } finally {
       setLoading(false)
@@ -141,42 +143,42 @@ export default function CheckoutPage() {
   return (
     <div style={{ maxWidth: '42rem' }}>
       <h1 style={{ fontFamily: 'var(--font-cormorant)', fontStyle: 'italic', fontWeight: 600, fontSize: '2rem', marginBottom: '2rem', color: 'var(--foreground)' }}>
-        Checkout
+        {t('titolo')}
       </h1>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
 
         {/* FATTURAZIONE */}
         <section>
-          <h2 style={sectionHeadStyle}>Dati fatturazione</h2>
+          <h2 style={sectionHeadStyle}>{t('fatturazione')}</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div style={{ gridColumn: '1 / -1' }}>
-              <label style={labelStyle}>Ragione sociale *</label>
+              <label style={labelStyle}>{t('ragioneSociale')}</label>
               <input required style={inputStyle} value={form.businessName}
                 onChange={e => set('businessName', e.target.value)} />
             </div>
             <div>
-              <label style={labelStyle}>P.IVA *</label>
+              <label style={labelStyle}>{t('piva')}</label>
               <input required style={inputStyle} value={form.vatNumber}
                 onChange={e => set('vatNumber', e.target.value)} placeholder="IT12345678901" />
             </div>
             <div>
-              <label style={labelStyle}>Codice SDI / PEC *</label>
+              <label style={labelStyle}>{t('sdi')}</label>
               <input required style={inputStyle} value={form.sdiCode}
-                onChange={e => set('sdiCode', e.target.value)} placeholder="0000000 o pec@email.it" />
+                onChange={e => set('sdiCode', e.target.value)} placeholder={t('sdiPlaceholder')} />
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
-              <label style={labelStyle}>Indirizzo di fatturazione *</label>
+              <label style={labelStyle}>{t('indirizzoBilling')}</label>
               <input required style={inputStyle} value={form.billingAddress1}
                 onChange={e => set('billingAddress1', e.target.value)} />
             </div>
             <div>
-              <label style={labelStyle}>Città *</label>
+              <label style={labelStyle}>{t('citta')}</label>
               <input required style={inputStyle} value={form.billingCity}
                 onChange={e => set('billingCity', e.target.value)} />
             </div>
             <div>
-              <label style={labelStyle}>CAP *</label>
+              <label style={labelStyle}>{t('cap')}</label>
               <input required style={inputStyle} value={form.billingPostalCode}
                 onChange={e => set('billingPostalCode', e.target.value)} />
             </div>
@@ -185,25 +187,25 @@ export default function CheckoutPage() {
 
         {/* SPEDIZIONE */}
         <section>
-          <h2 style={sectionHeadStyle}>Indirizzo di spedizione</h2>
+          <h2 style={sectionHeadStyle}>{t('spedizione')}</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div style={{ gridColumn: '1 / -1' }}>
-              <label style={labelStyle}>Nome / Ragione sociale destinatario *</label>
+              <label style={labelStyle}>{t('nomeDestinatario')}</label>
               <input required style={inputStyle} value={form.shippingName}
                 onChange={e => set('shippingName', e.target.value)} />
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
-              <label style={labelStyle}>Indirizzo *</label>
+              <label style={labelStyle}>{t('indirizzoSpedizione')}</label>
               <input required style={inputStyle} value={form.shippingAddress1}
                 onChange={e => set('shippingAddress1', e.target.value)} />
             </div>
             <div>
-              <label style={labelStyle}>Città *</label>
+              <label style={labelStyle}>{t('citta')}</label>
               <input required style={inputStyle} value={form.shippingCity}
                 onChange={e => set('shippingCity', e.target.value)} />
             </div>
             <div>
-              <label style={labelStyle}>CAP *</label>
+              <label style={labelStyle}>{t('cap')}</label>
               <input required style={inputStyle} value={form.shippingPostalCode}
                 onChange={e => set('shippingPostalCode', e.target.value)} />
             </div>
@@ -212,7 +214,7 @@ export default function CheckoutPage() {
 
         {/* PAGAMENTO */}
         <section>
-          <h2 style={sectionHeadStyle}>Metodo di pagamento</h2>
+          <h2 style={sectionHeadStyle}>{t('pagamento')}</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <label style={{
               ...radioCardBase,
@@ -224,8 +226,8 @@ export default function CheckoutPage() {
                 onChange={() => set('paymentMethod', 'bonifico')}
                 style={{ marginTop: '0.15rem', accentColor: 'var(--accent)' }} />
               <div>
-                <p style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--foreground)', marginBottom: '0.25rem' }}>Bonifico bancario</p>
-                <p style={{ fontSize: '0.8rem', color: 'var(--muted-fg)' }}>Riceverai le coordinate al momento della conferma</p>
+                <p style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--foreground)', marginBottom: '0.25rem' }}>{t('bonifico')}</p>
+                <p style={{ fontSize: '0.8rem', color: 'var(--muted-fg)' }}>{t('bonificoDesc')}</p>
               </div>
             </label>
             <label style={{
@@ -238,10 +240,9 @@ export default function CheckoutPage() {
                 onChange={() => set('paymentMethod', 'stripe')}
                 style={{ marginTop: '0.15rem', accentColor: 'var(--accent)' }} />
               <div>
-                <p style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--foreground)', marginBottom: '0.25rem' }}>Carta di credito (Stripe)</p>
+                <p style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--foreground)', marginBottom: '0.25rem' }}>{t('carta')}</p>
                 <p style={{ fontSize: '0.8rem', color: 'var(--muted-fg)' }}>
-                  Supplemento del 4% per pagamento con carta.
-                  Totale con carta: {formatPrice(stripeTotal)}
+                  {t('cartaDesc', { price: formatPrice(stripeTotal) })}
                 </p>
               </div>
             </label>
@@ -250,34 +251,34 @@ export default function CheckoutPage() {
 
         {/* NOTE */}
         <div>
-          <label style={labelStyle}>Note (opzionale)</label>
+          <label style={labelStyle}>{t('note')}</label>
           <textarea
             style={{ ...inputStyle, resize: 'vertical' }}
             rows={3}
             value={form.notes}
             onChange={e => set('notes', e.target.value)}
-            placeholder="Note per l'ordine, istruzioni di consegna, ecc."
+            placeholder={t('notePlaceholder')}
           />
         </div>
 
         {/* RIEPILOGO + SUBMIT */}
         <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '1rem', padding: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--muted-fg)', marginBottom: '0.5rem' }}>
-            <span>Subtotale prodotti</span>
+            <span>{t('subtotale')}</span>
             <span style={{ color: 'var(--foreground)' }}>{formatPrice(cartTotal)}</span>
           </div>
           {form.paymentMethod === 'stripe' && (
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--muted-fg)', marginBottom: '0.5rem' }}>
-              <span>Supplemento carta (4%)</span>
+              <span>{t('supplementoCarta')}</span>
               <span>+{formatPrice(stripeTotal - cartTotal)}</span>
             </div>
           )}
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--muted-fg)', marginBottom: '1rem' }}>
-            <span>Spedizione</span>
-            <span>Da definire</span>
+            <span>{t('costoSpedizione')}</span>
+            <span>{t('daDefinire')}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
-            <span style={{ fontSize: '0.875rem', color: 'var(--muted-fg)' }}>Totale</span>
+            <span style={{ fontSize: '0.875rem', color: 'var(--muted-fg)' }}>{t('totale')}</span>
             <span style={{ fontFamily: 'var(--font-cormorant)', fontStyle: 'italic', fontWeight: 600, fontSize: '1.5rem', color: 'var(--foreground)' }}>
               {formatPrice(displayTotal)}
             </span>
@@ -301,9 +302,9 @@ export default function CheckoutPage() {
             transition: 'background var(--dur-fast)',
           }}
         >
-          {loading ? 'Elaborazione...' : form.paymentMethod === 'bonifico'
-            ? 'Conferma ordine (bonifico bancario)'
-            : 'Paga con carta →'}
+          {loading ? t('elaborazione') : form.paymentMethod === 'bonifico'
+            ? t('confermaBonifico')
+            : t('pagaCarta')}
         </button>
       </form>
     </div>

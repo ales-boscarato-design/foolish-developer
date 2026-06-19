@@ -4,6 +4,7 @@ import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { useCart } from '@/lib/cart'
 import { useRouter } from 'next/navigation'
+import { useTranslations, useLocale } from 'next-intl'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -13,6 +14,7 @@ function PayForm({ orderNumber }: { orderNumber: string }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { clear } = useCart()
+  const t = useTranslations('StripePay')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -29,7 +31,7 @@ function PayForm({ orderNumber }: { orderNumber: string }) {
       })
 
       if (stripeError) {
-        setError(stripeError.message ?? 'Errore pagamento')
+        setError(stripeError.message ?? t('errore'))
       } else {
         // Stripe redirects on success — clear cart optimistically
         clear()
@@ -60,7 +62,7 @@ function PayForm({ orderNumber }: { orderNumber: string }) {
           transition: 'background var(--dur-fast)',
         }}
       >
-        {loading ? 'Elaborazione...' : 'Paga ora'}
+        {loading ? t('elaborazione') : t('pagaOra')}
       </button>
     </form>
   )
@@ -71,6 +73,8 @@ export default function StripePayPage() {
     clientSecret: string; orderNumber: string
   } | null>(null)
   const router = useRouter()
+  const t = useTranslations('StripePay')
+  const locale = useLocale()
 
   useEffect(() => {
     const data = sessionStorage.getItem('stripe_order')
@@ -85,18 +89,18 @@ export default function StripePayPage() {
     }
   }, [router])
 
-  if (!stripeData) return <p style={{ color: 'var(--muted-fg)' }}>Caricamento...</p>
+  if (!stripeData) return <p style={{ color: 'var(--muted-fg)' }}>{t('caricamento')}</p>
 
   return (
     <div style={{ maxWidth: '28rem', margin: '0 auto', marginTop: '2.5rem' }}>
       <h1 style={{ fontFamily: 'var(--font-cormorant)', fontStyle: 'italic', fontWeight: 600, fontSize: '1.75rem', color: 'var(--foreground)', marginBottom: '1.75rem' }}>
-        Pagamento con carta
+        {t('titolo')}
       </h1>
       <Elements
         stripe={stripePromise}
         options={{
           clientSecret: stripeData.clientSecret,
-          locale: 'it',
+          locale: locale as 'it' | 'fr' | 'en' | 'es',
           appearance: {
             theme: 'night',
             variables: {
