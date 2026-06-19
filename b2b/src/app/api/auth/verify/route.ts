@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     status: member.status,
   })
 
-  const res = NextResponse.redirect(new URL('/catalogo', baseUrl))
+  const res = NextResponse.redirect(new URL('/catalogo?_login=1', baseUrl))
   res.cookies.set(SESSION_COOKIE.name, sessionToken, SESSION_COOKIE.options)
   return res
 }

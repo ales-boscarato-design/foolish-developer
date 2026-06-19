@@ -1,8 +1,11 @@
+import { Suspense } from 'react'
 import { fetchResellerProducts, fetchActiveAnnouncement } from '@/lib/cms'
 import { ProductCard } from '@/components/ProductCard'
 import { KitCard } from '@/components/KitCard'
 import { AnnouncementBanner } from '@/components/AnnouncementBanner'
+import { LoginTracker } from '@/components/LoginTracker'
 import { getTranslations, getLocale } from 'next-intl/server'
+import { getServerSession } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,9 +14,13 @@ export default async function CatalogoPage() {
   const products = await fetchResellerProducts(locale)
   const t = await getTranslations('Catalogo')
   const announcement = await fetchActiveAnnouncement()
+  const session = await getServerSession()
 
   return (
     <div>
+      <Suspense>
+        <LoginTracker email={session?.email ?? ''} />
+      </Suspense>
       {announcement && <AnnouncementBanner announcement={announcement} />}
       {/* ── HERO ── */}
       <section style={{ marginBottom: '4rem', paddingBottom: '3rem', borderBottom: '1px solid var(--border)' }}>
