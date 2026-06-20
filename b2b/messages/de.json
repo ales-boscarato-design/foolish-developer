@@ -1,0 +1,183 @@
+{
+  "Layout": {
+    "areaRivenditori": "Händlerbereich",
+    "catalogo": "Katalog",
+    "carrello": "Warenkorb",
+    "account": "Konto",
+    "esci": "Abmelden"
+  },
+  "Login": {
+    "portaleRivenditori": "Händlerportal",
+    "errors": {
+      "invalid": "Ungültiger Link.",
+      "expired": "Link abgelaufen. Bitte erneut anmelden.",
+      "unauthorized": "Konto nicht autorisiert oder gesperrt.",
+      "unknown": "Unbekannter Fehler."
+    },
+    "emailInviata": "E-Mail gesendet",
+    "emailInviataDesc": "Falls die E-Mail-Adresse registriert ist, erhalten Sie den Zugangslink in wenigen Sekunden.",
+    "accedi": "Anmelden",
+    "desc": "Geben Sie Ihre E-Mail-Adresse ein. Wir senden Ihnen einen sicheren Zugangslink.",
+    "placeholder": "email@unternehmen.de",
+    "invioInCorso": "Wird gesendet…",
+    "riceviLink": "Zugangslink erhalten",
+    "accessoRiservato": "Zugang nur für autorisierte Händler"
+  },
+  "Catalogo": {
+    "portaleRivenditori": "Händlerportal",
+    "heroTitle": "Jedes Stück Haut — ein einzigartiges Werk.",
+    "heroBody": "The Foolish Butcher fertigt synthetische Tattoo-Häute handwerklich in kleinen, sorgfältig kontrollierten Chargen. Die Lieferzeiten sind etwas länger als bei industrieller Produktion — nicht aus Ineffizienz, sondern aus Überzeugung. Jede Charge variiert in Textur und Ton: Das ist das Geheimnis, das Ihre Kunden zu",
+    "habitueSuffix": "Stammkunden",
+    "pillars": {
+      "p1icon": "✦",
+      "p1title": "Handwerkliche Fertigung",
+      "p1body": "Jedes Blatt wird in unserem Atelier von Hand in kleinen Chargen bearbeitet. Wir produzieren nicht in Serie — und das sieht man.",
+      "p2icon": "◈",
+      "p2title": "Jede Charge einzigartig",
+      "p2body": "Textur und Farbe variieren natürlich von Charge zu Charge. Ihre Kunden tätowieren immer auf etwas leicht anderem.",
+      "p3icon": "⟳",
+      "p3title": "Treue Kunden garantiert",
+      "p3body": "Ein Produkt, das sich verändert, ist ein Produkt, das nicht langweilt. Wer auf Foolish tätowiert, kommt wieder."
+    },
+    "nessuniProdotti": "Derzeit keine Produkte verfügbar.",
+    "tattooDesc": "Synthetische Häute für Tattoo-Übung und -Ausbildung",
+    "pmuDesc": "Unterlagen für Permanent Make-up — Augenbrauen, Lippen, Eyeliner",
+    "prodotto": "Produkt",
+    "prodotti": "Produkte",
+    "kitTitle": "Starter-Kits",
+    "kitBadge": "Nur Händler",
+    "kitDesc": "Testen Sie unsere Produkte vor einer Großbestellung — vergünstigt und exklusiv für Partner.",
+    "infoTitle": "Informationen für Händler",
+    "info1Title": "So arbeiten wir",
+    "info1Body1": "Wir arbeiten nicht auf Lager. Jede Bestellung wird im Moment ihres Eingangs vorbereitet: Die Haut wird täglich gefertigt und täglich in Konsistenz und Farbe kalibriert. So erhalten Sie immer ein frisches Produkt, das nie monatelang im Regal lag.",
+    "info1Body2": "Da jede Haut auf Bestellung gefertigt und einzeln kontrolliert wird, dauert der Versand im Durchschnitt etwa",
+    "info1Days": "10 Werktage",
+    "info1Body3": ": Das ist die Zeit, die wir brauchen, um sie handwerklich perfekt herzustellen.",
+    "info1Body4": "Jede Haut erfüllt unsere höchsten Produktionsstandards und wird auf Fehlerfreiheit geprüft. Da wir von Hand arbeiten, kann trotzdem etwas durchrutschen: In diesem Fall ist der Ersatz sofortig und garantiert — ohne Diskussion.",
+    "info2Title": "Was wir für den Stammhändler tun können",
+    "info2Body": "Wir wählen unsere Händler sorgfältig aus, nach Gebiet und Kontinuität der Nachbestellungen. Da wir handwerklich produzieren, streben wir nicht danach, jeden Winkel des Marktes abzudecken: Wir bevorzugen wenige motivierte Partner, die unsere Qualitätsidee teilen.",
+    "info3Title": "Die Verpackung: Foolish-Marke oder maßgeschneidert",
+    "info3Body1": "Unsere Produkte werden mit Foolish-Verpackung geliefert. Für viele Händler ist das ein Mehrwert: Eine erkennbare Marke hilft beim Verkauf und verleiht dem Produkt Glaubwürdigkeit.",
+    "info3Body2": "Wenn Sie Ihre direkte Beziehung zu Ihren Endkunden schützen möchten, können wir in White-Label arbeiten oder die Verpackung nach Ihren Bedürfnissen anpassen. Sie entscheiden, wie Sie sich präsentieren — wir finden gemeinsam die richtige Formel.",
+    "annuncio": "Mitteilung an Händler",
+    "leggiOfferta": "Details lesen →"
+  },
+  "ProductPage": {
+    "tornaCatalogo": "← Katalog",
+    "prodottoNonTrovato": "Produkt nicht gefunden.",
+    "variante": "Variante",
+    "quantita": "Menge",
+    "aggiunto": "✓ Hinzugefügt!",
+    "aggiungiCarrello": "In den Warenkorb",
+    "caricamento": "Wird geladen...",
+    "nessunaImmagine": "Kein Bild",
+    "pz": "Stk.",
+    "preventivo": "Individuelles Angebot anfragen",
+    "preventivoDesc": "Für größere Bestellungen oder Anpassungen",
+    "mailSubject": "Angebot — {name}",
+    "mailBody": "Hallo,\n\nichbin ein autorisierter Händler von The Foolish Butcher und möchte ein Angebot für folgendes anfragen:\n\nProdukt: {name}\nVariante: {variant}\nGewünschte Menge: \nAnmerkungen / Anpassungen: \n\nVielen Dank"
+  },
+  "ProductCard": {
+    "nessunaImmagine": "Kein Bild",
+    "da": "Ab",
+    "alPezzo": "/Stk.",
+    "finoA": "Bis zu -{n}%",
+    "preventivo": "Angebot anfragen",
+    "mailSubject": "Angebot — {name}",
+    "mailBody": "Hallo,\n\nIch bin ein autorisierter Händler von The Foolish Butcher und möchte ein Angebot für folgendes anfragen:\n\nProdukt: {name}\nGewünschte Menge: \nAnmerkungen / Anpassungen: \n\nVielen Dank"
+  },
+  "KitCard": {
+    "kitRivenditori": "Händler-Kit",
+    "piuRichiesto": "Am beliebtesten",
+    "aggiunto": "✓ In den Warenkorb gelegt",
+    "aggiungiCarrello": "In den Warenkorb"
+  },
+  "PriceTierTable": {
+    "prezziVolume": "Mengenpreise",
+    "quantita": "Menge",
+    "sconto": "Rabatt",
+    "prezzoPz": "Preis/Stk.",
+    "rangePz": "{min}–{max} Stk.",
+    "minPlusPz": "{min}+ Stk."
+  },
+  "Carrello": {
+    "vuoto": "Der Warenkorb ist leer.",
+    "tornaCatalogo": "Zurück zum Katalog",
+    "titolo": "Warenkorb",
+    "totaleIva": "Gesamt (inkl. MwSt.)",
+    "spedizione": "+ Versand wird beim Checkout berechnet",
+    "checkout": "Zur Kasse →"
+  },
+  "Checkout": {
+    "titolo": "Kasse",
+    "fatturazione": "Rechnungsdaten",
+    "ragioneSociale": "Firmenname *",
+    "piva": "USt-IdNr. *",
+    "sdi": "SDI-Code / PEC *",
+    "sdiPlaceholder": "0000000 oder pec@email.it",
+    "indirizzoBilling": "Rechnungsadresse *",
+    "citta": "Stadt *",
+    "cap": "PLZ *",
+    "spedizione": "Lieferadresse",
+    "nomeDestinatario": "Name / Firmenname Empfänger *",
+    "indirizzoSpedizione": "Adresse *",
+    "pagamento": "Zahlungsmethode",
+    "bonifico": "Banküberweisung",
+    "bonificoDesc": "Sie erhalten die Bankdaten nach der Bestätigung",
+    "carta": "Kreditkarte (Stripe)",
+    "cartaDesc": "4 % Aufschlag für Kartenzahlung. Gesamtbetrag mit Karte: {price}",
+    "note": "Anmerkungen (optional)",
+    "notePlaceholder": "Bestellhinweise, Lieferanweisungen usw.",
+    "subtotale": "Zwischensumme",
+    "supplementoCarta": "Kartenaufschlag (4 %)",
+    "costoSpedizione": "Versand",
+    "daDefinire": "Wird festgelegt",
+    "totale": "Gesamt",
+    "elaborazione": "Wird verarbeitet...",
+    "confermaBonifico": "Bestellung bestätigen (Banküberweisung)",
+    "pagaCarta": "Mit Karte bezahlen →",
+    "errorOrdine": "Fehler beim Erstellen der Bestellung. Bitte erneut versuchen."
+  },
+  "Conferma": {
+    "ordineConfermato": "Bestellung bestätigt",
+    "numeroOrdine": "Bestellnummer:",
+    "coordinateBonifico": "Bankverbindung:",
+    "intestatario": "Kontoinhaber:",
+    "iban": "IBAN:",
+    "causale": "Verwendungszweck: {ordine} — bitte Bestellnummer als Verwendungszweck angeben.",
+    "pagamentoRicevuto": "Die Zahlung wurde empfangen.",
+    "emailConferma": "Sie haben die Bestellbestätigung per E-Mail erhalten.",
+    "continuaAcquistare": "Weiter einkaufen"
+  },
+  "StripePay": {
+    "caricamento": "Wird geladen...",
+    "titolo": "Kartenzahlung",
+    "elaborazione": "Wird verarbeitet...",
+    "pagaOra": "Jetzt bezahlen",
+    "errore": "Zahlungsfehler"
+  },
+  "Account": {
+    "caricamento": "Wird geladen...",
+    "titolo": "Mein Konto",
+    "profiloAziendale": "Unternehmensprofil",
+    "ragioneSociale": "Firmenname",
+    "referente": "Ansprechpartner",
+    "email": "E-Mail",
+    "piva": "USt-IdNr.",
+    "storicoOrdini": "Bestellhistorie",
+    "nessunoOrdine": "Noch keine Bestellungen.",
+    "states": {
+      "received": "Empfangen",
+      "in_production": "In Produktion",
+      "shipped": "Versendet",
+      "delivered": "Zugestellt"
+    },
+    "tracking": "Tracking:"
+  },
+  "Offerte": {
+    "titolo": "Mitteilung an Händler",
+    "tornaCatalogo": "← Zurück zum Katalog",
+    "nessunaOfferta": "Derzeit keine aktive Mitteilung.",
+    "aggiornato": "Aktualisiert am"
+  }
+}

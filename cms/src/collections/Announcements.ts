@@ -109,5 +109,22 @@ export const Announcements: CollectionConfig = {
       label: 'Contenuto completo (ES)',
       admin: { rows: 12 },
     },
+    {
+      name: 'titleDe',
+      type: 'text',
+      label: 'Titolo (DE)',
+      admin: { description: 'Se vuoto, usa il titolo italiano come fallback.' },
+    },
+    {
+      name: 'bodyDe',
+      type: 'textarea',
+      label: 'Testo breve (DE)',
+    },
+    {
+      name: 'contentDe',
+      type: 'textarea',
+      label: 'Contenuto completo (DE)',
+      admin: { rows: 12 },
+    },
   ],
 }

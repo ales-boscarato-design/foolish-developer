@@ -27,18 +27,21 @@ export default async function OffertePage() {
     (locale === 'en' && announcement.titleEn) ||
     (locale === 'fr' && announcement.titleFr) ||
     (locale === 'es' && announcement.titleEs) ||
+    (locale === 'de' && announcement.titleDe) ||
     announcement.title
 
   const content =
     (locale === 'en' && announcement.contentEn) ||
     (locale === 'fr' && announcement.contentFr) ||
     (locale === 'es' && announcement.contentEs) ||
+    (locale === 'de' && announcement.contentDe) ||
     announcement.content || ''
 
   const body =
     (locale === 'en' && announcement.bodyEn) ||
     (locale === 'fr' && announcement.bodyFr) ||
     (locale === 'es' && announcement.bodyEs) ||
+    (locale === 'de' && announcement.bodyDe) ||
     announcement.body || undefined
 
   const paragraphs = content.split(/\n\n+/).filter(Boolean)

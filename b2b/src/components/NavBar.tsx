@@ -40,6 +40,7 @@ const LOCALES = [
   { code: 'fr', label: 'FR' },
   { code: 'en', label: 'EN' },
   { code: 'es', label: 'ES' },
+  { code: 'de', label: 'DE' },
 ]
 
 function switchLocale(code: string) {

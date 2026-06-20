@@ -82,6 +82,9 @@ export interface Announcement {
   titleEs?: string
   bodyEs?: string
   contentEs?: string
+  titleDe?: string
+  bodyDe?: string
+  contentDe?: string
 }
 
 export async function fetchActiveAnnouncement(): Promise<Announcement | null> {

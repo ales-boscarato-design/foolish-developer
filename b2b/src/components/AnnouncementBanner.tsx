@@ -14,12 +14,14 @@ export async function AnnouncementBanner({ announcement }: Props) {
     (locale === 'en' && announcement.titleEn) ||
     (locale === 'fr' && announcement.titleFr) ||
     (locale === 'es' && announcement.titleEs) ||
+    (locale === 'de' && announcement.titleDe) ||
     announcement.title
 
   const body =
     (locale === 'en' && announcement.bodyEn) ||
     (locale === 'fr' && announcement.bodyFr) ||
     (locale === 'es' && announcement.bodyEs) ||
+    (locale === 'de' && announcement.bodyDe) ||
     announcement.body || undefined
 
   return (
