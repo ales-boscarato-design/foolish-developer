@@ -21,7 +21,19 @@
     "placeholder": "email@unternehmen.de",
     "invioInCorso": "Wird gesendet…",
     "riceviLink": "Zugangslink erhalten",
-    "accessoRiservato": "Zugang nur für autorisierte Händler"
+    "accessoRiservato": "Zugang nur für autorisierte Händler",
+    "oppure": "oder",
+    "classicTitle": "Anmelden mit Ihren Daten",
+    "classicDesc": "Geben Sie die Daten ein, mit denen Sie registriert sind. Beim ersten Anmelden wird Ihre Telefonnummer als Ihr Geheimnis gespeichert.",
+    "nomeAttivita": "Firmenname",
+    "telefono": "Telefon",
+    "entra": "Anmelden",
+    "classicErrors": {
+      "not_found": "Daten nicht erkannt. Überprüfen Sie Firmenname, E-Mail und Telefon oder kontaktieren Sie wholesale@thefoolishbutcher.com",
+      "unauthorized": "Konto nicht autorisiert oder gesperrt.",
+      "missing_fields": "Bitte alle Felder ausfüllen.",
+      "unknown": "Unbekannter Fehler. Bitte erneut versuchen."
+    }
   },
   "Catalogo": {
     "portaleRivenditori": "Händlerportal",

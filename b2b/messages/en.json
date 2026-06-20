@@ -21,7 +21,19 @@
     "placeholder": "email@company.com",
     "invioInCorso": "Sending…",
     "riceviLink": "Get access link",
-    "accessoRiservato": "Access reserved for authorised resellers"
+    "accessoRiservato": "Access reserved for authorised resellers",
+    "oppure": "or",
+    "classicTitle": "Sign in with your details",
+    "classicDesc": "Enter the details you registered with. On first sign-in your phone number is saved as your secret.",
+    "nomeAttivita": "Business name",
+    "telefono": "Phone",
+    "entra": "Sign in",
+    "classicErrors": {
+      "not_found": "Details not recognised. Check your business name, email and phone or contact wholesale@thefoolishbutcher.com",
+      "unauthorized": "Account not authorised or suspended.",
+      "missing_fields": "Please fill in all fields.",
+      "unknown": "Unknown error. Please try again."
+    }
   },
   "Catalogo": {
     "portaleRivenditori": "Reseller Portal",

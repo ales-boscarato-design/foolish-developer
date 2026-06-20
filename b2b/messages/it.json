@@ -21,7 +21,19 @@
     "placeholder": "email@azienda.it",
     "invioInCorso": "Invio in corso…",
     "riceviLink": "Ricevi link di accesso",
-    "accessoRiservato": "Accesso riservato ai rivenditori autorizzati"
+    "accessoRiservato": "Accesso riservato ai rivenditori autorizzati",
+    "oppure": "oppure",
+    "classicTitle": "Accedi con i tuoi dati",
+    "classicDesc": "Inserisci i dati con cui sei registrato. Al primo accesso il numero viene salvato come tuo segreto.",
+    "nomeAttivita": "Nome attività",
+    "telefono": "Telefono",
+    "entra": "Entra",
+    "classicErrors": {
+      "not_found": "Dati non riconosciuti. Verifica nome attività, email e telefono oppure contatta wholesale@thefoolishbutcher.com",
+      "unauthorized": "Account non autorizzato o sospeso.",
+      "missing_fields": "Compila tutti i campi.",
+      "unknown": "Errore sconosciuto. Riprova."
+    }
   },
   "Catalogo": {
     "portaleRivenditori": "Portale Rivenditori",

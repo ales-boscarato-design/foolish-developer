@@ -14,16 +14,48 @@ export interface ProMember {
   discount_code: string
   total_spent: number
   order_count: number
+  phone: string | null
 }
 
 export async function findProMemberByEmail(email: string): Promise<ProMember | null> {
   const rows = await sql<ProMember[]>`
-    SELECT id, email, business_name, contact_name, vat_number, status, discount_code, total_spent, order_count
+    SELECT id, email, business_name, contact_name, vat_number, status, discount_code, total_spent, order_count, phone
     FROM pro_members
     WHERE email = ${email}
     LIMIT 1
   `
   return rows[0] ?? null
+}
+
+function normalizePhone(phone: string): string {
+  return phone.replace(/\D/g, '').replace(/^0+/, '')
+}
+
+export async function authenticateClassicLogin(
+  email: string,
+  businessName: string,
+  phone: string,
+): Promise<ProMember | null> {
+  const rows = await sql<ProMember[]>`
+    SELECT id, email, business_name, contact_name, vat_number, status, discount_code, total_spent, order_count, phone
+    FROM pro_members
+    WHERE lower(email) = lower(${email})
+      AND lower(business_name) = lower(${businessName.trim()})
+    LIMIT 1
+  `
+  const member = rows[0]
+  if (!member) return null
+
+  const incomingNorm = normalizePhone(phone)
+
+  if (!member.phone) {
+    // First activation — save phone and return member
+    await sql`UPDATE pro_members SET phone = ${phone.trim()} WHERE id = ${member.id}`
+    return member
+  }
+
+  if (normalizePhone(member.phone) !== incomingNorm) return null
+  return member
 }
 
 export interface ResellerOrder {

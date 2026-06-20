@@ -18,6 +18,7 @@ export const ProMembers: CollectionConfig = {
     { name: 'businessName',  type: 'text',     required: true,              label: 'Ragione sociale' },
     { name: 'contactName',   type: 'text',     required: true,              label: 'Nome contatto' },
     { name: 'email',         type: 'email',    required: true,              label: 'Email' },
+    { name: 'phone',         type: 'text',                                  label: 'Telefono' },
     { name: 'telegramId',    type: 'text',                                  label: 'Telegram username' },
     { name: 'discountCode',  type: 'text',     required: true, unique: true, label: 'Codice sconto' },
     {

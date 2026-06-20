@@ -21,7 +21,19 @@
     "placeholder": "email@entreprise.fr",
     "invioInCorso": "Envoi en cours…",
     "riceviLink": "Recevoir le lien d'accès",
-    "accessoRiservato": "Accès réservé aux revendeurs autorisés"
+    "accessoRiservato": "Accès réservé aux revendeurs autorisés",
+    "oppure": "ou",
+    "classicTitle": "Connexion avec vos coordonnées",
+    "classicDesc": "Saisissez les informations avec lesquelles vous êtes enregistré. Lors de la première connexion, votre numéro de téléphone est enregistré comme secret.",
+    "nomeAttivita": "Nom de l'entreprise",
+    "telefono": "Téléphone",
+    "entra": "Se connecter",
+    "classicErrors": {
+      "not_found": "Informations non reconnues. Vérifiez le nom, l'e-mail et le téléphone ou contactez wholesale@thefoolishbutcher.com",
+      "unauthorized": "Compte non autorisé ou suspendu.",
+      "missing_fields": "Veuillez remplir tous les champs.",
+      "unknown": "Erreur inconnue. Veuillez réessayer."
+    }
   },
   "Catalogo": {
     "portaleRivenditori": "Portail Revendeurs",

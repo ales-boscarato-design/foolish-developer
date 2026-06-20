@@ -5,6 +5,7 @@ import * as migration_20260619_150000_localize_reseller_description from './2026
 import * as migration_20260619_200000_create_announcements from './20260619_200000_create_announcements';
 import * as migration_20260620_100000_add_announcement_locales from './20260620_100000_add_announcement_locales';
 import * as migration_20260620_110000_add_announcement_de from './20260620_110000_add_announcement_de';
+import * as migration_20260620_120000_add_pro_member_phone from './20260620_120000_add_pro_member_phone';
 import * as migration_20260618_100000_add_reseller_description from './20260618_100000_add_reseller_description';
 import * as migration_20260519_213245_add_feature_highlights_usageSteps_whatsInTheBox from './20260519_213245_add_feature_highlights_usageSteps_whatsInTheBox';
 import * as migration_20260530_085019_add_customers_and_orders from './20260530_085019_add_customers_and_orders';
@@ -185,5 +186,10 @@ export const migrations = [
     up: migration_20260620_110000_add_announcement_de.up,
     down: migration_20260620_110000_add_announcement_de.down,
     name: '20260620_110000_add_announcement_de',
+  },
+  {
+    up: migration_20260620_120000_add_pro_member_phone.up,
+    down: migration_20260620_120000_add_pro_member_phone.down,
+    name: '20260620_120000_add_pro_member_phone',
   },
 ];
