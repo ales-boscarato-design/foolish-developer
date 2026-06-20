@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 import { routing } from './i18n/routing'
 
-const PUBLIC_PATHS = ['/login', '/auth/verify', '/api/auth/magic-link', '/api/auth/verify']
+const PUBLIC_PATHS = ['/login', '/auth/verify', '/api/auth/magic-link', '/api/auth/verify', '/api/auth/classic-login']
 const SESSION_SECRET = new TextEncoder().encode(process.env.B2B_SESSION_SECRET!)
 
 export async function proxy(req: NextRequest) {
