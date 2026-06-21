@@ -536,6 +536,7 @@ export const Orders: CollectionConfig = {
             { label: 'Ricevuto', value: 'received' },
             { label: 'In attesa ETA', value: 'eta_pending' },
             { label: 'ETA confermato', value: 'eta_confirmed' },
+            { label: 'Confermato', value: 'confirmed' },
             { label: 'In produzione', value: 'in_production' },
             { label: 'Matching in attesa', value: 'matching_pending' },
             { label: 'Abbinato', value: 'matched' },
