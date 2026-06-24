@@ -14,6 +14,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "bcryptjs": "^3.0.3",
     "jose": "^6.2.3",
     "next": "16.2.4",
     "next-intl": "^4.13.0",
@@ -25,5 +26,8 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6"
   }
 }
