@@ -13,8 +13,16 @@ export function LoginTracker({ email }: { email: string }) {
   const router = useRouter()
 
   useEffect(() => {
-    if (searchParams.get('_login') !== '1') return
-    window.umami?.track('reseller_login', { email })
+    const param = searchParams.get('_login') === '1'
+      ? 'login'
+      : searchParams.get('_register') === '1'
+        ? 'register'
+        : null
+    if (!param) return
+
+    if (param === 'login') window.umami?.track('reseller_login', { email })
+    if (param === 'register') window.umami?.track('reseller_register', { email })
+
     router.replace('/catalogo')
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
