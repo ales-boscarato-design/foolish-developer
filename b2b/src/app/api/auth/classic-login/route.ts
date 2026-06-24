@@ -20,7 +20,6 @@ export async function POST(req: NextRequest) {
   }
 
   const sessionToken = await createSessionToken({
-    proMemberId: member.id,
     email: member.email,
     businessName: member.business_name,
     contactName: member.contact_name,
