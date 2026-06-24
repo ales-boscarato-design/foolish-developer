@@ -7,8 +7,8 @@ const SESSION_SECRET = new TextEncoder().encode(process.env.B2B_SESSION_SECRET!)
 export interface B2BSession {
   email: string
   businessName: string
-  contactName: string | undefined
-  vatNumber: string | undefined
+  contactName: string
+  vatNumber: string
   status: 'active' | 'suspended'
 }
 
