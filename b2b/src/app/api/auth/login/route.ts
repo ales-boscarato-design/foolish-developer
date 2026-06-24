@@ -4,8 +4,13 @@ import { findProMemberByEmail } from '@/lib/db'
 import { hashPassword, verifyPassword, createSessionToken, SESSION_COOKIE, type B2BSession } from '@/lib/auth'
 import { sendWelcomeEmail, sendActivationNotification } from '@/lib/resend'
 
+let tableEnsured = false
+
 export async function POST(req: NextRequest) {
-  await ensureB2BAuthTable()
+  if (!tableEnsured) {
+    await ensureB2BAuthTable()
+    tableEnsured = true
+  }
 
   const body = await req.json()
   const { step, email: rawEmail } = body
@@ -63,6 +68,9 @@ export async function POST(req: NextRequest) {
     }
   } else if (b2bUser && !b2bUser.password_hash) {
     // ── Caso 2: Utente migrato (già in b2b_auth, senza password) ──────────
+    if (b2bUser.status !== 'active') {
+      return NextResponse.json({ error: 'account_suspended' }, { status: 403 })
+    }
     const hash = await hashPassword(password)
     await setB2BUserPassword(email, hash)
     await sendActivationNotification(email, b2bUser.business_name)
