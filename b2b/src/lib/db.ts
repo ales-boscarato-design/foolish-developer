@@ -27,54 +27,6 @@ export async function findProMemberByEmail(email: string): Promise<ProMember | n
   return rows[0] ?? null
 }
 
-/** Strip non-digits and international dialing prefix (00). */
-function digits(phone: string): string {
-  return phone.replace(/\D/g, '').replace(/^00/, '')
-}
-
-/** Compare two phone numbers, handling international vs domestic format differences. */
-function phonesMatch(stored: string, incoming: string): boolean {
-  const a = digits(stored)
-  const b = digits(incoming)
-  if (a === b) return true
-
-  // Strip leading zeros (domestic trunk prefix) for trailing comparison
-  const aNoZero = a.replace(/^0+/, '')
-  const bNoZero = b.replace(/^0+/, '')
-  if (aNoZero === bNoZero) return true
-
-  // One may include a country code while the other uses a domestic trunk prefix.
-  // The longer (country-coded) number should end with the shorter (local) one.
-  if (aNoZero.length > bNoZero.length) return aNoZero.endsWith(bNoZero)
-  if (bNoZero.length > aNoZero.length) return bNoZero.endsWith(aNoZero)
-  return false
-}
-
-export async function authenticateClassicLogin(
-  email: string,
-  businessName: string,
-  phone: string,
-): Promise<ProMember | null> {
-  const rows = await sql<ProMember[]>`
-    SELECT id, email, business_name, contact_name, vat_number, status, discount_code, total_spent, order_count, phone
-    FROM pro_members
-    WHERE lower(email) = lower(${email})
-      AND lower(business_name) = lower(${businessName.trim()})
-    LIMIT 1
-  `
-  const member = rows[0]
-  if (!member) return null
-
-  if (!member.phone) {
-    // First activation — save phone and return member
-    await sql`UPDATE pro_members SET phone = ${phone.trim()} WHERE id = ${member.id}`
-    return member
-  }
-
-  if (!phonesMatch(member.phone!, phone)) return null
-  return member
-}
-
 export interface ResellerOrder {
   id: number
   order_number: string
