@@ -1,33 +1,23 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
+import bcrypt from 'bcryptjs'
 
-const MAGIC_SECRET = new TextEncoder().encode(process.env.B2B_MAGIC_SECRET!)
 const SESSION_SECRET = new TextEncoder().encode(process.env.B2B_SESSION_SECRET!)
 
 export interface B2BSession {
-  proMemberId: number
   email: string
   businessName: string
-  contactName: string
-  vatNumber: string
+  contactName: string | undefined
+  vatNumber: string | undefined
   status: 'active' | 'suspended'
 }
 
-export async function createMagicToken(email: string): Promise<string> {
-  return new SignJWT({ email })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime('15m')
-    .setIssuedAt()
-    .sign(MAGIC_SECRET)
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 12)
 }
 
-export async function verifyMagicToken(token: string): Promise<string | null> {
-  try {
-    const { payload } = await jwtVerify(token, MAGIC_SECRET)
-    return payload.email as string
-  } catch {
-    return null
-  }
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash)
 }
 
 export async function createSessionToken(session: B2BSession): Promise<string> {
