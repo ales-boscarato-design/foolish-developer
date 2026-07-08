@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 import { routing } from './i18n/routing'
 
-const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/logout']
+// Catalogo e scheda prodotto sono pubblici (anteprima prodotti/prezzi prima del login);
+// l'auth resta obbligatoria solo per carrello, checkout e account.
+const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/logout', '/catalogo', '/api/catalog']
 const SESSION_SECRET = new TextEncoder().encode(process.env.B2B_SESSION_SECRET!)
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   // Auth check for protected paths
-  if (!PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
+  if (pathname !== '/' && !PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
     const token = req.cookies.get('b2b_session')?.value
     if (!token) {
       return NextResponse.redirect(new URL('/login', req.url))
