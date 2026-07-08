@@ -1,5 +1,10 @@
-import type { CollectionConfig, CollectionAfterChangeHook, CollectionBeforeChangeHook } from 'payload'
+import type { CollectionConfig, CollectionAfterChangeHook, CollectionBeforeChangeHook, PayloadRequest } from 'payload'
 import crypto from 'crypto'
+
+function hasStorefrontSecret(req: PayloadRequest): boolean {
+  const secret = req.headers?.get?.('x-storefront-secret') ?? (req.headers as unknown as Record<string, string>)?.['x-storefront-secret']
+  return !!secret && secret === process.env.PAYLOAD_API_SECRET
+}
 
 const syncCustomer: CollectionAfterChangeHook = async ({ doc, operation, req }) => {
   if (!doc.customerEmail) return
@@ -502,15 +507,16 @@ export const Orders: CollectionConfig = {
   access: {
     read: ({ req }) => {
       if (req.user) return true
-      const secret = req.headers?.get?.('x-storefront-secret') ?? (req.headers as unknown as Record<string, string>)?.['x-storefront-secret']
-      return !!secret && secret === process.env.PAYLOAD_API_SECRET
+      return hasStorefrontSecret(req)
     },
     create: ({ req }) => {
       if (req.user) return true
-      const secret = req.headers?.get?.('x-storefront-secret') ?? (req.headers as unknown as Record<string, string>)?.['x-storefront-secret']
-      return !!secret && secret === process.env.PAYLOAD_API_SECRET
+      return hasStorefrontSecret(req)
     },
-    update: ({ req }) => !!req.user,
+    update: ({ req }) => {
+      if (req.user) return true
+      return hasStorefrontSecret(req)
+    },
     delete: ({ req }) => !!req.user,
   },
   fields: [
