@@ -74,7 +74,11 @@ function CartBadge({ count, onClick }: { count: number; onClick?: () => void }) 
   )
 }
 
-export function NavBar() {
+interface Props {
+  isLoggedIn: boolean
+}
+
+export function NavBar({ isLoggedIn }: Props) {
   const { items } = useCart()
   const t = useTranslations('Layout')
   const locale = useLocale()
@@ -85,7 +89,7 @@ export function NavBar() {
 
   const navLinks = [
     { href: '/catalogo', label: t('catalogo') },
-    { href: '/account', label: t('account') },
+    ...(isLoggedIn ? [{ href: '/account', label: t('account') }] : []),
   ]
 
   return (
@@ -114,13 +118,23 @@ export function NavBar() {
           ))}
           <CartBadge count={cartCount} />
           <LocaleSwitcher />
-          <a href="/api/auth/logout" style={{
-            padding: '0.4rem 0.75rem', fontSize: '0.75rem',
-            color: 'var(--muted-fg)', textDecoration: 'none',
-            borderRadius: '0.5rem', opacity: 0.5, letterSpacing: '0.04em',
-          }}>
-            {t('esci')}
-          </a>
+          {isLoggedIn ? (
+            <a href="/api/auth/logout" style={{
+              padding: '0.4rem 0.75rem', fontSize: '0.75rem',
+              color: 'var(--muted-fg)', textDecoration: 'none',
+              borderRadius: '0.5rem', opacity: 0.5, letterSpacing: '0.04em',
+            }}>
+              {t('esci')}
+            </a>
+          ) : (
+            <Link href="/login" style={{
+              padding: '0.4rem 0.75rem', fontSize: '0.75rem',
+              color: 'var(--accent)', textDecoration: 'none',
+              borderRadius: '0.5rem', fontWeight: 600, letterSpacing: '0.04em',
+            }}>
+              {t('accedi')}
+            </Link>
+          )}
         </nav>
 
         {/* Mobile controls */}
@@ -241,12 +255,22 @@ export function NavBar() {
                   </button>
                 ))}
               </div>
-              <a
-                href="/api/auth/logout"
-                style={{ display: 'block', marginTop: '1.5rem', fontSize: '0.8rem', color: 'var(--muted-fg)', textDecoration: 'none', opacity: 0.6 }}
-              >
-                {t('esci')} →
-              </a>
+              {isLoggedIn ? (
+                <a
+                  href="/api/auth/logout"
+                  style={{ display: 'block', marginTop: '1.5rem', fontSize: '0.8rem', color: 'var(--muted-fg)', textDecoration: 'none', opacity: 0.6 }}
+                >
+                  {t('esci')} →
+                </a>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={() => setMenuOpen(false)}
+                  style={{ display: 'block', marginTop: '1.5rem', fontSize: '0.8rem', color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}
+                >
+                  {t('accedi')} →
+                </Link>
+              )}
             </div>
           </div>
         </>,

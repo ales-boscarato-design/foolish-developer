@@ -4,7 +4,8 @@
     "catalogo": "Catalogue",
     "carrello": "Panier",
     "account": "Compte",
-    "esci": "Déconnexion"
+    "esci": "Déconnexion",
+    "accedi": "Connexion"
   },
   "Login": {
     "portaleRivenditori": "Portail Revendeurs",
@@ -36,6 +37,8 @@
     }
   },
   "Catalogo": {
+    "guestBannerBody": "Vous voyez déjà le catalogue complet et les prix revendeur.",
+    "guestBannerCta": "Connectez-vous ou inscrivez-vous en 30 secondes pour commander →",
     "portaleRivenditori": "Portail Revendeurs",
     "heroTitle": "Chaque feuille de peau, une œuvre unique.",
     "heroBody": "The Foolish Butcher produit des peaux synthétiques pour le tatouage de manière artisanale, en petits lots soignés un à un. Les délais de livraison sont légèrement supérieurs à la production industrielle — non par inefficacité, mais par choix. Chaque lot varie en consistance et en teinte : c'est le secret qui transforme vos clients en",

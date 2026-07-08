@@ -4,7 +4,8 @@
     "catalogo": "Catalogo",
     "carrello": "Carrello",
     "account": "Account",
-    "esci": "Esci"
+    "esci": "Esci",
+    "accedi": "Accedi"
   },
   "Login": {
     "portaleRivenditori": "Portale Rivenditori",
@@ -36,6 +37,8 @@
     }
   },
   "Catalogo": {
+    "guestBannerBody": "Stai già vedendo il catalogo completo e i prezzi rivenditore.",
+    "guestBannerCta": "Accedi o registrati in 30 secondi per ordinare →",
     "portaleRivenditori": "Portale Rivenditori",
     "heroTitle": "Ogni foglio di pelle, un'opera irripetibile.",
     "heroBody": "The Foolish Butcher produce pelli sintetiche per tatuaggio artigianalmente, in piccoli lotti curati uno ad uno. I tempi di consegna sono leggermente superiori alla produzione industriale — non per inefficienza, ma per scelta. Ogni lotto cambia per consistenza e tonalità: questo è il segreto che trasforma i tuoi clienti in",

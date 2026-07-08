@@ -3,6 +3,7 @@ import { Outfit, Cormorant_Garamond } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages, getTranslations } from 'next-intl/server'
 import { NavBar } from '@/components/NavBar'
+import { getServerSession } from '@/lib/auth'
 import Script from 'next/script'
 import './globals.css'
 
@@ -25,6 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale()
   const messages = await getMessages()
+  const session = await getServerSession()
 
   return (
     <html lang={locale} className={`${outfit.variable} ${cormorant.variable}`}>
@@ -44,7 +46,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             zIndex: 40,
             padding: '0 1.5rem',
           }}>
-            <NavBar />
+            <NavBar isLoggedIn={!!session} />
           </header>
           <main style={{ maxWidth: '72rem', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
             {children}

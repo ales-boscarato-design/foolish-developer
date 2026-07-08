@@ -4,7 +4,8 @@
     "catalogo": "Katalog",
     "carrello": "Warenkorb",
     "account": "Konto",
-    "esci": "Abmelden"
+    "esci": "Abmelden",
+    "accedi": "Anmelden"
   },
   "Login": {
     "portaleRivenditori": "Händlerportal",
@@ -36,6 +37,8 @@
     }
   },
   "Catalogo": {
+    "guestBannerBody": "Sie sehen bereits den vollständigen Katalog und die Händlerpreise.",
+    "guestBannerCta": "In 30 Sekunden anmelden oder registrieren, um zu bestellen →",
     "portaleRivenditori": "Händlerportal",
     "heroTitle": "Jedes Stück Haut — ein einzigartiges Werk.",
     "heroBody": "The Foolish Butcher fertigt synthetische Tattoo-Häute handwerklich in kleinen, sorgfältig kontrollierten Chargen. Die Lieferzeiten sind etwas länger als bei industrieller Produktion — nicht aus Ineffizienz, sondern aus Überzeugung. Jede Charge variiert in Textur und Ton: Das ist das Geheimnis, das Ihre Kunden zu",

@@ -4,7 +4,8 @@
     "catalogo": "Catalogue",
     "carrello": "Cart",
     "account": "Account",
-    "esci": "Logout"
+    "esci": "Logout",
+    "accedi": "Log in"
   },
   "Login": {
     "portaleRivenditori": "Reseller Portal",
@@ -36,6 +37,8 @@
     }
   },
   "Catalogo": {
+    "guestBannerBody": "You're already seeing the full catalogue and reseller prices.",
+    "guestBannerCta": "Log in or sign up in 30 seconds to order →",
     "portaleRivenditori": "Reseller Portal",
     "heroTitle": "Every sheet of skin, an unrepeatable work.",
     "heroBody": "The Foolish Butcher crafts synthetic tattoo skins by hand, in small batches cared for one by one. Delivery times are slightly longer than industrial production — not out of inefficiency, but by choice. Every batch varies in consistency and tone: this is the secret that turns your clients into",

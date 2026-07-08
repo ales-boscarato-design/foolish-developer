@@ -3,6 +3,7 @@ import { fetchResellerProducts, fetchActiveAnnouncement } from '@/lib/cms'
 import { ProductCard } from '@/components/ProductCard'
 import { KitCard } from '@/components/KitCard'
 import { AnnouncementBanner } from '@/components/AnnouncementBanner'
+import { GuestBanner } from '@/components/GuestBanner'
 import { LoginTracker } from '@/components/LoginTracker'
 import { getTranslations, getLocale } from 'next-intl/server'
 import { getServerSession } from '@/lib/auth'
@@ -21,6 +22,7 @@ export default async function CatalogoPage() {
       <Suspense>
         <LoginTracker email={session?.email ?? ''} />
       </Suspense>
+      {!session && <GuestBanner />}
       {announcement && <AnnouncementBanner announcement={announcement} />}
       {/* ── HERO ── */}
       <section style={{ marginBottom: '4rem', paddingBottom: '3rem', borderBottom: '1px solid var(--border)' }}>

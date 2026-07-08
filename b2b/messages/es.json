@@ -4,7 +4,8 @@
     "catalogo": "Catálogo",
     "carrello": "Carrito",
     "account": "Cuenta",
-    "esci": "Cerrar sesión"
+    "esci": "Cerrar sesión",
+    "accedi": "Acceder"
   },
   "Login": {
     "portaleRivenditori": "Portal Revendedores",
@@ -36,6 +37,8 @@
     }
   },
   "Catalogo": {
+    "guestBannerBody": "Ya estás viendo el catálogo completo y los precios de revendedor.",
+    "guestBannerCta": "Accede o regístrate en 30 segundos para pedir →",
     "portaleRivenditori": "Portal Revendedores",
     "heroTitle": "Cada hoja de piel, una obra irrepetible.",
     "heroBody": "The Foolish Butcher produce pieles sintéticas para tatuaje de forma artesanal, en pequeños lotes cuidados uno a uno. Los plazos de entrega son ligeramente superiores a la producción industrial — no por ineficiencia, sino por elección. Cada lote varía en consistencia y tonalidad: este es el secreto que convierte a sus clientes en",
