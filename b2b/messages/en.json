@@ -130,6 +130,13 @@
     "indirizzoBilling": "Billing address *",
     "citta": "City *",
     "cap": "Postcode *",
+    "paese": "Country *",
+    "countries": {
+      "IT": "Italy", "DE": "Germany", "FR": "France", "ES": "Spain", "NL": "Netherlands",
+      "BE": "Belgium", "AT": "Austria", "CH": "Switzerland", "PL": "Poland", "PT": "Portugal",
+      "SE": "Sweden", "DK": "Denmark", "NO": "Norway", "US": "USA", "GB": "United Kingdom",
+      "CA": "Canada", "AU": "Australia", "JP": "Japan", "BR": "Brazil", "OTHER": "Other country"
+    },
     "spedizione": "Shipping address",
     "nomeDestinatario": "Name / Company name (recipient) *",
     "indirizzoSpedizione": "Address *",

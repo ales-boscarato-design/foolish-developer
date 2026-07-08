@@ -6,6 +6,11 @@ import { calculateResellerShipping } from '@/lib/shipping'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 
+const COUNTRY_CODES = [
+  'IT','DE','FR','ES','NL','BE','AT','CH','PL','PT','SE','DK','NO',
+  'US','GB','CA','AU','JP','BR','OTHER',
+]
+
 interface FormData {
   businessName: string
   vatNumber: string
@@ -187,6 +192,15 @@ export default function CheckoutPage() {
               <input required style={inputStyle} value={form.billingPostalCode}
                 onChange={e => set('billingPostalCode', e.target.value)} />
             </div>
+            <div>
+              <label style={labelStyle}>{t('paese')}</label>
+              <select required style={inputStyle} value={form.billingCountry}
+                onChange={e => set('billingCountry', e.target.value)}>
+                {COUNTRY_CODES.map(code => (
+                  <option key={code} value={code}>{t(`countries.${code}`)}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </section>
 
@@ -194,6 +208,15 @@ export default function CheckoutPage() {
         <section>
           <h2 style={sectionHeadStyle}>{t('spedizione')}</h2>
           <div className="checkout-grid">
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>{t('paese')}</label>
+              <select required style={inputStyle} value={form.shippingCountry}
+                onChange={e => set('shippingCountry', e.target.value)}>
+                {COUNTRY_CODES.map(code => (
+                  <option key={code} value={code}>{t(`countries.${code}`)}</option>
+                ))}
+              </select>
+            </div>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={labelStyle}>{t('nomeDestinatario')}</label>
               <input required style={inputStyle} value={form.shippingName}

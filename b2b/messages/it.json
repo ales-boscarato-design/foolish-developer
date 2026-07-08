@@ -130,6 +130,13 @@
     "indirizzoBilling": "Indirizzo di fatturazione *",
     "citta": "Città *",
     "cap": "CAP *",
+    "paese": "Paese *",
+    "countries": {
+      "IT": "Italia", "DE": "Germania", "FR": "Francia", "ES": "Spagna", "NL": "Paesi Bassi",
+      "BE": "Belgio", "AT": "Austria", "CH": "Svizzera", "PL": "Polonia", "PT": "Portogallo",
+      "SE": "Svezia", "DK": "Danimarca", "NO": "Norvegia", "US": "USA", "GB": "Regno Unito",
+      "CA": "Canada", "AU": "Australia", "JP": "Giappone", "BR": "Brasile", "OTHER": "Altro paese"
+    },
     "spedizione": "Indirizzo di spedizione",
     "nomeDestinatario": "Nome / Ragione sociale destinatario *",
     "indirizzoSpedizione": "Indirizzo *",
