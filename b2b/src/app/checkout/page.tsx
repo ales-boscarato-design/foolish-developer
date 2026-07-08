@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useCart } from '@/lib/cart'
 import { formatPrice } from '@/lib/pricing'
+import { calculateResellerShipping } from '@/lib/shipping'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 
@@ -58,8 +59,10 @@ export default function CheckoutPage() {
   }, [hydrated, items.length, router])
 
   const cartTotal = total()
-  const stripeTotal = cartTotal * 1.04
-  const displayTotal = form.paymentMethod === 'stripe' ? stripeTotal : cartTotal
+  const shipping = calculateResellerShipping(cartTotal, form.shippingCountry)
+  const baseTotal = cartTotal + shipping.cost
+  const stripeTotal = baseTotal * 1.04
+  const displayTotal = form.paymentMethod === 'stripe' ? stripeTotal : baseTotal
 
   function set(field: keyof FormData, value: string) {
     setForm(f => ({ ...f, [field]: value }))
@@ -275,10 +278,18 @@ export default function CheckoutPage() {
               <span>+{formatPrice(stripeTotal - cartTotal)}</span>
             </div>
           )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--muted-fg)', marginBottom: '1rem' }}>
-            <span>{t('costoSpedizione')}</span>
-            <span>{t('daDefinire')}</span>
-          </div>
+          {shipping.mode === 'quote' ? (
+            <p style={{ fontSize: '0.8rem', color: 'var(--muted-fg)', marginBottom: '1rem', lineHeight: 1.5 }}>
+              {t('costoSpedizione')}: {t('spedizioneQuotata')}
+            </p>
+          ) : (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--muted-fg)', marginBottom: '1rem' }}>
+              <span>{t('costoSpedizione')}</span>
+              <span style={{ color: 'var(--foreground)' }}>
+                {shipping.cost === 0 ? t('spedizioneGratis') : formatPrice(shipping.cost)}
+              </span>
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
             <span style={{ fontSize: '0.875rem', color: 'var(--muted-fg)' }}>{t('totale')}</span>
             <span style={{ fontFamily: 'var(--font-cormorant)', fontStyle: 'italic', fontWeight: 600, fontSize: '1.5rem', color: 'var(--foreground)' }}>

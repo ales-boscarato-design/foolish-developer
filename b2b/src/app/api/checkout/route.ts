@@ -3,6 +3,7 @@ import { getServerSession } from '@/lib/auth'
 import { createResellerOrder } from '@/lib/db'
 import { sendOrderConfirmation } from '@/lib/resend'
 import { calculateLineTotal } from '@/lib/pricing'
+import { calculateResellerShipping } from '@/lib/shipping'
 import type { PriceTier } from '@/lib/cms'
 
 function generateOrderNumber(): string {
@@ -27,7 +28,9 @@ export async function POST(req: NextRequest) {
     qty: item.qty,
     total: calculateLineTotal(item.unitPrice, item.qty, item.priceTiers),
   }))
-  const serverTotal = lineItemsForEmail.reduce((sum, i) => sum + i.total, 0)
+  const productsTotal = lineItemsForEmail.reduce((sum, i) => sum + i.total, 0)
+  const shipping = calculateResellerShipping(productsTotal, form.shippingCountry)
+  const serverTotal = productsTotal + shipping.cost
 
   const orderNumber = generateOrderNumber()
 
@@ -50,7 +53,7 @@ export async function POST(req: NextRequest) {
       shippingCountry: form.shippingCountry,
       lineItems: items,
       total: serverTotal,
-      shippingCost: 0,
+      shippingCost: shipping.cost,
       paymentMethod: 'bonifico',
       notes: form.notes,
     })

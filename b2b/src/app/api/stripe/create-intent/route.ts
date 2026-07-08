@@ -3,6 +3,7 @@ import Stripe from 'stripe'
 import { getServerSession } from '@/lib/auth'
 import { createResellerOrder } from '@/lib/db'
 import { calculateLineTotal } from '@/lib/pricing'
+import { calculateResellerShipping } from '@/lib/shipping'
 import type { PriceTier } from '@/lib/cms'
 
 const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY!)
@@ -21,10 +22,12 @@ export async function POST(req: NextRequest) {
 
   const { form, items } = await req.json()
 
-  // Recalculate total server-side, then apply +4% surcharge
-  const baseTotal = (items as {
+  // Recalculate total server-side, add shipping, then apply +4% surcharge
+  const productsTotal = (items as {
     productName: string; variantLabel: string; qty: number; unitPrice: number; priceTiers: PriceTier[]
   }[]).reduce((sum, item) => sum + calculateLineTotal(item.unitPrice, item.qty, item.priceTiers), 0)
+  const shipping = calculateResellerShipping(productsTotal, form.shippingCountry)
+  const baseTotal = productsTotal + shipping.cost
   const total = Math.round(baseTotal * 1.04 * 100) / 100
   const amountCents = Math.round(total * 100)
 
@@ -51,7 +54,7 @@ export async function POST(req: NextRequest) {
       shippingCountry: form.shippingCountry,
       lineItems: items,
       total,
-      shippingCost: 0,
+      shippingCost: shipping.cost,
       paymentMethod: 'stripe',
       notes: `${form.notes ?? ''} [Stripe +4%]`.trim(),
     })
