@@ -76,6 +76,7 @@ export interface Config {
     'customer-files': CustomerFile;
     'push-sequences': PushSequence;
     'offer-config': OfferConfig;
+    announcements: Announcement;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -93,6 +94,7 @@ export interface Config {
     'customer-files': CustomerFilesSelect<false> | CustomerFilesSelect<true>;
     'push-sequences': PushSequencesSelect<false> | PushSequencesSelect<true>;
     'offer-config': OfferConfigSelect<false> | OfferConfigSelect<true>;
+    announcements: AnnouncementsSelect<false> | AnnouncementsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -149,7 +151,7 @@ export interface Product {
    * Es. foglio-pelle-tattoo — solo minuscole e trattini
    */
   slug: string;
-  section: 'tattoo' | 'pmu';
+  section: 'tattoo' | 'pmu' | 'kit';
   /**
    * Se disattivato, il prodotto non appare nelle griglie ma rimane accessibile via URL diretto e nei kit.
    */
@@ -218,6 +220,14 @@ export interface Product {
    * Mostra questo prodotto nel portale rivenditori
    */
   resellerVisible?: boolean | null;
+  /**
+   * Testo mostrato solo nel portale rivenditori — non appare sul sito pubblico. Spiega il prodotto dal punto di vista del rivenditore.
+   */
+  resellerDescription?: string | null;
+  /**
+   * Preset quantità separati da virgola. Es: "1,5,10,20" per prodotti singoli, "50,100,200,500" per fogli (default).
+   */
+  resellerQtyPresets?: string | null;
   /**
    * Sconto % per fascia di quantità. Lascia vuoto per non applicare sconti rivenditori.
    */
@@ -426,6 +436,7 @@ export interface Order {
         | 'received'
         | 'eta_pending'
         | 'eta_confirmed'
+        | 'confirmed'
         | 'in_production'
         | 'matching_pending'
         | 'matched'
@@ -545,6 +556,7 @@ export interface ProMember {
   businessName: string;
   contactName: string;
   email: string;
+  phone?: string | null;
   telegramId?: string | null;
   discountCode: string;
   status: 'active' | 'suspended';
@@ -675,6 +687,65 @@ export interface OfferConfig {
   createdAt: string;
 }
 /**
+ * Annunci e comunicazioni per i rivenditori. Mantieni un solo annuncio attivo alla volta.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "announcements".
+ */
+export interface Announcement {
+  id: number;
+  /**
+   * Es. "Ordina entro il 31 luglio — consegna a settembre + 5% extra"
+   */
+  title: string;
+  /**
+   * 1–2 righe mostrate nel banner del catalogo.
+   */
+  body?: string | null;
+  /**
+   * Testo esteso della comunicazione: condizioni, date, pagamento anticipato, ecc. Vai a capo per separare i paragrafi.
+   */
+  content?: string | null;
+  /**
+   * Lascia vuoto per mostrare subito.
+   */
+  startDate?: string | null;
+  /**
+   * Lascia vuoto per non scadere mai.
+   */
+  endDate?: string | null;
+  /**
+   * Deve essere true perché il banner appaia.
+   */
+  active: boolean;
+  /**
+   * Se vuoto, usa il titolo italiano come fallback.
+   */
+  titleEn?: string | null;
+  bodyEn?: string | null;
+  contentEn?: string | null;
+  /**
+   * Se vuoto, usa il titolo italiano come fallback.
+   */
+  titleFr?: string | null;
+  bodyFr?: string | null;
+  contentFr?: string | null;
+  /**
+   * Se vuoto, usa il titolo italiano come fallback.
+   */
+  titleEs?: string | null;
+  bodyEs?: string | null;
+  contentEs?: string | null;
+  /**
+   * Se vuoto, usa il titolo italiano come fallback.
+   */
+  titleDe?: string | null;
+  bodyDe?: string | null;
+  contentDe?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
@@ -760,6 +831,10 @@ export interface PayloadLockedDocument {
         value: number | OfferConfig;
       } | null)
     | ({
+        relationTo: 'announcements';
+        value: number | Announcement;
+      } | null)
+    | ({
         relationTo: 'users';
         value: number | User;
       } | null);
@@ -837,6 +912,8 @@ export interface ProductsSelect<T extends boolean = true> {
       };
   basePrice?: T;
   resellerVisible?: T;
+  resellerDescription?: T;
+  resellerQtyPresets?: T;
   priceTiers?:
     | T
     | {
@@ -1065,6 +1142,7 @@ export interface ProMembersSelect<T extends boolean = true> {
   businessName?: T;
   contactName?: T;
   email?: T;
+  phone?: T;
   telegramId?: T;
   discountCode?: T;
   status?: T;
@@ -1139,6 +1217,32 @@ export interface OfferConfigSelect<T extends boolean = true> {
   discountBelow?: T;
   discountAbove?: T;
   validityHours?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "announcements_select".
+ */
+export interface AnnouncementsSelect<T extends boolean = true> {
+  title?: T;
+  body?: T;
+  content?: T;
+  startDate?: T;
+  endDate?: T;
+  active?: T;
+  titleEn?: T;
+  bodyEn?: T;
+  contentEn?: T;
+  titleFr?: T;
+  bodyFr?: T;
+  contentFr?: T;
+  titleEs?: T;
+  bodyEs?: T;
+  contentEs?: T;
+  titleDe?: T;
+  bodyDe?: T;
+  contentDe?: T;
   updatedAt?: T;
   createdAt?: T;
 }
