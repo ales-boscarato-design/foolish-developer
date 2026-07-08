@@ -229,7 +229,8 @@ export default function CheckoutPage() {
       const data = await res.json()
       if (data.checkoutUrl) {
         track('checkout_started', { total: grandTotal, items: items.length, country })
-        window.location.assign(data.checkoutUrl)
+        // Il redirect stronca la pagina prima che il beacon Umami parta: piccolo ritardo per farlo partire.
+        setTimeout(() => window.location.assign(data.checkoutUrl), 150)
       } else {
         alert(t('errorOrder'))
       }
