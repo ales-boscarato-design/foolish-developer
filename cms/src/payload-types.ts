@@ -78,6 +78,7 @@ export interface Config {
     'offer-config': OfferConfig;
     announcements: Announcement;
     'subscription-plans': SubscriptionPlan;
+    subscriptions: Subscription;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -97,6 +98,7 @@ export interface Config {
     'offer-config': OfferConfigSelect<false> | OfferConfigSelect<true>;
     announcements: AnnouncementsSelect<false> | AnnouncementsSelect<true>;
     'subscription-plans': SubscriptionPlansSelect<false> | SubscriptionPlansSelect<true>;
+    subscriptions: SubscriptionsSelect<false> | SubscriptionsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -766,6 +768,24 @@ export interface SubscriptionPlan {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscriptions".
+ */
+export interface Subscription {
+  id: number;
+  customerEmail: string;
+  plan: 'tattoo' | 'pmu';
+  zone: 'IT' | 'EU';
+  stripeSubscriptionId: string;
+  stripeScheduleId?: string | null;
+  status: 'active' | 'canceling' | 'canceled';
+  cyclesCompleted?: number | null;
+  startedAt?: string | null;
+  canceledAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
@@ -856,6 +876,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'subscription-plans';
         value: number | SubscriptionPlan;
+      } | null)
+    | ({
+        relationTo: 'subscriptions';
+        value: number | Subscription;
       } | null)
     | ({
         relationTo: 'users';
@@ -1277,6 +1301,23 @@ export interface SubscriptionPlansSelect<T extends boolean = true> {
   key?: T;
   product?: T;
   active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscriptions_select".
+ */
+export interface SubscriptionsSelect<T extends boolean = true> {
+  customerEmail?: T;
+  plan?: T;
+  zone?: T;
+  stripeSubscriptionId?: T;
+  stripeScheduleId?: T;
+  status?: T;
+  cyclesCompleted?: T;
+  startedAt?: T;
+  canceledAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
