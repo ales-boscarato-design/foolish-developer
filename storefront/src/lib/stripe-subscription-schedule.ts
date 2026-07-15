@@ -17,10 +17,16 @@ async function getOrCreatePlanProduct(stripe: Stripe, plan: PlanKey): Promise<st
   })
   if (search.data[0]) return search.data[0].id
 
-  const created = await stripe.products.create({
-    name: PLAN_NAMES[plan],
-    metadata: { [PRODUCT_METADATA_KEY]: plan },
-  })
+  // Idempotency key prevents duplicate products if concurrent requests both miss
+  // the search (Stripe Search API eventual consistency) and both attempt create().
+  // With the same key, Stripe dedupes within the idempotency window.
+  const created = await stripe.products.create(
+    {
+      name: PLAN_NAMES[plan],
+      metadata: { [PRODUCT_METADATA_KEY]: plan },
+    },
+    { idempotencyKey: `subscription-plan-product-${plan}` }
+  )
   return created.id
 }
 
