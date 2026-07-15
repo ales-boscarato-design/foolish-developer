@@ -11,6 +11,7 @@ interface Props {
     cycle2: string
     cycle6: string
     shippingIncluded: string
+    giftIncluded: string
     perMonth: string
   }
 }
@@ -59,6 +60,9 @@ export function SubscriptionRoadmap({ plan, labels }: Props) {
               </div>
               {phase.shippingPrice === 0 && (
                 <div style={{ fontSize: '10px', color: 'var(--accent)', marginTop: '2px' }}>{labels.shippingIncluded}</div>
+              )}
+              {phase.giftItem && (
+                <div style={{ fontSize: '10px', color: 'var(--accent)', marginTop: '2px' }}>{labels.giftIncluded}</div>
               )}
             </div>
           ))}

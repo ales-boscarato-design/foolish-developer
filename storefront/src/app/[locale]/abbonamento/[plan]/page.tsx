@@ -75,6 +75,7 @@ export default async function AbbonamentoProductPage({ params }: Props) {
           cycle2: t('cycle2'),
           cycle6: t('cycle6'),
           shippingIncluded: t('shippingIncluded'),
+          giftIncluded: t('giftIncluded'),
           perMonth: t('perMonth'),
         }}
       />
