@@ -194,26 +194,25 @@ const SUB_PLAN_NAMES: Record<PlanKey, string> = {
   pmu: 'Abbonamento PMU 3 Visi',
 }
 
+async function orderExists(orderRef: string): Promise<boolean> {
+  const existing = await fetch(
+    `${CMS_URL()}/api/orders?where[orderNumber][equals]=${encodeURIComponent(orderRef)}&limit=1`,
+    { headers: cmsHeaders() },
+  )
+  if (!existing.ok) return false
+  const data = await existing.json()
+  return (data.docs?.length ?? 0) > 0
+}
+
 async function createRenewalOrder(params: {
-  subscriptionId: string
+  orderRef: string
   cycle: number
   plan: PlanKey
   zone: Zone
   customerEmail: string
   shippingAddress: { name: string; address1: string; address2: string; city: string; postalCode: string; country: string }
 }): Promise<void> {
-  const { subscriptionId, cycle, plan, zone, customerEmail, shippingAddress } = params
-  const orderRef = `FOOLISH-SUB-${subscriptionId}-${cycle}`
-
-  const existing = await fetch(
-    `${CMS_URL()}/api/orders?where[orderNumber][equals]=${encodeURIComponent(orderRef)}&limit=1`,
-    { headers: cmsHeaders() },
-  )
-  if (existing.ok) {
-    const existingData = await existing.json()
-    if (existingData.docs?.length > 0) return // idempotente: Stripe può reinviare il webhook
-  }
-
+  const { orderRef, cycle, plan, zone, customerEmail, shippingAddress } = params
   const benefit = getBenefitForCycle(plan, zone, cycle)
   const lineItems = [
     { sku: `SUB-${plan.toUpperCase()}`, name: SUB_PLAN_NAMES[plan], variantLabel: `Ciclo ${cycle}`, quantity: 1, unitPrice: benefit.productPrice },
@@ -452,9 +451,16 @@ export async function POST(req: NextRequest) {
           })
         }
 
-        const newCycle = record.cyclesCompleted + 1
-        await updateSubscriptionRecord(record.id, { cyclesCompleted: newCycle })
+        // Idempotenza sull'invoice reale (stabile ad ogni redelivery Stripe dello
+        // stesso evento), non sul contatore cyclesCompleted (mutabile — vedi nota
+        // di correzione sopra).
+        const orderRef = `FOOLISH-SUB-${subscriptionId}-${invoice.id}`
+        if (await orderExists(orderRef)) {
+          console.log(`[webhook] Invoice ${invoice.id} già processata, skip`)
+          return NextResponse.json({ received: true })
+        }
 
+        const newCycle = record.cyclesCompleted + 1
         const shippingDetails = invoice.customer_shipping
         const shippingAddress = {
           name: shippingDetails?.name ?? '',
@@ -466,13 +472,19 @@ export async function POST(req: NextRequest) {
         }
 
         await createRenewalOrder({
-          subscriptionId,
+          orderRef,
           cycle: newCycle,
           plan: record.plan,
           zone: record.zone,
           customerEmail: record.customerEmail,
           shippingAddress,
         })
+        // Il contatore avanza SOLO dopo la creazione riuscita dell'ordine, dietro
+        // lo stesso controllo di idempotenza sopra: un redelivery dello stesso
+        // invoice trova l'ordine già esistente e non fa avanzare il contatore
+        // una seconda volta (altrimenti: doppio ordine con ciclo sbagliato, o
+        // ciclo saltato per sempre se la creazione fallisce dopo l'incremento).
+        await updateSubscriptionRecord(record.id, { cyclesCompleted: newCycle })
         console.log(`[webhook] Renewal order created for ${subscriptionId}, cycle ${newCycle}`)
       } catch (err) {
         console.error('[webhook] invoice.payment_succeeded handling failed:', err)
