@@ -517,5 +517,29 @@
     },
     "imageAlt": "Sebo — das Lab-Maskottchen",
     "backToShop": "← Zurück zur Auslage"
+  },
+  "subscription": {
+    "hub": {
+      "meta": "Monatsabo",
+      "title": "Erhalte deine Haut jeden Monat",
+      "subtitle": "Ein Abo, zwei Referenzen: Tattoo XXL und PMU 3 Visi. Weniger Versand, mehr Übung.",
+      "cardTattooTitle": "Tattoo XXL",
+      "cardTattooDesc": "Das Referenz-Übungsblatt, jeden Monat in deiner Kiste.",
+      "cardPmuTitle": "PMU 3 Visi",
+      "cardPmuDesc": "Das Permanent-Make-up-Übungsset, immer griffbereit.",
+      "cta": "Abo entdecken"
+    },
+    "product": {
+      "tabIt": "Italien",
+      "tabEu": "Europa",
+      "cycle1": "Los geht's",
+      "cycle2": "Versand entfällt",
+      "cycle6": "-10% für immer",
+      "shippingIncluded": "Versand inklusive",
+      "perMonth": "/Monat",
+      "zonePickerLabel": "Wohin liefern wir?",
+      "subscribeCta": "Jetzt abonnieren",
+      "loading": "Einen Moment..."
+    }
   }
 }
