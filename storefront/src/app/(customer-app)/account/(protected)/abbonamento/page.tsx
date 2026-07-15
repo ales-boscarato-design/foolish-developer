@@ -3,6 +3,7 @@ import { getSession } from '@/lib/account-auth'
 import { getAccountLocale, getT } from '@/lib/account-i18n'
 import { getBenefitForCycle, getNextTierCyclesRemaining, type PlanKey, type Zone } from '@/lib/subscription-plans'
 import { CancelSubscriptionButton } from './_components/CancelSubscriptionButton'
+import { ChangeZoneButton } from './_components/ChangeZoneButton'
 
 const PLAN_LABELS: Record<PlanKey, string> = { tattoo: 'Tattoo XXL', pmu: 'PMU 3 Visi' }
 const ZONE_LABELS: Record<Zone, string> = { IT: 'Italia', EU: 'Europa' }
@@ -64,11 +65,14 @@ export default async function AbbonamentoPage() {
               {sub.status === 'canceling' ? (
                 <span style={{ fontSize: '11px', color: '#c07a7a' }}>{t('subscription_canceling')}</span>
               ) : (
-                <CancelSubscriptionButton
-                  subscriptionDocId={sub.id}
-                  label={t('subscription_cancel')}
-                  confirmLabel={t('subscription_cancel')}
-                />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <ChangeZoneButton subscriptionDocId={sub.id} currentZone={sub.zone} label={t('subscription_change_zone')} />
+                  <CancelSubscriptionButton
+                    subscriptionDocId={sub.id}
+                    label={t('subscription_cancel')}
+                    confirmLabel={t('subscription_cancel')}
+                  />
+                </div>
               )}
             </div>
           )

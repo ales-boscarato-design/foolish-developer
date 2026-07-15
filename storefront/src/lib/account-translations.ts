@@ -35,6 +35,7 @@ export const translations = {
     subscription_title: 'Il mio abbonamento', subscription_cycle: 'Ciclo', subscription_current_price: 'Prezzo attuale',
     subscription_next_tier: 'Tra {n} cicli sblocchi il prezzo finale', subscription_maxed: 'Hai raggiunto il prezzo finale',
     subscription_cancel: 'Annulla abbonamento', subscription_canceling: 'Cancellazione in corso (attivo fino a fine periodo)',
+    subscription_change_zone: 'Cambia zona:',
     subscription_none: 'Nessun abbonamento attivo.',
   },
   en: {
@@ -71,6 +72,7 @@ export const translations = {
     subscription_title: 'My subscription', subscription_cycle: 'Cycle', subscription_current_price: 'Current price',
     subscription_next_tier: 'In {n} cycles you unlock the final price', subscription_maxed: 'You reached the final price',
     subscription_cancel: 'Cancel subscription', subscription_canceling: 'Cancellation in progress (active until end of period)',
+    subscription_change_zone: 'Change zone:',
     subscription_none: 'No active subscription.',
   },
   fr: {
@@ -107,6 +109,7 @@ export const translations = {
     subscription_title: 'Mon abonnement', subscription_cycle: 'Cycle', subscription_current_price: 'Prix actuel',
     subscription_next_tier: 'Dans {n} cycles vous débloquez le prix final', subscription_maxed: 'Vous avez atteint le prix final',
     subscription_cancel: "Annuler l'abonnement", subscription_canceling: "Annulation en cours (actif jusqu'à la fin de la période)",
+    subscription_change_zone: 'Changer de zone :',
     subscription_none: 'Aucun abonnement actif.',
   },
   es: {
@@ -143,6 +146,7 @@ export const translations = {
     subscription_title: 'Mi suscripción', subscription_cycle: 'Ciclo', subscription_current_price: 'Precio actual',
     subscription_next_tier: 'En {n} ciclos desbloqueas el precio final', subscription_maxed: 'Has alcanzado el precio final',
     subscription_cancel: 'Cancelar suscripción', subscription_canceling: 'Cancelación en curso (activo hasta el final del período)',
+    subscription_change_zone: 'Cambiar zona:',
     subscription_none: 'Ninguna suscripción activa.',
   },
   de: {
@@ -179,6 +183,7 @@ export const translations = {
     subscription_title: 'Mein Abonnement', subscription_cycle: 'Zyklus', subscription_current_price: 'Aktueller Preis',
     subscription_next_tier: 'In {n} Zyklen schaltest du den finalen Preis frei', subscription_maxed: 'Du hast den finalen Preis erreicht',
     subscription_cancel: 'Abonnement kündigen', subscription_canceling: 'Kündigung läuft (aktiv bis zum Ende der Periode)',
+    subscription_change_zone: 'Zone ändern:',
     subscription_none: 'Kein aktives Abonnement.',
   },
 }

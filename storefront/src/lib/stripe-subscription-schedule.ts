@@ -1,6 +1,6 @@
 // storefront/src/lib/stripe-subscription-schedule.ts
 import Stripe from 'stripe'
-import { SUBSCRIPTION_LADDER, PLAN_NAMES, type PlanKey, type Zone } from './subscription-plans'
+import { SUBSCRIPTION_LADDER, PLAN_NAMES, getPhaseIndexForCycle, type PlanKey, type Zone } from './subscription-plans'
 
 const PRODUCT_METADATA_KEY = 'foolishSubscriptionPlanKey'
 
@@ -75,6 +75,48 @@ export async function attachScheduleToSubscription(
       { ...builtPhases[0], start_date: currentPhaseStart },
       builtPhases[1],
       builtPhases[2],
+    ],
+  })
+}
+
+/**
+ * Ricostruisce le fasi Stripe da adesso in poi per riflettere la nuova zona,
+ * preservando cyclesCompleted (nessun reset). La fase in corso di fatturazione
+ * (quella che contiene "adesso") deve avere lo stesso start_date già assegnato
+ * da Stripe — non possiamo riscrivere il passato di uno schedule esistente.
+ *
+ * Nota: usiamo `schedule.current_phase.start_date` (non `schedule.phases[...]`
+ * per posizione) perché è il campo che Stripe espone esplicitamente per questo
+ * scopo — vedi `SubscriptionSchedule.CurrentPhase` in
+ * node_modules/stripe/cjs/resources/SubscriptionSchedules.d.ts ("Object
+ * representing the start and end dates for the current phase of the
+ * subscription schedule, if it is `active`"). Assumere che la fase corrente
+ * sia sempre l'ultimo elemento di `schedule.phases` sarebbe fragile (e falso
+ * dopo un secondo cambio zona, quando l'array può contenere fasi passate).
+ */
+export async function rebuildRemainingPhases(
+  stripe: Stripe,
+  scheduleId: string,
+  plan: PlanKey,
+  newZone: Zone,
+  cyclesCompleted: number,
+): Promise<Stripe.SubscriptionSchedule> {
+  const schedule = await stripe.subscriptionSchedules.retrieve(scheduleId)
+  if (!schedule.current_phase) {
+    throw new Error(`Subscription schedule ${scheduleId} non ha una fase attiva (status: ${schedule.status})`)
+  }
+  const currentPhaseStart = schedule.current_phase.start_date
+
+  const nextCycle = cyclesCompleted + 1
+  const currentPhaseIndex = getPhaseIndexForCycle(nextCycle)
+  const allPhases = await buildSchedulePhases(stripe, plan, newZone)
+  const newPhases = allPhases.slice(currentPhaseIndex)
+
+  return stripe.subscriptionSchedules.update(scheduleId, {
+    end_behavior: 'release',
+    phases: [
+      { ...newPhases[0], start_date: currentPhaseStart },
+      ...newPhases.slice(1),
     ],
   })
 }
