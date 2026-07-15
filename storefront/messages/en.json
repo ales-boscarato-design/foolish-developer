@@ -540,6 +540,12 @@
       "zonePickerLabel": "Where do we ship?",
       "subscribeCta": "Subscribe now",
       "loading": "One moment..."
+    },
+    "banner": {
+      "eyebrow": "New",
+      "title": "Subscribe to your skin",
+      "body": "Get Tattoo XXL or PMU 3 Visi delivered every month. From the second month, shipping's on us — from the sixth, an extra -10%.",
+      "cta": "Discover the subscription"
     }
   }
 }

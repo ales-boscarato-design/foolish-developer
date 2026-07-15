@@ -540,6 +540,12 @@
       "zonePickerLabel": "Wohin liefern wir?",
       "subscribeCta": "Jetzt abonnieren",
       "loading": "Einen Moment..."
+    },
+    "banner": {
+      "eyebrow": "Neu",
+      "title": "Abonniere deine Haut",
+      "body": "Erhalte Tattoo XXL oder PMU 3 Visi jeden Monat. Ab dem zweiten Monat geht der Versand auf uns, ab dem sechsten zusätzlich -10%.",
+      "cta": "Abo entdecken"
     }
   }
 }
