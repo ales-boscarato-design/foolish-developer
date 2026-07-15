@@ -1647,7 +1647,7 @@ git commit -m "feat(storefront): pagina prodotto abbonamento tattoo/pmu con road
 "banner": {
   "eyebrow": "Novità",
   "title": "Abbonati alla tua pelle",
-  "body": "Ricevi Tattoo XXL o PMU 3 Visi ogni mese. Dal secondo mese la spedizione è sul noi, dal sesto anche il -10%.",
+  "body": "Ricevi Tattoo XXL o PMU 3 Visi ogni mese. Dal secondo mese la spedizione è a carico nostro, dal sesto anche il -10%.",
   "cta": "Scopri l'abbonamento"
 }
 ```
