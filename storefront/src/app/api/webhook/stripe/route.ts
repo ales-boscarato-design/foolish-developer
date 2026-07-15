@@ -199,8 +199,20 @@ async function ensureScheduleAttached(
   if (stripeSub.schedule) {
     return typeof stripeSub.schedule === 'string' ? stripeSub.schedule : stripeSub.schedule.id
   }
-  const schedule = await attachScheduleToSubscription(stripe, subscriptionId, plan, zone)
-  return schedule.id
+  try {
+    const schedule = await attachScheduleToSubscription(stripe, subscriptionId, plan, zone)
+    return schedule.id
+  } catch (err) {
+    // Un evento concorrente potrebbe aver già attaccato lo schedule tra la
+    // retrieve sopra e questa create (Stripe rifiuta un secondo schedule per
+    // la stessa subscription). Ririleggiamo per recuperare quello già creato
+    // invece di far fallire l'intero handler.
+    const retried = await stripe.subscriptions.retrieve(subscriptionId)
+    if (retried.schedule) {
+      return typeof retried.schedule === 'string' ? retried.schedule : retried.schedule.id
+    }
+    throw err
+  }
 }
 
 const SUB_PLAN_NAMES: Record<PlanKey, string> = {
