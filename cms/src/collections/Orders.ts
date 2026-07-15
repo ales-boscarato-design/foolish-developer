@@ -748,6 +748,7 @@ export const Orders: CollectionConfig = {
             { label: 'WooCommerce', value: 'woocommerce' },
             { label: 'Manuale', value: 'manual' },
             { label: 'Rivenditore', value: 'reseller' },
+            { label: 'Abbonamento', value: 'subscription' },
           ],
         },
         { name: 'pageToken', type: 'text', unique: true, label: 'Token pagina cliente', admin: { readOnly: true } },

@@ -519,7 +519,7 @@ export interface Order {
         id?: string | null;
       }[]
     | null;
-  source?: ('storefront' | 'woocommerce' | 'manual' | 'reseller') | null;
+  source?: ('storefront' | 'woocommerce' | 'manual' | 'reseller' | 'subscription') | null;
   pageToken?: string | null;
   revolutOrderId?: string | null;
   revolutStatus?: string | null;
