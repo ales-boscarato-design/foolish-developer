@@ -463,7 +463,9 @@ git commit -m "feat(storefront): aggiungi tabella prezzi/benefici abbonamento pe
 
 **Interfaces:**
 - Consumes: `SUBSCRIPTION_LADDER`, `PlanKey`, `Zone`, `PLAN_NAMES` da `subscription-plans.ts` (Task 4).
-- Produces: `buildSchedulePhases(plan, zone): Stripe.SubscriptionScheduleCreateParams.Phase[]`, `attachScheduleToSubscription(stripe, subscriptionId, plan, zone): Promise<Stripe.SubscriptionSchedule>`. Usati da Task 7 (webhook).
+- Produces: `buildSchedulePhases(stripe, plan, zone): Promise<Stripe.SubscriptionScheduleCreateParams.Phase[]>`, `attachScheduleToSubscription(stripe, subscriptionId, plan, zone): Promise<Stripe.SubscriptionSchedule>`. Usati da Task 7 (webhook) e Task 14 (cambio zona).
+
+> **Nota di correzione (post pre-flight):** la versione originale ipotizzava che le Subscription Schedule accettassero `price_data.product_data` (nome prodotto inline) come le Checkout Session. Verificato contro i tipi reali dell'SDK Stripe v22 installato (`node_modules/stripe/cjs/resources/SubscriptionSchedules.d.ts`): `PriceData` per una fase di uno Schedule richiede un `product: string` (ID di un Product Stripe già esistente), non supporta `product_data` inline — a differenza di Checkout/Invoices/Prices, dove `product_data` è supportato (quindi il Task 6, che usa Checkout Session, resta invariato). Anche `iterations` non esiste su `Phase`: il campo reale è `duration: { interval, interval_count }`. Questa versione corretta introduce un get-or-create dei 2 Product Stripe (uno per piano, la zona incide solo sul prezzo) cercati per metadata, così `buildSchedulePhases` resta autosufficiente e idempotente senza alcun setup manuale su Stripe Dashboard.
 
 - [ ] **Step 1: Scrivi il file**
 
@@ -472,20 +474,44 @@ git commit -m "feat(storefront): aggiungi tabella prezzi/benefici abbonamento pe
 import Stripe from 'stripe'
 import { SUBSCRIPTION_LADDER, PLAN_NAMES, type PlanKey, type Zone } from './subscription-plans'
 
-export function buildSchedulePhases(
+const PRODUCT_METADATA_KEY = 'foolishSubscriptionPlanKey'
+
+/**
+ * Le Subscription Schedule di Stripe richiedono un Product ID reale per ogni
+ * price_data (a differenza delle Checkout Session, che accettano product_data
+ * inline). Cerchiamo il prodotto per metadata e lo creiamo solo se non esiste,
+ * così restano sempre e solo 2 Product Stripe totali (uno per piano — la zona
+ * incide solo sul prezzo, non sul prodotto), senza alcuno step manuale.
+ */
+async function getOrCreatePlanProduct(stripe: Stripe, plan: PlanKey): Promise<string> {
+  const search = await stripe.products.search({
+    query: `metadata['${PRODUCT_METADATA_KEY}']:'${plan}'`,
+  })
+  if (search.data[0]) return search.data[0].id
+
+  const created = await stripe.products.create({
+    name: PLAN_NAMES[plan],
+    metadata: { [PRODUCT_METADATA_KEY]: plan },
+  })
+  return created.id
+}
+
+export async function buildSchedulePhases(
+  stripe: Stripe,
   plan: PlanKey,
   zone: Zone,
-): Stripe.SubscriptionScheduleCreateParams.Phase[] {
+): Promise<Stripe.SubscriptionScheduleCreateParams.Phase[]> {
+  const productId = await getOrCreatePlanProduct(stripe, plan)
   const config = SUBSCRIPTION_LADDER[plan][zone]
   return config.phases.map((phase) => ({
-    iterations: phase.iterations,
+    duration: { interval: 'month', interval_count: phase.iterations },
     items: [
       {
         price_data: {
           currency: 'eur',
+          product: productId,
           recurring: { interval: 'month' },
           unit_amount: Math.round((phase.productPrice + phase.shippingPrice) * 100),
-          product_data: { name: `${PLAN_NAMES[plan]} — ${zone}` },
         },
         quantity: 1,
       },
@@ -506,7 +532,7 @@ export async function attachScheduleToSubscription(
   zone: Zone,
 ): Promise<Stripe.SubscriptionSchedule> {
   const schedule = await stripe.subscriptionSchedules.create({ from_subscription: subscriptionId })
-  const builtPhases = buildSchedulePhases(plan, zone)
+  const builtPhases = await buildSchedulePhases(stripe, plan, zone)
   const currentPhaseStart = schedule.phases[0].start_date
 
   return stripe.subscriptionSchedules.update(schedule.id, {
@@ -523,9 +549,22 @@ export async function attachScheduleToSubscription(
 - [ ] **Step 2: Verifica di tipo**
 
 Run: `cd storefront && npx tsc --noEmit`
-Expected: nessun errore (conferma che i tipi `Stripe.SubscriptionScheduleCreateParams.Phase` accettano `price_data` così strutturato — se il compilatore segnala un campo mancante, allinea ai tipi esposti da `stripe` v22 in `node_modules/stripe/types/SubscriptionSchedules.d.ts`).
+Expected: nessun errore. Se il compilatore segnala ancora un campo mancante/inatteso, verifica contro i tipi reali in `node_modules/stripe/cjs/resources/SubscriptionSchedules.d.ts` (non usare `any`/cast per forzare la compilazione — allinea la forma dei dati).
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Verifica manuale (richiede `STRIPE_SECRET_KEY` di test valorizzata)**
+
+Run:
+```bash
+cd storefront && npx tsx -e "
+import Stripe from 'stripe'
+import { buildSchedulePhases } from './src/lib/stripe-subscription-schedule'
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+buildSchedulePhases(stripe, 'tattoo', 'IT').then(phases => console.log(JSON.stringify(phases, null, 2)))
+"
+```
+Expected: array di 3 fasi, ciascuna con `items[0].price_data.product` valorizzato con un vero ID Stripe (`prod_...`), `unit_amount` 5265/4500/4050. Se `STRIPE_SECRET_KEY` non è disponibile in locale, salta questo step e segnalalo nel report — verrà controllato end-to-end in staging.
+
+- [ ] **Step 4: Commit**
 
 ```bash
 git add storefront/src/lib/stripe-subscription-schedule.ts
@@ -1737,7 +1776,8 @@ export async function rebuildRemainingPhases(
 
   const nextCycle = cyclesCompleted + 1
   const currentPhaseIndex = getPhaseIndexForCycle(nextCycle)
-  const newPhases = buildSchedulePhases(plan, newZone).slice(currentPhaseIndex)
+  const allPhases = await buildSchedulePhases(stripe, plan, newZone)
+  const newPhases = allPhases.slice(currentPhaseIndex)
 
   return stripe.subscriptionSchedules.update(scheduleId, {
     end_behavior: 'release',
