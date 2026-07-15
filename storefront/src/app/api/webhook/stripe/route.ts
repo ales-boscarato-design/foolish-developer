@@ -189,6 +189,20 @@ async function updateSubscriptionRecord(id: string, patch: Record<string, unknow
   if (!res.ok) throw new Error(`CMS update subscription failed ${res.status}: ${await res.text()}`)
 }
 
+async function ensureScheduleAttached(
+  stripe: Stripe,
+  subscriptionId: string,
+  plan: PlanKey,
+  zone: Zone,
+): Promise<string> {
+  const stripeSub = await stripe.subscriptions.retrieve(subscriptionId)
+  if (stripeSub.schedule) {
+    return typeof stripeSub.schedule === 'string' ? stripeSub.schedule : stripeSub.schedule.id
+  }
+  const schedule = await attachScheduleToSubscription(stripe, subscriptionId, plan, zone)
+  return schedule.id
+}
+
 const SUB_PLAN_NAMES: Record<PlanKey, string> = {
   tattoo: 'Abbonamento Tattoo XXL',
   pmu: 'Abbonamento PMU 3 Visi',
@@ -273,15 +287,22 @@ export async function POST(req: NextRequest) {
           const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
           const existing = await findSubscriptionByStripeId(subscriptionId)
           if (!existing) {
-            const schedule = await attachScheduleToSubscription(stripe, subscriptionId, plan, zone)
+            const scheduleId = await ensureScheduleAttached(stripe, subscriptionId, plan, zone)
             await createSubscriptionRecord({
               customerEmail,
               plan,
               zone,
               stripeSubscriptionId: subscriptionId,
-              stripeScheduleId: schedule.id,
+              stripeScheduleId: scheduleId,
             })
             console.log(`[webhook] Subscription schedule attached ${subscriptionId} (${plan}/${zone})`)
+          } else if (!existing.stripeScheduleId) {
+            // Race: invoice.payment_succeeded ha creato il record prima di questo
+            // evento, senza schedule (nessuno step lo attacca in quel percorso).
+            // Recuperiamo qui, altrimenti la scaletta a 3 fasi non parte mai.
+            const scheduleId = await ensureScheduleAttached(stripe, subscriptionId, plan, zone)
+            await updateSubscriptionRecord(existing.id, { stripeScheduleId: scheduleId })
+            console.log(`[webhook] Subscription schedule attached late ${subscriptionId} (${plan}/${zone})`)
           }
         } catch (err) {
           console.error('[webhook] Subscription schedule attach failed:', err)
@@ -442,12 +463,19 @@ export async function POST(req: NextRequest) {
           const zone = stripeSub.metadata.zone as Zone
           const customerEmail = (stripeSub.metadata.customerEmail || '').toLowerCase()
           if (!plan || !zone || !customerEmail) throw new Error(`Subscription ${subscriptionId} senza metadata plan/zone/email`)
+          // L'invoice può arrivare prima del checkout.session.completed: se
+          // così, questo è il primo evento a toccare la subscription, quindi
+          // tocca a noi attaccare lo schedule (altrimenti resta senza per
+          // sempre, dato che il ramo checkout.session.completed troverà
+          // `existing` già presente e non ci riproverebbe se non fosse per
+          // il controllo su stripeScheduleId vuoto qui sotto).
+          const scheduleId = await ensureScheduleAttached(stripe, subscriptionId, plan, zone)
           record = await createSubscriptionRecord({
             customerEmail,
             plan,
             zone,
             stripeSubscriptionId: subscriptionId,
-            stripeScheduleId: typeof stripeSub.schedule === 'string' ? stripeSub.schedule : '',
+            stripeScheduleId: scheduleId,
           })
         }
 
