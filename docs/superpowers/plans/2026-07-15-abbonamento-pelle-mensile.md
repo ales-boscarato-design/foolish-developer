@@ -24,7 +24,7 @@
 **CMS (`cms/src/`):**
 - `collections/SubscriptionPlans.ts` — nuovo. Config: quale Product del catalogo fornisce foto/descrizione per ogni piano (`tattoo`/`pmu`).
 - `collections/Subscriptions.ts` — nuovo. Istanza per-cliente: piano, zona, stato, cicli completati.
-- `collections/Orders.ts` — modificato. Aggiunge `origin` (storefront/subscription) e `lineItems[].isGift`.
+- `collections/Orders.ts` — modificato. Aggiunge l'opzione `subscription` al campo `source` esistente (nessun cambio a `lineItems`, che è già `json` schemaless).
 - `payload.config.ts` — modificato. Registra le due nuove collection.
 
 **Storefront (`storefront/src/`):**
@@ -248,59 +248,53 @@ git commit -m "feat(cms): aggiungi collection Subscriptions"
 
 ---
 
-### Task 3: CMS — estendi `Orders` con `origin` e `lineItems[].isGift`
+### Task 3: CMS — estendi `Orders` per supportare i rinnovi abbonamento
 
 **Files:**
 - Modify: `cms/src/collections/Orders.ts`
 
 **Interfaces:**
-- Produces: campo `origin` (`storefront`|`subscription`, default `storefront`) sull'Order; campo `isGift` (checkbox) su ogni riga di `lineItems`. Usato dal Task 7 quando crea l'Order di rinnovo con la riga omaggio.
+- Produces: nuova opzione `subscription` sul campo select esistente `source` (già presente, label "Origine", dentro la collapsible "Dati tecnici" — non un nuovo campo). Nessun cambio a `lineItems`: è un campo `type: 'json'` schemaless (verificato: `cms/src/collections/Orders.ts:587-592`, nessun sotto-campo tipizzato), quindi accetta già chiavi arbitrarie come `isGift` senza bisogno di modifiche allo schema. Usato dal Task 7 quando crea l'Order di rinnovo: imposta `source: 'subscription'` e include `isGift: true` direttamente nell'oggetto JSON della riga omaggio, senza toccare questo file.
 
-- [ ] **Step 1: Trova il campo `lineItems` esistente**
+> **Nota di correzione (post pre-flight):** la versione originale di questo task ipotizzava `lineItems` come campo `array` tipizzato e proponeva un nuovo campo `origin` separato. Verificato che `lineItems` è `json` (nessuna migrazione necessaria, nessun rischio sui dati esistenti) e che esiste già un campo `source`/"Origine" con gli stessi scopi — aggiungere un secondo campo con la stessa label avrebbe creato confusione nell'admin. Questa versione corretta sostituisce quella originale.
 
-Run: `grep -n "lineItems" cms/src/collections/Orders.ts`
-Expected: individua il blocco `{ name: 'lineItems', type: 'array', fields: [...] }` con i sotto-campi `sku`, `name`, `variantLabel`, `quantity`, `unitPrice`.
+- [ ] **Step 1: Conferma la struttura esistente**
 
-- [ ] **Step 2: Aggiungi `isGift` al blocco `lineItems.fields`**
+Run: `grep -n "name: 'lineItems'\|name: 'source'" cms/src/collections/Orders.ts`
+Expected: `lineItems` con `type: 'json'` (circa riga 588); `source` con `type: 'select'`, `label: 'Origine'`, dentro la collapsible "Dati tecnici" (circa riga 741), con opzioni `storefront`/`woocommerce`/`manual`/`reseller`.
 
-Nel file, dentro l'array `fields` del campo `lineItems`, aggiungi:
+- [ ] **Step 2: Aggiungi l'opzione `subscription` alle options di `source`**
 
-```typescript
-{
-  name: 'isGift',
-  type: 'checkbox',
-  defaultValue: false,
-  label: 'Omaggio abbonamento',
-},
-```
-
-- [ ] **Step 3: Aggiungi il campo `origin` a livello di Order**
-
-Vicino al campo `source` esistente (o accanto a `orderNumber`), aggiungi:
+Nel blocco esistente del campo `source`, aggiungi una riga alle sue `options`:
 
 ```typescript
 {
-  name: 'origin',
+  name: 'source',
   type: 'select',
   defaultValue: 'storefront',
   label: 'Origine',
   options: [
-    { label: 'Storefront (acquisto singolo)', value: 'storefront' },
+    { label: 'Storefront', value: 'storefront' },
+    { label: 'WooCommerce', value: 'woocommerce' },
+    { label: 'Manuale', value: 'manual' },
+    { label: 'Rivenditore', value: 'reseller' },
     { label: 'Abbonamento', value: 'subscription' },
   ],
 },
 ```
 
-- [ ] **Step 4: Rigenera i tipi e verifica**
+Nessun'altra modifica al file: non toccare `lineItems`, non aggiungere nuovi campi.
+
+- [ ] **Step 3: Rigenera i tipi e verifica**
 
 Run: `cd cms && npm run generate:types && npx tsc --noEmit`
-Expected: nessun errore, `Order['origin']` e `Order['lineItems'][number]['isGift']` presenti in `payload-types.ts`.
+Expected: nessun errore. `payload-types.ts` mostra `subscription` nell'union di tipo del campo `source` sull'interfaccia `Order`.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add cms/src/collections/Orders.ts cms/src/payload-types.ts
-git commit -m "feat(cms): aggiungi origin e isGift a Orders per supportare rinnovi abbonamento"
+git commit -m "feat(cms): aggiungi opzione subscription al campo source di Orders"
 ```
 
 ---
@@ -749,8 +743,7 @@ async function createRenewalOrder(params: {
     headers: cmsHeaders(),
     body: JSON.stringify({
       orderNumber: orderRef,
-      source: 'storefront',
-      origin: 'subscription',
+      source: 'subscription',
       customerEmail,
       customerName: shippingAddress.name,
       lineItems,
