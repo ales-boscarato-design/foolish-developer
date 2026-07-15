@@ -26,11 +26,12 @@ export async function POST(req: NextRequest) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
   await stripe.subscriptions.update(doc.stripeSubscriptionId, { cancel_at_period_end: true })
 
-  await fetch(`${CMS_URL}/api/subscriptions/${subscriptionDocId}`, {
+  const patchRes = await fetch(`${CMS_URL}/api/subscriptions/${subscriptionDocId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', 'x-storefront-secret': process.env.PAYLOAD_API_SECRET || '' },
     body: JSON.stringify({ status: 'canceling' }),
   })
+  if (!patchRes.ok) return NextResponse.json({ error: 'Errore aggiornamento abbonamento' }, { status: 500 })
 
   return NextResponse.json({ ok: true })
 }
