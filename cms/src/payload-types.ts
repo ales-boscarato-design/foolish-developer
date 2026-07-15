@@ -77,6 +77,7 @@ export interface Config {
     'push-sequences': PushSequence;
     'offer-config': OfferConfig;
     announcements: Announcement;
+    'subscription-plans': SubscriptionPlan;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -95,6 +96,7 @@ export interface Config {
     'push-sequences': PushSequencesSelect<false> | PushSequencesSelect<true>;
     'offer-config': OfferConfigSelect<false> | OfferConfigSelect<true>;
     announcements: AnnouncementsSelect<false> | AnnouncementsSelect<true>;
+    'subscription-plans': SubscriptionPlansSelect<false> | SubscriptionPlansSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -746,6 +748,23 @@ export interface Announcement {
   createdAt: string;
 }
 /**
+ * Collega ogni piano di abbonamento (tattoo/pmu) al prodotto del catalogo che ne fornisce foto e descrizione.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-plans".
+ */
+export interface SubscriptionPlan {
+  id: number;
+  key: 'tattoo' | 'pmu';
+  /**
+   * Il prodotto del catalogo mostrato nella pagina di abbonamento.
+   */
+  product: number | Product;
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
@@ -833,6 +852,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'announcements';
         value: number | Announcement;
+      } | null)
+    | ({
+        relationTo: 'subscription-plans';
+        value: number | SubscriptionPlan;
       } | null)
     | ({
         relationTo: 'users';
@@ -1243,6 +1266,17 @@ export interface AnnouncementsSelect<T extends boolean = true> {
   titleDe?: T;
   bodyDe?: T;
   contentDe?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-plans_select".
+ */
+export interface SubscriptionPlansSelect<T extends boolean = true> {
+  key?: T;
+  product?: T;
+  active?: T;
   updatedAt?: T;
   createdAt?: T;
 }
