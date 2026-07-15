@@ -676,6 +676,8 @@ git commit -m "feat(storefront): endpoint checkout abbonamento (Stripe subscript
 - Consumes: `attachScheduleToSubscription` (Task 5), `getBenefitForCycle` (Task 4), `PlanKey`/`Zone` (Task 4).
 - Produces: side effects su CMS (`subscriptions`, `orders`) raggiungibili dal Task 9 (account page) via GET `/api/subscriptions?where[customerEmail][equals]=...`.
 
+> **Nota di correzione (post pre-flight):** la versione originale derivava la chiave di idempotenza dell'ordine di rinnovo da `cyclesCompleted + 1` e incrementava il contatore PRIMA di controllare/creare l'ordine. Su un redelivery dello stesso evento Stripe (comportamento normale, non un caso raro), il contatore risulterebbe già avanzato dal tentativo precedente, producendo un `orderRef` diverso e quindi un ordine duplicato con numero di ciclo sbagliato — oppure, se la creazione fallisce dopo l'incremento, un ciclo saltato per sempre. Questa versione corretta: (1) usa `invoice.id` (stabile, immutabile, identico ad ogni redelivery dello stesso invoice) come chiave di idempotenza dell'ordine, non il contatore; (2) fa avanzare `cyclesCompleted` solo DOPO che l'ordine è stato creato con successo, dietro lo stesso controllo di idempotenza — così un redelivery trova l'ordine già esistente e non tocca il contatore una seconda volta.
+
 - [ ] **Step 1: Aggiungi gli import necessari in cima al file**
 
 ```typescript
@@ -749,26 +751,25 @@ const SUB_PLAN_NAMES: Record<PlanKey, string> = {
   pmu: 'Abbonamento PMU 3 Visi',
 }
 
+async function orderExists(orderRef: string): Promise<boolean> {
+  const existing = await fetch(
+    `${CMS_URL()}/api/orders?where[orderNumber][equals]=${encodeURIComponent(orderRef)}&limit=1`,
+    { headers: cmsHeaders() },
+  )
+  if (!existing.ok) return false
+  const data = await existing.json()
+  return (data.docs?.length ?? 0) > 0
+}
+
 async function createRenewalOrder(params: {
-  subscriptionId: string
+  orderRef: string
   cycle: number
   plan: PlanKey
   zone: Zone
   customerEmail: string
   shippingAddress: { name: string; address1: string; address2: string; city: string; postalCode: string; country: string }
 }): Promise<void> {
-  const { subscriptionId, cycle, plan, zone, customerEmail, shippingAddress } = params
-  const orderRef = `FOOLISH-SUB-${subscriptionId}-${cycle}`
-
-  const existing = await fetch(
-    `${CMS_URL()}/api/orders?where[orderNumber][equals]=${encodeURIComponent(orderRef)}&limit=1`,
-    { headers: cmsHeaders() },
-  )
-  if (existing.ok) {
-    const existingData = await existing.json()
-    if (existingData.docs?.length > 0) return // idempotente: Stripe può reinviare il webhook
-  }
-
+  const { orderRef, cycle, plan, zone, customerEmail, shippingAddress } = params
   const benefit = getBenefitForCycle(plan, zone, cycle)
   const lineItems = [
     { sku: `SUB-${plan.toUpperCase()}`, name: SUB_PLAN_NAMES[plan], variantLabel: `Ciclo ${cycle}`, quantity: 1, unitPrice: benefit.productPrice },
@@ -795,6 +796,8 @@ async function createRenewalOrder(params: {
   if (!res.ok) throw new Error(`CMS create renewal order failed ${res.status}: ${await res.text()}`)
 }
 ```
+
+Nota: `orderRef` non è più costruito dentro `createRenewalOrder` a partire da `subscriptionId`+`cycle` — arriva già pronto dal chiamante (Step 4), costruito da `invoice.id` per garantire idempotenza reale sotto redelivery.
 
 - [ ] **Step 3: Aggiungi il branch subscription dentro `checkout.session.completed`, subito dopo la riga `const session = event.data.object`**
 
@@ -851,7 +854,12 @@ Sostituiscilo con:
 ```typescript
   if (event.type === 'invoice.payment_succeeded') {
     const invoice = event.data.object
-    const subscriptionId = typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id
+    // In stripe v22 l'id della subscription non è più su invoice.subscription (rimosso),
+    // vive dentro invoice.parent.subscription_details.subscription.
+    const subscriptionDetails = invoice.parent?.subscription_details
+    const subscriptionId = subscriptionDetails
+      ? (typeof subscriptionDetails.subscription === 'string' ? subscriptionDetails.subscription : subscriptionDetails.subscription.id)
+      : undefined
 
     if (subscriptionId) {
       try {
@@ -875,11 +883,17 @@ Sostituiscilo con:
           })
         }
 
-        const newCycle = record.cyclesCompleted + 1
-        await updateSubscriptionRecord(record.id, { cyclesCompleted: newCycle })
+        // Idempotenza sull'invoice reale (stabile ad ogni redelivery Stripe dello
+        // stesso evento), non sul contatore cyclesCompleted (mutabile — vedi nota
+        // di correzione sopra).
+        const orderRef = `FOOLISH-SUB-${subscriptionId}-${invoice.id}`
+        if (await orderExists(orderRef)) {
+          console.log(`[webhook] Invoice ${invoice.id} già processata, skip`)
+          return NextResponse.json({ received: true })
+        }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const shippingDetails = (invoice as any).customer_shipping ?? null
+        const newCycle = record.cyclesCompleted + 1
+        const shippingDetails = invoice.customer_shipping
         const shippingAddress = {
           name: shippingDetails?.name ?? '',
           address1: shippingDetails?.address?.line1 ?? '',
@@ -890,13 +904,19 @@ Sostituiscilo con:
         }
 
         await createRenewalOrder({
-          subscriptionId,
+          orderRef,
           cycle: newCycle,
           plan: record.plan,
           zone: record.zone,
           customerEmail: record.customerEmail,
           shippingAddress,
         })
+        // Il contatore avanza SOLO dopo la creazione riuscita dell'ordine, dietro
+        // lo stesso controllo di idempotenza sopra: un redelivery dello stesso
+        // invoice trova l'ordine già esistente e non fa avanzare il contatore
+        // una seconda volta (altrimenti: doppio ordine con ciclo sbagliato, o
+        // ciclo saltato per sempre se la creazione fallisce dopo l'incremento).
+        await updateSubscriptionRecord(record.id, { cyclesCompleted: newCycle })
         console.log(`[webhook] Renewal order created for ${subscriptionId}, cycle ${newCycle}`)
       } catch (err) {
         console.error('[webhook] invoice.payment_succeeded handling failed:', err)
@@ -923,7 +943,7 @@ Sostituiscilo con:
 - [ ] **Step 5: Verifica di tipo**
 
 Run: `cd storefront && npx tsc --noEmit`
-Expected: nessun errore. Se `invoice.subscription` o `session.subscription` risultano con tipo diverso da quello atteso nei tipi Stripe v22, allinea leggendo `node_modules/stripe/types/Invoices.d.ts` e `Checkout/Sessions.d.ts`.
+Expected: nessun errore. `session.subscription` (Checkout Session) è `string | Stripe.Subscription | null`, invariato. Se qualcos'altro non torna, verifica contro i tipi reali in `node_modules/stripe/cjs/resources/Invoices.d.ts` e `Checkout/Sessions.d.ts` — non usare `any`/cast per forzare la compilazione.
 
 - [ ] **Step 6: Verifica manuale con Stripe CLI (richiede `stripe login` già fatto)**
 
