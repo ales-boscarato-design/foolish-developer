@@ -30,6 +30,12 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
   // Orders: nuova opzione 'subscription' sul campo source esistente (Task 3)
   await db.execute(sql`ALTER TYPE "public"."enum_orders_source" ADD VALUE IF NOT EXISTS 'subscription'`)
 
+  // Fix opportunistico: 'reseller' fu aggiunta alle options del campo source in
+  // 20260617_100000_add_reseller_fields.ts ma mai all'enum Postgres reale (quella
+  // migration assumeva erroneamente che source fosse testo libero). Aggiunta qui
+  // perché stiamo già alterando lo stesso tipo enum.
+  await db.execute(sql`ALTER TYPE "public"."enum_orders_source" ADD VALUE IF NOT EXISTS 'reseller'`)
+
   // subscription_plans table
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS "subscription_plans" (
