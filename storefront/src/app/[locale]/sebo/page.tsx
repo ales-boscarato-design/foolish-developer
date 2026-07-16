@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { getTranslations } from 'next-intl/server'
+import { getTranslations, getLocale } from 'next-intl/server'
+import { getProducts } from '@/lib/cms'
+import { ProductCard } from '@/components/ProductCard'
 import wallDataRaw from '@/data/sebo-wall.json'
 
 interface WallEntry { id: string; image: string; line: string; date: string; platform_url?: string }
@@ -30,6 +32,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
 export default async function SeboPage() {
   const t = await getTranslations('sebo')
+  const locale = await getLocale()
+  const merchProducts = await getProducts('merch', locale)
 
   return (
     <div style={{ backgroundColor: '#0a0806', color: '#e8dcc8' }}>
@@ -185,6 +189,20 @@ export default async function SeboPage() {
           </div>
         </div>
       </section>
+
+      {/* ── MERCH ── */}
+      {merchProducts.length > 0 && (
+        <section className="max-w-7xl mx-auto px-8 md:px-16 py-16 border-t" style={{ borderColor: '#1e1812' }}>
+          <p className="text-xs uppercase tracking-widest mb-8" style={{ color: '#6b6055' }}>
+            {t('merch.label')}
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+            {merchProducts.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── Il Pellaio cross-link ── */}
       <div className="max-w-7xl mx-auto px-8 md:px-16 py-12 border-t" style={{ borderColor: '#1e1812' }}>

@@ -97,7 +97,7 @@ export interface Product {
   id: string
   name: string
   slug: string
-  section: 'tattoo' | 'pmu'
+  section: 'tattoo' | 'pmu' | 'merch'
   active: boolean
   limitedStock: boolean
   madeToOrder?: boolean
@@ -147,7 +147,7 @@ async function fetchAPI<T>(path: string, params?: Record<string, string>, locale
   return res.json()
 }
 
-export async function getProducts(section?: 'tattoo' | 'pmu', locale = 'it'): Promise<Product[]> {
+export async function getProducts(section?: 'tattoo' | 'pmu' | 'merch', locale = 'it'): Promise<Product[]> {
   const params: Record<string, string> = {
     'where[active][equals]': 'true',
     sort: 'order',
