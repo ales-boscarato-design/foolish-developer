@@ -24,7 +24,7 @@
 **CMS (`cms/src/`):**
 - `collections/SubscriptionPlans.ts` — nuovo. Config: quale Product del catalogo fornisce foto/descrizione per ogni piano (`tattoo`/`pmu`).
 - `collections/Subscriptions.ts` — nuovo. Istanza per-cliente: piano, zona, stato, cicli completati.
-- `collections/Orders.ts` — modificato. Aggiunge `origin` (storefront/subscription) e `lineItems[].isGift`.
+- `collections/Orders.ts` — modificato. Aggiunge l'opzione `subscription` al campo `source` esistente (nessun cambio a `lineItems`, che è già `json` schemaless).
 - `payload.config.ts` — modificato. Registra le due nuove collection.
 
 **Storefront (`storefront/src/`):**
@@ -248,59 +248,53 @@ git commit -m "feat(cms): aggiungi collection Subscriptions"
 
 ---
 
-### Task 3: CMS — estendi `Orders` con `origin` e `lineItems[].isGift`
+### Task 3: CMS — estendi `Orders` per supportare i rinnovi abbonamento
 
 **Files:**
 - Modify: `cms/src/collections/Orders.ts`
 
 **Interfaces:**
-- Produces: campo `origin` (`storefront`|`subscription`, default `storefront`) sull'Order; campo `isGift` (checkbox) su ogni riga di `lineItems`. Usato dal Task 7 quando crea l'Order di rinnovo con la riga omaggio.
+- Produces: nuova opzione `subscription` sul campo select esistente `source` (già presente, label "Origine", dentro la collapsible "Dati tecnici" — non un nuovo campo). Nessun cambio a `lineItems`: è un campo `type: 'json'` schemaless (verificato: `cms/src/collections/Orders.ts:587-592`, nessun sotto-campo tipizzato), quindi accetta già chiavi arbitrarie come `isGift` senza bisogno di modifiche allo schema. Usato dal Task 7 quando crea l'Order di rinnovo: imposta `source: 'subscription'` e include `isGift: true` direttamente nell'oggetto JSON della riga omaggio, senza toccare questo file.
 
-- [ ] **Step 1: Trova il campo `lineItems` esistente**
+> **Nota di correzione (post pre-flight):** la versione originale di questo task ipotizzava `lineItems` come campo `array` tipizzato e proponeva un nuovo campo `origin` separato. Verificato che `lineItems` è `json` (nessuna migrazione necessaria, nessun rischio sui dati esistenti) e che esiste già un campo `source`/"Origine" con gli stessi scopi — aggiungere un secondo campo con la stessa label avrebbe creato confusione nell'admin. Questa versione corretta sostituisce quella originale.
 
-Run: `grep -n "lineItems" cms/src/collections/Orders.ts`
-Expected: individua il blocco `{ name: 'lineItems', type: 'array', fields: [...] }` con i sotto-campi `sku`, `name`, `variantLabel`, `quantity`, `unitPrice`.
+- [ ] **Step 1: Conferma la struttura esistente**
 
-- [ ] **Step 2: Aggiungi `isGift` al blocco `lineItems.fields`**
+Run: `grep -n "name: 'lineItems'\|name: 'source'" cms/src/collections/Orders.ts`
+Expected: `lineItems` con `type: 'json'` (circa riga 588); `source` con `type: 'select'`, `label: 'Origine'`, dentro la collapsible "Dati tecnici" (circa riga 741), con opzioni `storefront`/`woocommerce`/`manual`/`reseller`.
 
-Nel file, dentro l'array `fields` del campo `lineItems`, aggiungi:
+- [ ] **Step 2: Aggiungi l'opzione `subscription` alle options di `source`**
 
-```typescript
-{
-  name: 'isGift',
-  type: 'checkbox',
-  defaultValue: false,
-  label: 'Omaggio abbonamento',
-},
-```
-
-- [ ] **Step 3: Aggiungi il campo `origin` a livello di Order**
-
-Vicino al campo `source` esistente (o accanto a `orderNumber`), aggiungi:
+Nel blocco esistente del campo `source`, aggiungi una riga alle sue `options`:
 
 ```typescript
 {
-  name: 'origin',
+  name: 'source',
   type: 'select',
   defaultValue: 'storefront',
   label: 'Origine',
   options: [
-    { label: 'Storefront (acquisto singolo)', value: 'storefront' },
+    { label: 'Storefront', value: 'storefront' },
+    { label: 'WooCommerce', value: 'woocommerce' },
+    { label: 'Manuale', value: 'manual' },
+    { label: 'Rivenditore', value: 'reseller' },
     { label: 'Abbonamento', value: 'subscription' },
   ],
 },
 ```
 
-- [ ] **Step 4: Rigenera i tipi e verifica**
+Nessun'altra modifica al file: non toccare `lineItems`, non aggiungere nuovi campi.
+
+- [ ] **Step 3: Rigenera i tipi e verifica**
 
 Run: `cd cms && npm run generate:types && npx tsc --noEmit`
-Expected: nessun errore, `Order['origin']` e `Order['lineItems'][number]['isGift']` presenti in `payload-types.ts`.
+Expected: nessun errore. `payload-types.ts` mostra `subscription` nell'union di tipo del campo `source` sull'interfaccia `Order`.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add cms/src/collections/Orders.ts cms/src/payload-types.ts
-git commit -m "feat(cms): aggiungi origin e isGift a Orders per supportare rinnovi abbonamento"
+git commit -m "feat(cms): aggiungi opzione subscription al campo source di Orders"
 ```
 
 ---
@@ -469,7 +463,9 @@ git commit -m "feat(storefront): aggiungi tabella prezzi/benefici abbonamento pe
 
 **Interfaces:**
 - Consumes: `SUBSCRIPTION_LADDER`, `PlanKey`, `Zone`, `PLAN_NAMES` da `subscription-plans.ts` (Task 4).
-- Produces: `buildSchedulePhases(plan, zone): Stripe.SubscriptionScheduleCreateParams.Phase[]`, `attachScheduleToSubscription(stripe, subscriptionId, plan, zone): Promise<Stripe.SubscriptionSchedule>`. Usati da Task 7 (webhook).
+- Produces: `buildSchedulePhases(stripe, plan, zone): Promise<Stripe.SubscriptionScheduleCreateParams.Phase[]>`, `attachScheduleToSubscription(stripe, subscriptionId, plan, zone): Promise<Stripe.SubscriptionSchedule>`. Usati da Task 7 (webhook) e Task 14 (cambio zona).
+
+> **Nota di correzione (post pre-flight):** la versione originale ipotizzava che le Subscription Schedule accettassero `price_data.product_data` (nome prodotto inline) come le Checkout Session. Verificato contro i tipi reali dell'SDK Stripe v22 installato (`node_modules/stripe/cjs/resources/SubscriptionSchedules.d.ts`): `PriceData` per una fase di uno Schedule richiede un `product: string` (ID di un Product Stripe già esistente), non supporta `product_data` inline — a differenza di Checkout/Invoices/Prices, dove `product_data` è supportato (quindi il Task 6, che usa Checkout Session, resta invariato). Anche `iterations` non esiste su `Phase`: il campo reale è `duration: { interval, interval_count }`. Questa versione corretta introduce un get-or-create dei 2 Product Stripe (uno per piano, la zona incide solo sul prezzo) cercati per metadata, così `buildSchedulePhases` resta autosufficiente e idempotente senza alcun setup manuale su Stripe Dashboard.
 
 - [ ] **Step 1: Scrivi il file**
 
@@ -478,20 +474,44 @@ git commit -m "feat(storefront): aggiungi tabella prezzi/benefici abbonamento pe
 import Stripe from 'stripe'
 import { SUBSCRIPTION_LADDER, PLAN_NAMES, type PlanKey, type Zone } from './subscription-plans'
 
-export function buildSchedulePhases(
+const PRODUCT_METADATA_KEY = 'foolishSubscriptionPlanKey'
+
+/**
+ * Le Subscription Schedule di Stripe richiedono un Product ID reale per ogni
+ * price_data (a differenza delle Checkout Session, che accettano product_data
+ * inline). Cerchiamo il prodotto per metadata e lo creiamo solo se non esiste,
+ * così restano sempre e solo 2 Product Stripe totali (uno per piano — la zona
+ * incide solo sul prezzo, non sul prodotto), senza alcuno step manuale.
+ */
+async function getOrCreatePlanProduct(stripe: Stripe, plan: PlanKey): Promise<string> {
+  const search = await stripe.products.search({
+    query: `metadata['${PRODUCT_METADATA_KEY}']:'${plan}'`,
+  })
+  if (search.data[0]) return search.data[0].id
+
+  const created = await stripe.products.create({
+    name: PLAN_NAMES[plan],
+    metadata: { [PRODUCT_METADATA_KEY]: plan },
+  })
+  return created.id
+}
+
+export async function buildSchedulePhases(
+  stripe: Stripe,
   plan: PlanKey,
   zone: Zone,
-): Stripe.SubscriptionScheduleCreateParams.Phase[] {
+): Promise<Stripe.SubscriptionScheduleCreateParams.Phase[]> {
+  const productId = await getOrCreatePlanProduct(stripe, plan)
   const config = SUBSCRIPTION_LADDER[plan][zone]
   return config.phases.map((phase) => ({
-    iterations: phase.iterations,
+    duration: { interval: 'month', interval_count: phase.iterations },
     items: [
       {
         price_data: {
           currency: 'eur',
+          product: productId,
           recurring: { interval: 'month' },
           unit_amount: Math.round((phase.productPrice + phase.shippingPrice) * 100),
-          product_data: { name: `${PLAN_NAMES[plan]} — ${zone}` },
         },
         quantity: 1,
       },
@@ -512,7 +532,7 @@ export async function attachScheduleToSubscription(
   zone: Zone,
 ): Promise<Stripe.SubscriptionSchedule> {
   const schedule = await stripe.subscriptionSchedules.create({ from_subscription: subscriptionId })
-  const builtPhases = buildSchedulePhases(plan, zone)
+  const builtPhases = await buildSchedulePhases(stripe, plan, zone)
   const currentPhaseStart = schedule.phases[0].start_date
 
   return stripe.subscriptionSchedules.update(schedule.id, {
@@ -529,9 +549,22 @@ export async function attachScheduleToSubscription(
 - [ ] **Step 2: Verifica di tipo**
 
 Run: `cd storefront && npx tsc --noEmit`
-Expected: nessun errore (conferma che i tipi `Stripe.SubscriptionScheduleCreateParams.Phase` accettano `price_data` così strutturato — se il compilatore segnala un campo mancante, allinea ai tipi esposti da `stripe` v22 in `node_modules/stripe/types/SubscriptionSchedules.d.ts`).
+Expected: nessun errore. Se il compilatore segnala ancora un campo mancante/inatteso, verifica contro i tipi reali in `node_modules/stripe/cjs/resources/SubscriptionSchedules.d.ts` (non usare `any`/cast per forzare la compilazione — allinea la forma dei dati).
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Verifica manuale (richiede `STRIPE_SECRET_KEY` di test valorizzata)**
+
+Run:
+```bash
+cd storefront && npx tsx -e "
+import Stripe from 'stripe'
+import { buildSchedulePhases } from './src/lib/stripe-subscription-schedule'
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+buildSchedulePhases(stripe, 'tattoo', 'IT').then(phases => console.log(JSON.stringify(phases, null, 2)))
+"
+```
+Expected: array di 3 fasi, ciascuna con `items[0].price_data.product` valorizzato con un vero ID Stripe (`prod_...`), `unit_amount` 5265/4500/4050. Se `STRIPE_SECRET_KEY` non è disponibile in locale, salta questo step e segnalalo nel report — verrà controllato end-to-end in staging.
+
+- [ ] **Step 4: Commit**
 
 ```bash
 git add storefront/src/lib/stripe-subscription-schedule.ts
@@ -643,6 +676,8 @@ git commit -m "feat(storefront): endpoint checkout abbonamento (Stripe subscript
 - Consumes: `attachScheduleToSubscription` (Task 5), `getBenefitForCycle` (Task 4), `PlanKey`/`Zone` (Task 4).
 - Produces: side effects su CMS (`subscriptions`, `orders`) raggiungibili dal Task 9 (account page) via GET `/api/subscriptions?where[customerEmail][equals]=...`.
 
+> **Nota di correzione (post pre-flight):** la versione originale derivava la chiave di idempotenza dell'ordine di rinnovo da `cyclesCompleted + 1` e incrementava il contatore PRIMA di controllare/creare l'ordine. Su un redelivery dello stesso evento Stripe (comportamento normale, non un caso raro), il contatore risulterebbe già avanzato dal tentativo precedente, producendo un `orderRef` diverso e quindi un ordine duplicato con numero di ciclo sbagliato — oppure, se la creazione fallisce dopo l'incremento, un ciclo saltato per sempre. Questa versione corretta: (1) usa `invoice.id` (stabile, immutabile, identico ad ogni redelivery dello stesso invoice) come chiave di idempotenza dell'ordine, non il contatore; (2) fa avanzare `cyclesCompleted` solo DOPO che l'ordine è stato creato con successo, dietro lo stesso controllo di idempotenza — così un redelivery trova l'ordine già esistente e non tocca il contatore una seconda volta.
+
 - [ ] **Step 1: Aggiungi gli import necessari in cima al file**
 
 ```typescript
@@ -716,26 +751,25 @@ const SUB_PLAN_NAMES: Record<PlanKey, string> = {
   pmu: 'Abbonamento PMU 3 Visi',
 }
 
+async function orderExists(orderRef: string): Promise<boolean> {
+  const existing = await fetch(
+    `${CMS_URL()}/api/orders?where[orderNumber][equals]=${encodeURIComponent(orderRef)}&limit=1`,
+    { headers: cmsHeaders() },
+  )
+  if (!existing.ok) return false
+  const data = await existing.json()
+  return (data.docs?.length ?? 0) > 0
+}
+
 async function createRenewalOrder(params: {
-  subscriptionId: string
+  orderRef: string
   cycle: number
   plan: PlanKey
   zone: Zone
   customerEmail: string
   shippingAddress: { name: string; address1: string; address2: string; city: string; postalCode: string; country: string }
 }): Promise<void> {
-  const { subscriptionId, cycle, plan, zone, customerEmail, shippingAddress } = params
-  const orderRef = `FOOLISH-SUB-${subscriptionId}-${cycle}`
-
-  const existing = await fetch(
-    `${CMS_URL()}/api/orders?where[orderNumber][equals]=${encodeURIComponent(orderRef)}&limit=1`,
-    { headers: cmsHeaders() },
-  )
-  if (existing.ok) {
-    const existingData = await existing.json()
-    if (existingData.docs?.length > 0) return // idempotente: Stripe può reinviare il webhook
-  }
-
+  const { orderRef, cycle, plan, zone, customerEmail, shippingAddress } = params
   const benefit = getBenefitForCycle(plan, zone, cycle)
   const lineItems = [
     { sku: `SUB-${plan.toUpperCase()}`, name: SUB_PLAN_NAMES[plan], variantLabel: `Ciclo ${cycle}`, quantity: 1, unitPrice: benefit.productPrice },
@@ -749,8 +783,7 @@ async function createRenewalOrder(params: {
     headers: cmsHeaders(),
     body: JSON.stringify({
       orderNumber: orderRef,
-      source: 'storefront',
-      origin: 'subscription',
+      source: 'subscription',
       customerEmail,
       customerName: shippingAddress.name,
       lineItems,
@@ -763,6 +796,8 @@ async function createRenewalOrder(params: {
   if (!res.ok) throw new Error(`CMS create renewal order failed ${res.status}: ${await res.text()}`)
 }
 ```
+
+Nota: `orderRef` non è più costruito dentro `createRenewalOrder` a partire da `subscriptionId`+`cycle` — arriva già pronto dal chiamante (Step 4), costruito da `invoice.id` per garantire idempotenza reale sotto redelivery.
 
 - [ ] **Step 3: Aggiungi il branch subscription dentro `checkout.session.completed`, subito dopo la riga `const session = event.data.object`**
 
@@ -819,7 +854,12 @@ Sostituiscilo con:
 ```typescript
   if (event.type === 'invoice.payment_succeeded') {
     const invoice = event.data.object
-    const subscriptionId = typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id
+    // In stripe v22 l'id della subscription non è più su invoice.subscription (rimosso),
+    // vive dentro invoice.parent.subscription_details.subscription.
+    const subscriptionDetails = invoice.parent?.subscription_details
+    const subscriptionId = subscriptionDetails
+      ? (typeof subscriptionDetails.subscription === 'string' ? subscriptionDetails.subscription : subscriptionDetails.subscription.id)
+      : undefined
 
     if (subscriptionId) {
       try {
@@ -843,11 +883,17 @@ Sostituiscilo con:
           })
         }
 
-        const newCycle = record.cyclesCompleted + 1
-        await updateSubscriptionRecord(record.id, { cyclesCompleted: newCycle })
+        // Idempotenza sull'invoice reale (stabile ad ogni redelivery Stripe dello
+        // stesso evento), non sul contatore cyclesCompleted (mutabile — vedi nota
+        // di correzione sopra).
+        const orderRef = `FOOLISH-SUB-${subscriptionId}-${invoice.id}`
+        if (await orderExists(orderRef)) {
+          console.log(`[webhook] Invoice ${invoice.id} già processata, skip`)
+          return NextResponse.json({ received: true })
+        }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const shippingDetails = (invoice as any).customer_shipping ?? null
+        const newCycle = record.cyclesCompleted + 1
+        const shippingDetails = invoice.customer_shipping
         const shippingAddress = {
           name: shippingDetails?.name ?? '',
           address1: shippingDetails?.address?.line1 ?? '',
@@ -858,13 +904,19 @@ Sostituiscilo con:
         }
 
         await createRenewalOrder({
-          subscriptionId,
+          orderRef,
           cycle: newCycle,
           plan: record.plan,
           zone: record.zone,
           customerEmail: record.customerEmail,
           shippingAddress,
         })
+        // Il contatore avanza SOLO dopo la creazione riuscita dell'ordine, dietro
+        // lo stesso controllo di idempotenza sopra: un redelivery dello stesso
+        // invoice trova l'ordine già esistente e non fa avanzare il contatore
+        // una seconda volta (altrimenti: doppio ordine con ciclo sbagliato, o
+        // ciclo saltato per sempre se la creazione fallisce dopo l'incremento).
+        await updateSubscriptionRecord(record.id, { cyclesCompleted: newCycle })
         console.log(`[webhook] Renewal order created for ${subscriptionId}, cycle ${newCycle}`)
       } catch (err) {
         console.error('[webhook] invoice.payment_succeeded handling failed:', err)
@@ -891,7 +943,7 @@ Sostituiscilo con:
 - [ ] **Step 5: Verifica di tipo**
 
 Run: `cd storefront && npx tsc --noEmit`
-Expected: nessun errore. Se `invoice.subscription` o `session.subscription` risultano con tipo diverso da quello atteso nei tipi Stripe v22, allinea leggendo `node_modules/stripe/types/Invoices.d.ts` e `Checkout/Sessions.d.ts`.
+Expected: nessun errore. `session.subscription` (Checkout Session) è `string | Stripe.Subscription | null`, invariato. Se qualcos'altro non torna, verifica contro i tipi reali in `node_modules/stripe/cjs/resources/Invoices.d.ts` e `Checkout/Sessions.d.ts` — non usare `any`/cast per forzare la compilazione.
 
 - [ ] **Step 6: Verifica manuale con Stripe CLI (richiede `stripe login` già fatto)**
 
@@ -1595,7 +1647,7 @@ git commit -m "feat(storefront): pagina prodotto abbonamento tattoo/pmu con road
 "banner": {
   "eyebrow": "Novità",
   "title": "Abbonati alla tua pelle",
-  "body": "Ricevi Tattoo XXL o PMU 3 Visi ogni mese. Dal secondo mese la spedizione è sul noi, dal sesto anche il -10%.",
+  "body": "Ricevi Tattoo XXL o PMU 3 Visi ogni mese. Dal secondo mese la spedizione è a carico nostro, dal sesto anche il -10%.",
   "cta": "Scopri l'abbonamento"
 }
 ```
@@ -1744,7 +1796,8 @@ export async function rebuildRemainingPhases(
 
   const nextCycle = cyclesCompleted + 1
   const currentPhaseIndex = getPhaseIndexForCycle(nextCycle)
-  const newPhases = buildSchedulePhases(plan, newZone).slice(currentPhaseIndex)
+  const allPhases = await buildSchedulePhases(stripe, plan, newZone)
+  const newPhases = allPhases.slice(currentPhaseIndex)
 
   return stripe.subscriptionSchedules.update(scheduleId, {
     end_behavior: 'release',

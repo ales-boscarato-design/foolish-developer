@@ -517,5 +517,36 @@
     },
     "imageAlt": "Sebo — the lab mascot",
     "backToShop": "← Back to the shop"
+  },
+  "subscription": {
+    "hub": {
+      "meta": "Monthly Subscription",
+      "title": "Get your skin every month",
+      "subtitle": "One subscription, two products: Tattoo XXL and PMU 3 Visi. Less shipping, more practice.",
+      "cardTattooTitle": "Tattoo XXL",
+      "cardTattooDesc": "The go-to practice sheet, delivered to your door every month.",
+      "cardPmuTitle": "PMU 3 Visi",
+      "cardPmuDesc": "The permanent makeup practice set, always ready.",
+      "cta": "Discover the subscription"
+    },
+    "product": {
+      "tabIt": "Italy",
+      "tabEu": "Europe",
+      "cycle1": "Getting started",
+      "cycle2": "From month 2",
+      "cycle6": "From month 6",
+      "shippingIncluded": "shipping included",
+      "giftIncluded": "gift included",
+      "perMonth": "/month",
+      "zonePickerLabel": "Where do we ship?",
+      "subscribeCta": "Subscribe now",
+      "loading": "One moment..."
+    },
+    "banner": {
+      "eyebrow": "New",
+      "title": "Subscribe to your skin",
+      "body": "Get Tattoo XXL or PMU 3 Visi delivered every month. From the second month, shipping's on us — from the sixth, an extra -10%.",
+      "cta": "Discover the subscription"
+    }
   }
 }

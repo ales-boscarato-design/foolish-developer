@@ -13,6 +13,7 @@ import { ManifestoPinned } from '@/components/ManifestoPinned'
 import { SplitText } from '@/components/SplitText'
 import { BentoGrid, BentoItem } from '@/components/BentoGrid'
 import { TrustBadge } from '@/components/TrustBadge'
+import { SubscriptionBanner } from '@/components/SubscriptionBanner'
 
 const BASE = 'https://thefoolishbutcher.com'
 const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
@@ -128,6 +129,7 @@ function SectionLabel({
 /* ─── HOME PAGE ───────────────────────────────────────────────────── */
 export default async function HomePage() {
   const t = await getTranslations('home')
+  const tBanner = await getTranslations('subscription.banner')
   const locale = await getLocale()
   const [tattooProducts, pmuProducts, limitedProducts, homepageReviews] = await Promise.all([
     getProducts('tattoo', locale),
@@ -533,6 +535,14 @@ export default async function HomePage() {
           productNames={productNamesMap}
         />
       )}
+
+      <SubscriptionBanner
+        locale={locale}
+        eyebrow={tBanner('eyebrow')}
+        title={tBanner('title')}
+        body={tBanner('body')}
+        cta={tBanner('cta')}
+      />
 
       {/* ════════════════════════════════════════════════
           CTA FINALE — Chiusura forte

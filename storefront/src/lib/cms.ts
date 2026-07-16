@@ -133,7 +133,7 @@ export interface Product {
   packs?: ProductPack[]
 }
 
-async function fetchAPI<T>(path: string, params?: Record<string, string>, locale?: string): Promise<T> {
+async function fetchAPI<T>(path: string, params?: Record<string, string>, locale?: string, extraHeaders?: Record<string, string>): Promise<T> {
   const url = new URL(`${CMS_API}${path}`)
   if (params) {
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
@@ -141,7 +141,7 @@ async function fetchAPI<T>(path: string, params?: Record<string, string>, locale
   if (locale) url.searchParams.set('locale', locale)
   const res = await fetch(url.toString(), {
     next: { revalidate: 60 }, // ISR — rivalidate ogni 60s
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...extraHeaders },
   })
   if (!res.ok) throw new Error(`CMS fetch error: ${res.status} ${path}`)
   return res.json()
@@ -202,4 +202,23 @@ export async function getProductImagesBySku(skus: string[]): Promise<Record<stri
   } catch {
     return {}
   }
+}
+
+export interface SubscriptionPlanConfig {
+  key: 'tattoo' | 'pmu'
+  product: Product
+  active: boolean
+}
+
+export async function getSubscriptionPlanConfig(key: 'tattoo' | 'pmu', locale = 'it'): Promise<SubscriptionPlanConfig | null> {
+  // `subscription-plans` read access requires an authenticated admin OR this shared secret
+  // (see cms/src/collections/SubscriptionPlans.ts `hasStorefrontSecret`) — unlike `products`,
+  // which is publicly readable. Without this header, anonymous storefront visitors get a 403.
+  const data = await fetchAPI<{ docs: SubscriptionPlanConfig[] }>(
+    '/subscription-plans',
+    { 'where[key][equals]': key, 'where[active][equals]': 'true', depth: '2', limit: '1' },
+    locale,
+    { 'x-storefront-secret': process.env.PAYLOAD_API_SECRET || '' },
+  )
+  return data.docs[0] ?? null
 }

@@ -517,5 +517,36 @@
     },
     "imageAlt": "Sebo — la mascotte du labo",
     "backToShop": "← Retour à la vitrine"
+  },
+  "subscription": {
+    "hub": {
+      "meta": "Abonnement mensuel",
+      "title": "Recevez votre peau chaque mois",
+      "subtitle": "Un abonnement, deux références : Tattoo XXL et PMU 3 Visi. Moins d'expédition, plus de pratique.",
+      "cardTattooTitle": "Tattoo XXL",
+      "cardTattooDesc": "La feuille de pratique de référence, chaque mois dans votre boîte.",
+      "cardPmuTitle": "PMU 3 Visi",
+      "cardPmuDesc": "Le set de pratique maquillage permanent, toujours prêt.",
+      "cta": "Découvrir l'abonnement"
+    },
+    "product": {
+      "tabIt": "Italie",
+      "tabEu": "Europe",
+      "cycle1": "On démarre",
+      "cycle2": "Dès le 2e mois",
+      "cycle6": "Dès le 6e mois",
+      "shippingIncluded": "livraison incluse",
+      "giftIncluded": "cadeau inclus",
+      "perMonth": "/mois",
+      "zonePickerLabel": "Où livrons-nous ?",
+      "subscribeCta": "S'abonner maintenant",
+      "loading": "Un instant..."
+    },
+    "banner": {
+      "eyebrow": "Nouveau",
+      "title": "Abonnez-vous à votre peau",
+      "body": "Recevez Tattoo XXL ou PMU 3 Visi chaque mois. Dès le deuxième mois, la livraison est offerte, dès le sixième, -10% en plus.",
+      "cta": "Découvrir l'abonnement"
+    }
   }
 }

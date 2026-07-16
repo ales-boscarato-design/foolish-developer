@@ -77,6 +77,8 @@ export interface Config {
     'push-sequences': PushSequence;
     'offer-config': OfferConfig;
     announcements: Announcement;
+    'subscription-plans': SubscriptionPlan;
+    subscriptions: Subscription;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -95,6 +97,8 @@ export interface Config {
     'push-sequences': PushSequencesSelect<false> | PushSequencesSelect<true>;
     'offer-config': OfferConfigSelect<false> | OfferConfigSelect<true>;
     announcements: AnnouncementsSelect<false> | AnnouncementsSelect<true>;
+    'subscription-plans': SubscriptionPlansSelect<false> | SubscriptionPlansSelect<true>;
+    subscriptions: SubscriptionsSelect<false> | SubscriptionsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -515,7 +519,7 @@ export interface Order {
         id?: string | null;
       }[]
     | null;
-  source?: ('storefront' | 'woocommerce' | 'manual' | 'reseller') | null;
+  source?: ('storefront' | 'woocommerce' | 'manual' | 'reseller' | 'subscription') | null;
   pageToken?: string | null;
   revolutOrderId?: string | null;
   revolutStatus?: string | null;
@@ -746,6 +750,41 @@ export interface Announcement {
   createdAt: string;
 }
 /**
+ * Collega ogni piano di abbonamento (tattoo/pmu) al prodotto del catalogo che ne fornisce foto e descrizione.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-plans".
+ */
+export interface SubscriptionPlan {
+  id: number;
+  key: 'tattoo' | 'pmu';
+  /**
+   * Il prodotto del catalogo mostrato nella pagina di abbonamento.
+   */
+  product: number | Product;
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscriptions".
+ */
+export interface Subscription {
+  id: number;
+  customerEmail: string;
+  plan: 'tattoo' | 'pmu';
+  zone: 'IT' | 'EU';
+  stripeSubscriptionId: string;
+  stripeScheduleId?: string | null;
+  status: 'active' | 'canceling' | 'canceled';
+  cyclesCompleted?: number | null;
+  startedAt?: string | null;
+  canceledAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
@@ -833,6 +872,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'announcements';
         value: number | Announcement;
+      } | null)
+    | ({
+        relationTo: 'subscription-plans';
+        value: number | SubscriptionPlan;
+      } | null)
+    | ({
+        relationTo: 'subscriptions';
+        value: number | Subscription;
       } | null)
     | ({
         relationTo: 'users';
@@ -1243,6 +1290,34 @@ export interface AnnouncementsSelect<T extends boolean = true> {
   titleDe?: T;
   bodyDe?: T;
   contentDe?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-plans_select".
+ */
+export interface SubscriptionPlansSelect<T extends boolean = true> {
+  key?: T;
+  product?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscriptions_select".
+ */
+export interface SubscriptionsSelect<T extends boolean = true> {
+  customerEmail?: T;
+  plan?: T;
+  zone?: T;
+  stripeSubscriptionId?: T;
+  stripeScheduleId?: T;
+  status?: T;
+  cyclesCompleted?: T;
+  startedAt?: T;
+  canceledAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

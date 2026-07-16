@@ -6,7 +6,7 @@
  * Resto mondo:  37,95€  → gratis sopra 250€
  */
 
-const EU_COUNTRIES = new Set([
+export const EU_COUNTRIES = new Set([
   'AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU',
   'IE','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE',
   'NO','IS','LI','CH', // SEE / Svizzera inclusi
