@@ -73,8 +73,8 @@ export async function syncPrintfulHandler(req: PayloadRequest): Promise<Response
     for (const { sync_product, sync_variants } of printfulProducts) {
       const printfulSyncProductId = String(sync_product.id)
 
-      // La collection richiede almeno una variante (minRows: 1) — se Printful non
-      // restituisce varianti per questo sync product, non c'e nulla da persistere.
+      // Math.min(...[].map(...)) su un array vuoto restituisce Infinity (non NaN):
+      // senza questa guardia scriveremmo basePrice: Infinity su un prodotto reale.
       if (sync_variants.length === 0) {
         results.push({ id: 0, created: false, name: sync_product.name, skipped: 'nessuna variante da Printful' })
         continue
@@ -94,10 +94,12 @@ export async function syncPrintfulHandler(req: PayloadRequest): Promise<Response
         printfulSyncVariantId: String(v.id),
       }))
 
+      // basePrice e obbligatorio sullo schema: usiamo il prezzo variante piu basso come base.
+      // Va ricalcolato ad ogni sync (anche in update) perche i prezzi Printful possono cambiare.
+      const basePrice = Math.min(...variants.map((v) => v.price))
+
       if (existing.docs.length === 0) {
         const slug = `merch-${printfulSyncProductId}-${sync_product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
-        // basePrice e obbligatorio sullo schema: usiamo il prezzo variante piu basso come base.
-        const basePrice = Math.min(...variants.map((v) => v.price))
 
         const created = await req.payload.create({
           collection: 'products',
@@ -119,7 +121,7 @@ export async function syncPrintfulHandler(req: PayloadRequest): Promise<Response
         await req.payload.update({
           collection: 'products',
           id: doc.id,
-          data: { variants },
+          data: { variants, basePrice },
           overrideAccess: true,
         })
         results.push({ id: doc.id, created: false, name: sync_product.name })
