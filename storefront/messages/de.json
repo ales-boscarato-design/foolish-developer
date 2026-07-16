@@ -103,6 +103,7 @@
     "pieces": "{qty} Stück",
     "sectionTattoo": "Tätowierung",
     "sectionPmu": "PMU",
+    "sectionMerch": "Merch",
     "shipsIn": "Versand in {days} Werktagen",
     "madeToOrder": "Auf Bestellung gefertigt",
     "madeToOrderDesc": "Ihr Stück wird nach dem Kauf persönlich gefertigt. Geschätzte Lieferzeit: {total} Werktage."

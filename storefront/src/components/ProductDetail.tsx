@@ -388,7 +388,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
         {/* Breadcrumb */}
         <motion.div variants={itemVariants} className="mb-8">
           <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
-            {product.section === 'tattoo' ? t('sectionTattoo') : t('sectionPmu')}
+            {product.section === 'tattoo' ? t('sectionTattoo') : product.section === 'merch' ? t('sectionMerch') : t('sectionPmu')}
           </span>
         </motion.div>
 
