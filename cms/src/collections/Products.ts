@@ -15,6 +15,9 @@ export const Products: CollectionConfig = {
     defaultColumns: ['name', 'section', 'active', 'basePrice', 'updatedAt'],
     listSearchableFields: ['name', 'slug'],
     group: 'Catalogo',
+    components: {
+      beforeListTable: ['@/components/SyncPrintfulButton#SyncPrintfulButton'],
+    },
     livePreview: {
       url: ({ data }) => {
         const slug = (data as Record<string, unknown>).slug as string | undefined
