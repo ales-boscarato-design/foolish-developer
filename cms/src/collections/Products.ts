@@ -1,7 +1,15 @@
 import type { CollectionConfig } from 'payload'
+import { syncPrintfulHandler } from '../endpoints/syncPrintful'
 
 export const Products: CollectionConfig = {
   slug: 'products',
+  endpoints: [
+    {
+      path: '/sync-printful',
+      method: 'post',
+      handler: syncPrintfulHandler,
+    },
+  ],
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'section', 'active', 'basePrice', 'updatedAt'],
