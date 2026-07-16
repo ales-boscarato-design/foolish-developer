@@ -34,6 +34,15 @@ export const Products: CollectionConfig = {
       admin: { description: 'Es. foglio-pelle-tattoo — solo minuscole e trattini' },
     },
     {
+      name: 'printfulSyncProductId',
+      type: 'text',
+      label: 'Printful Sync Product ID',
+      admin: {
+        description: 'ID del sync product Printful — compilato automaticamente dal pulsante di sincronizzazione, non modificare a mano.',
+        condition: (data) => data.section === 'merch',
+      },
+    },
+    {
       name: 'section',
       type: 'select',
       required: true,
@@ -42,6 +51,7 @@ export const Products: CollectionConfig = {
         { label: 'Tattoo', value: 'tattoo' },
         { label: 'PMU (Permanent Make-up)', value: 'pmu' },
         { label: 'Kit rivenditori', value: 'kit' },
+        { label: 'Merch SEBO', value: 'merch' },
       ],
     },
     {
@@ -289,6 +299,12 @@ export const Products: CollectionConfig = {
           name: 'thicknessMm',
           type: 'number',
           label: 'Spessore (mm)',
+        },
+        {
+          name: 'printfulSyncVariantId',
+          type: 'text',
+          label: 'Printful Sync Variant ID',
+          admin: { description: 'ID della variante Printful corrispondente — compilato dal sync, non modificare a mano.' },
         },
 
         // COMBINAZIONI VALIDE — quali mix attributi sono acquistabili per questa variante
