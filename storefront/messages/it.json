@@ -540,7 +540,20 @@
       "perMonth": "/mese",
       "zonePickerLabel": "Dove spediamo?",
       "subscribeCta": "Abbonati ora",
-      "loading": "Un attimo..."
+      "loading": "Un attimo...",
+      "faqTitle": "Domande frequenti",
+      "faqQ1": "Come funziona l'abbonamento?",
+      "faqA1": "Addebito mensile automatico via Stripe, stessa referenza ogni mese, nessuna azione richiesta dopo l'iscrizione.",
+      "faqQ2": "Posso disdire quando voglio?",
+      "faqA2": "Sì, in qualsiasi momento dall'area account, senza penali. Resti abbonato fino alla fine del periodo già pagato.",
+      "faqQ3": "Se disdico e poi mi riabbono, riparto da dove?",
+      "faqA3": "Sempre dal mese 1: nessuno storico dei mesi precedenti viene mantenuto.",
+      "faqQ4": "Posso cambiare la zona di spedizione (Italia/Europa) a metà abbonamento?",
+      "faqA4": "Sì, dall'area account, senza perdere i progressi già maturati.",
+      "faqQ5": "Cosa succede se il pagamento fallisce?",
+      "faqA5": "Stripe riprova automaticamente l'addebito secondo la sua policy standard.",
+      "faqQ6": "Posso avere sia l'abbonamento Tattoo che quello PMU insieme?",
+      "faqA6": "Sì, sono due abbonamenti indipendenti, attivabili in parallelo."
     },
     "banner": {
       "eyebrow": "Novità",

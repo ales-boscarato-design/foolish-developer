@@ -540,7 +540,20 @@
       "perMonth": "/Monat",
       "zonePickerLabel": "Wohin liefern wir?",
       "subscribeCta": "Jetzt abonnieren",
-      "loading": "Einen Moment..."
+      "loading": "Einen Moment...",
+      "faqTitle": "Häufige Fragen",
+      "faqQ1": "Wie funktioniert das Abo?",
+      "faqA1": "Stripe zieht monatlich automatisch denselben Artikel ab — nach der Anmeldung musst du nichts weiter tun.",
+      "faqQ2": "Kann ich jederzeit kündigen?",
+      "faqA2": "Ja, jederzeit in deinem Konto, ohne Kosten. Du bleibst bis zum Ende der bereits bezahlten Periode abonniert.",
+      "faqQ3": "Wenn ich kündige und später wieder abonniere, wo starte ich?",
+      "faqA3": "Immer bei Monat 1 — die Historie früherer Monate bleibt nicht erhalten.",
+      "faqQ4": "Kann ich meine Versandzone (Italien/Europa) mitten im Abo wechseln?",
+      "faqA4": "Ja, in deinem Konto, ohne bereits erreichte Vorteile zu verlieren.",
+      "faqQ5": "Was passiert, wenn eine Zahlung fehlschlägt?",
+      "faqA5": "Stripe versucht die Abbuchung automatisch gemäß seiner Standardrichtlinie erneut.",
+      "faqQ6": "Kann ich sowohl das Tattoo- als auch das PMU-Abo gleichzeitig haben?",
+      "faqA6": "Ja, es sind zwei unabhängige Abos, die du parallel führen kannst."
     },
     "banner": {
       "eyebrow": "Neu",
