@@ -103,6 +103,7 @@
     "pieces": "{qty} pezzi",
     "sectionTattoo": "Tatuaggio",
     "sectionPmu": "PMU",
+    "sectionMerch": "Merch",
     "shipsIn": "Spedito in {days} giorni lavorativi",
     "madeToOrder": "Fatto su ordinazione",
     "madeToOrderDesc": "Il tuo ordine viene lavorato personalmente dopo l'acquisto. Consegna stimata in {total} giorni lavorativi."
@@ -498,6 +499,9 @@
     "stickers": {
       "eyebrow": "STICKERS",
       "comingSoon": "In arrivo — prima il manifesto, poi il resto."
+    },
+    "merch": {
+      "label": "Porta SEBO con te"
     },
     "pellaioLink": "Il Pellaio fa le pelli. Io le rovino. Non mi rivolge la parola dal 2012.",
     "cta": {

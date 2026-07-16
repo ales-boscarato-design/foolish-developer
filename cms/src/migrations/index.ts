@@ -31,6 +31,7 @@ import * as migration_20260611_100000_add_offer_config from './20260611_100000_a
 import * as migration_20260614_140000_add_customer_phone_and_promo_fields from './20260614_140000_add_customer_phone_and_promo_fields';
 import * as migration_20260615_120000_uppercase_promo_codes from './20260615_120000_uppercase_promo_codes';
 import * as migration_20260617_100000_add_reseller_fields from './20260617_100000_add_reseller_fields';
+import * as migration_20260716_120000_add_printful_fields from './20260716_120000_add_printful_fields';
 
 export const migrations = [
   {
@@ -197,5 +198,10 @@ export const migrations = [
     up: migration_20260715_150000_add_subscription_collections.up,
     down: migration_20260715_150000_add_subscription_collections.down,
     name: '20260715_150000_add_subscription_collections',
+  },
+  {
+    up: migration_20260716_120000_add_printful_fields.up,
+    down: migration_20260716_120000_add_printful_fields.down,
+    name: '20260716_120000_add_printful_fields',
   },
 ];

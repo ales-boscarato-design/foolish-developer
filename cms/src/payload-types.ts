@@ -155,7 +155,11 @@ export interface Product {
    * Es. foglio-pelle-tattoo — solo minuscole e trattini
    */
   slug: string;
-  section: 'tattoo' | 'pmu' | 'kit';
+  /**
+   * ID del sync product Printful — compilato automaticamente dal pulsante di sincronizzazione, non modificare a mano.
+   */
+  printfulSyncProductId?: string | null;
+  section: 'tattoo' | 'pmu' | 'kit' | 'merch';
   /**
    * Se disattivato, il prodotto non appare nelle griglie ma rimane accessibile via URL diretto e nei kit.
    */
@@ -275,6 +279,10 @@ export interface Product {
          */
         dimensions?: string | null;
         thicknessMm?: number | null;
+        /**
+         * ID della variante Printful corrispondente — compilato dal sync, non modificare a mano.
+         */
+        printfulSyncVariantId?: string | null;
         /**
          * Se vuoto, tutte le combinazioni sono disponibili. Se popolato, solo queste combinazioni sono acquistabili.
          */
@@ -934,6 +942,7 @@ export interface PayloadMigration {
 export interface ProductsSelect<T extends boolean = true> {
   name?: T;
   slug?: T;
+  printfulSyncProductId?: T;
   section?: T;
   active?: T;
   limitedStock?: T;
@@ -981,6 +990,7 @@ export interface ProductsSelect<T extends boolean = true> {
         description?: T;
         dimensions?: T;
         thicknessMm?: T;
+        printfulSyncVariantId?: T;
         validCombinations?:
           | T
           | {

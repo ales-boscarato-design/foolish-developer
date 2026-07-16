@@ -103,6 +103,7 @@
     "pieces": "{qty} pieces",
     "sectionTattoo": "Tattoo",
     "sectionPmu": "PMU",
+    "sectionMerch": "Merch",
     "shipsIn": "Ships in {days} business days",
     "madeToOrder": "Made to order",
     "madeToOrderDesc": "Your piece is crafted personally after purchase. Estimated delivery in {total} business days."
@@ -498,6 +499,9 @@
     "stickers": {
       "eyebrow": "STICKERS",
       "comingSoon": "Coming soon — the manifesto first, then the rest."
+    },
+    "merch": {
+      "label": "Wear SEBO"
     },
     "pellaioLink": "Il Pellaio makes the skins. I ruin them. He hasn't spoken to me since 2012.",
     "cta": {

@@ -103,6 +103,7 @@
     "pieces": "{qty} pièces",
     "sectionTattoo": "Tatouage",
     "sectionPmu": "PMU",
+    "sectionMerch": "Merch",
     "shipsIn": "Expédié en {days} jours ouvrés",
     "madeToOrder": "Fabriqué sur commande",
     "madeToOrderDesc": "Votre pièce est travaillée personnellement après l'achat. Livraison estimée en {total} jours ouvrés."
@@ -498,6 +499,9 @@
     "stickers": {
       "eyebrow": "STICKERS",
       "comingSoon": "Bientôt disponibles — le manifeste d'abord, le reste ensuite."
+    },
+    "merch": {
+      "label": "Porter SEBO"
     },
     "pellaioLink": "Le Peaussier fait les peaux. Moi je les abîme. Il ne m'adresse plus la parole depuis 2012.",
     "cta": {
