@@ -309,7 +309,7 @@ export async function POST(req: NextRequest) {
             })
             console.log(`[webhook] Subscription schedule attached ${subscriptionId} (${plan}/${zone})`)
           } else if (!existing.stripeScheduleId) {
-            // Race: invoice.payment_succeeded ha creato il record prima di questo
+            // Race: invoice.paid ha creato il record prima di questo
             // evento, senza schedule (nessuno step lo attacca in quel percorso).
             // Recuperiamo qui, altrimenti la scaletta a 3 fasi non parte mai.
             const scheduleId = await ensureScheduleAttached(stripe, subscriptionId, plan, zone)
@@ -450,7 +450,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  if (event.type === 'invoice.payment_succeeded') {
+  if (event.type === 'invoice.paid') {
     const invoice = event.data.object
     // Stripe v22 non espone più `invoice.subscription` a livello root: l'id sta
     // dentro `parent.subscription_details.subscription` (verificato in
@@ -527,7 +527,7 @@ export async function POST(req: NextRequest) {
         await updateSubscriptionRecord(record.id, { cyclesCompleted: newCycle })
         console.log(`[webhook] Renewal order created for ${subscriptionId}, cycle ${newCycle}`)
       } catch (err) {
-        console.error('[webhook] invoice.payment_succeeded handling failed:', err)
+        console.error('[webhook] invoice.paid handling failed:', err)
       }
     }
     return NextResponse.json({ received: true })
