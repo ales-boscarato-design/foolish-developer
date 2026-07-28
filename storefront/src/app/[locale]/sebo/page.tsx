@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { getTranslations, getLocale } from 'next-intl/server'
-import { getProducts } from '@/lib/cms'
+import { getProducts, cmsImageUrl } from '@/lib/cms'
 import { ProductCard } from '@/components/ProductCard'
 import wallDataRaw from '@/data/sebo-wall.json'
 
@@ -95,9 +95,9 @@ export default async function SeboPage() {
             <p className="mb-14 max-w-xl" style={{ fontSize: '0.95rem', color: '#6b6055', lineHeight: 1.7 }}>
               {t('merch.subline')}
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-px" style={{ backgroundColor: '#1e1812' }}>
               {merchProducts.map((p) => (
-                <ProductCard key={p.id} product={p} />
+                <SeboMerchCard key={p.id} product={p} />
               ))}
             </div>
           </div>
@@ -379,6 +379,81 @@ export default async function SeboPage() {
       </div>
 
     </div>
+  )
+}
+
+function SeboMerchCard({ product }: { product: import('@/lib/cms').Product }) {
+  const firstImage = product.images[0]?.image
+  const lowestPrice = Math.min(...product.variants.map((v) => v.price))
+
+  // Estrae codice (es. "TR-001") e colore (es. "Nero") dal nome
+  // "SEBO PRACTICE ARCHIVES™ TR-001 — Nero" → code="TR-001", color="Nero"
+  const codeMatch = product.name.match(/([A-Z]{2}-\d{3})/)
+  const colorMatch = product.name.match(/—\s*(Nero|Bianco)/)
+  const code = codeMatch?.[1] ?? ''
+  const color = colorMatch?.[1] ?? ''
+
+  return (
+    <Link
+      href={`/prodotto/${product.slug}`}
+      className="group block relative overflow-hidden"
+      style={{ backgroundColor: '#0a0806' }}
+    >
+      {/* Immagine portrait */}
+      <div className="relative overflow-hidden" style={{ aspectRatio: '4/5' }}>
+        {firstImage?.url ? (
+          <Image
+            src={cmsImageUrl(firstImage.url)}
+            alt={firstImage.alt || product.name}
+            fill
+            className="object-cover transition-transform duration-700 group-hover:scale-105"
+            style={{ filter: 'brightness(0.92)' }}
+            sizes="(max-width: 768px) 50vw, 20vw"
+          />
+        ) : (
+          <div className="w-full h-full" style={{ backgroundColor: '#111' }} />
+        )}
+        {/* Overlay gradient bottom */}
+        <div
+          className="absolute inset-0"
+          style={{ background: 'linear-gradient(to top, rgba(10,8,6,0.85) 0%, transparent 50%)' }}
+        />
+        {/* Colore badge */}
+        {color && (
+          <span
+            className="absolute top-3 left-3 text-xs font-bold tracking-[0.2em] uppercase px-2 py-1"
+            style={{
+              backgroundColor: color === 'Nero' ? '#0a0806' : '#e8dcc8',
+              color: color === 'Nero' ? '#c9a96e' : '#0a0806',
+              border: '1px solid',
+              borderColor: color === 'Nero' ? '#2a2318' : '#c9a96e',
+            }}
+          >
+            {color}
+          </span>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="px-4 pt-4 pb-5">
+        {code && (
+          <p className="text-xs font-bold tracking-[0.3em] uppercase mb-2" style={{ color: '#c9a96e' }}>
+            {code}
+          </p>
+        )}
+        {product.shortDescription && (
+          <p
+            className="italic leading-snug mb-3"
+            style={{ fontSize: '0.8rem', color: '#c8bfb0', lineHeight: 1.5 }}
+          >
+            "{product.shortDescription}"
+          </p>
+        )}
+        <p className="text-xs font-semibold" style={{ color: '#e8dcc8' }}>
+          Da €{lowestPrice.toFixed(2)}
+        </p>
+      </div>
+    </Link>
   )
 }
 
