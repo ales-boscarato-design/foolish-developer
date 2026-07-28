@@ -33,6 +33,7 @@ import * as migration_20260615_120000_uppercase_promo_codes from './20260615_120
 import * as migration_20260617_100000_add_reseller_fields from './20260617_100000_add_reseller_fields';
 import * as migration_20260716_120000_add_printful_fields from './20260716_120000_add_printful_fields';
 import * as migration_20260728_140000_add_users_api_key from './20260728_140000_add_users_api_key';
+import * as migration_20260728_160000_fix_users_api_key_column_name from './20260728_160000_fix_users_api_key_column_name';
 
 export const migrations = [
   {
@@ -209,5 +210,10 @@ export const migrations = [
     up: migration_20260728_140000_add_users_api_key.up,
     down: migration_20260728_140000_add_users_api_key.down,
     name: '20260728_140000_add_users_api_key',
+  },
+  {
+    up: migration_20260728_160000_fix_users_api_key_column_name.up,
+    down: migration_20260728_160000_fix_users_api_key_column_name.down,
+    name: '20260728_160000_fix_users_api_key_column_name',
   },
 ];
