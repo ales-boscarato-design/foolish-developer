@@ -63,6 +63,7 @@ export default buildConfig({
       auth: {
         maxLoginAttempts: 5,
         lockTime: 30 * 60 * 1000, // 30 minuti
+        useAPIKey: true, // permette di generare una API key per utente in alternativa alla password (28/07/2026)
       },
       admin: {
         useAsTitle: 'email',
