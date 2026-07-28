@@ -501,26 +501,56 @@
       "comingSoon": "Próximamente — primero el manifiesto, luego el resto."
     },
     "merch": {
-      "label": "Lleva SEBO"
+      "eyebrow": "SEBO PRACTICE ARCHIVES™ × RESEARCH DIVISION™",
+      "headline": "Wear the worst portfolio in Italy.",
+      "subline": "Ten t-shirts. Each one has a status. None of them are done."
     },
     "pellaioLink": "El Pellejero hace las pieles. Yo las arruino. No me dirige la palabra desde 2012.",
     "cta": {
-      "eyebrow": "SÍGUEME",
+      "eyebrow": "FOLLOW ME",
       "instagram": {
-        "button": "Sebo en Instagram",
-        "note": "Donde vivo. Bromas, fracasos, tatuajes fallidos — cada día."
+        "button": "Sebo on Instagram",
+        "note": "128 posts ready. The profile is where everything ends up — mistakes, tutorials, Monday's coffee. Updated by something."
       },
       "telegram": {
-        "button": "Canal Telegram",
-        "note": "Para quienes quieren el canal directo."
+        "button": "Telegram Channel",
+        "note": "For those who want to know before anyone else."
       },
       "support": {
-        "button": "Escribe al taller",
-        "note": "Para pedidos — responde el taller."
+        "button": "Contact the studio",
+        "note": "For orders — the studio responds."
       }
     },
     "imageAlt": "Sebo — la mascota del lab",
-    "backToShop": "← Vuelta al escaparate"
+    "backToShop": "← Vuelta al escaparate",
+    "pratica": {
+      "eyebrow": "THE PRACTICE",
+      "quote": "SEBO doesn't watch the tattoo.\nHe watches the practice. His own."
+    },
+    "mondo": {
+      "eyebrow": "THE WORLD OF SEBO",
+      "pellaio": {
+        "name": "IL PELLAIO",
+        "line": "He turns me toward the wall. Doesn't ask. Decides. I accept."
+      },
+      "arancia": {
+        "name": "L'ARANCIA",
+        "line": "The first surface everyone practiced on. Now waiting on the windowsill."
+      },
+      "corriere": {
+        "name": "IL CORRIERE",
+        "line": "The only human who treats me like a package. Never gets it wrong."
+      },
+      "scatola": {
+        "name": "LA SCATOLA",
+        "line": "SHIPPING SEAL: INTACT. Since day one."
+      }
+    },
+    "vitaSegreta": {
+      "eyebrow": "WHEN NO ONE IS WATCHING",
+      "headline": "The studio opens at ten.\nHe's been there since seven.",
+      "body": "There is a ritual before work. A cracked mirror, a razor blade, no witnesses. Sebo has never talked about it. Not because it's a secret — but because nobody ever asked."
+    }
   },
   "subscription": {
     "hub": {

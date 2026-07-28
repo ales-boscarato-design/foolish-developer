@@ -501,18 +501,20 @@
       "comingSoon": "In arrivo — prima il manifesto, poi il resto."
     },
     "merch": {
-      "label": "Porta SEBO con te"
+      "eyebrow": "SEBO PRACTICE ARCHIVES™ × RESEARCH DIVISION™",
+      "headline": "Indossa il peggior portfolio d'Italia.",
+      "subline": "Dieci magliette. Ognuna ha uno status. Nessuna è completata."
     },
     "pellaioLink": "Il Pellaio fa le pelli. Io le rovino. Non mi rivolge la parola dal 2012.",
     "cta": {
       "eyebrow": "SEGUIMI",
       "instagram": {
         "button": "Sebo su Instagram",
-        "note": "Dove vivo. Battute, fallimenti, tatuaggi sbagliati — ogni giorno."
+        "note": "128 post pronti. Il profilo è il cassone dove finisce tutto — errori, tutorial, il caffè del lunedì. Aggiornato da qualcosa."
       },
       "telegram": {
         "button": "Canale Telegram",
-        "note": "Per chi vuole il canale diretto."
+        "note": "Per chi vuole sapere prima degli altri."
       },
       "support": {
         "button": "Scrivi al laboratorio",
@@ -520,7 +522,35 @@
       }
     },
     "imageAlt": "Sebo — la mascotte del laboratorio",
-    "backToShop": "← Torna alla vetrina"
+    "backToShop": "← Torna alla vetrina",
+    "pratica": {
+      "eyebrow": "LA PRATICA",
+      "quote": "SEBO non osserva il tatuaggio.\nOsserva la pratica. La sua."
+    },
+    "mondo": {
+      "eyebrow": "IL MONDO DI SEBO",
+      "pellaio": {
+        "name": "IL PELLAIO",
+        "line": "Mi gira verso il muro. Non chiede. Decide. Io subisco."
+      },
+      "arancia": {
+        "name": "L'ARANCIA",
+        "line": "La prima superficie su cui tutti si sono allenati. Ora aspetta sul davanzale."
+      },
+      "corriere": {
+        "name": "IL CORRIERE",
+        "line": "L'unico umano che mi tratta da pacco. Non sbaglia mai."
+      },
+      "scatola": {
+        "name": "LA SCATOLA",
+        "line": "SHIPPING SEAL: INTACT. Dal primo giorno."
+      }
+    },
+    "vitaSegreta": {
+      "eyebrow": "QUANDO NESSUNO GUARDA",
+      "headline": "Il laboratorio apre alle dieci.\nLui è lì dalle sette.",
+      "body": "C'è un rituale prima del lavoro. Uno specchio incrinato, una lametta, nessun testimone. Sebo non lo ha mai raccontato. Non perché sia un segreto — ma perché nessuno ha mai chiesto."
+    }
   },
   "subscription": {
     "hub": {
