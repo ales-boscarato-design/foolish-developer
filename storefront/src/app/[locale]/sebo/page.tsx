@@ -140,7 +140,7 @@ export default async function SeboPage() {
           {/* Instagram — primary */}
           <div className="mb-8">
             <a
-              href="https://www.instagram.com/thefoolishbutcher"
+              href="https://www.instagram.com/thefoolishbutcher_tattoo"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-3 px-8 py-4 font-semibold text-sm tracking-widest uppercase transition-opacity hover:opacity-80 mb-3"
