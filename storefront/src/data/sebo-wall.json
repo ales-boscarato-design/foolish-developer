@@ -1,32 +1,38 @@
 [
   {
     "id": "sebo-001",
-    "image": "/sebo/sebo-01.png",
-    "line": "Non sono difettoso. Sono onesto.",
+    "image": "/sebo/wall-01.png",
+    "line": "Ognuno di questi è un cliente salvato da una linea che non saprò mai spiegare.",
     "date": "2026-01-15"
   },
   {
     "id": "sebo-002",
-    "image": "/sebo/sebo-02.png",
-    "line": "Il blowout è una scelta artistica. L'ho deciso adesso.",
+    "image": "/sebo/wall-02.png",
+    "line": "L'Arancia ha più ore di seduta di qualsiasi cliente reale. È la mia migliore testimonial.",
     "date": "2026-02-03"
   },
   {
     "id": "sebo-003",
-    "image": "/sebo/sebo-03.png",
-    "line": "Ogni linea storta che porto addosso è un cliente salvato.",
+    "image": "/sebo/wall-03.png",
+    "line": "Medaglia di bronzo, categoria 'ci ha provato'. La conservo accanto al diploma.",
     "date": "2026-02-20"
   },
   {
     "id": "sebo-004",
-    "image": "/sebo/sebo-04.png",
-    "line": "Cliente: voglio qualcosa di sottile. Io: perfetto.",
+    "image": "/sebo/wall-04.png",
+    "line": "Nuova macchinetta. Il problema non era la macchinetta. Ma non si sa mai.",
     "date": "2026-03-08"
   },
   {
     "id": "sebo-005",
-    "image": "/sebo/sebo-05.png",
-    "line": "Il Pellaio mi guarda. Preferisco non incontrare il suo sguardo.",
+    "image": "/sebo/wall-05.png",
+    "line": "Ho preso le ferie. Il problema mi ha seguito.",
     "date": "2026-04-01"
+  },
+  {
+    "id": "sebo-006",
+    "image": "/sebo/wall-06.png",
+    "line": "Il portfolio segreto non è segreto. È solo che non avevo altri posti.",
+    "date": "2026-04-22"
   }
 ]
