@@ -497,8 +497,12 @@
       "eyebrow": "LE MUR"
     },
     "stickers": {
-      "eyebrow": "STICKERS",
-      "comingSoon": "Bientôt disponibles — le manifeste d'abord, le reste ensuite."
+      "eyebrow": "STICKER N°001 — COLLECTIBLE",
+      "headline": "Not for sale.\nIt comes with you.",
+      "body": "The first sticker in the SEBO series is a numbered die-cut. It arrives in the package with every order of 100€ or more — no form, no code, no explanation. It is inside.",
+      "conditionLabel": "How to get it",
+      "condition": "Order of 100€ or more → Sticker N°001 included in the package. Not available anywhere else.",
+      "date": "Available from August 5, 2026."
     },
     "merch": {
       "eyebrow": "SEBO PRACTICE ARCHIVES™ × RESEARCH DIVISION™",

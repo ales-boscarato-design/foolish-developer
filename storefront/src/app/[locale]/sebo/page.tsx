@@ -129,22 +129,55 @@ export default async function SeboPage() {
       {/* ── STICKERS ── */}
       <section className="border-t py-24" style={{ borderColor: '#1e1812' }}>
         <div className="max-w-7xl mx-auto px-8 md:px-16">
-          <p className="text-xs font-bold tracking-[0.35em] uppercase mb-8" style={{ color: '#c9a96e' }}>
-            {t('stickers.eyebrow')}
-          </p>
-          <div
-            className="border rounded-lg px-8 py-12 text-center"
-            style={{ borderColor: '#1e1812', borderStyle: 'dashed' }}
-          >
-            <p
-              className="font-display leading-none mb-4"
-              style={{ fontSize: 'clamp(22px, 4vw, 48px)', color: '#2a2318' }}
-            >
-              Sbaglia su di me.
-            </p>
-            <p className="text-sm italic" style={{ color: '#555' }}>
-              {t('stickers.comingSoon')}
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+
+            {/* Sticker image */}
+            <div className="flex items-center justify-center">
+              <div className="relative w-full max-w-sm mx-auto">
+                <Image
+                  src="/sebo/sticker1.png"
+                  alt="Sticker N°001 — Non sono brutto, sono il tuo periodo di formazione"
+                  width={600}
+                  height={600}
+                  className="w-full h-auto"
+                  style={{ filter: 'drop-shadow(0 8px 32px rgba(201,169,110,0.15))' }}
+                />
+              </div>
+            </div>
+
+            {/* Copy */}
+            <div>
+              <p className="text-xs font-bold tracking-[0.35em] uppercase mb-6" style={{ color: '#c9a96e' }}>
+                {t('stickers.eyebrow')}
+              </p>
+              <h2
+                className="font-display leading-none mb-6"
+                style={{ fontSize: 'clamp(28px, 4.5vw, 56px)', color: '#e8dcc8', letterSpacing: '-0.02em' }}
+              >
+                {t('stickers.headline')}
+              </h2>
+              <p className="mb-8" style={{ fontSize: '0.95rem', color: '#c8bfb0', lineHeight: 1.8 }}>
+                {t('stickers.body')}
+              </p>
+
+              {/* Condition box */}
+              <div
+                className="border px-6 py-5 mb-6"
+                style={{ borderColor: '#c9a96e' }}
+              >
+                <p className="text-xs font-bold tracking-[0.3em] uppercase mb-2" style={{ color: '#c9a96e' }}>
+                  {t('stickers.conditionLabel')}
+                </p>
+                <p style={{ fontSize: '1.05rem', color: '#e8dcc8', fontWeight: 500, lineHeight: 1.6 }}>
+                  {t('stickers.condition')}
+                </p>
+              </div>
+
+              <p className="text-xs tracking-widest uppercase" style={{ color: '#555' }}>
+                {t('stickers.date')}
+              </p>
+            </div>
+
           </div>
         </div>
       </section>
