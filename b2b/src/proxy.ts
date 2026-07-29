@@ -2,9 +2,35 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 import { routing } from './i18n/routing'
 
-// Catalogo e scheda prodotto sono pubblici (anteprima prodotti/prezzi prima del login);
-// l'auth resta obbligatoria solo per carrello, checkout e account.
-const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/logout', '/catalogo', '/api/catalog']
+// 2026-07-29 — carrello e checkout aperti agli ospiti.
+//
+// Prima l'auth copriva anche /carrello e /checkout, e il risultato era
+// un portale chiuso a chi voleva comprare ma aperto a chiunque: la
+// registrazione concede `active` all'istante a chiunque digiti una
+// ragione sociale qualsiasi, e la partita IVA raccolta al checkout non
+// veniva verificata da nessuno. Il muro non filtrava niente, fermava
+// soltanto il primo ordine di un rivenditore nuovo — cioè esattamente
+// la persona che l'email a freddo manda sul portale.
+//
+// Il carrello poi non aveva nemmeno bisogno di quel gate: è uno store
+// zustand persistito in localStorage, vive solo nel browser.
+//
+// L'identità ora si chiede dove serve — al checkout, insieme
+// all'indirizzo di fatturazione — e si verifica davvero, contro il
+// VIES (vedi src/lib/vies.ts). /account resta protetto: lì si guarda
+// lo storico ordini, e serve essere qualcuno.
+const PUBLIC_PATHS = [
+  '/login',
+  '/api/auth/login',
+  '/api/auth/logout',
+  '/catalogo',
+  '/api/catalog',
+  '/carrello',
+  '/checkout',
+  '/api/checkout',
+  '/api/vat',
+  '/api/stripe',
+]
 const SESSION_SECRET = new TextEncoder().encode(process.env.B2B_SESSION_SECRET!)
 
 export async function proxy(req: NextRequest) {

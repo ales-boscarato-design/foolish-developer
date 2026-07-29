@@ -12,6 +12,8 @@ const COUNTRY_CODES = [
 ]
 
 interface FormData {
+  /** Ospite: chi compra senza account. Precompilata dalla sessione se c'e'. */
+  email: string
   businessName: string
   vatNumber: string
   sdiCode: string
@@ -33,8 +35,37 @@ export default function CheckoutPage() {
   const router = useRouter()
   const t = useTranslations('Checkout')
   const [loading, setLoading] = useState(false)
+  // Esito della verifica VIES sulla partita IVA. `null` = non ancora
+  // controllata. Vedi src/lib/vies.ts per perche' "unverified" non
+  // blocca l'ordine.
+  const [vat, setVat] = useState<{ status: string; name?: string; detail?: string } | null>(null)
+  const [vatChecking, setVatChecking] = useState(false)
+  const [isGuest, setIsGuest] = useState(true)
+
+  async function verifyVat(value: string) {
+    if (!value.trim()) { setVat(null); return }
+    setVatChecking(true)
+    try {
+      const res = await fetch('/api/vat/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vat: value }),
+      })
+      const data = await res.json()
+      setVat(data)
+      // Il registro conosce la ragione sociale ufficiale: se il campo e'
+      // ancora vuoto la propone, senza mai sovrascrivere quanto digitato.
+      if (data?.status === 'valid' && data?.name) {
+        setForm(f => (f.businessName.trim() ? f : { ...f, businessName: data.name }))
+      }
+    } catch {
+      setVat({ status: 'unverified', detail: 'verifica non riuscita' })
+    } finally {
+      setVatChecking(false)
+    }
+  }
   const [form, setForm] = useState<FormData>({
-    businessName: '', vatNumber: '', sdiCode: '', billingAddress1: '', billingCity: '',
+    email: '', businessName: '', vatNumber: '', sdiCode: '', billingAddress1: '', billingCity: '',
     billingPostalCode: '', billingCountry: 'IT', shippingName: '', shippingAddress1: '',
     shippingCity: '', shippingPostalCode: '', shippingCountry: 'IT',
     paymentMethod: 'bonifico', notes: '',
@@ -46,8 +77,10 @@ export default function CheckoutPage() {
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data?.session) {
+          setIsGuest(false)
           setForm(f => ({
             ...f,
+            email: data.session.email ?? '',
             businessName: data.session.businessName ?? '',
             vatNumber: data.session.vatNumber ?? '',
             shippingName: data.session.businessName ?? '',
@@ -162,6 +195,18 @@ export default function CheckoutPage() {
         <section>
           <h2 style={sectionHeadStyle}>{t('fatturazione')}</h2>
           <div className="checkout-grid">
+            {isGuest && (
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={labelStyle}>Email</label>
+                <input required type="email" style={inputStyle} value={form.email}
+                  onChange={e => set('email', e.target.value)}
+                  placeholder="ordini@tuaazienda.it" />
+                <p style={{ fontSize: '0.72rem', opacity: 0.6, margin: '0.35rem 0 0' }}>
+                  Ci mandiamo la conferma d&apos;ordine. Da qui creiamo il tuo
+                  accesso allo storico: nessuna password da scegliere adesso.
+                </p>
+              </div>
+            )}
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={labelStyle}>{t('ragioneSociale')}</label>
               <input required style={inputStyle} value={form.businessName}
@@ -170,7 +215,31 @@ export default function CheckoutPage() {
             <div>
               <label style={labelStyle}>{t('piva')}</label>
               <input required style={inputStyle} value={form.vatNumber}
-                onChange={e => set('vatNumber', e.target.value)} placeholder="IT12345678901" />
+                onChange={e => set('vatNumber', e.target.value)}
+                onBlur={e => verifyVat(e.target.value)}
+                placeholder="IT12345678901" />
+              {vatChecking && (
+                <p style={{ fontSize: '0.72rem', opacity: 0.6, margin: '0.35rem 0 0' }}>
+                  Verifica in corso…
+                </p>
+              )}
+              {!vatChecking && vat?.status === 'valid' && (
+                <p style={{ fontSize: '0.72rem', color: '#7ac77a', margin: '0.35rem 0 0' }}>
+                  ✓ Verificata{vat.name ? ` — ${vat.name}` : ''}
+                </p>
+              )}
+              {!vatChecking && vat?.status === 'invalid' && (
+                <p style={{ fontSize: '0.72rem', color: '#e08585', margin: '0.35rem 0 0' }}>
+                  Non risulta nel registro UE. Controlla il numero, prefisso
+                  del paese incluso.
+                </p>
+              )}
+              {!vatChecking && vat?.status === 'unverified' && (
+                <p style={{ fontSize: '0.72rem', opacity: 0.6, margin: '0.35rem 0 0' }}>
+                  Non siamo riusciti a verificarla ora — l&apos;ordine parte
+                  lo stesso, la controlliamo noi.
+                </p>
+              )}
             </div>
             <div>
               <label style={labelStyle}>{t('sdi')}</label>

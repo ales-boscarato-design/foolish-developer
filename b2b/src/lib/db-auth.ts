@@ -35,7 +35,14 @@ export async function findB2BUserByEmail(email: string): Promise<B2BAuthUser | n
 export async function createB2BUser(
   email: string,
   businessName: string,
-  passwordHash: string,
+  /**
+   * Null per gli ordini da ospite (2026-07-29): il rivenditore compra
+   * senza registrarsi, e l'account nasce dai dati del checkout. Il
+   * percorso "utente senza password" esisteva già per i migrati da
+   * pro_members — la imposta al primo accesso e da lì vede lo storico.
+   * Nessun conto a metà: c'è l'ordine, e c'è chi l'ha fatto.
+   */
+  passwordHash: string | null,
 ): Promise<B2BAuthUser> {
   const rows = await sql<B2BAuthUser[]>`
     INSERT INTO b2b_auth (email, business_name, password_hash)
