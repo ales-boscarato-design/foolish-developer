@@ -30,6 +30,12 @@ const PUBLIC_PATHS = [
   '/api/checkout',
   '/api/vat',
   '/api/stripe',
+  // /offerte era rimasta dietro l'auth mentre il banner che ci porta
+  // sta sul catalogo PUBBLICO (catalogo/page.tsx -> AnnouncementBanner
+  // -> href="/offerte"). Un rivenditore nuovo leggeva "Ordina entro il
+  // 13 agosto", cliccava "Leggi i dettagli" e finiva su una schermata
+  // di login: la promozione visibile a tutti, le condizioni no.
+  '/offerte',
 ]
 const SESSION_SECRET = new TextEncoder().encode(process.env.B2B_SESSION_SECRET!)
 
