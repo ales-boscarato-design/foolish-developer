@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { getServerSession } from '@/lib/auth'
+import { checkVatNumber } from '@/lib/vies'
+import { ensureB2BAuthTable, findB2BUserByEmail, createB2BUser } from '@/lib/db-auth'
 import { createResellerOrder } from '@/lib/db'
 import { calculateLineTotal } from '@/lib/pricing'
 import { calculateResellerShipping } from '@/lib/shipping'
@@ -17,18 +19,50 @@ function generateOrderNumber(): string {
 }
 
 export async function POST(req: NextRequest) {
+  // Stesso trattamento della rotta bonifico (/api/checkout): ospite
+  // ammesso, identita' raccolta nel form, partita IVA verificata qui
+  // lato server. Aprire una sola delle due strade lasciava il carrello
+  // aperto e poi rifiutava chi sceglieva Stripe — cioe' proprio il
+  // metodo che vogliamo incoraggiare, visto che i rivenditori hanno
+  // gia' un e-commerce e ci convivono ogni giorno.
   const session = await getServerSession()
-  if (!session) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
   const { form, items } = await req.json()
 
-  // Recalculate total server-side, add shipping, then apply +4% surcharge
+  const email = (session?.email ?? form?.email ?? '').toLowerCase().trim()
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return NextResponse.json({ error: 'email_non_valida' }, { status: 400 })
+  }
+  if (!form?.businessName?.trim()) {
+    return NextResponse.json({ error: 'ragione_sociale_mancante' }, { status: 400 })
+  }
+  const vat = await checkVatNumber(form?.vatNumber ?? '')
+  if (vat.status === 'invalid') {
+    return NextResponse.json(
+      { error: 'partita_iva_non_valida', detail: vat.detail },
+      { status: 400 },
+    )
+  }
+  if (!session) {
+    try {
+      await ensureB2BAuthTable()
+      if (!(await findB2BUserByEmail(email))) {
+        await createB2BUser(email, form.businessName, null)
+      }
+    } catch (err) {
+      console.error('[stripe/create-intent] creazione account ospite fallita:', err)
+    }
+  }
+
+  // Totale ricalcolato lato server. Nessun sovrapprezzo: lo storefront
+  // retail non ne applica, e caricare un +4% a chi paga con carta
+  // spinge verso il bonifico proprio i rivenditori che con Stripe si
+  // troverebbero a casa. La commissione la assorbiamo, come nel retail.
   const productsTotal = (items as {
     productName: string; variantLabel: string; qty: number; unitPrice: number; priceTiers: PriceTier[]
   }[]).reduce((sum, item) => sum + calculateLineTotal(item.unitPrice, item.qty, item.priceTiers), 0)
   const shipping = calculateResellerShipping(productsTotal, form.shippingCountry)
-  const baseTotal = productsTotal + shipping.cost
-  const total = Math.round(baseTotal * 1.04 * 100) / 100
+  const total = Math.round((productsTotal + shipping.cost) * 100) / 100
   const amountCents = Math.round(total * 100)
 
   const orderNumber = generateOrderNumber()
@@ -38,7 +72,7 @@ export async function POST(req: NextRequest) {
   try {
     orderId = await createResellerOrder({
       orderNumber,
-      customerEmail: session.email,
+      customerEmail: email,
       customerName: form.shippingName,
       vatNumber: form.vatNumber,
       businessName: form.businessName,
@@ -56,7 +90,12 @@ export async function POST(req: NextRequest) {
       total,
       shippingCost: shipping.cost,
       paymentMethod: 'stripe',
-      notes: `${form.notes ?? ''} [Stripe +4%]`.trim(),
+      notes: [
+        form.notes?.trim(),
+        vat.status === 'valid'
+          ? `[VIES OK] ${vat.name ?? 'partita IVA valida'}`
+          : `[VIES NON VERIFICATA — controllare a mano] ${vat.detail ?? ''}`,
+      ].filter(Boolean).join('\n'),
     })
   } catch (err) {
     console.error('[stripe/create-intent] createResellerOrder failed:', err)
@@ -71,7 +110,7 @@ export async function POST(req: NextRequest) {
       metadata: {
         orderId: String(orderId),
         orderNumber,
-        resellerEmail: session.email,
+        resellerEmail: email,
       },
       automatic_payment_methods: { enabled: true },
     })

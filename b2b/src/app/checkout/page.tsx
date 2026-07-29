@@ -99,8 +99,12 @@ export default function CheckoutPage() {
   const cartTotal = total()
   const shipping = calculateResellerShipping(cartTotal, form.shippingCountry)
   const baseTotal = cartTotal + shipping.cost
-  const stripeTotal = baseTotal * 1.04
-  const displayTotal = form.paymentMethod === 'stripe' ? stripeTotal : baseTotal
+  // Nessun sovrapprezzo su Stripe (2026-07-29): allineato allo
+  // storefront retail. Il totale e' lo stesso qualunque metodo si
+  // scelga, quindi non c'e' piu' una cifra che cambia sotto gli occhi
+  // di chi seleziona la carta.
+  const stripeTotal = baseTotal
+  const displayTotal = baseTotal
 
   function set(field: keyof FormData, value: string) {
     setForm(f => ({ ...f, [field]: value }))
@@ -364,12 +368,6 @@ export default function CheckoutPage() {
             <span>{t('subtotale')}</span>
             <span style={{ color: 'var(--foreground)' }}>{formatPrice(cartTotal)}</span>
           </div>
-          {form.paymentMethod === 'stripe' && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--muted-fg)', marginBottom: '0.5rem' }}>
-              <span>{t('supplementoCarta')}</span>
-              <span>+{formatPrice(stripeTotal - cartTotal)}</span>
-            </div>
-          )}
           {shipping.mode === 'quote' ? (
             <p style={{ fontSize: '0.8rem', color: 'var(--muted-fg)', marginBottom: '1rem', lineHeight: 1.5 }}>
               {t('costoSpedizione')}: {t('spedizioneQuotata')}
