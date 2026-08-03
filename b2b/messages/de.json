@@ -184,6 +184,7 @@
     "intestatario": "Kontoinhaber:",
     "iban": "IBAN:",
     "causale": "Verwendungszweck: {ordine} — bitte Bestellnummer als Verwendungszweck angeben.",
+    "coordinateNonDisponibili": "Die Bankverbindung ist derzeit nicht verfügbar. Schreiben Sie uns an ordini@thefoolishbutcher.com mit Ihrer Bestellnummer, wir senden sie Ihnen umgehend zu.",
     "pagamentoRicevuto": "Die Zahlung wurde empfangen.",
     "emailConferma": "Sie haben die Bestellbestätigung per E-Mail erhalten.",
     "continuaAcquistare": "Weiter einkaufen"

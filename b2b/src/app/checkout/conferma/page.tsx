@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server'
 import { CartClearer } from '@/components/CartClearer'
+import { getBankDetails } from '@/lib/bank'
 
 export default async function ConfermaPage({
   searchParams,
@@ -9,6 +10,7 @@ export default async function ConfermaPage({
   const { ordine, metodo } = await searchParams
   const isBonifico = metodo === 'bonifico'
   const t = await getTranslations('Conferma')
+  const banca = getBankDetails()
 
   return (
     <div style={{ maxWidth: '32rem', margin: '0 auto', marginTop: '4rem', textAlign: 'center' }}>
@@ -24,15 +26,21 @@ export default async function ConfermaPage({
       {isBonifico ? (
         <div style={{ background: 'rgba(200,169,126,0.06)', border: '1px solid rgba(200,169,126,0.2)', borderRadius: '1rem', padding: '1.5rem', textAlign: 'left', fontSize: '0.875rem' }}>
           <p style={{ fontWeight: 500, marginBottom: '1rem', color: 'var(--foreground)' }}>{t('coordinateBonifico')}</p>
-          <p style={{ marginBottom: '0.375rem', color: 'var(--muted-fg)' }}>
-            {t('intestatario')} <span style={{ color: 'var(--foreground)', fontWeight: 500 }}>The Foolish Butcher Srl</span>
-          </p>
-          <p style={{ marginBottom: '0.375rem', color: 'var(--muted-fg)' }}>
-            {t('iban')} <span style={{ fontFamily: 'monospace', color: 'var(--accent)', fontWeight: 500, letterSpacing: '0.04em' }}>LT62 3250 0124 6419 4276</span>
-          </p>
-          <p style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--muted-fg)' }}>
-            {t('causale', { ordine: ordine ?? '' })}
-          </p>
+          {banca ? (
+            <>
+              <p style={{ marginBottom: '0.375rem', color: 'var(--muted-fg)' }}>
+                {t('intestatario')} <span style={{ color: 'var(--foreground)', fontWeight: 500 }}>{banca.intestatario}</span>
+              </p>
+              <p style={{ marginBottom: '0.375rem', color: 'var(--muted-fg)' }}>
+                {t('iban')} <span style={{ fontFamily: 'monospace', color: 'var(--accent)', fontWeight: 500, letterSpacing: '0.04em' }}>{banca.iban}</span>
+              </p>
+              <p style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--muted-fg)' }}>
+                {t('causale', { ordine: ordine ?? '' })}
+              </p>
+            </>
+          ) : (
+            <p style={{ color: 'var(--muted-fg)' }}>{t('coordinateNonDisponibili')}</p>
+          )}
         </div>
       ) : (
         <p style={{ fontSize: '0.875rem', color: 'var(--muted-fg)' }}>{t('pagamentoRicevuto')}</p>

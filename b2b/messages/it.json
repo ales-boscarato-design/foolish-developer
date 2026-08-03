@@ -184,6 +184,7 @@
     "intestatario": "Intestatario:",
     "iban": "IBAN:",
     "causale": "Causale: {ordine} — inserisci il numero d'ordine come causale.",
+    "coordinateNonDisponibili": "Le coordinate bancarie non sono disponibili in questo momento. Scrivici a ordini@thefoolishbutcher.com indicando il numero d'ordine e te le inviamo subito.",
     "pagamentoRicevuto": "Il pagamento è stato ricevuto.",
     "emailConferma": "Hai ricevuto la conferma d'ordine via email.",
     "continuaAcquistare": "Continua ad acquistare"
