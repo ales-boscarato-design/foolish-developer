@@ -184,6 +184,7 @@
     "intestatario": "Beneficiary:",
     "iban": "IBAN:",
     "causale": "Reference: {ordine} — please use the order number as payment reference.",
+    "coordinateNonDisponibili": "Bank details are unavailable right now. Email us at ordini@thefoolishbutcher.com with your order number and we will send them straight away.",
     "pagamentoRicevuto": "Payment received.",
     "emailConferma": "You have received the order confirmation by email.",
     "continuaAcquistare": "Continue shopping"
