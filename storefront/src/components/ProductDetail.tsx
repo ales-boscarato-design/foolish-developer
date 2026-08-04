@@ -276,6 +276,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
   const [added, setAdded] = useState(false)
   const [qty, setQty] = useState(1)
   const [activeImage, setActiveImage] = useState(0)
+  const [variantImageActive, setVariantImageActive] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [showStickyBar, setShowStickyBar] = useState(false)
   const addToCart = useCart((s) => s.add)
@@ -314,6 +315,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
 
   const handleVariantSelect = (v: ProductVariant) => {
     setSelectedVariant(v)
+    setVariantImageActive(true)
     setActiveImage(0)
     setImageLoaded(false)
     setQty(1)
@@ -357,7 +359,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
     .map((v: ProductVideo) => ({ kind: 'video', url: cmsImageUrl(v.video.url) }))
 
   const imageItems: GalleryItem[] = [
-    ...(selectedVariant.image?.url ? [{ kind: 'image' as const, url: selectedVariant.image.url, alt: selectedVariant.image.alt ?? undefined }] : []),
+    ...(variantImageActive && selectedVariant.image?.url ? [{ kind: 'image' as const, url: selectedVariant.image.url, alt: selectedVariant.image.alt ?? undefined }] : []),
     ...product.images.flatMap((pi): GalleryItem[] =>
       pi.image?.url ? [{ kind: 'image' as const, url: pi.image.url, alt: pi.image.alt ?? undefined }] : []
     ),
@@ -476,7 +478,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
 
             {effectiveGallery.length > 1 && (
               <div className="flex gap-2 mt-3 flex-wrap">
-                {effectiveGallery.slice(0, 4).map((item, i) => (
+                {effectiveGallery.map((item, i) => (
                   <button
                     key={i}
                     onClick={() => { setActiveImage(i); }}
@@ -506,14 +508,6 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                     ) : null}
                   </button>
                 ))}
-                {effectiveGallery.length > 4 && (
-                  <div
-                    className="flex-shrink-0 rounded-lg border flex items-center justify-center text-xs"
-                    style={{ width: 44, height: 44, borderColor: 'var(--border)', color: 'var(--muted-fg)' }}
-                  >
-                    +{effectiveGallery.length - 4}
-                  </div>
-                )}
               </div>
             )}
           </motion.div>
