@@ -1,5 +1,10 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, PayloadRequest } from 'payload'
 import { syncPrintfulHandler } from '../endpoints/syncPrintful'
+
+function hasStorefrontSecret(req: PayloadRequest): boolean {
+  const secret = req.headers?.get?.('x-storefront-secret') ?? (req.headers as unknown as Record<string, string>)?.['x-storefront-secret']
+  return !!secret && secret === process.env.PAYLOAD_API_SECRET
+}
 
 export const Products: CollectionConfig = {
   slug: 'products',
@@ -27,6 +32,14 @@ export const Products: CollectionConfig = {
   },
   access: {
     read: () => true,
+    create: ({ req }) => {
+      if (req.user) return true
+      return hasStorefrontSecret(req)
+    },
+    update: ({ req }) => {
+      if (req.user) return true
+      return hasStorefrontSecret(req)
+    },
   },
   fields: [
     {
