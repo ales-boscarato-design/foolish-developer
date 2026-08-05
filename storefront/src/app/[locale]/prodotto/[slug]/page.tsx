@@ -22,15 +22,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const langs = Object.fromEntries(LOCALES.map(l => [l, `${BASE}/${l}/prodotto/${slug}`]))
 
   return {
-    title: product.name,
-    description: product.shortDescription,
+    title: product.metaTitle || product.name,
+    description: product.metaDescription || product.shortDescription,
     alternates: {
       canonical: `${BASE}/${locale}/prodotto/${slug}`,
       languages: { ...langs, 'x-default': `${BASE}/it/prodotto/${slug}` },
     },
     openGraph: {
-      title: `${product.name} — The Foolish Butcher`,
-      description: product.shortDescription ?? undefined,
+      title: product.metaTitle || `${product.name} — The Foolish Butcher`,
+      description: product.metaDescription || product.shortDescription || undefined,
       url: `${BASE}/${locale}/prodotto/${slug}`,
       type: 'website',
       images: firstImage

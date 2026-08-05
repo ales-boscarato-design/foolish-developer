@@ -135,6 +135,20 @@ export const Products: CollectionConfig = {
       label: 'Descrizione completa',
     },
     {
+      name: 'metaTitle',
+      type: 'text',
+      localized: true,
+      label: 'SEO — Titolo (opzionale)',
+      admin: { description: 'Se vuoto, usa il nome prodotto. Mostrato nei risultati di ricerca e nel tab del browser.' },
+    },
+    {
+      name: 'metaDescription',
+      type: 'text',
+      localized: true,
+      label: 'SEO — Descrizione (opzionale)',
+      admin: { description: 'Se vuoto, usa la descrizione breve. Mostrato nei risultati di ricerca.' },
+    },
+    {
       name: 'uniqueNote',
       type: 'textarea',
       localized: true,

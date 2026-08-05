@@ -121,6 +121,8 @@ export interface Product {
     [key: string]: unknown
   } | null
   uniqueNote?: string
+  metaTitle?: string
+  metaDescription?: string
   images: ProductImage[]
   videos?: ProductVideo[]
   basePrice: number
