@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ShoppingBag, Check, Star, Shield, Truck, Sparkles, Play } from 'lucide-react'
+import { ShoppingBag, Check, Star, Shield, Truck, Sparkles, Play, Expand, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useTranslations, useLocale } from 'next-intl'
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion'
 import { DURATION, EASE } from '@/lib/motion'
@@ -277,6 +277,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
   const [qty, setQty] = useState(1)
   const [activeImage, setActiveImage] = useState(0)
   const [variantImageActive, setVariantImageActive] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [showStickyBar, setShowStickyBar] = useState(false)
   const addToCart = useCart((s) => s.add)
@@ -308,6 +309,21 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
     observer.observe(el)
     return () => observer.disconnect()
   }, [])
+
+  // Lightbox — blocca lo scroll del body e chiude con Esc
+  useEffect(() => {
+    if (!lightboxOpen) return
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightboxOpen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.style.overflow = prevOverflow
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [lightboxOpen])
 
   if (!selectedVariant) return null
 
@@ -401,13 +417,14 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
           <motion.div variants={itemVariants} className="relative" style={{ y: imageY }}>
             <motion.div
               className="aspect-square rounded-2xl overflow-hidden relative"
-              style={{ backgroundColor: 'var(--muted)', scale: imageScale }}
+              style={{ backgroundColor: 'var(--muted)', scale: imageScale, cursor: activeItem?.kind === 'image' ? 'zoom-in' : undefined }}
               onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX }}
               onTouchEnd={(e) => {
                 if (touchStartX.current === null) return
                 handleSwipe(e.changedTouches[0].clientX - touchStartX.current)
                 touchStartX.current = null
               }}
+              onClick={() => { if (activeItem?.kind === 'image' && activeItem.url) setLightboxOpen(true) }}
             >
               {/* Skeleton visibile solo al primo caricamento immagine */}
               {!imageLoaded && activeItem?.kind !== 'video' && <ImageSkeleton />}
@@ -473,6 +490,14 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                 >
                   {t('limited')}
                 </motion.span>
+              )}
+              {activeItem?.kind === 'image' && activeItem.url && (
+                <div
+                  className="absolute bottom-4 right-4 w-9 h-9 rounded-full flex items-center justify-center pointer-events-none"
+                  style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}
+                >
+                  <Expand size={16} className="text-white" />
+                </div>
               )}
             </motion.div>
 
@@ -1011,6 +1036,70 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Lightbox — foto a tutto schermo */}
+      {lightboxOpen && activeItem?.kind === 'image' && activeItem.url && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10"
+          style={{ backgroundColor: 'rgba(0,0,0,0.94)' }}
+          onClick={() => setLightboxOpen(false)}
+          onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX }}
+          onTouchEnd={(e) => {
+            if (touchStartX.current === null) return
+            handleSwipe(e.changedTouches[0].clientX - touchStartX.current)
+            touchStartX.current = null
+          }}
+        >
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setLightboxOpen(false) }}
+            aria-label="Chiudi"
+            className="absolute top-4 right-4 w-11 h-11 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+          >
+            <X size={22} className="text-white" />
+          </button>
+
+          {effectiveGallery.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setActiveImage((i) => Math.max(i - 1, 0)) }}
+                disabled={activeImage === 0}
+                aria-label="Precedente"
+                className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full items-center justify-center disabled:opacity-20"
+                style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+              >
+                <ChevronLeft size={24} className="text-white" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setActiveImage((i) => Math.min(i + 1, effectiveGallery.length - 1)) }}
+                disabled={activeImage === effectiveGallery.length - 1}
+                aria-label="Successiva"
+                className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full items-center justify-center disabled:opacity-20"
+                style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+              >
+                <ChevronRight size={24} className="text-white" />
+              </button>
+            </>
+          )}
+
+          <div
+            className="relative w-full h-full max-w-5xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Image
+              key={`${activeItem.url}-${activeImage}-lightbox`}
+              src={cmsImageUrl(activeItem.url)}
+              alt={activeItem.alt || product.name}
+              fill
+              className="object-contain"
+              sizes="100vw"
+            />
+          </div>
+        </div>
+      )}
     </>
   )
 }
