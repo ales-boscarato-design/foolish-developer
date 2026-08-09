@@ -2,6 +2,7 @@ import type { NextConfig } from 'next'
 import createNextIntlPlugin from 'next-intl/plugin'
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
+const umamiUrl = process.env.NEXT_PUBLIC_UMAMI_URL ?? 'https://umami-production-1ebb.up.railway.app'
 
 const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -17,12 +18,12 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://js.stripe.com https://umami-production-8b53.up.railway.app",
+      `script-src 'self' 'unsafe-inline' https://js.stripe.com ${umamiUrl}`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://*.stripe.com https://*.railway.app",
       "font-src 'self'",
       "frame-src https://js.stripe.com https://hooks.stripe.com",
-      "connect-src 'self' https://api.stripe.com https://t.me https://umami-production-8b53.up.railway.app",
+      `connect-src 'self' https://api.stripe.com https://t.me ${umamiUrl}`,
     ].join('; '),
   },
 ]

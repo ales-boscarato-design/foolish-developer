@@ -27,15 +27,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale = await getLocale()
   const messages = await getMessages()
   const session = await getServerSession()
+  const umamiUrl = process.env.NEXT_PUBLIC_UMAMI_URL
+  const umamiWebsiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID
 
   return (
     <html lang={locale} className={`${outfit.variable} ${cormorant.variable}`}>
       <body style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)', minHeight: '100vh' }}>
-        <Script
-          src="https://umami-production-8b53.up.railway.app/script.js"
-          data-website-id="99ca3a08-ff9b-4310-94ea-567d6a32d188"
-          strategy="afterInteractive"
-        />
+        {umamiUrl && umamiWebsiteId && (
+          <Script
+            src={`${umamiUrl}/script.js`}
+            data-website-id={umamiWebsiteId}
+            strategy="afterInteractive"
+          />
+        )}
         <NextIntlClientProvider messages={messages}>
           <header style={{
             borderBottom: '1px solid var(--border)',
