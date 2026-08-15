@@ -377,7 +377,11 @@ export async function POST(req: NextRequest) {
       const customerEmail = (session.customer_email ?? session.customer_details?.email ?? '').toLowerCase().trim()
       const customerName = session.metadata?.customer_name ?? session.customer_details?.name ?? null
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const country = (session as any).shipping_details?.address?.country ?? session.metadata?.customer_country ?? null
+      const legacyShippingCountry = (session as any).shipping_details?.address?.country as string | undefined
+      const country = session.collected_information?.shipping_details?.address?.country
+        ?? legacyShippingCountry
+        ?? session.metadata?.customer_country
+        ?? null
       if (customerEmail) {
         await upsertCmsCustomer({ email: customerEmail, name: customerName, country })
       }
