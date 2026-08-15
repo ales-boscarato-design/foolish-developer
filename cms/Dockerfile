@@ -1,8 +1,8 @@
-FROM node:20-alpine
+FROM node:22-bookworm-slim
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm ci --legacy-peer-deps --include=optional
 
 COPY . .
 RUN npm run build
