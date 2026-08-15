@@ -16,10 +16,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Stripe or CMS not configured' }, { status: 500 })
   }
 
-  const configuredDays = Number.parseInt(process.env.STRIPE_RECONCILE_LOOKBACK_DAYS ?? '30', 10)
+  const requestedDays = req.nextUrl.searchParams.get('days')
+  const configuredDays = Number.parseInt(
+    requestedDays ?? process.env.STRIPE_RECONCILE_LOOKBACK_DAYS ?? '30',
+    10,
+  )
   const lookbackDays = Number.isFinite(configuredDays) && configuredDays > 0
     ? Math.min(configuredDays, 365)
     : 30
+  const heartbeat = req.nextUrl.searchParams.get('heartbeat') === '1'
 
   try {
     const result = await reconcilePaidStripeOrders({
@@ -29,9 +34,11 @@ export async function GET(req: NextRequest) {
 
     console.log('[stripe-reconcile]', JSON.stringify(result))
 
-    if (result.recovered.length > 0 || result.errors.length > 0) {
+    if (heartbeat || result.recovered.length > 0 || result.errors.length > 0) {
       await notifyNanobot('/hooks/foolish-storefront-order', {
-        eventType: 'stripe_order_reconciliation',
+        eventType: heartbeat
+          ? 'stripe_order_reconciliation_heartbeat'
+          : 'stripe_order_reconciliation',
         source: 'storefront',
         ...result,
       }, { throwOnError: true })
