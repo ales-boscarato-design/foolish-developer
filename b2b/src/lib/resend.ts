@@ -9,7 +9,7 @@ const CATALOG_URL = 'https://rivenditori.thefoolishbutcher.com/catalogo'
 const getResend = () => new Resend(process.env.RESEND_API_KEY!)
 
 export async function sendWelcomeEmail(email: string, businessName: string): Promise<void> {
-  await getResend().emails.send({
+  const { error } = await getResend().emails.send({
     from: FROM,
     to: email,
     bcc: [FRANK_BCC],
@@ -26,10 +26,14 @@ export async function sendWelcomeEmail(email: string, businessName: string): Pro
       <p>The Foolish Butcher</p>
     `,
   })
+
+  if (error) {
+    throw new Error(`Resend welcome email failed: ${error.message}`)
+  }
 }
 
 export async function sendActivationNotification(email: string, businessName: string): Promise<void> {
-  await getResend().emails.send({
+  const { error } = await getResend().emails.send({
     from: FROM,
     to: FRANK_BCC,
     subject: `Rivenditore attivato: ${businessName}`,
@@ -37,6 +41,10 @@ export async function sendActivationNotification(email: string, businessName: st
       <p>Il rivenditore <strong>${businessName}</strong> (<code>${email}</code>) ha impostato la propria password e attivato l'accesso all'area rivenditori.</p>
     `,
   })
+
+  if (error) {
+    throw new Error(`Resend activation notification failed: ${error.message}`)
+  }
 }
 
 export async function sendOrderConfirmation(params: {
@@ -70,7 +78,7 @@ export async function sendOrderConfirmation(params: {
     ? bonificoNote
     : `<p><strong>Pagamento:</strong> Carta di credito (Stripe). Il pagamento è stato confermato.</p>`
 
-  await getResend().emails.send({
+  const { error } = await getResend().emails.send({
     from: FROM,
     to: params.email,
     bcc: ['boscaratoa@icloud.com', FRANK_BCC],
@@ -87,4 +95,8 @@ export async function sendOrderConfirmation(params: {
       <p>Grazie,<br/>The Foolish Butcher</p>
     `,
   })
+
+  if (error) {
+    throw new Error(`Resend order confirmation failed: ${error.message}`)
+  }
 }

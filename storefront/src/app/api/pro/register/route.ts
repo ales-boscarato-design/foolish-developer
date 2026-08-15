@@ -3,7 +3,7 @@ import { notifyNanobot } from '@/lib/nanobot'
 
 export const dynamic = 'force-dynamic'
 
-const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1dda.up.railway.app'
+const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
 
 function parseVat(raw: string): { countryCode: string; vatNumber: string } | null {
   const trimmed = raw.trim().toUpperCase().replace(/\s/g, '')

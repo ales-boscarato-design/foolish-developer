@@ -2,7 +2,7 @@
  * Payload CMS API client — usato dal server-side Next.js.
  */
 
-const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1dda.up.railway.app'
+const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
 const CMS_API = `${CMS_URL}/api`
 
 /**
@@ -13,9 +13,23 @@ export function cmsImageUrl(url: string | undefined | null): string {
   if (!url) return ''
   // Match any CMS host — avoids env var dependency in browser context where
   // PAYLOAD_PUBLIC_URL (no NEXT_PUBLIC_ prefix) is undefined.
-  // decodeURIComponent prevents double-encoding when Next.js re-encodes the src.
+  // Normalize the filename as one URL path segment. This is important for
+  // filenames containing a literal percent sign (for example `100%-n-2.png`):
+  // passing the decoded `%` to Next Image makes its optimizer throw URIError.
   const match = url.match(/^https?:\/\/[^/]+\/api\/media\/file\/(.+)$/)
-  if (match) return `/cms-media/${decodeURIComponent(match[1])}`
+  if (match) {
+    try {
+      return `/cms-media/${encodeURIComponent(decodeURIComponent(match[1]))}`
+    } catch (error) {
+      // A malformed legacy media URL must not reach Next Image: the image
+      // optimizer decodes it again and can throw before our proxy runs.
+      console.warn('[CMS media] malformed encoded URL', {
+        url: url.slice(0, 240),
+        error: error instanceof Error ? error.message : String(error),
+      })
+      return ''
+    }
+  }
   return url
 }
 
@@ -145,7 +159,17 @@ async function fetchAPI<T>(path: string, params?: Record<string, string>, locale
     next: { revalidate: 60 }, // ISR — rivalidate ogni 60s
     headers: { 'Content-Type': 'application/json', ...extraHeaders },
   })
-  if (!res.ok) throw new Error(`CMS fetch error: ${res.status} ${path}`)
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      console.warn('[CMS API] access denied', {
+        status: res.status,
+        path,
+        cmsUrl: CMS_URL,
+        sharedSecretConfigured: Boolean(extraHeaders?.['x-storefront-secret']),
+      })
+    }
+    throw new Error(`CMS fetch error: ${res.status} ${path}`)
+  }
   return res.json()
 }
 

@@ -3,7 +3,7 @@ import { createHmac } from 'crypto'
 /**
  * POST a signed webhook to nanobot.
  * Adds `x-foolish-signature: sha256=<hmac>` using NANOBOT_WEBHOOK_SECRET.
- * If the secret is not configured the header is omitted (nanobot accepts unsigned requests).
+ * If the secret is not configured, no unsigned request is sent.
  */
 export async function notifyNanobot(
   path: string,
@@ -14,16 +14,20 @@ export async function notifyNanobot(
   if (!base) return
 
   const body = JSON.stringify(payload)
-  const secret = process.env.NANOBOT_WEBHOOK_SECRET ?? ''
-  const sig = secret
-    ? 'sha256=' + createHmac('sha256', secret).update(body).digest('hex')
-    : ''
+  const secret = process.env.NANOBOT_WEBHOOK_SECRET
+  if (!secret) {
+    console.error(`nanobot ${path} notify skipped: NANOBOT_WEBHOOK_SECRET is not configured`)
+    return
+  }
+  const timestamp = Math.floor(Date.now() / 1000).toString()
+  const sig = 'sha256=' + createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex')
 
   await fetch(`${base}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(sig ? { 'x-foolish-signature': sig } : {}),
+      'x-foolish-timestamp': timestamp,
+      'x-foolish-signature': sig,
     },
     body,
     signal: opts?.signal,

@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: 'cms-production-1dda.up.railway.app' },
+      { protocol: 'https', hostname: 'cms-production-1e56.up.railway.app' },
     ],
   },
   async headers() {

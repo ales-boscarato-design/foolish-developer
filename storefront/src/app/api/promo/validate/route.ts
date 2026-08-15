@@ -3,7 +3,7 @@ import { getOfferByCode } from '@/lib/account-db'
 
 export const dynamic = 'force-dynamic'
 
-const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1dda.up.railway.app'
+const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
 
 function getCodes(): Record<string, string> {
   try {

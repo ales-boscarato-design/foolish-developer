@@ -38,7 +38,7 @@ async function createOrderInCMSWithRetry(session: Stripe.Checkout.Session): Prom
 }
 
 async function createOrderInCMS(session: Stripe.Checkout.Session): Promise<void> {
-  const cmsUrl = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1dda.up.railway.app'
+  const cmsUrl = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
 
   const meta = session.metadata ?? {}
   const orderRef = meta.order_ref ?? `FOOLISH-${session.id}`
@@ -97,10 +97,12 @@ async function createOrderInCMS(session: Stripe.Checkout.Session): Promise<void>
     `${cmsUrl}/api/orders?where[orderNumber][equals]=${encodeURIComponent(orderRef)}&limit=1`,
     { headers: { 'x-storefront-secret': process.env.PAYLOAD_API_SECRET || '' } },
   )
-  if (existing.ok) {
-    const existingData = await existing.json()
-    if (existingData.docs?.length > 0) return // already created, idempotent
+  if (!existing.ok) {
+    const text = await existing.text()
+    throw new Error(`CMS order lookup failed ${existing.status}: ${text}`)
   }
+  const existingData = await existing.json()
+  if (existingData.docs?.length > 0) return // already created, idempotent
 
   const customerLocale = countryToLocale(shippingAddress?.country)
 
@@ -131,7 +133,7 @@ async function createOrderInCMS(session: Stripe.Checkout.Session): Promise<void>
   }
 }
 
-const CMS_URL = () => process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1dda.up.railway.app'
+const CMS_URL = () => process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
 const cmsHeaders = () => ({
   'Content-Type': 'application/json',
   'x-storefront-secret': process.env.PAYLOAD_API_SECRET || '',
@@ -330,16 +332,41 @@ export async function POST(req: NextRequest) {
     const orderRef = session.metadata?.order_ref ?? `FOOLISH-${session.id}`
     const customerEmail = session.customer_email ?? session.customer_details?.email ?? ''
     const total = ((session.amount_total ?? 0) / 100).toFixed(2)
-    console.log(`[webhook] ORDER RECEIVED ${orderRef} | ${customerEmail} | €${total}`)
+    console.log(`[webhook] ORDER RECEIVED ${orderRef} | ${customerEmail} | €${total} | event=${event.id} session=${session.id}`)
 
     // Crea ordine in Payload CMS — retry automatico fino a 4 tentativi
-    let cmsError: string | null = null
     try {
       await createOrderInCMSWithRetry(session)
       console.log(`[webhook] CMS order created OK ${orderRef}`)
     } catch (err) {
-      cmsError = err instanceof Error ? err.message : String(err)
+      const cmsError = err instanceof Error ? err.message : String(err)
       console.error(`[webhook] CMS order FAILED ${orderRef}:`, cmsError)
+
+      // Alert fuori dal CMS: gli hook Payload non possono partire se la create
+      // viene rifiutata. L'errore di alert non deve nascondere quello primario.
+      try {
+        await notifyNanobot('/hooks/foolish-storefront-order', {
+          source: 'storefront',
+          stripeSessionId: session.id,
+          externalRef: orderRef,
+          amount: (session.amount_total ?? 0) / 100,
+          currency: session.currency?.toUpperCase(),
+          customerEmail: session.customer_email,
+          customerName: session.metadata?.customer_name,
+          itemsJson: session.metadata?.items_json,
+          cmsError,
+        })
+      } catch (notifyError) {
+        console.error(`[webhook] emergency notification FAILED ${orderRef}:`, notifyError)
+      }
+
+      // Fondamentale: un 2xx farebbe considerare l'evento consegnato a Stripe.
+      // Il 503 mantiene attivi i retry automatici finche' l'ordine non e'
+      // persistito; createOrderInCMS e' idempotente su orderNumber.
+      return NextResponse.json(
+        { error: 'CMS order persistence failed', orderRef },
+        { status: 503 },
+      )
     }
 
     // Upsert cliente in Payload CMS customers
@@ -385,7 +412,7 @@ export async function POST(req: NextRequest) {
       console.error('[webhook] Offer creation failed:', err)
     }
 
-    // Notifica nanobot — sempre, con flag cmsError esplicito
+    // Notifica nanobot dopo la persistenza riuscita nel CMS.
     await notifyNanobot('/hooks/foolish-storefront-order', {
       source: 'storefront',
       stripeSessionId: session.id,
@@ -395,7 +422,7 @@ export async function POST(req: NextRequest) {
       customerEmail: session.customer_email,
       customerName: session.metadata?.customer_name,
       itemsJson: session.metadata?.items_json,
-      cmsError,
+      cmsError: null,
     })
 
     // Marketing: upsert subscriber + welcome email on first purchase

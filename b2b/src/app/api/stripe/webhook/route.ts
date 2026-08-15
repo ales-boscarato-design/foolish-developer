@@ -27,29 +27,28 @@ export async function POST(req: NextRequest) {
 
     if (isNaN(orderId)) {
       console.error('[stripe/webhook] invalid orderId in metadata:', pi.metadata.orderId)
-      return NextResponse.json({ received: true })
+      return NextResponse.json({ error: 'Invalid order metadata' }, { status: 500 })
     }
 
     try {
-      // Idempotency: only process if not already marked as paid
-      const updated = await sql<{ id: number }[]>`
+      // Stato pagamento e stato notifica sono separati: se Resend fallisce dopo
+      // il primo UPDATE, il retry Stripe deve poter tentare ancora l'email.
+      await sql`
         UPDATE orders SET
           notes = COALESCE(notes, '') || ' [Stripe pagato]',
           updated_at = NOW()
         WHERE id = ${orderId}
           AND notes NOT LIKE '%[Stripe pagato]%'
-        RETURNING id
       `
 
-      if (updated.length === 0) {
-        // Already processed — skip email
-        return NextResponse.json({ received: true })
+      const rows = await sql<{ customer_name: string; total: number; line_items: unknown; notes: string | null }[]>`
+        SELECT customer_name, total, line_items, notes FROM orders WHERE id = ${orderId}
+      `
+      if (!rows[0]) {
+        throw new Error(`Order ${orderId} not found for PaymentIntent ${pi.id}`)
       }
 
-      const rows = await sql<{ customer_name: string; total: number; line_items: unknown }[]>`
-        SELECT customer_name, total, line_items FROM orders WHERE id = ${orderId}
-      `
-      if (rows[0]) {
+      if (!rows[0].notes?.includes('[Conferma Stripe inviata]')) {
         const lineItemsRaw = rows[0].line_items as { productName?: string; variantLabel?: string; qty?: number; unitPrice?: number; priceTiers?: PriceTier[] }[] | null
         const lineItemsForEmail = Array.isArray(lineItemsRaw)
           ? lineItemsRaw.map(i => ({
@@ -67,10 +66,18 @@ export async function POST(req: NextRequest) {
           paymentMethod: 'stripe',
           lineItems: lineItemsForEmail,
         })
+
+        await sql`
+          UPDATE orders SET
+            notes = COALESCE(notes, '') || ' [Conferma Stripe inviata]',
+            updated_at = NOW()
+          WHERE id = ${orderId}
+            AND notes NOT LIKE '%[Conferma Stripe inviata]%'
+        `
       }
     } catch (err) {
       console.error('[stripe/webhook] failed to process payment_intent.succeeded:', err)
-      // Return 200 to prevent Stripe from retrying — log the error for manual recovery
+      return NextResponse.json({ error: 'Payment processing failed' }, { status: 500 })
     }
   }
 

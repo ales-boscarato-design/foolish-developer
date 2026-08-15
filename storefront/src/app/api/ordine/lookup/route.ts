@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
-const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://admin.thefoolishbutcher.com'
+const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
 const CMS_SECRET = process.env.PAYLOAD_API_SECRET || ''
 
 export async function GET(req: NextRequest) {

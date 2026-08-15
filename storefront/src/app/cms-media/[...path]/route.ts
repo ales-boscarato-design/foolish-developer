@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
-const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1dda.up.railway.app'
+const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
 
 /**
  * Proxy CMS media through /cms-media/* so /_next/image sees a same-origin URL.
@@ -21,7 +21,16 @@ export async function GET(
   const { path } = await params
   // params.path segments are URL-decoded by Next.js; re-encode for CMS URL.
   // encodeURI (not encodeURIComponent) preserves ( ) and other path-safe chars.
-  const filename = path.map((s) => encodeURI(s)).join('/')
+  let filename: string
+  try {
+    filename = path.map((s) => encodeURI(s)).join('/')
+  } catch (error) {
+    console.warn('[CMS media proxy] invalid path', {
+      path,
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return NextResponse.json({ error: 'Invalid media path' }, { status: 400 })
+  }
   const upstream = `${CMS_URL}/api/media/file/${filename}`
 
   // Forward Range header so browsers can seek video files.
@@ -29,8 +38,23 @@ export async function GET(
   const range = req.headers.get('range')
   if (range) upstreamHeaders['range'] = range
 
-  const res = await fetch(upstream, { headers: upstreamHeaders })
-  if (!res.ok && res.status !== 206) return new NextResponse(null, { status: res.status })
+  let res: Response
+  try {
+    res = await fetch(upstream, { headers: upstreamHeaders })
+  } catch (error) {
+    console.error('[CMS media proxy] upstream request failed', {
+      upstream,
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return NextResponse.json({ error: 'Media upstream unavailable' }, { status: 502 })
+  }
+  if (!res.ok && res.status !== 206) {
+    console.warn('[CMS media proxy] upstream returned an error', {
+      status: res.status,
+      upstream,
+    })
+    return new NextResponse(null, { status: res.status })
+  }
 
   const headers = new Headers()
   const ct = res.headers.get('content-type')

@@ -4,6 +4,21 @@ import Stripe from 'stripe'
 export const dynamic = 'force-dynamic'
 
 const STOREFRONT_URL = process.env.STOREFRONT_URL || 'https://thefoolishbutcher.com'
+const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
+
+async function assertCMSOrderAccess(): Promise<void> {
+  const secret = process.env.PAYLOAD_API_SECRET
+  if (!secret) throw new Error('PAYLOAD_API_SECRET non configurato')
+
+  const response = await fetch(`${CMS_URL}/api/orders?limit=1&depth=0`, {
+    headers: { 'x-storefront-secret': secret },
+    cache: 'no-store',
+  })
+
+  if (!response.ok) {
+    throw new Error(`CMS orders access failed ${response.status}`)
+  }
+}
 
 interface CartItem {
   productName: string
@@ -16,6 +31,19 @@ interface CartItem {
 export async function POST(req: NextRequest) {
   if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json({ error: 'Stripe non configurato' }, { status: 503 })
+  }
+
+  // Non aprire una sessione di pagamento se il CMS non puo' registrare
+  // l'ordine. Il webhook resta la fonte di verita', ma questo controllo evita
+  // di incassare quando autenticazione o disponibilita' del CMS sono rotte.
+  try {
+    await assertCMSOrderAccess()
+  } catch (err) {
+    console.error('[stripe/checkout] CMS preflight failed:', err)
+    return NextResponse.json(
+      { error: 'Sistema ordini temporaneamente non disponibile' },
+      { status: 503 },
+    )
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)

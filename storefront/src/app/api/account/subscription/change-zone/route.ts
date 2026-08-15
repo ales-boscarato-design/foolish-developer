@@ -6,7 +6,7 @@ import type { Zone } from '@/lib/subscription-plans'
 
 export const dynamic = 'force-dynamic'
 
-const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1dda.up.railway.app'
+const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
 
 export async function POST(req: NextRequest) {
   const session = await getSession()

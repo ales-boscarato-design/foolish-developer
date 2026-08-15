@@ -12,7 +12,7 @@ interface ParsedItem {
 }
 
 async function findPrintfulVariantForSku(sku: string): Promise<string | null> {
-  const cmsUrl = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1dda.up.railway.app'
+  const cmsUrl = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
   const res = await fetch(
     `${cmsUrl}/api/products?where[section][equals]=merch&where[variants.sku][equals]=${encodeURIComponent(sku)}&depth=0&limit=1`,
     { headers: { 'x-storefront-secret': process.env.PAYLOAD_API_SECRET || '' } },

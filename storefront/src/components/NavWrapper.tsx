@@ -1,6 +1,6 @@
 import { Nav } from '@/components/Nav'
 
-const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://admin.thefoolishbutcher.com'
+const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
 const CMS_TOKEN = process.env.PAYLOAD_API_TOKEN || ''
 
 async function hasLimitedProducts(): Promise<boolean> {
