@@ -297,9 +297,9 @@ const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation
   }
 }
 
-const notifyNanobot: CollectionAfterChangeHook = async ({ doc, previousDoc, operation }) => {
-  const nanobotUrl = process.env.NANOBOT_WEBHOOK_URL
-  if (!nanobotUrl) return
+const notifyAlfred: CollectionAfterChangeHook = async ({ doc, previousDoc, operation }) => {
+  const alfredUrl = process.env.NANOBOT_WEBHOOK_URL
+  if (!alfredUrl) return
 
   // Notifica solo quando pipelineState cambia (o su create)
   const stateChanged =
@@ -308,21 +308,43 @@ const notifyNanobot: CollectionAfterChangeHook = async ({ doc, previousDoc, oper
 
   if (!stateChanged) return
 
-  fetch(`${nanobotUrl}/hooks/foolish-order-state`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      orderNumber: doc.orderNumber,
-      pipelineState: doc.pipelineState,
-      previousState: previousDoc?.pipelineState ?? null,
-      customerEmail: doc.customerEmail,
-      customerLocale: doc.customerLocale ?? 'it',
-      customerTelegramId: doc.customerTelegramId ?? null,
-      trackingNumber: doc.trackingNumber ?? null,
-      trackingCarrier: doc.trackingCarrier ?? null,
-      productionEtaDays: doc.productionEtaDays ?? null,
-    }),
-  }).catch((err) => console.error('[Orders] nanobot notify failed:', err))
+  const secret = process.env.NANOBOT_WEBHOOK_SECRET
+  if (!secret) {
+    console.error('[Orders] Alfred notify skipped: NANOBOT_WEBHOOK_SECRET is not configured')
+    return
+  }
+
+  const body = JSON.stringify({
+    orderNumber: doc.orderNumber,
+    pipelineState: doc.pipelineState,
+    previousState: previousDoc?.pipelineState ?? null,
+    customerEmail: doc.customerEmail,
+    customerLocale: doc.customerLocale ?? 'it',
+    customerTelegramId: doc.customerTelegramId ?? null,
+    trackingNumber: doc.trackingNumber ?? null,
+    trackingCarrier: doc.trackingCarrier ?? null,
+    productionEtaDays: doc.productionEtaDays ?? null,
+  })
+  const timestamp = Math.floor(Date.now() / 1000).toString()
+  const signature = `sha256=${crypto.createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex')}`
+
+  try {
+    const response = await fetch(`${alfredUrl}/hooks/foolish-order-state`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-foolish-timestamp': timestamp,
+        'x-foolish-signature': signature,
+      },
+      body,
+      signal: AbortSignal.timeout(5_000),
+    })
+    if (!response.ok) {
+      console.error('[Orders] Alfred notify failed:', response.status, (await response.text()).slice(0, 500))
+    }
+  } catch (err) {
+    console.error('[Orders] Alfred notify failed:', err)
+  }
 }
 
 const notifyAlessandroByEmail: CollectionAfterChangeHook = async ({ doc, operation }) => {
@@ -347,7 +369,7 @@ const notifyAlessandroByEmail: CollectionAfterChangeHook = async ({ doc, operati
     ? `${addr.name}, ${addr.address1}${addr.address2 ? ' ' + addr.address2 : ''}, ${addr.postalCode} ${addr.city} (${addr.country})`
     : '—'
 
-  const cmsUrl = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1dda.up.railway.app'
+  const cmsUrl = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
   const orderLink = `${cmsUrl}/admin/collections/orders/${doc.id}`
 
   const html = `<!DOCTYPE html>
@@ -492,7 +514,7 @@ export const Orders: CollectionConfig = {
   slug: 'orders',
   hooks: {
     beforeChange: [generatePageToken],
-    afterChange: [sendOrderConfirmation, notifyNanobot, notifyAlessandroByEmail, syncCustomer, sendTrackingEmail],
+    afterChange: [sendOrderConfirmation, notifyAlfred, notifyAlessandroByEmail, syncCustomer, sendTrackingEmail],
   },
   admin: {
     useAsTitle: 'orderNumber',
@@ -700,7 +722,7 @@ export const Orders: CollectionConfig = {
     {
       type: 'collapsible',
       label: 'Blocchi pagina cliente',
-      admin: { initCollapsed: true, description: 'Frank popola questi blocchi: guide, offerte, annunci.' },
+      admin: { initCollapsed: true, description: 'Alfred popola questi blocchi: guide, offerte, annunci.' },
       fields: [
         {
           name: 'contentBlocks',
