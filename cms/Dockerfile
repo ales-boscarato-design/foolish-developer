@@ -2,7 +2,7 @@ FROM node:22-bookworm-slim
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --legacy-peer-deps --include=optional
+RUN npm ci --strict-peer-deps --include=optional
 
 COPY . .
 RUN npm run build

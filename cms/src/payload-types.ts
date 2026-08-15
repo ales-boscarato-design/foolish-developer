@@ -201,6 +201,14 @@ export interface Product {
     [k: string]: unknown;
   } | null;
   /**
+   * Se vuoto, usa il nome prodotto. Mostrato nei risultati di ricerca e nel tab del browser.
+   */
+  metaTitle?: string | null;
+  /**
+   * Se vuoto, usa la descrizione breve. Mostrato nei risultati di ricerca.
+   */
+  metaDescription?: string | null;
+  /**
    * Testo che sottolinea unicita artigianale. Es: "Non avrai mai due ordini con la stessa pelle."
    */
   uniqueNote?: string | null;
@@ -955,6 +963,8 @@ export interface ProductsSelect<T extends boolean = true> {
   shippingDays?: T;
   shortDescription?: T;
   description?: T;
+  metaTitle?: T;
+  metaDescription?: T;
   uniqueNote?: T;
   images?:
     | T
