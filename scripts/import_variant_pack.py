@@ -11,14 +11,14 @@ Phase 3: EN, FR, DE, ES — write translations
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 
 import httpx
 
-PAYLOAD_URL = "https://cms-production-1dda.up.railway.app"
-EMAIL = "boscaratoa@icloud.com"
-PASS = "admin"
+PAYLOAD_URL = os.getenv("PAYLOAD_PUBLIC_URL", "https://cms-production-1e56.up.railway.app").rstrip("/")
+PAYLOAD_API_SECRET = os.getenv("PAYLOAD_API_SECRET", "")
 LOCALES = ["en", "fr", "de", "es"]
 
 # ── Variant descriptions per locale ──────────────────────────────────────────
@@ -202,22 +202,24 @@ PACK_BADGE_LOCALES = {
 # ── API helpers ──
 
 
-def login():
-    r = httpx.post(f"{PAYLOAD_URL}/api/users/login", json={"email": EMAIL, "password": PASS}, timeout=15)
-    r.raise_for_status()
-    return r.json()["token"]
+def auth_headers():
+    if not PAYLOAD_API_SECRET:
+        raise RuntimeError(
+            "PAYLOAD_API_SECRET non configurato: rifiuto di usare credenziali CMS personali"
+        )
+    return {"x-storefront-secret": PAYLOAD_API_SECRET}
 
 
-def get(token, path):
-    r = httpx.get(f"{PAYLOAD_URL}{path}", headers={"Authorization": f"Bearer {token}"}, timeout=30)
+def get(path):
+    r = httpx.get(f"{PAYLOAD_URL}{path}", headers=auth_headers(), timeout=30)
     r.raise_for_status()
     return r.json()
 
 
-def patch(token, path, data, locale):
+def patch(path, data, locale):
     r = httpx.patch(
         f"{PAYLOAD_URL}{path}?locale={locale}",
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        headers={**auth_headers(), "Content-Type": "application/json"},
         json=data,
         timeout=30,
     )
@@ -232,7 +234,7 @@ def patch(token, path, data, locale):
 
 
 def main():
-    token = login()
+    auth_headers()
 
     # ── Phase 0: Fetch current state ──
     print("=" * 60)
@@ -241,7 +243,7 @@ def main():
 
     products = {}
     for slug in CORE_SLUGS:
-        resp = get(token, f"/api/products?where[slug][equals]={slug}&depth=2&locale=it")
+        resp = get(f"/api/products?where[slug][equals]={slug}&depth=2&locale=it")
         docs = resp.get("docs", [])
         if not docs:
             print(f"  ❌ {slug}: not found!")
@@ -315,7 +317,7 @@ def main():
             continue
 
         try:
-            result = patch(token, f"/api/products/{pid}", payload, "it")
+            result = patch(f"/api/products/{pid}", payload, "it")
             new_packs = result.get("packs", [])
             print(f"  ✓ {slug}: variants={len(variants_data)} packs={len(packs_data)}")
             # Update products dict with new pack IDs
@@ -335,7 +337,7 @@ def main():
         if slug not in products:
             continue
         p = products[slug]
-        resp = get(token, f"/api/products/{p['id']}?locale=it&depth=2")
+        resp = get(f"/api/products/{p['id']}?locale=it&depth=2")
         products[slug] = resp
         pk_info = [(pk["id"], pk.get("name", "?")) for pk in resp.get("packs", [])]
         print(f"  ✓ {slug}: packs = {pk_info}")
@@ -400,7 +402,7 @@ def main():
                 continue
 
             try:
-                patch(token, f"/api/products/{pid}", payload, locale)
+                patch(f"/api/products/{pid}", payload, locale)
                 print(f"  ✓ {slug}/{locale}: variants={len(variants_data)} packs={len(packs_data)}")
             except Exception as e:
                 print(f"  ❌ {slug}/{locale}: {e}")
@@ -419,7 +421,7 @@ def main():
         pid = p["id"]
         for locale in ["it"] + LOCALES:
             try:
-                resp = get(token, f"/api/products/{pid}?locale={locale}&depth=1")
+                resp = get(f"/api/products/{pid}?locale={locale}&depth=1")
                 variants = resp.get("variants", [])
                 packs = resp.get("packs", [])
                 v_descs = sum(1 for v in variants if v.get("description"))

@@ -2,13 +2,11 @@
 // Uso: node import-products.mjs
 // Carica shortDescription, uniqueNote, featureHighlights, usageSteps, whatsInTheBox, description
 
-const API_BASE = 'https://cms-production-1dda.up.railway.app/api'
-const WARMUP = 'https://cms-production-1dda.up.railway.app'
-const EMAIL = 'boscaratoa@icloud.com'
-const PASSWORD = 'P123arrucc0?!'
+const CMS_URL = (process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app').replace(/\/$/, '')
+const API_BASE = `${CMS_URL}/api`
+const WARMUP = CMS_URL
+const PAYLOAD_API_SECRET = process.env.PAYLOAD_API_SECRET
 const LOCALES = ['it', 'en', 'fr', 'es', 'de']
-
-let TOKEN = null
 
 // ──────────────────────────────────────────
 // Lexical converter
@@ -58,9 +56,11 @@ async function api(method, path, body = null, locale = null, queryParams = {}) {
   }
   const opts = {
     method,
-    headers: { 'Content-Type': 'application/json' }
+    headers: {
+      'Content-Type': 'application/json',
+      'x-storefront-secret': PAYLOAD_API_SECRET,
+    }
   }
-  if (TOKEN) opts.headers['Authorization'] = `Bearer ${TOKEN}`
   if (body) opts.body = JSON.stringify(body)
 
   const res = await fetch(finalUrl, opts)
@@ -494,6 +494,10 @@ for (const loc of LOCALES) {
 async function main() {
   console.log('🚀 Avvio import prodotti Foolish…\n')
 
+  if (!PAYLOAD_API_SECRET) {
+    throw new Error('PAYLOAD_API_SECRET non configurato: rifiuto di usare credenziali CMS personali')
+  }
+
   // 1. Wakeup call
   console.log('⏳ Sveglio il CMS…')
   try {
@@ -504,21 +508,8 @@ async function main() {
   }
   await new Promise(r => setTimeout(r, 3000))
 
-  // 2. Login
-  console.log('🔑 Login…')
-  const loginRes = await fetch(`${API_BASE}/users/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: EMAIL, password: PASSWORD })
-  })
-  if (!loginRes.ok) {
-    const text = await loginRes.text()
-    throw new Error(`Login fallito: ${loginRes.status} ${text.slice(0, 200)}`)
-  }
-  const loginData = await loginRes.json()
-  TOKEN = loginData.token
-  if (!TOKEN) throw new Error('Nessun token ricevuto dal login')
-  console.log(`   ✅ Login OK (token: ${TOKEN.slice(0, 20)}…)`)
+  // 2. Autenticazione server-to-server tramite x-storefront-secret.
+  console.log('🔐 Autenticazione server-to-server configurata')
 
   // Mappa slug script → slug CMS (alcuni slug nel CMS sono diversi)
   const SLUG_MAP = {
