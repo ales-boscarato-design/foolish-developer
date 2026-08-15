@@ -57,11 +57,14 @@ async function createOrderInCMS(session: Stripe.Checkout.Session): Promise<void>
   const itemsTotal = parsedItems.reduce((sum, i) => sum + i.price * i.qty, 0)
   const shippingCost = Math.max(0, parseFloat((total - itemsTotal).toFixed(2)))
 
-  // Indirizzo da Stripe shipping_details (raccolto da Stripe checkout form)
+  // Stripe API recenti espongono l'indirizzo raccolto dal Checkout dentro
+  // collected_information; manteniamo il fallback per eventi creati con
+  // versioni API precedenti che usavano shipping_details a livello root.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const shipping = (session as any).shipping_details as {
+  const legacyShipping = (session as any).shipping_details as {
     address?: { line1?: string; line2?: string; city?: string; postal_code?: string; country?: string }
   } | null
+  const shipping = session.collected_information?.shipping_details ?? legacyShipping
   const shippingAddress = shipping
     ? {
         name: shipping.address ? customerName : '',
