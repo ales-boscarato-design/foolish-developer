@@ -33,3 +33,6 @@ handoff.md
 
 # visual brainstorming sessions
 .superpowers/
+
+# isolated implementation worktrees
+.worktrees/
