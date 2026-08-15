@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "b2b", "run", "dev"],
       "port": 3002
+    },
+    {
+      "name": "storefront-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "storefront", "run", "dev"],
+      "port": 3000
     }
   ]
 }
