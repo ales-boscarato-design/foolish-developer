@@ -422,7 +422,7 @@ git commit -m "feat: restore full Alfred CMS administration"
 Do not stage `cms/Dockerfile`, `cms/package*.json`, `cms/next-env.d.ts`,
 `cms/src/payload-types.ts`, or `.codex/` in this commit.
 
-- [ ] **Step 5: Push the completed documentation commits**
+- [x] **Step 5: Push the completed documentation commits**
 
 Push `main` to `ales-boscarato-design/foolish-developer` only after verifying
 the remote URL and commit scope. Confirm the push does not include the dirty
