@@ -34,7 +34,7 @@
 - Produces: async methods `permissions()`, `list_records(collection, *, params=None)`, and `get_record(collection, record_id, *, params=None)` returning decoded dictionaries.
 - Produces: `CMSAdminError(status_code, message)` with sanitized bounded messages.
 
-- [ ] **Step 1: Write failing read-client tests**
+- [x] **Step 1: Write failing read-client tests**
 
 Create stdlib `unittest.IsolatedAsyncioTestCase` tests using
 `httpx.MockTransport`. Assert that:
@@ -58,7 +58,7 @@ limits outside `1..100`, non-object JSON responses, and an HTTP error body
 containing `password`, `token`, and `authorization` keys. The raised error must
 contain the status but none of those values.
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 Run:
 
@@ -69,7 +69,7 @@ PYTHONPATH=/home/ab/nano-py/staging python3 -m unittest -v tests.test_cms_admin
 
 Expected: import failure because `nanobot.foolish.cms_admin` does not exist.
 
-- [ ] **Step 3: Implement the minimal read client**
+- [x] **Step 3: Implement the minimal read client**
 
 Implement:
 
@@ -87,11 +87,11 @@ Normalize a trailing `/admin` from the base URL, validate collection slugs with
 redact dictionary keys matching `secret|token|key|password|authorization`, then
 bound serialized error detail to 500 characters.
 
-- [ ] **Step 4: Run read-client tests and verify GREEN**
+- [x] **Step 4: Run read-client tests and verify GREEN**
 
 Run the Task 1 command. Expected: all Task 1 tests pass.
 
-- [ ] **Step 5: Compile the client**
+- [x] **Step 5: Compile the client**
 
 Run:
 
@@ -114,7 +114,7 @@ Expected: exit 0 and no output.
 - Produces: async methods `create_record`, `update_record`, `delete_record`, and `upload_media`.
 - Produces: JSONL audit records at `audit_path` with keys `timestamp`, `action`, `collection`, `record_id`, `fields`, `status`, and `reason`.
 
-- [ ] **Step 1: Add failing write and audit tests**
+- [x] **Step 1: Add failing write and audit tests**
 
 Assert these exact behaviors:
 
@@ -135,11 +135,11 @@ For upload, create a temporary PNG fixture and assert POST `/api/media` receives
 a multipart `file` part. Missing paths, directories, and preview calls must not
 open a network request.
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 Run the Task 1 unittest command. Expected: failures for missing write methods.
 
-- [ ] **Step 3: Implement write methods without automatic retries**
+- [x] **Step 3: Implement write methods without automatic retries**
 
 Implement signatures:
 
@@ -154,11 +154,11 @@ Use one HTTP attempt per invocation. For multipart upload, send `file` plus an
 optional `alt` text field. Audit in a `finally` path after a confirmed network
 attempt, recording only metadata and the HTTP/error status.
 
-- [ ] **Step 4: Run all client tests and verify GREEN**
+- [x] **Step 4: Run all client tests and verify GREEN**
 
 Run the Task 1 unittest command. Expected: all tests pass.
 
-- [ ] **Step 5: Compile and inspect for credential logging**
+- [x] **Step 5: Compile and inspect for credential logging**
 
 Run:
 
@@ -183,7 +183,7 @@ Expected: compile exit 0; search returns no credential logging.
 - Consumes: `PayloadCMSAdminClient` from Tasks 1-2 and env vars `FOOLISH_PAYLOAD_URL`, `FOOLISH_CMS_API_KEY`.
 - Produces tools `foolish_cms_collections`, `foolish_cms_list`, `foolish_cms_get`, `foolish_cms_create`, `foolish_cms_update`, `foolish_cms_delete`, and `foolish_cms_media_upload`.
 
-- [ ] **Step 1: Add failing tool-contract tests**
+- [x] **Step 1: Add failing tool-contract tests**
 
 Load the tool module with lightweight stubs for `Tool`, `ToolResult`, and
 `tool_parameters`, then assert all seven classes have `_scopes = {"core"}`;
@@ -191,32 +191,32 @@ read tools report `read_only=True`; write tools report `exclusive=True`; and
 `enabled()` requires both URL and API key. Assert tool execution delegates
 preview and confirmation flags unchanged to a mocked client.
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run the Task 1 unittest command. Expected: import failure for
 `nanobot.agent.tools.foolish_cms`.
 
-- [ ] **Step 3: Implement thin tool classes**
+- [x] **Step 3: Implement thin tool classes**
 
 Each `execute()` method must instantiate the client from environment variables,
 delegate to one client method, and return pretty JSON. Convert `CMSAdminError`
 to `self.error("Payload CMS operation failed with HTTP <status>: <safe detail>")`.
 Use JSON-schema object parameters for arbitrary record data and query params.
 
-- [ ] **Step 4: Update Alfred's backoffice instructions**
+- [x] **Step 4: Update Alfred's backoffice instructions**
 
 Document that Alfred is a full Payload administrator, that collection tools
 are preferred over shell/curl, that product/media/customer/order/user work is
 in scope, and that preview/confirmation is mandatory for writes. Keep existing
 Stripe, Packlink, invoicing, and communication rules unchanged.
 
-- [ ] **Step 5: Add the API-key preflight requirement**
+- [x] **Step 5: Add the API-key preflight requirement**
 
 Copy the current remote preflight behavior into the staged script and require
 the names `FOOLISH_PAYLOAD_URL` and `FOOLISH_CMS_API_KEY` without printing
 their values. Preserve all existing checks.
 
-- [ ] **Step 6: Run local tests and compile every staged module**
+- [x] **Step 6: Run local tests and compile every staged module**
 
 Run:
 
@@ -242,27 +242,27 @@ Expected: all tests pass and compile exits 0.
 - Produces a dedicated Payload user and encrypted recovery bundle containing machine email, random password, and API key.
 - Produces remote env var `FOOLISH_CMS_API_KEY` without terminal output.
 
-- [ ] **Step 1: Write a provisioning dry-run test**
+- [x] **Step 1: Write a provisioning dry-run test**
 
 Add a `--dry-run` mode that validates all required environment names and emits
 only JSON booleans and the target email. Test with dummy values and assert no
 dummy password or key appears in stdout/stderr.
 
-- [ ] **Step 2: Implement idempotent provisioning**
+- [x] **Step 2: Implement idempotent provisioning**
 
 The script logs in at `/api/users/login`, queries the machine email, creates it
 when absent, or rotates its API key when present. Send `enableAPIKey=true`, a
 random machine password, and the caller-provided random API key. Output only
 `{"ok": true, "created": <bool>, "user_id": "..."}`.
 
-- [ ] **Step 3: Extend protected environment synchronization**
+- [x] **Step 3: Extend protected environment synchronization**
 
 Update `sync-foolish-env.sh` to decrypt
 `alfred-cms-machine.gpg.asc`, validate a non-empty `FOOLISH_CMS_API_KEY`, append
 only that value to the remote temporary environment, and unset decrypted shell
 variables before exit. Do not add the key to `.env.foolish-pi`.
 
-- [ ] **Step 4: Validate scripts before production mutation**
+- [x] **Step 4: Validate scripts before production mutation**
 
 Run:
 
@@ -273,14 +273,14 @@ bash -n /home/ab/nano-py/scripts/sync-foolish-env.sh
 
 Expected: exit 0.
 
-- [ ] **Step 5: Generate, encrypt, and provision credentials**
+- [x] **Step 5: Generate, encrypt, and provision credentials**
 
 Generate a random password and API key without echoing them, encrypt the
 recovery bundle to the same GPG recipient used by the existing Foolish vault,
 then run the provisioning script with administrator credentials decrypted only
 into process environment. Verify the result JSON reports `ok=true`.
 
-- [ ] **Step 6: Verify API-key authentication before deploying tools**
+- [x] **Step 6: Verify API-key authentication before deploying tools**
 
 Call `/api/users/me` and `/api/access` using the key from the encrypted bundle,
 printing only identity ID, machine email, `canAccessAdmin`, and collection
@@ -302,30 +302,30 @@ permission on all business collections and `users`.
 - Consumes tested staged files and synchronized environment.
 - Produces seven registered Alfred CMS tools and verified full CMS administration.
 
-- [ ] **Step 1: Back up the exact remote files being replaced**
+- [x] **Step 1: Back up the exact remote files being replaced**
 
 Copy each existing target to a timestamped mode-`0600` rollback directory under
 `/home/nanobot-admin/.nanobot/rollback/`. Record paths, not contents.
 
-- [ ] **Step 2: Install staged files atomically**
+- [x] **Step 2: Install staged files atomically**
 
 Transfer over SSH stdin to temporary files, run remote `py_compile`, then use
 `install -m 0644` to replace code/skill targets. Install the preflight script
 mode `0755`.
 
-- [ ] **Step 3: Synchronize environment and restart once**
+- [x] **Step 3: Synchronize environment and restart once**
 
 Run `sync-foolish-env.sh`, then `systemctl --user restart
 nanobot-foolish.service`. Verify active/enabled state, health endpoint, and
 startup log registration of all seven new tool names.
 
-- [ ] **Step 4: Execute read-only smoke tests**
+- [x] **Step 4: Execute read-only smoke tests**
 
 Through the deployed client, verify `/api/users/me`, `/api/access`, collection
 discovery, product listing, customer listing, and order listing. Print only
 counts, IDs of temporary records, and permission booleans.
 
-- [ ] **Step 5: Execute and clean up write smoke tests**
+- [x] **Step 5: Execute and clean up write smoke tests**
 
 Using the deployed client and `confirm=True`:
 
@@ -352,14 +352,14 @@ Using the deployed client and `confirm=True`:
 Use a `try/finally` cleanup path. If cleanup fails, report exact temporary IDs
 and keep working until they are removed.
 
-- [ ] **Step 6: Verify audit and existing capabilities**
+- [x] **Step 6: Verify audit and existing capabilities**
 
 Assert audit records exist for each confirmed temporary write, are mode `0600`,
 and contain no API key or record field values. Re-run
 `foolish_order_get`, `foolish_orders_list`, restricted order-update preview,
 Stripe observation, and Alfred health checks.
 
-- [ ] **Step 7: Roll back on any failed acceptance check**
+- [x] **Step 7: Roll back on any failed acceptance check**
 
 If any tool registration, authentication, cleanup, audit, or existing-capability
 check fails, restore the rollback files and previous environment, restart the
@@ -377,7 +377,7 @@ service, and retain the machine user disabled until the failure is fixed.
 - Consumes production evidence from Task 5.
 - Produces a verifiable roadmap record and clean capability commit without dependency files.
 
-- [ ] **Step 1: Run repository verification**
+- [x] **Step 1: Run repository verification**
 
 Run:
 
@@ -389,7 +389,7 @@ cd /home/ab/dev/foolish-storefront/cms && npx tsc --noEmit
 Expected: both exit 0. If the pre-existing dependency write-set causes a
 failure, diagnose it separately and do not hide it in the Alfred commit.
 
-- [ ] **Step 2: Update roadmap evidence**
+- [x] **Step 2: Update roadmap evidence**
 
 Add a Phase 0 entry recording machine-user authentication, seven registered
 tools, full collection permissions, temporary product/customer/media CRUD,
@@ -397,7 +397,7 @@ multilingual update, cleanup, audit verification, and regression checks.
 Change the next action back to the dependency roadmap only after all checks
 pass.
 
-- [ ] **Step 3: Check repository scope**
+- [x] **Step 3: Check repository scope**
 
 Run:
 
@@ -410,7 +410,7 @@ git diff -- agent.md docs/superpowers/plans/2026-08-16-alfred-full-cms-administr
 Expected: Alfred documentation changes are separate from the existing CMS
 dependency files and `.codex/` remains untracked.
 
-- [ ] **Step 4: Commit only Alfred documentation**
+- [x] **Step 4: Commit only Alfred documentation**
 
 Run:
 

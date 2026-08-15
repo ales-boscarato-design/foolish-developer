@@ -40,7 +40,7 @@ Ultimo aggiornamento: 2026-08-16
 
 | Fase | Stato | Prossima azione |
 | --- | --- | --- |
-| 0. Credenziali e separazione | Completata | Mantenere il controllo durante le fasi successive |
+| 0. Credenziali e separazione | Completata, inclusa amministrazione CMS completa | Mantenere il controllo durante le fasi successive |
 | 1. Dipendenze | Audit completato | Applicare i tre write-set separati dopo la Fase 0 |
 | 2. Tunnel Alfred | Da fare | Preparare `cloudflared` direttamente sulla Raspberry |
 | 3. Affidabilità ordini | Parzialmente completata | Aggiungere test di regressione e prova allarmi |
@@ -63,6 +63,9 @@ Ultimo aggiornamento: 2026-08-16
 - [x] Password CMS e Umami ruotate; le precedenti vengono rifiutate.
 - [x] Cassaforte GPG locale creata in `~/.foolish-secrets`.
 - [x] Vecchio stash con credenziali rimosso.
+- [x] Alfred dispone di un'identita macchina Payload dedicata e di sette
+  strumenti generici per amministrare interamente il CMS senza dipendere da
+  shell o credenziali umane.
 
 ## Fase 0 — Credenziali e separazione Alfred/Frank
 
@@ -129,6 +132,35 @@ e l'accesso amministratore è recuperabile dalla cassaforte GPG.
 Prima di rimuovere una credenziale, conservarne una copia cifrata. Durante la
 breve finestra di rollback è possibile riabilitare Frank, ma solo dopo aver
 fermato i cron equivalenti su Alfred per evitare doppie esecuzioni.
+
+### Estensione verificata — amministrazione CMS completa
+
+Alfred non è limitato al solo flusso ordini. L'identita macchina è confinata
+al CMS Foolish ma, al suo interno, dispone dei permessi effettivi di lettura,
+creazione, modifica e cancellazione su tutte le collezioni correnti, comprese
+prodotti, media, clienti, ordini, utenti e configurazioni. Le collezioni future
+restano scopribili attraverso `/api/access` e utilizzabili dai tool generici nel
+rispetto dei controlli accesso definiti da Payload.
+
+- [x] Identita macchina Payload dedicata creata e conservata in GPG.
+- [x] Vecchi segreti Payload e password amministratore ruotati dopo
+  l'incidente di esposizione durante la verifica; i valori precedenti sono
+  rifiutati.
+- [x] Installati i tool `foolish_cms_collections`, `foolish_cms_list`,
+  `foolish_cms_get`, `foolish_cms_create`, `foolish_cms_update`,
+  `foolish_cms_delete` e `foolish_cms_media_upload`.
+- [x] Alfred registra 61 tool: i 54 precedenti più i sette nuovi, senza perdita
+  delle funzioni Stripe, ordini, Packlink, fatturazione o comunicazione.
+- [x] Scritture protette da anteprima e conferma; cancellazioni protette anche
+  dalla stringa esatta `DELETE <collection> <record-id>`.
+- [x] Audit JSONL privo di valori sensibili, con permessi filesystem `0600`.
+- [x] Smoke test reale completato su cliente, immagine e prodotto inattivo;
+  verificate modifiche localizzate in italiano, inglese, tedesco, francese e
+  spagnolo.
+- [x] Anteprima di una modifica ordine verificata senza effettuare la scrittura.
+- [x] Tutti i record temporanei eliminati e assenza residui verificata via API.
+- [x] Backup di rollback conservato in
+  `/home/nanobot-admin/.nanobot/rollback/20260816-alfred-full-cms`.
 
 ## Fase 1 — Aggiornamento dipendenze
 
@@ -357,6 +389,8 @@ token, email private o dati cliente.
 | 2026-08-16 | Fase 0 | File credenziali temporaneo eliminato | Admin già in GPG; Printful e machine secret attivi cifrati e verificati; copia Payload obsoleta scartata | Superato | Ricerca finale |
 | 2026-08-16 | Fase 0 | Upload foto recensioni senza login admin | Route usa il machine secret Media; typecheck, build e controllo accessi CMS superati | Da distribuire | Deploy Storefront e rimozione env admin |
 | 2026-08-16 | Fase 0 | Upload recensioni distribuito e Fase 0 chiusa | Storefront deployment `ba64ffc7`; upload reale 200 e media test rimossa; nessuna variabile admin nei servizi Railway o runtime attivi | Superato | Fase 1 dipendenze |
+| 2026-08-16 | Fase 0 | Alfred abilitato all'amministrazione CMS completa | 61 tool registrati; permessi CRUD su tutte le collezioni; cliente/media/prodotto e cinque locale verificati; audit `0600`; nessun residuo | Superato | Fase 1 dipendenze |
+| 2026-08-16 | Fase 0 | Rotazione credenziali dopo esposizione durante verifica | Vecchi valori rifiutati; CMS deployment `4e90dac3`; Storefront deployment `e9490d85`; chiave SSH temporanea rimossa | Superato | Conservare solo bundle GPG e credenziali runtime |
 | 2026-08-16 | Fase 1 | Audit dipendenze e lockfile | Tre write-set definiti; Docker B2B non riproducibile | Pianificato | Eseguire dopo la Fase 0 |
 
 ## Prossima azione concordata
