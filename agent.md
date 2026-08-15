@@ -40,7 +40,7 @@ Ultimo aggiornamento: 2026-08-16
 
 | Fase | Stato | Prossima azione |
 | --- | --- | --- |
-| 0. Credenziali e separazione | In chiusura | Distribuire l'upload recensioni senza login admin e rimuovere le variabili Railway legacy |
+| 0. Credenziali e separazione | Completata | Mantenere il controllo durante le fasi successive |
 | 1. Dipendenze | Audit completato | Applicare i tre write-set separati dopo la Fase 0 |
 | 2. Tunnel Alfred | Da fare | Preparare `cloudflared` direttamente sulla Raspberry |
 | 3. Affidabilità ordini | Parzialmente completata | Aggiungere test di regressione e prova allarmi |
@@ -84,7 +84,7 @@ definitivamente Frank per l'operatività Foolish.
   credenziale macchina a privilegi minimi.
 - [x] Verificare che lettura e aggiornamento degli ordini funzionino con la
   credenziale macchina.
-- [~] Sostituire il login amministratore dell'upload foto recensioni con il
+- [x] Sostituire il login amministratore dell'upload foto recensioni con il
   machine secret già autorizzato esclusivamente dal controllo accessi Media.
 - [x] Confrontare gli strumenti e i cron attivi tra Frank e Alfred.
 - [x] Classificare i cron di Frank come Foolish, personali o infrastrutturali.
@@ -102,7 +102,7 @@ definitivamente Frank per l'operatività Foolish.
   attive e necessarie.
 - [x] Eliminare `/home/ab/dev/temporaneo.txt` solo dopo la verifica dei
   consumatori e del recupero dalla cassaforte.
-- [~] Verificare che la password amministratore CMS resti soltanto nella
+- [x] Verificare che la password amministratore CMS resti soltanto nella
   cassaforte GPG e, finché necessario alla migrazione, nei runtime autorizzati.
 
 ### Verifiche obbligatorie
@@ -115,7 +115,7 @@ definitivamente Frank per l'operatività Foolish.
 - [x] Nessun cron Foolish eseguito contemporaneamente da Frank e Alfred.
 - [x] `frank.service` fermo e disabilitato.
 - [x] `temporaneo.txt` assente.
-- [ ] Ricerca finale dei nomi delle variabili sensibili senza valori o copie
+- [x] Ricerca finale dei nomi delle variabili sensibili senza valori o copie
   inattese.
 
 ### Criterio di chiusura
@@ -356,11 +356,11 @@ token, email private o dati cliente.
 | 2026-08-16 | Fase 0 | Frank ritirato | `frank.service` inactive e disabled; quattro cron Foolish disabilitati; stato conservato senza password admin | Superato | Chiudere credenziali Storefront |
 | 2026-08-16 | Fase 0 | File credenziali temporaneo eliminato | Admin già in GPG; Printful e machine secret attivi cifrati e verificati; copia Payload obsoleta scartata | Superato | Ricerca finale |
 | 2026-08-16 | Fase 0 | Upload foto recensioni senza login admin | Route usa il machine secret Media; typecheck, build e controllo accessi CMS superati | Da distribuire | Deploy Storefront e rimozione env admin |
+| 2026-08-16 | Fase 0 | Upload recensioni distribuito e Fase 0 chiusa | Storefront deployment `ba64ffc7`; upload reale 200 e media test rimossa; nessuna variabile admin nei servizi Railway o runtime attivi | Superato | Fase 1 dipendenze |
 | 2026-08-16 | Fase 1 | Audit dipendenze e lockfile | Tre write-set definiti; Docker B2B non riproducibile | Pianificato | Eseguire dopo la Fase 0 |
 
 ## Prossima azione concordata
 
-Distribuire la route foto recensioni che non usa più il login amministratore,
-rimuovere da Railway le due variabili admin legacy ed eseguire la ricerca
-finale delle credenziali. Poi chiudere la Fase 0 e iniziare gli aggiornamenti
-dipendenze, un servizio alla volta.
+Iniziare la Fase 1 con il write-set CMS: allineare i pacchetti Payload, Next.js
+e Sharp, rigenerare il lockfile, eseguire build e audit, quindi distribuire e
+monitorare il CMS prima di modificare Storefront e B2B.
