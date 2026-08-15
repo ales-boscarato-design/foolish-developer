@@ -40,7 +40,7 @@ Ultimo aggiornamento: 2026-08-16
 
 | Fase | Stato | Prossima azione |
 | --- | --- | --- |
-| 0. Credenziali e separazione | In corso | Distribuire e verificare l'endpoint ordini dedicato ad Alfred |
+| 0. Credenziali e separazione | In chiusura | Distribuire l'upload recensioni senza login admin e rimuovere le variabili Railway legacy |
 | 1. Dipendenze | Audit completato | Applicare i tre write-set separati dopo la Fase 0 |
 | 2. Tunnel Alfred | Da fare | Preparare `cloudflared` direttamente sulla Raspberry |
 | 3. Affidabilità ordini | Parzialmente completata | Aggiungere test di regressione e prova allarmi |
@@ -78,41 +78,43 @@ definitivamente Frank per l'operatività Foolish.
   inutilizzato.
 - [x] Verificare quali operazioni CMS esegue Alfred: lettura ordini, modifica
   stato, fatturazione e strumenti CLI legacy.
-- [~] Introdurre un endpoint ordini dedicato ad Alfred con segreto separato e
+- [x] Introdurre un endpoint ordini dedicato ad Alfred con segreto separato e
   allowlist server-side dei campi modificabili.
-- [ ] Sostituire nell'ambiente Alfred il login amministratore con una
+- [x] Sostituire nell'ambiente Alfred il login amministratore con una
   credenziale macchina a privilegi minimi.
-- [ ] Verificare che lettura e aggiornamento degli ordini funzionino con la
+- [x] Verificare che lettura e aggiornamento degli ordini funzionino con la
   credenziale macchina.
+- [~] Sostituire il login amministratore dell'upload foto recensioni con il
+  machine secret già autorizzato esclusivamente dal controllo accessi Media.
 - [x] Confrontare gli strumenti e i cron attivi tra Frank e Alfred.
 - [x] Classificare i cron di Frank come Foolish, personali o infrastrutturali.
-- [ ] Replicare su Alfred i cron Foolish ancora necessari, senza abilitarli in
+- [x] Replicare su Alfred i cron Foolish ancora necessari, senza abilitarli in
   contemporanea sui due agenti.
-- [ ] Osservare almeno un'esecuzione riuscita di ogni cron migrato su Alfred.
-- [ ] Disabilitare su Frank i cron Foolish solo dopo la relativa verifica su
+- [x] Osservare almeno un'esecuzione riuscita di ogni cron migrato su Alfred.
+- [x] Disabilitare su Frank i cron Foolish solo dopo la relativa verifica su
   Alfred.
-- [ ] Fermare e disabilitare `frank.service` solo dopo tutti i test Alfred e la
+- [x] Fermare e disabilitare `frank.service` solo dopo tutti i test Alfred e la
   migrazione dei cron Foolish necessari.
-- [ ] Conservare configurazione e stato Frank per un rollback breve, senza
+- [x] Conservare configurazione e stato Frank per un rollback breve, senza
   lasciarlo in esecuzione.
-- [ ] Inventariare le chiavi contenute in `/home/ab/dev/temporaneo.txt`.
-- [ ] Salvare nella destinazione sicura corretta soltanto le chiavi ancora
+- [x] Inventariare le chiavi contenute in `/home/ab/dev/temporaneo.txt`.
+- [x] Salvare nella destinazione sicura corretta soltanto le chiavi ancora
   attive e necessarie.
-- [ ] Eliminare `/home/ab/dev/temporaneo.txt` solo dopo la verifica dei
+- [x] Eliminare `/home/ab/dev/temporaneo.txt` solo dopo la verifica dei
   consumatori e del recupero dalla cassaforte.
-- [ ] Verificare che la password amministratore CMS resti soltanto nella
+- [~] Verificare che la password amministratore CMS resti soltanto nella
   cassaforte GPG e, finché necessario alla migrazione, nei runtime autorizzati.
 
 ### Verifiche obbligatorie
 
-- [ ] Login manuale CMS con la credenziale conservata in GPG: HTTP 200.
-- [ ] Vecchia password CMS: HTTP 401.
-- [ ] Operazione Alfred di lettura ordine riuscita.
-- [ ] Operazione Alfred di aggiornamento stato ordine riuscita.
-- [ ] Cron Foolish necessari presenti e verificati su Alfred.
-- [ ] Nessun cron Foolish eseguito contemporaneamente da Frank e Alfred.
-- [ ] `frank.service` fermo e disabilitato.
-- [ ] `temporaneo.txt` assente.
+- [x] Login manuale CMS con la credenziale conservata in GPG: HTTP 200.
+- [x] Vecchia password CMS: HTTP 401.
+- [x] Operazione Alfred di lettura ordine riuscita.
+- [x] Operazione Alfred di aggiornamento stato ordine riuscita.
+- [x] Cron Foolish necessari presenti e verificati su Alfred.
+- [x] Nessun cron Foolish eseguito contemporaneamente da Frank e Alfred.
+- [x] `frank.service` fermo e disabilitato.
+- [x] `temporaneo.txt` assente.
 - [ ] Ricerca finale dei nomi delle variabili sensibili senza valori o copie
   inattese.
 
@@ -349,10 +351,16 @@ token, email private o dati cliente.
 | 2026-08-15 | Fase 0 | Confrontati runtime Frank e Alfred | Alfred ha gli strumenti Foolish; i cron operativi sono ancora su Frank | Da migrare | Classificare e trasferire i cron Foolish |
 | 2026-08-16 | Fase 0 | Audit auth Alfred/Payload | Letture macchina; update ordini ancora con password admin | In correzione | Endpoint ordini dedicato |
 | 2026-08-16 | Fase 0 | Endpoint ordini Alfred preparato | Segreto dedicato cifrato; allowlist server-side di cinque campi; build CMS superata | Da distribuire | Deploy CMS e smoke test |
+| 2026-08-16 | Fase 0 | Endpoint ordini Alfred distribuito | CMS deployment `d4fa1588`; 401 senza/secret errato, 400 campo vietato, 200 no-op autorizzato | Superato | Migrare runtime Alfred |
+| 2026-08-16 | Fase 0 | Runtime e cron migrati ad Alfred | Tool read/update reali superati; analytics, Packlink e Brevo eseguiti dal cron; baseline Brevo valida | Superato | Spegnere Frank |
+| 2026-08-16 | Fase 0 | Frank ritirato | `frank.service` inactive e disabled; quattro cron Foolish disabilitati; stato conservato senza password admin | Superato | Chiudere credenziali Storefront |
+| 2026-08-16 | Fase 0 | File credenziali temporaneo eliminato | Admin già in GPG; Printful e machine secret attivi cifrati e verificati; copia Payload obsoleta scartata | Superato | Ricerca finale |
+| 2026-08-16 | Fase 0 | Upload foto recensioni senza login admin | Route usa il machine secret Media; typecheck, build e controllo accessi CMS superati | Da distribuire | Deploy Storefront e rimozione env admin |
 | 2026-08-16 | Fase 1 | Audit dipendenze e lockfile | Tre write-set definiti; Docker B2B non riproducibile | Pianificato | Eseguire dopo la Fase 0 |
 
 ## Prossima azione concordata
 
-Distribuire l'endpoint ordini dedicato, aggiornare Alfred e verificare lettura
-e modifica senza credenziali amministratore. Poi migrare e verificare i cron
-Foolish necessari prima di fermare Frank.
+Distribuire la route foto recensioni che non usa più il login amministratore,
+rimuovere da Railway le due variabili admin legacy ed eseguire la ricerca
+finale delle credenziali. Poi chiudere la Fase 0 e iniziare gli aggiornamenti
+dipendenze, un servizio alla volta.
