@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { notifyNanobot } from '@/lib/nanobot'
+import { notifyStripeReconciliation } from '@/lib/stripe-reconciliation-alert'
 import { reconcilePaidStripeOrders } from '@/lib/stripe-orders'
 
 export const dynamic = 'force-dynamic'
@@ -35,13 +35,12 @@ export async function GET(req: NextRequest) {
     console.log('[stripe-reconcile]', JSON.stringify(result))
 
     if (heartbeat || result.recovered.length > 0 || result.errors.length > 0) {
-      await notifyNanobot('/hooks/foolish-storefront-order', {
+      await notifyStripeReconciliation({
         eventType: heartbeat
           ? 'stripe_order_reconciliation_heartbeat'
           : 'stripe_order_reconciliation',
-        source: 'storefront',
-        ...result,
-      }, { throwOnError: true })
+        result,
+      })
     }
 
     if (result.errors.length > 0) {
@@ -52,12 +51,12 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     console.error('[stripe-reconcile] fatal:', message)
-    await notifyNanobot('/hooks/foolish-storefront-order', {
+    await notifyStripeReconciliation({
       eventType: 'stripe_order_reconciliation_fatal',
-      source: 'storefront',
-      fatal: true,
       error: message,
-    }, { throwOnError: false })
+    }).catch((notificationError) => {
+      console.error('[stripe-reconcile] fatal alert failed:', notificationError)
+    })
     return NextResponse.json({ ok: false, error: message }, { status: 500 })
   }
 }
