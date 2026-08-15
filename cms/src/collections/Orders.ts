@@ -1,9 +1,83 @@
+import { APIError } from 'payload'
 import type { CollectionConfig, CollectionAfterChangeHook, CollectionBeforeChangeHook, PayloadRequest } from 'payload'
 import crypto from 'crypto'
+import type { Order } from '../payload-types'
 
 function hasStorefrontSecret(req: PayloadRequest): boolean {
   const secret = req.headers?.get?.('x-storefront-secret') ?? (req.headers as unknown as Record<string, string>)?.['x-storefront-secret']
   return !!secret && secret === process.env.PAYLOAD_API_SECRET
+}
+
+const ALFRED_PIPELINE_STATES = new Set<NonNullable<Order['pipelineState']>>([
+  'received',
+  'eta_pending',
+  'eta_confirmed',
+  'confirmed',
+  'in_production',
+  'matching_pending',
+  'matched',
+  'preview_sent',
+  'shipped',
+  'delivered',
+  'followup_done',
+  'closed',
+])
+
+type AlfredOrderUpdate = Partial<Pick<Order, 'pipelineState' | 'trackingNumber' | 'trackingCarrier' | 'productionEtaDays' | 'customerTelegramId'>>
+
+function hasAlfredOrdersSecret(req: PayloadRequest): boolean {
+  const expected = process.env.ALFRED_ORDERS_API_SECRET
+  const provided = req.headers?.get?.('x-alfred-orders-secret') ?? (req.headers as unknown as Record<string, string>)?.['x-alfred-orders-secret']
+  if (!expected || !provided) return false
+
+  const expectedDigest = crypto.createHash('sha256').update(expected).digest()
+  const providedDigest = crypto.createHash('sha256').update(provided).digest()
+  return crypto.timingSafeEqual(expectedDigest, providedDigest)
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function invalidAlfredOrderUpdate(): never {
+  throw new APIError('Invalid order update', 400)
+}
+
+function parseAlfredOrderUpdate(body: unknown): AlfredOrderUpdate {
+  if (!isRecord(body) || Object.keys(body).length === 0) invalidAlfredOrderUpdate()
+
+  const allowedFields = new Set<keyof AlfredOrderUpdate>([
+    'pipelineState',
+    'trackingNumber',
+    'trackingCarrier',
+    'productionEtaDays',
+    'customerTelegramId',
+  ])
+  if (Object.keys(body).some((field) => !allowedFields.has(field as keyof AlfredOrderUpdate))) {
+    invalidAlfredOrderUpdate()
+  }
+
+  const update: AlfredOrderUpdate = {}
+  if ('pipelineState' in body) {
+    if (body.pipelineState !== null && (typeof body.pipelineState !== 'string' || !ALFRED_PIPELINE_STATES.has(body.pipelineState as NonNullable<Order['pipelineState']>))) {
+      invalidAlfredOrderUpdate()
+    }
+    update.pipelineState = body.pipelineState as Order['pipelineState']
+  }
+  for (const field of ['trackingNumber', 'trackingCarrier', 'customerTelegramId'] as const) {
+    if (field in body) {
+      if (body[field] !== null && typeof body[field] !== 'string') invalidAlfredOrderUpdate()
+      update[field] = body[field] as Order[typeof field]
+    }
+  }
+  if ('productionEtaDays' in body) {
+    if (body.productionEtaDays !== null && (typeof body.productionEtaDays !== 'number' || !Number.isFinite(body.productionEtaDays))) {
+      invalidAlfredOrderUpdate()
+    }
+    update.productionEtaDays = body.productionEtaDays as Order['productionEtaDays']
+  }
+
+  return update
 }
 
 const syncCustomer: CollectionAfterChangeHook = async ({ doc, operation, req }) => {
@@ -512,6 +586,43 @@ const sendTrackingEmail: CollectionAfterChangeHook = async ({ doc, previousDoc, 
 
 export const Orders: CollectionConfig = {
   slug: 'orders',
+  endpoints: [
+    {
+      path: '/:id/alfred',
+      method: 'patch',
+      handler: async (req) => {
+        if (!hasAlfredOrdersSecret(req)) {
+          throw new APIError('Unauthorized', 401)
+        }
+
+        const id = req.routeParams?.id
+        if (typeof id !== 'string' || id.length === 0) {
+          throw new APIError('Invalid order id', 400)
+        }
+
+        let body: unknown
+        try {
+          if (typeof req.json !== 'function') {
+            throw new APIError('Invalid JSON body', 400)
+          }
+          body = await req.json()
+        } catch {
+          throw new APIError('Invalid JSON body', 400)
+        }
+
+        const data = parseAlfredOrderUpdate(body)
+        const updated = await req.payload.update({
+          collection: 'orders',
+          id,
+          data,
+          req,
+          overrideAccess: true,
+        })
+
+        return Response.json({ ok: true, id: updated.id })
+      },
+    },
+  ],
   hooks: {
     beforeChange: [generatePageToken],
     afterChange: [sendOrderConfirmation, notifyAlfred, notifyAlessandroByEmail, syncCustomer, sendTrackingEmail],
