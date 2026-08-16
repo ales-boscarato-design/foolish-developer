@@ -29,8 +29,7 @@ These facts come from `memory/architecture.md` and require live confirmation bef
 
 ## Live evidence — 2026-08-16
 
-All checks below were read-only and performed with `curl`; no credentials,
-webhook mutations, database writes, or external actions were used.
+The public HTTP checks below used `curl`; all checks in this state snapshot were read-only. No credentials, webhook mutations, database writes, or external actions were used.
 
 | Check | Result | Interpretation |
 |---|---|---|
