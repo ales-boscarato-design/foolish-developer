@@ -69,5 +69,7 @@
 
 - [x] Run the complete Storefront verification set.
 - [x] Update `agent.md` with measured results and remaining non-blocking debt.
-- [ ] Commit each coherent write-set and push only after verification.
-- [ ] Monitor Railway deployment and repeat production smoke/reconciliation checks.
+- [x] Commit each coherent write-set and push only after verification: `5215047`.
+- [x] Monitor Railway deployment and repeat production smoke checks: deployment
+  `653df470` succeeded; `/it`, checkout and robots returned 200, cron anonimo
+  returned 401.
