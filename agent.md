@@ -439,14 +439,14 @@ token, email private o dati cliente.
 | 2026-08-16 | Fase 1 | CMS aggiornato e verificato | Commit `1865cbd`; deployment `049f483e`; Payload 3.88, Next 16.3.1 e Sharp 0.35.3; audit high 19→0; CRUD Alfred post-deploy superato | Superato | Storefront |
 | 2026-08-16 | Fase 1 | Storefront aggiornato e verificato | Commit `d9aaee2`; deployment `e147ae3b`; audit 19→0; build, pagine, prodotto e riconciliazione reali superati | Superato | B2B |
 | 2026-08-16 | Fase 1 | B2B aggiornato e verificato | Commit `31a34e5`; deployment `58c5afca`; audit 5→0; `npm ci`; contesto Docker 922 MB→539 KB; pagine/API superate | Superato | Fase 3 affidabilità ordini |
-| 2026-08-16 | Fase 3 | Test automatici affidabilità ordine | Cinque test: duplicato, race, retry temporaneo, errore permanente e webhook perso; typecheck, build e audit puliti | Superato | Distribuire Storefront |
+| 2026-08-16 | Fase 3 | Test automatici affidabilità ordine | Commit `6327990`; cinque test: duplicato, race, retry temporaneo, errore permanente e webhook perso; typecheck, build e audit puliti | Superato | Monitorare in produzione |
 | 2026-08-16 | Fase 3 | Cron e allarmi verificati realmente | Riconciliazione ogni 15 minuti; audit giornaliero; heartbeat HTTP 200; zero errori canale nei log; evento ricevuto da Alfred | Superato | Mantenere heartbeat giornaliero |
 | 2026-08-16 | Fase 3 | Routing eventi operativi Alfred corretto | Heartbeat instradato fuori dalla pipeline ordine; 22 test Raspberry; servizio attivo; job e nota di test errati rimossi con backup | Superato | Monitorare i successivi audit |
 | 2026-08-16 | Fase 3 | Runbook recupero ordine aggiunto | `docs/stripe-order-recovery.md`; recupero idempotente da PaymentIntent o Checkout Session, senza SQL diretto | Superato | Usare la procedura per ogni incidente |
+| 2026-08-16 | Fase 3 | Storefront distribuito e riconciliato | Deployment `2b40f34d` riuscito; home, checkout e robots 200; cron anonimo 401; audit 365 giorni: 40 sessioni, 22 pagamenti idonei, 22 ordini presenti, zero errori | Superato | Fase 2 tunnel Alfred |
 | 2026-08-16 | Infrastruttura | Dominio CMS documentato ma assente | `admin.thefoolishbutcher.com` NXDOMAIN; nessun custom domain Railway; endpoint Railway e Alfred operativi | Da correggere | Ripristinare DNS/custom domain o aggiornare la documentazione |
 
 ## Prossima azione concordata
 
-Distribuire il write-set della Fase 3 e ripetere smoke test, riconciliazione e
-controllo log in produzione. Poi affrontare la Fase 2, mantenendo dominio CMS,
-lint Storefront e React Email come write-set separati.
+Affrontare la Fase 2 portando il tunnel Cloudflare direttamente sulla Raspberry,
+mantenendo dominio CMS, lint Storefront e React Email come write-set separati.
