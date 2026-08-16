@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:orders": "tsx --test src/lib/stripe-orders.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
@@ -41,6 +42,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
     "tailwindcss": "^4",
+    "tsx": "4.23.12",
     "typescript": "^5"
   }
 }

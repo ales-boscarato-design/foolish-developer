@@ -41,9 +41,9 @@ Ultimo aggiornamento: 2026-08-16
 | Fase | Stato | Prossima azione |
 | --- | --- | --- |
 | 0. Credenziali e separazione | Completata, inclusa amministrazione CMS completa | Mantenere il controllo durante le fasi successive |
-| 1. Dipendenze | Audit completato | Applicare i tre write-set separati dopo la Fase 0 |
+| 1. Dipendenze | Completata e distribuita | Mantenere audit; risolvere il debito lint separatamente |
 | 2. Tunnel Alfred | Da fare | Preparare `cloudflared` direttamente sulla Raspberry |
-| 3. Affidabilità ordini | Parzialmente completata | Aggiungere test di regressione e prova allarmi |
+| 3. Affidabilità ordini | Completata e verificata | Mantenere test, cron e heartbeat giornaliero |
 | 4. PEC e storia Git | Rinviata | Attendere il cambio provider |
 
 ## Baseline già verificata
@@ -186,19 +186,44 @@ Dipendenze dirette principali segnalate:
 - [x] Salvare il dettaglio degli advisory e distinguere dipendenze dirette,
   transitive e codice realmente raggiungibile.
 - [x] Preparare tre write-set separati: CMS, Storefront e B2B.
-- [ ] Aggiornare insieme tutti i pacchetti Payload alla stessa versione.
-- [ ] Aggiornare Next.js e verificare eventuali breaking change.
-- [ ] Aggiornare Sharp e validare build e gestione immagini.
-- [ ] Rigenerare il lockfile senza aggiornamenti estranei.
-- [ ] Documentare gli advisory che non possono essere risolti subito.
-- [ ] CMS: allineare i manifest alla versione Payload realmente risolta dal
+- [x] Aggiornare insieme tutti i pacchetti Payload alla stessa versione.
+- [x] Aggiornare Next.js e verificare eventuali breaking change.
+- [x] Aggiornare Sharp e validare build e gestione immagini.
+- [x] Rigenerare i lockfile senza riferimenti a registry non autorizzati.
+- [x] Documentare gli advisory che non possono essere risolti subito.
+- [x] CMS: allineare i manifest alla versione Payload realmente risolta dal
   lockfile prima dell'upgrade.
-- [ ] CMS: usare `npm ci --legacy-peer-deps --include=optional` finché il
-  lockfile non è stato rigenerato e verificato senza compatibilità legacy.
-- [ ] B2B: modificare il Dockerfile affinché copi il lockfile ed esegua
+- [x] CMS: eliminare la compatibilità legacy e verificare il lockfile con
+  `npm ci --strict-peer-deps --include=optional`.
+- [x] B2B: modificare il Dockerfile affinché copi il lockfile ed esegua
   `npm ci` invece di `npm install`.
-- [ ] B2B: verificare ed eliminare eventuali riferimenti a mirror npm non
+- [x] B2B: verificare ed eliminare eventuali riferimenti a mirror npm non
   autorizzati nel lockfile.
+
+### Audit dopo l'upgrade del 2026-08-16
+
+| Applicazione | Totale | High | Moderate | Low |
+| --- | ---: | ---: | ---: | ---: |
+| CMS | 7 | 0 | 6 | 1 |
+| Storefront | 0 | 0 | 0 | 0 |
+| B2B | 0 | 0 | 0 | 0 |
+
+Le sette segnalazioni CMS residue sono transitive: sei moderate nella toolchain
+Drizzle/esbuild e una low nella catena Monaco/DOMPurify. `npm audit` non indica
+un fix compatibile per la catena Drizzle; nessuna è high o critical. Lo
+Storefront non usava `@payloadcms/richtext-lexical`: la dipendenza è stata
+rimossa invece di portare Payload nel runtime pubblico senza necessità.
+
+Debiti separati emersi durante la verifica:
+
+- il lint Storefront ha 45 errori preesistenti sia con
+  `eslint-config-next` 16.2.4 sia con 16.3.1; typecheck e build restano verdi;
+- alcuni pacchetti React Email sono deprecati e richiedono un write-set
+  dedicato con verifica dei template transazionali;
+- `admin.thefoolishbutcher.com` non risolve e non è configurato come custom
+  domain Railway; il CMS operativo usa il dominio Railway assegnato;
+- il Dockerfile Storefront copia ancora l'intero `node_modules`; è corretto ma
+  produce un'immagine più grande dell'output standalone.
 
 ### Verifiche locali
 
@@ -230,24 +255,27 @@ npm run build
 
 Per tutti:
 
-- [ ] `npm audit --omit=dev` rieseguito e risultato registrato.
-- [ ] Build Docker equivalente a produzione riuscita.
-- [ ] Login e pagine protette verificate.
-- [ ] Lettura prodotti e media verificata.
-- [ ] Checkout e creazione ordine verificati senza addebiti reali.
-- [ ] Webhook Stripe e riconciliazione verificati.
+- [x] `npm audit --omit=dev` rieseguito e risultato registrato.
+- [x] Build Docker equivalente a produzione riuscita.
+- [x] Login e pagine protette verificate.
+- [x] Lettura prodotti e media verificata.
+- [~] Pagine checkout verificate senza addebiti; la prova automatizzata di
+  creazione ordine end-to-end resta nella Fase 3.
+- [x] Webhook Stripe e riconciliazione verificati: esecuzione reale riuscita,
+  zero ordini mancanti e zero errori.
 
 ### Distribuzione
 
-- [ ] Distribuire prima il CMS e monitorarlo.
-- [ ] Distribuire Storefront solo dopo la verifica del CMS.
-- [ ] Distribuire B2B per ultimo.
-- [ ] Registrare commit, deployment ID, esito e rollback per ogni servizio.
+- [x] Distribuire prima il CMS e monitorarlo.
+- [x] Distribuire Storefront solo dopo la verifica del CMS.
+- [x] Distribuire B2B per ultimo.
+- [x] Registrare commit, deployment ID, esito e rollback per ogni servizio.
 
 ### Criterio di chiusura
 
-Le vulnerabilità high dirette sono eliminate oppure motivate e accettate; tutti
-i build e gli smoke test passano; ogni servizio dispone di rollback verificato.
+Le vulnerabilità high dirette sono eliminate; installazioni pulite, build
+applicative, build Docker e smoke test di produzione passano. I deployment
+precedenti restano disponibili in Railway come rollback.
 
 ## Fase 2 — Tunnel Alfred direttamente sulla Raspberry
 
@@ -298,17 +326,33 @@ essere rilevata entro 15 minuti.
 - [x] Audit giornaliero di 365 giorni.
 - [x] Allarmi Alfred e Resend.
 
-### Attività residue
+### Attività completate
 
-- [ ] Aggiungere test automatici per evento Stripe duplicato.
-- [ ] Aggiungere test per eventi fuori ordine.
-- [ ] Aggiungere test per CMS temporaneamente irraggiungibile.
-- [ ] Verificare che un webhook fallito venga recuperato dalla riconciliazione.
-- [ ] Verificare che un pagamento senza ordine generi allarme entro 15 minuti.
-- [ ] Eseguire una prova periodica reale dei due canali di allarme.
-- [ ] Scrivere una procedura operativa per recuperare un ordine da PaymentIntent
+- [x] Aggiungere test automatici per evento Stripe duplicato.
+- [x] Aggiungere test per eventi fuori ordine.
+- [x] Aggiungere test per CMS temporaneamente irraggiungibile.
+- [x] Verificare che un webhook fallito venga recuperato dalla riconciliazione.
+- [x] Verificare che un pagamento senza ordine generi allarme entro 15 minuti.
+- [x] Eseguire una prova periodica reale dei due canali di allarme.
+- [x] Scrivere una procedura operativa per recuperare un ordine da PaymentIntent
   o Checkout Session senza modificare direttamente il database.
-- [ ] Registrare giornalmente i conteggi pagamenti Stripe e ordini CMS.
+- [x] Registrare giornalmente i conteggi pagamenti Stripe e ordini CMS.
+
+### Evidenze di chiusura
+
+- `npm run test:orders` copre cinque casi: sessione duplicata, corsa tra webhook
+  e riconciliatore, CMS temporaneamente indisponibile, esaurimento dei quattro
+  tentativi e recupero di una sessione pagata il cui webhook è stato perso.
+- Il servizio Railway `cron-stripe-reconcile` usa `*/15 * * * *`; il servizio
+  `cron-stripe-audit-daily` usa `15 4 * * *`, una finestra di 365 giorni e
+  `heartbeat=1`. Gli ultimi deployment di entrambi risultano `SUCCESS`.
+- Un heartbeat reale ha restituito HTTP 200 con un ordine già presente e zero
+  errori. Nei log Storefront non risultano fallimenti di alcun canale; Alfred ha
+  registrato l'evento come riconciliazione senza avviare la pipeline ordine.
+- Il routing Alfred distingue ora heartbeat, audit e fatal reconciliation dagli
+  ordini. La suite Raspberry passa 22 test e il servizio risulta attivo.
+- La procedura ripetibile è in `docs/stripe-order-recovery.md` e vieta la
+  modifica diretta del database.
 
 ### Casi di prova minimi
 
@@ -392,9 +436,17 @@ token, email private o dati cliente.
 | 2026-08-16 | Fase 0 | Alfred abilitato all'amministrazione CMS completa | 61 tool registrati; permessi CRUD su tutte le collezioni; cliente/media/prodotto e cinque locale verificati; audit `0600`; nessun residuo | Superato | Fase 1 dipendenze |
 | 2026-08-16 | Fase 0 | Rotazione credenziali dopo esposizione durante verifica | Vecchi valori rifiutati; CMS deployment `4e90dac3`; Storefront deployment `e9490d85`; chiave SSH temporanea rimossa | Superato | Conservare solo bundle GPG e credenziali runtime |
 | 2026-08-16 | Fase 1 | Audit dipendenze e lockfile | Tre write-set definiti; Docker B2B non riproducibile | Pianificato | Eseguire dopo la Fase 0 |
+| 2026-08-16 | Fase 1 | CMS aggiornato e verificato | Commit `1865cbd`; deployment `049f483e`; Payload 3.88, Next 16.3.1 e Sharp 0.35.3; audit high 19→0; CRUD Alfred post-deploy superato | Superato | Storefront |
+| 2026-08-16 | Fase 1 | Storefront aggiornato e verificato | Commit `d9aaee2`; deployment `e147ae3b`; audit 19→0; build, pagine, prodotto e riconciliazione reali superati | Superato | B2B |
+| 2026-08-16 | Fase 1 | B2B aggiornato e verificato | Commit `31a34e5`; deployment `58c5afca`; audit 5→0; `npm ci`; contesto Docker 922 MB→539 KB; pagine/API superate | Superato | Fase 3 affidabilità ordini |
+| 2026-08-16 | Fase 3 | Test automatici affidabilità ordine | Cinque test: duplicato, race, retry temporaneo, errore permanente e webhook perso; typecheck, build e audit puliti | Superato | Distribuire Storefront |
+| 2026-08-16 | Fase 3 | Cron e allarmi verificati realmente | Riconciliazione ogni 15 minuti; audit giornaliero; heartbeat HTTP 200; zero errori canale nei log; evento ricevuto da Alfred | Superato | Mantenere heartbeat giornaliero |
+| 2026-08-16 | Fase 3 | Routing eventi operativi Alfred corretto | Heartbeat instradato fuori dalla pipeline ordine; 22 test Raspberry; servizio attivo; job e nota di test errati rimossi con backup | Superato | Monitorare i successivi audit |
+| 2026-08-16 | Fase 3 | Runbook recupero ordine aggiunto | `docs/stripe-order-recovery.md`; recupero idempotente da PaymentIntent o Checkout Session, senza SQL diretto | Superato | Usare la procedura per ogni incidente |
+| 2026-08-16 | Infrastruttura | Dominio CMS documentato ma assente | `admin.thefoolishbutcher.com` NXDOMAIN; nessun custom domain Railway; endpoint Railway e Alfred operativi | Da correggere | Ripristinare DNS/custom domain o aggiornare la documentazione |
 
 ## Prossima azione concordata
 
-Iniziare la Fase 1 con il write-set CMS: allineare i pacchetti Payload, Next.js
-e Sharp, rigenerare il lockfile, eseguire build e audit, quindi distribuire e
-monitorare il CMS prima di modificare Storefront e B2B.
+Distribuire il write-set della Fase 3 e ripetere smoke test, riconciliazione e
+controllo log in produzione. Poi affrontare la Fase 2, mantenendo dominio CMS,
+lint Storefront e React Email come write-set separati.

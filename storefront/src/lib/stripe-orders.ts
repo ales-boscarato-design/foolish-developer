@@ -25,6 +25,11 @@ export interface OrderPersistenceResult {
   orderId?: string | number
 }
 
+export interface OrderPersistenceRetryOptions {
+  delays?: readonly number[]
+  persist?: (session: Stripe.Checkout.Session) => Promise<OrderPersistenceResult>
+}
+
 export interface StripeOrderReconciliationResult {
   lookbackDays: number
   sessionsScanned: number
@@ -159,15 +164,17 @@ export async function createOrderInCMS(session: Stripe.Checkout.Session): Promis
 
 export async function createOrderInCMSWithRetry(
   session: Stripe.Checkout.Session,
+  options: OrderPersistenceRetryOptions = {},
 ): Promise<OrderPersistenceResult> {
-  const delays = [0, 2_000, 5_000, 10_000]
+  const delays = options.delays ?? [0, 2_000, 5_000, 10_000]
+  const persist = options.persist ?? createOrderInCMS
   let lastError: Error | null = null
 
   for (let attempt = 0; attempt < delays.length; attempt += 1) {
     const delay = delays[attempt]!
     if (delay > 0) await sleep(delay)
     try {
-      return await createOrderInCMS(session)
+      return await persist(session)
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error))
       console.error(`[stripe-order] CMS persistence attempt ${attempt + 1}/${delays.length} failed:`, lastError.message)
