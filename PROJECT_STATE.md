@@ -2,7 +2,7 @@
 
 ## Snapshot metadata
 
-- **Last verified:** 2026-08-16T15:10:03Z
+- **Last verified:** 2026-08-16T15:28:30Z
 - **Verification scope:** repository files, package manifests, project contracts, local documentation, Git working-tree state, public HTTP endpoints, DNS resolution, Railway production deployment metadata/metrics/logs, PostgreSQL service state, Stripe webhook HTTP-log evidence, and Alfred internal services on the Raspberry Pi.
 - **Live verification:** public Storefront, CMS admin, Alfred public/local health, Railway deployments, build logs, runtime/deploy logs, cron schedules, and Alfred systemd units were queried read-only.
 - **Current confidence:** high for deployment state, public reachability, build success, Alfred core services, and observed cron calls; medium for database health and runtime error interpretation; low/unverified for Stripe delivery because no webhook delivery record was visible and no Stripe-dashboard/API query was performed.
