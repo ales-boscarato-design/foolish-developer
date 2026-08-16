@@ -139,10 +139,8 @@ address as user `nanobot-admin`:
   `alfred-stripe-monitor.timer`: active, recent trigger, result `success`.
 - Last oneshot results for healthcheck, Railway direct, and Stripe monitor:
   exit status `0`.
-- `alfred-railway-bridge.service`: not installed (`not-found`) on the Pi,
-  although a bridge unit exists in local staging. This is a documented
-  infrastructure drift; the active Pi path is the direct timer, not that
-  bridge unit.
+- `alfred-railway-bridge.service`: not installed (`not-found`) on the Pi. Its local staging artifacts and the workstation SSH-forward unit are now archived under `/home/ab/nano-py/docs/legacy/railway-bridge/`; the active Pi path is the direct Railway timer, not a bridge unit.
+- The Pi direct unit uses `/home/nanobot-admin/.nanobot/railway.env` with mode `600`; only variable names were inspected, including `RAILWAY_TOKEN`. The direct script calls Railway GraphQL with `Project-Access-Token`, and its latest oneshot exited `0`. No token value was read or copied.
 
 ### CMS custom domain historical item
 
@@ -200,10 +198,11 @@ Run only the affected application first during diagnosis; run the full relevant 
 ## Current stage and open items
 
 - **Stage:** production system with Alfred transition/closeout documented locally; engineering policy is now Hermes → Codex → Hermes review.
-- **Verified:** public Storefront routes, CMS admin, Railway deployment status, Storefront/CMS/B2B build logs, cron schedules and observed calls, Postgres service/resource state, Alfred core services/timers, and the deferred CMS custom-domain condition.
+- **Verified:** public Storefront routes, CMS admin, Railway deployment status, Storefront/CMS/B2B build logs, cron schedules and observed calls, reconciled seven-service cron documentation, Postgres service/resource state, Alfred core services/timers, and the deferred CMS custom-domain condition.
 - **Open:** Stripe webhook delivery is unverified because no matching HTTP log records were observed and no Stripe Dashboard/API query was performed.
 - **Open:** SQL-level database health is unverified because the Railway Postgres service has no TCP proxy URL for `railway connect` from this environment.
 - **Open:** Railway metrics and HTTP logs disagree about a small number of historical 5xx responses; retain as an observability warning until reconciled.
+- **Open:** the historical `notifyFrank` function name remains in cron source even though it delegates to Nanobot; perform a bounded code rename only after review of all callers and tests.
 - **Open:** the historical `agent.md` still contains Frank transition references; it remains historical and should be reconciled into a dedicated operations runbook before being treated as current authority.
 - **Open:** the repository working tree is dirty with many pre-existing modifications and untracked files. No promotion is allowed until the intended change set is isolated and the tree is clean for that promotion.
 
