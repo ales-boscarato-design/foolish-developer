@@ -365,6 +365,9 @@ essere rilevata entro 15 minuti.
 - [x] Scrivere una procedura operativa per recuperare un ordine da PaymentIntent
   o Checkout Session senza modificare direttamente il database.
 - [x] Registrare giornalmente i conteggi pagamenti Stripe e ordini CMS.
+- [x] Separare gli errori CMS/Storefront dagli allarmi Stripe: un `CMS fetch
+  error: 502 /products` resta un warning osservabile e non apre più il topic
+  `STRIPE CRITICAL`.
 
 ### Evidenze di chiusura
 
@@ -381,6 +384,11 @@ essere rilevata entro 15 minuti.
   ordini. La suite Raspberry passa 22 test e il servizio risulta attivo.
 - La procedura ripetibile è in `docs/stripe-order-recovery.md` e vieta la
   modifica diretta del database.
+- Il monitor Alfred aggiornato classifica i log Railway con segnali Stripe come
+  `critical` e quelli CMS/Storefront come `warning`. I test locali passano
+  `24/24`; sulla Raspberry il servizio è terminato con `status=0`, l'ultima
+  scansione ha prodotto `critical=0`, e il timer è attivo. Il rollback è nei
+  file `.bak` accanto ai due moduli in `/home/nanobot-admin/foolish-core`.
 
 ### Casi di prova minimi
 
@@ -478,9 +486,10 @@ token, email private o dati cliente.
 | 2026-08-16 | Fase 2 | Autoripartenza servizi verificata | Restart simultaneo Alfred/tunnel; 61 tool, origine e quattro connessioni ripristinati; linger attivo | Superato | Reboot completo della Pi |
 | 2026-08-16 | Fase 2 | Reboot completo verificato | Boot `09:08:34`; Alfred e cloudflared enabled/active; 61 tool, quattro connessioni QUIC, health pubblico 200 e heartbeat ricevuto | Superato | Mantenere monitoraggio |
 | 2026-08-16 | Infrastruttura | Dominio CMS documentato ma assente | `admin.thefoolishbutcher.com` NXDOMAIN; nessun custom domain Railway; endpoint Railway e Alfred operativi | Rinviato per decisione esplicita | Non intervenire finché il servizio PEC/admin non verrà cambiato |
+| 2026-08-16 | Fase 3 | Falso positivo `STRIPE CRITICAL` corretto | `CMS fetch error: 502 /products` ora è warning; monitor Raspberry `status=0`, `critical=0`; 24 test locali superati | Superato | Osservare il prossimo ciclo automatico |
 
 ## Prossima azione concordata
 
-Mantenere il monitoraggio di Stripe. Il dominio CMS resta esplicitamente
-rinviato; il lint, React Email e Docker Storefront sono chiusi e pronti per il
-deploy dopo il commit di questo write-set.
+Mantenere il monitoraggio di Stripe e verificare il prossimo ciclo automatico
+del monitor dopo la correzione della classificazione. Il dominio CMS resta
+esplicitamente rinviato; lint, React Email e Docker Storefront sono chiusi.
