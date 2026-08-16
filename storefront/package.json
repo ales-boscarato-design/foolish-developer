@@ -7,12 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:orders": "tsx --test src/lib/stripe-orders.test.ts"
+    "test:orders": "tsx --test src/lib/stripe-orders.test.ts",
+    "test:emails": "tsx --test src/emails/copy.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
-    "@react-email/components": "^1.0.11",
-    "@react-email/render": "^2.0.8",
     "@stripe/stripe-js": "^9.3.1",
     "@swc/helpers": "^0.5.21",
     "class-variance-authority": "^0.7.1",
@@ -26,6 +25,7 @@
     "postgres": "^3.4.9",
     "react": "19.2.5",
     "react-dom": "19.2.5",
+    "react-email": "^6.9.2",
     "resend": "^6.12.4",
     "stripe": "^22.1.0",
     "svix": "^1.95.1",

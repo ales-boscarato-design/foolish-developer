@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { motion, useMotionValue, useSpring, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 
@@ -22,7 +22,6 @@ export function MagneticButton({
   springDamping = 15,
 }: MagneticButtonProps) {
   const ref = useRef<HTMLDivElement>(null)
-  const [isHovered, setIsHovered] = useState(false)
   const reduced = useReducedMotion()
 
   const rawX = useMotionValue(0)
@@ -58,8 +57,7 @@ export function MagneticButton({
       <motion.div
         style={{ x, y }}
         onMouseMove={handleMouseMove}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => { setIsHovered(false); handleMouseLeave() }}
+        onMouseLeave={handleMouseLeave}
         className={className}
       >
         <Link

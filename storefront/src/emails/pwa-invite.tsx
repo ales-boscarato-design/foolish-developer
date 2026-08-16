@@ -1,6 +1,7 @@
 import {
   Html, Head, Body, Container, Section, Text, Button, Hr, Preview,
-} from '@react-email/components'
+} from 'react-email'
+import { getEmailCopy, type EmailCopy } from './copy'
 
 interface Props {
   name: string | null
@@ -8,16 +9,12 @@ interface Props {
   accountUrl: string
   unsubscribeUrl: string
 }
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-function getCopy(locale: string): Record<string, string> {
-  try { return require(`../../emails/${locale}.json`).pwa_invite }
-  catch { return require('../../emails/it.json').pwa_invite }
+function getCopy(locale: string): EmailCopy['pwa_invite'] {
+  return getEmailCopy(locale).pwa_invite
 }
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-function getFooter(locale: string): Record<string, string> {
-  try { return require(`../../emails/${locale}.json`).footer }
-  catch { return require('../../emails/it.json').footer }
+
+function getFooter(locale: string): EmailCopy['footer'] {
+  return getEmailCopy(locale).footer
 }
 
 export function PwaInviteEmail({ name, locale, accountUrl, unsubscribeUrl }: Props) {

@@ -84,7 +84,7 @@ export async function markPushSequenceStep(email: string, stepKey: string): Prom
   `
 }
 
-export async function getSubscribersForSequence(triggerHoursAgo: number): Promise<Array<{
+export async function getSubscribersForSequence(): Promise<Array<{
   email: string; name: string | null; locale: string;
   push_subscribed_at: Date; push_sequence_state: Record<string, boolean>
 }>> {

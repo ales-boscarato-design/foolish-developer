@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   const sequences = data.docs ?? []
   if (!sequences.length) return NextResponse.json({ sent: 0, skipped: 0 })
 
-  const subscribers = await getSubscribersForSequence(0)
+  const subscribers = await getSubscribersForSequence()
   const now = Date.now()
   let sent = 0
   let skipped = 0

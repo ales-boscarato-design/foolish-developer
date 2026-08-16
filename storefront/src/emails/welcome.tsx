@@ -1,6 +1,7 @@
 import {
   Html, Head, Body, Container, Section, Text, Button, Hr, Preview, Link,
-} from '@react-email/components'
+} from 'react-email'
+import { getEmailCopy, type EmailCopy } from './copy'
 
 interface Props {
   name: string | null
@@ -8,32 +9,12 @@ interface Props {
   unsubscribeUrl: string
 }
 
-interface Channel {
-  before: string
-  link: string
-  url: string
-  after: string
+function getCopy(locale: string): EmailCopy['welcome'] {
+  return getEmailCopy(locale).welcome
 }
 
-interface WelcomeCopy {
-  subject: string
-  preview: string
-  heading: string
-  body: string
-  cta: string
-  cta_url: string
-  channels?: Channel[]
-}
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-function getCopy(locale: string): WelcomeCopy {
-  try { return require(`../../emails/${locale}.json`).welcome }
-  catch { return require('../../emails/it.json').welcome }
-}
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-function getFooter(locale: string): Record<string, string> {
-  try { return require(`../../emails/${locale}.json`).footer }
-  catch { return require('../../emails/it.json').footer }
+function getFooter(locale: string): EmailCopy['footer'] {
+  return getEmailCopy(locale).footer
 }
 
 export function WelcomeEmail({ name, locale, unsubscribeUrl }: Props) {

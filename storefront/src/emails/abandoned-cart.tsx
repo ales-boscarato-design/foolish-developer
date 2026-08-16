@@ -1,6 +1,7 @@
 import {
   Html, Head, Body, Container, Section, Text, Button, Hr, Preview,
-} from '@react-email/components'
+} from 'react-email'
+import { getEmailCopy, type EmailCopy } from './copy'
 
 interface CartItem {
   productName: string
@@ -15,16 +16,12 @@ interface Props {
   unsubscribeUrl: string
   checkoutUrl: string
 }
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-function getCopy(locale: string): Record<string, string> {
-  try { return require(`../../emails/${locale}.json`).abandoned_cart }
-  catch { return require('../../emails/it.json').abandoned_cart }
+function getCopy(locale: string): EmailCopy['abandoned_cart'] {
+  return getEmailCopy(locale).abandoned_cart
 }
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-function getFooter(locale: string): Record<string, string> {
-  try { return require(`../../emails/${locale}.json`).footer }
-  catch { return require('../../emails/it.json').footer }
+
+function getFooter(locale: string): EmailCopy['footer'] {
+  return getEmailCopy(locale).footer
 }
 
 export function AbandonedCartEmail({ cartData, locale, unsubscribeUrl, checkoutUrl }: Props) {

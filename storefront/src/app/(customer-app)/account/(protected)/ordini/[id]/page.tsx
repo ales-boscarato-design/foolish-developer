@@ -63,6 +63,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
             {(order.sheetPhotos as { url: string; caption?: string }[]).map((photo, i) => (
               <div key={i}>
+                {/* CMS media URLs are user-configurable; keep native loading instead of requiring remotePatterns. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={photo.url} alt={photo.caption ?? ''} style={{ width: '100%', borderRadius: '6px', aspectRatio: '1', objectFit: 'cover', border: '1px solid #222' }} />
                 {photo.caption && <div style={{ fontSize: '10px', color: '#555', marginTop: '3px' }}>{photo.caption}</div>}
               </div>

@@ -1,6 +1,7 @@
 import {
   Html, Head, Body, Container, Section, Text, Button, Hr, Preview,
-} from '@react-email/components'
+} from 'react-email'
+import { getEmailCopy, type EmailCopy } from './copy'
 
 interface Props {
   name: string | null
@@ -8,16 +9,12 @@ interface Props {
   unsubscribeUrl: string
   shopUrl: string
 }
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-function getCopy(locale: string): Record<string, string> {
-  try { return require(`../../emails/${locale}.json`).reengagement }
-  catch { return require('../../emails/it.json').reengagement }
+function getCopy(locale: string): EmailCopy['reengagement'] {
+  return getEmailCopy(locale).reengagement
 }
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-function getFooter(locale: string): Record<string, string> {
-  try { return require(`../../emails/${locale}.json`).footer }
-  catch { return require('../../emails/it.json').footer }
+
+function getFooter(locale: string): EmailCopy['footer'] {
+  return getEmailCopy(locale).footer
 }
 
 export function ReengagementEmail({ name, locale, unsubscribeUrl, shopUrl }: Props) {

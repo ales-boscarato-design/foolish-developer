@@ -475,13 +475,13 @@ export default async function HomePage() {
               <p className="text-base font-semibold mt-1">{t('pro.bannerTitle')}</p>
               <p className="text-sm mt-0.5" style={{ color: 'var(--muted-fg)' }}>{t('pro.bannerBody')}</p>
             </div>
-            <a
-              href="/pro"
+            <Link
+              href={`/${locale}/pro`}
               className="flex-shrink-0 px-5 py-2.5 rounded font-semibold text-sm border transition-opacity hover:opacity-80"
               style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}
             >
               {t('pro.bannerCta')}
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -501,19 +501,21 @@ export default async function HomePage() {
             <p className="text-sm leading-relaxed mb-8 max-w-sm" style={{ color: '#a89880' }}>
               {t('frank.body')}
             </p>
-            <a
-              href="/laboratorio"
+            <Link
+              href={`/${locale}/laboratorio`}
               className="inline-flex items-center gap-2 text-sm font-semibold tracking-widest uppercase transition-opacity hover:opacity-70"
               style={{ color: '#c9a96e' }}
             >
               {t('frank.cta_short')} →
-            </a>
+            </Link>
           </div>
           <div className="relative aspect-[3/4] rounded overflow-hidden hidden md:block">
-            <img
+            <Image
               src="/pellaio/pellaio-03.png"
               alt="Il Pellaio nel laboratorio"
-              className="w-full h-full object-cover object-top"
+              fill
+              sizes="(min-width: 768px) 340px, 0px"
+              className="object-cover object-top"
               style={{ filter: 'brightness(0.75) sepia(0.3)' }}
             />
             <div

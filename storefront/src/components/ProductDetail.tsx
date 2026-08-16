@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ShoppingBag, Check, Star, Shield, Truck, Sparkles, Play, Expand, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useTranslations, useLocale } from 'next-intl'
-import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion'
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import { DURATION, EASE } from '@/lib/motion'
 import type { Product, ProductVariant, ProductAttribute, ProductVariantCombination, FeatureHighlight, ProductComponent, ProductPack, ProductVideo } from '@/lib/cms'
 import { cmsImageUrl } from '@/lib/cms'
@@ -608,7 +608,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
             {product.variants.length > 0 && <div>
               <p className="text-sm font-medium mb-3" style={{ color: 'var(--muted-fg)' }}>{t('variantLabel')}</p>
               <div className="flex flex-wrap gap-3">
-                {product.variants.map((v, i) => (
+                {product.variants.map((v) => (
                   <motion.button
                     key={v.sku}
                     onClick={() => handleVariantSelect(v)}

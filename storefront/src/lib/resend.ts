@@ -7,6 +7,7 @@ import { AbandonedCartEmail } from '@/emails/abandoned-cart'
 import { ReviewRequestEmail } from '@/emails/review-request'
 import { ReengagementEmail } from '@/emails/reengagement'
 import { PwaInviteEmail } from '@/emails/pwa-invite'
+import { getEmailCopy, type EmailCopy } from '@/emails/copy'
 
 function getResend() {
   return new Resend(process.env.RESEND_API_KEY!)
@@ -196,12 +197,9 @@ export async function notifyFrank(payload: {
 
 // Helper: read subject line from locale copy.
 function getSubject(type: string, locale: string): string {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  let copy: Record<string, Record<string, string>>
-  try {
-    copy = require(`../../emails/${locale}.json`)
-  } catch {
-    copy = require('../../emails/it.json')
-  }
-  return copy[type]?.subject ?? '— The Foolish Butcher'
+  const copy = getEmailCopy(locale)
+  const section = copy[type as keyof EmailCopy]
+  return section && 'subject' in section && typeof section.subject === 'string'
+    ? section.subject
+    : '— The Foolish Butcher'
 }

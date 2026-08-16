@@ -189,7 +189,7 @@ export function FluidCanvas() {
     gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf)
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW)
 
-    function useQuad(prog: { p: WebGLProgram }) {
+    function bindQuad(prog: { p: WebGLProgram }) {
       gl.useProgram(prog.p)
       gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf)
       const loc = gl.getAttribLocation(prog.p, 'a_pos')
@@ -236,7 +236,7 @@ export function FluidCanvas() {
     function splat(x: number, y: number, dx: number, dy: number, color: RGB, radius = 0.0022) {
       const aspect = canvas.width / canvas.height
 
-      useQuad(splatP)
+      bindQuad(splatP)
       bindTex(vel.read.tex, 0)
       gl.uniform1i(splatP.locs['u_tex'], 0)
       gl.uniform1f(splatP.locs['u_aspect'], aspect)
@@ -255,7 +255,7 @@ export function FluidCanvas() {
 
     function step(dt: number) {
       // Advect velocity — faster decay so the impression recedes like silicone
-      useQuad(advectP)
+      bindQuad(advectP)
       bindTex(vel.read.tex, 0); bindTex(vel.read.tex, 1)
       gl.uniform1i(advectP.locs['u_vel'], 0)
       gl.uniform1i(advectP.locs['u_src'], 1)
@@ -272,14 +272,14 @@ export function FluidCanvas() {
       dye.swap()
 
       // Divergence
-      useQuad(divergeP)
+      bindQuad(divergeP)
       bindTex(vel.read.tex, 0)
       gl.uniform1i(divergeP.locs['u_vel'], 0)
       gl.uniform2fv(divergeP.locs['u_tx'], TX)
       target(div); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
 
       // Pressure — 22 Jacobi iterations
-      useQuad(pressureP)
+      bindQuad(pressureP)
       gl.uniform1i(pressureP.locs['u_div'], 1)
       gl.uniform2fv(pressureP.locs['u_tx'], TX)
       bindTex(div.tex, 1)
@@ -291,7 +291,7 @@ export function FluidCanvas() {
       }
 
       // Gradient subtract
-      useQuad(gradientP)
+      bindQuad(gradientP)
       bindTex(pres.read.tex, 0); bindTex(vel.read.tex, 1)
       gl.uniform1i(gradientP.locs['u_pres'], 0)
       gl.uniform1i(gradientP.locs['u_vel'], 1)
@@ -303,7 +303,7 @@ export function FluidCanvas() {
     function render() {
       target(null)
       gl.clear(gl.COLOR_BUFFER_BIT)
-      useQuad(displayP)
+      bindQuad(displayP)
       bindTex(dye.read.tex, 0)
       gl.uniform1i(displayP.locs['u_tex'], 0)
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)

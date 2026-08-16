@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, Suspense } from 'react'
+import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { getT, getClientLocale } from '@/lib/account-translations'
 import type { AccountLocale } from '@/lib/account-translations'
@@ -16,11 +16,9 @@ function LoginForm() {
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [locale, setLocale] = useState<AccountLocale>('it')
+  const [locale] = useState<AccountLocale>(getClientLocale)
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
-
-  useEffect(() => { setLocale(getClientLocale()) }, [])
 
   const t = getT(locale)
 

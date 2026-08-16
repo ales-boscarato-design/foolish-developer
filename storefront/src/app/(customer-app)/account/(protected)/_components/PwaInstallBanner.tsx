@@ -26,20 +26,15 @@ function isInStandaloneMode() {
 
 export function PwaInstallBanner() {
   const [show, setShow] = useState(false)
-  const [ios, setIos] = useState(false)
-  const [hasPrompt, setHasPrompt] = useState(false)
+  const [ios] = useState(isIos)
+  const [hasPrompt, setHasPrompt] = useState(() => (
+    typeof window !== 'undefined' && Boolean(window.__pwaInstallPrompt)
+  ))
 
   useEffect(() => {
     if (isInStandaloneMode()) return
     if (sessionStorage.getItem('pwa-banner-dismissed')) return
     if (!isMobileBrowser()) return
-
-    setIos(isIos())
-
-    // Check if beforeinstallprompt was captured early by the inline script in layout
-    if (window.__pwaInstallPrompt) {
-      setHasPrompt(true)
-    }
 
     // Also listen for it in case it fires after mount
     const handler = (e: Event) => {
@@ -49,8 +44,11 @@ export function PwaInstallBanner() {
     }
     window.addEventListener('beforeinstallprompt', handler)
 
-    setShow(true)
-    return () => window.removeEventListener('beforeinstallprompt', handler)
+    const showTimer = window.setTimeout(() => setShow(true), 0)
+    return () => {
+      window.clearTimeout(showTimer)
+      window.removeEventListener('beforeinstallprompt', handler)
+    }
   }, [])
 
   function dismiss() {

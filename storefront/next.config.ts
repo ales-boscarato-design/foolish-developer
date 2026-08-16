@@ -31,6 +31,7 @@ const securityHeaders = [
 const LOCALES = ['it', 'en', 'fr', 'es', 'de']
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   experimental: {
     serverActions: {
       allowedOrigins: ['thefoolishbutcher.com', 'www.thefoolishbutcher.com'],

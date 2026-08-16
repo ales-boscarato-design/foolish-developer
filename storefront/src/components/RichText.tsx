@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useMemo } from 'react'
 
 interface RichTextProps {
   content: unknown
@@ -39,31 +39,25 @@ function renderParagraph(node: ParagraphNode): string {
 }
 
 export function RichText({ content }: RichTextProps) {
-  const [html, setHtml] = useState('')
-
-  useEffect(() => {
+  const html = useMemo(() => {
     if (!content || typeof content !== 'object') {
-      setHtml('')
-      return
+      return ''
     }
 
     try {
       const doc = content as { root?: { children?: ParagraphNode[] } }
       if (!doc?.root?.children) {
-        setHtml('')
-        return
+        return ''
       }
 
-      const htmlContent = doc.root.children.map((node) => {
+      return doc.root.children.map((node) => {
         if (node.type === 'paragraph') {
           return renderParagraph(node as ParagraphNode)
         }
         return ''
       }).join('')
-
-      setHtml(htmlContent)
     } catch {
-      setHtml('')
+      return ''
     }
   }, [content])
 

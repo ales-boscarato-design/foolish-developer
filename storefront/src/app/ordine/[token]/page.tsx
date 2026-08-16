@@ -317,6 +317,8 @@ export default async function OrderPage({
             }}>
               {order.sheetPhotos.map((photo, i) => (
                 <div key={i} style={{ borderRadius: '4px', overflow: 'hidden', background: '#1a1510' }}>
+                  {/* CMS sheet photos can come from external storage providers. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={photo.url}
                     alt={photo.caption || t.photoAlt(i)}

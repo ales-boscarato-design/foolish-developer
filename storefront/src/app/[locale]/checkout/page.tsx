@@ -496,7 +496,7 @@ export default function CheckoutPage() {
                 value={form.address}
                 onChange={(e) => handleAddressChange(e.target.value)}
                 onBlur={() => { setFocusedField(null); setTimeout(() => setShowSuggestions(false), 150) }}
-                onFocus={() => { setFocusedField('address'); suggestions.length > 0 && setShowSuggestions(true) }}
+                onFocus={() => { setFocusedField('address'); if (suggestions.length > 0) setShowSuggestions(true) }}
                 className={inputBase}
                 style={inputStyle('address', !!form.address)}
                 autoComplete="off"

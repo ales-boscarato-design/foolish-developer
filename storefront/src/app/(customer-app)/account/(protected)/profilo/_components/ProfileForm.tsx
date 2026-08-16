@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface ProfileLabels {
   whoAreYou: string; preferredStyle: string; commLanguage: string; notifications: string
@@ -31,6 +32,7 @@ const LOCALES = [
 
 
 export function ProfileForm({ level, styles, locale, notifyOrders, notifyNewBatches, notifyOffers, pushPublicKey, labels }: ProfileFormProps) {
+  const router = useRouter()
   const [form, setForm] = useState({ level, styles, locale, notifyOrders, notifyNewBatches, notifyOffers })
   const [saved, setSaved] = useState(false)
   const [pushStatus, setPushStatus] = useState<'unknown'|'active'|'denied'|'loading'|'unsupported'|'error'>('unknown')
@@ -51,7 +53,7 @@ export function ProfileForm({ level, styles, locale, notifyOrders, notifyNewBatc
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
     if (updates.locale && updates.locale !== prevLocale) {
-      document.cookie = `foolish_locale=${updates.locale}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`
+      Reflect.set(window.document, 'cookie', `foolish_locale=${updates.locale}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`)
       window.location.reload()
     }
   }
@@ -88,7 +90,7 @@ export function ProfileForm({ level, styles, locale, notifyOrders, notifyNewBatc
 
   async function logout() {
     await fetch('/api/account/logout', { method: 'POST' })
-    window.location.href = '/account/login'
+    router.push('/account/login')
   }
 
   function toggleStyle(style: string) {

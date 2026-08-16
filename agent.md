@@ -216,14 +216,16 @@ rimossa invece di portare Payload nel runtime pubblico senza necessità.
 
 Debiti separati emersi durante la verifica:
 
-- il lint Storefront ha 45 errori preesistenti sia con
-  `eslint-config-next` 16.2.4 sia con 16.3.1; typecheck e build restano verdi;
-- alcuni pacchetti React Email sono deprecati e richiedono un write-set
-  dedicato con verifica dei template transazionali;
-- `admin.thefoolishbutcher.com` non risolve e non è configurato come custom
-  domain Railway; il CMS operativo usa il dominio Railway assegnato;
-- il Dockerfile Storefront copia ancora l'intero `node_modules`; è corretto ma
-  produce un'immagine più grande dell'output standalone.
+- [x] lint Storefront: i 45 errori e i warning preesistenti sono stati risolti;
+  `npm run lint` ora termina pulito;
+- [x] React Email: migrato da `@react-email/components`/`@react-email/render`
+  a `react-email@6.9.2`, con render unificato e loader statico delle cinque
+  traduzioni; smoke test dei template superato;
+- [!] `admin.thefoolishbutcher.com` non risolve e non è configurato come custom
+  domain Railway. Per decisione esplicita resta rinviato: il CMS operativo usa
+  il dominio Railway assegnato;
+- [x] Docker Storefront: output standalone attivo, con server tracciato e
+  asset statici separati; immagine ridotta da 1,11 GB a 242 MB.
 
 ### Verifiche locali
 
@@ -465,6 +467,8 @@ token, email private o dati cliente.
 | 2026-08-16 | Fase 1 | CMS aggiornato e verificato | Commit `1865cbd`; deployment `049f483e`; Payload 3.88, Next 16.3.1 e Sharp 0.35.3; audit high 19→0; CRUD Alfred post-deploy superato | Superato | Storefront |
 | 2026-08-16 | Fase 1 | Storefront aggiornato e verificato | Commit `d9aaee2`; deployment `e147ae3b`; audit 19→0; build, pagine, prodotto e riconciliazione reali superati | Superato | B2B |
 | 2026-08-16 | Fase 1 | B2B aggiornato e verificato | Commit `31a34e5`; deployment `58c5afca`; audit 5→0; `npm ci`; contesto Docker 922 MB→539 KB; pagine/API superate | Superato | Fase 3 affidabilità ordini |
+| 2026-08-16 | Fase 1 | Storefront quality write-set | Lint 45 errori/22 warning→0; React Email 6.9.2; template smoke 2/2; typecheck, build, audit e test ordini 5/5 superati | Superato | Deploy Storefront |
+| 2026-08-16 | Fase 1 | Storefront Docker standalone | Immagine `foolish-storefront:optimized` 242 MB contro 1,11 GB; `/it/checkout` 200; cron anonimo 401; server standalone avviato | Superato | Deploy Storefront |
 | 2026-08-16 | Fase 3 | Test automatici affidabilità ordine | Commit `6327990`; cinque test: duplicato, race, retry temporaneo, errore permanente e webhook perso; typecheck, build e audit puliti | Superato | Monitorare in produzione |
 | 2026-08-16 | Fase 3 | Cron e allarmi verificati realmente | Riconciliazione ogni 15 minuti; audit giornaliero; heartbeat HTTP 200; zero errori canale nei log; evento ricevuto da Alfred | Superato | Mantenere heartbeat giornaliero |
 | 2026-08-16 | Fase 3 | Routing eventi operativi Alfred corretto | Heartbeat instradato fuori dalla pipeline ordine; 22 test Raspberry; servizio attivo; job e nota di test errati rimossi con backup | Superato | Monitorare i successivi audit |
@@ -473,9 +477,10 @@ token, email private o dati cliente.
 | 2026-08-16 | Fase 2 | Tunnel Alfred migrato sulla Raspberry | `cloudflared` ARM64 verificato; quattro connessioni QUIC; health 200 e heartbeat HMAC ricevuto con ponte locale disabilitato | Superato | Reboot completo della Pi |
 | 2026-08-16 | Fase 2 | Autoripartenza servizi verificata | Restart simultaneo Alfred/tunnel; 61 tool, origine e quattro connessioni ripristinati; linger attivo | Superato | Reboot completo della Pi |
 | 2026-08-16 | Fase 2 | Reboot completo verificato | Boot `09:08:34`; Alfred e cloudflared enabled/active; 61 tool, quattro connessioni QUIC, health pubblico 200 e heartbeat ricevuto | Superato | Mantenere monitoraggio |
-| 2026-08-16 | Infrastruttura | Dominio CMS documentato ma assente | `admin.thefoolishbutcher.com` NXDOMAIN; nessun custom domain Railway; endpoint Railway e Alfred operativi | Da correggere | Ripristinare DNS/custom domain o aggiornare la documentazione |
+| 2026-08-16 | Infrastruttura | Dominio CMS documentato ma assente | `admin.thefoolishbutcher.com` NXDOMAIN; nessun custom domain Railway; endpoint Railway e Alfred operativi | Rinviato per decisione esplicita | Non intervenire finché il servizio PEC/admin non verrà cambiato |
 
 ## Prossima azione concordata
 
-Mantenere il monitoraggio di Stripe e affrontare separatamente dominio CMS,
-lint Storefront e React Email come write-set non bloccanti.
+Mantenere il monitoraggio di Stripe. Il dominio CMS resta esplicitamente
+rinviato; il lint, React Email e Docker Storefront sono chiusi e pronti per il
+deploy dopo il commit di questo write-set.

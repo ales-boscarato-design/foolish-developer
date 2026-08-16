@@ -1,7 +1,7 @@
 import postgres from 'postgres'
 
 declare global {
-  // eslint-disable-next-line no-var
+
   var _sqlConn: ReturnType<typeof postgres> | undefined
 }
 

@@ -3,11 +3,11 @@ import createNextIntlMiddleware from 'next-intl/middleware'
 import { routing } from './src/i18n/routing'
 
 const intlMiddleware = createNextIntlMiddleware({
-    ...routing,
-    localeDetection: true,
-  })
+  ...routing,
+  localeDetection: true,
+})
 
-export default function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const headers = new Headers(request.headers)
 
   // Redirect www → apex domain (canonical URL)
@@ -45,5 +45,5 @@ export default function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|ordine|account|_next/static|_next/image|favicon.ico|logo|images|fonts|.*\\..*).*)']
+  matcher: ['/((?!api|ordine|account|_next/static|_next/image|favicon.ico|logo|images|fonts|.*\\..*).*)'],
 }

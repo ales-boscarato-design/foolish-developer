@@ -3,7 +3,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { getTranslations, getLocale } from 'next-intl/server'
 import { getProducts, cmsImageUrl } from '@/lib/cms'
-import { ProductCard } from '@/components/ProductCard'
 import wallDataRaw from '@/data/sebo-wall.json'
 
 interface WallEntry { id: string; image: string; line: string; date: string; platform_url?: string }
@@ -250,7 +249,7 @@ export default async function SeboPage() {
                 <div className="relative aspect-[4/3] overflow-hidden">
                   <Image
                     src={img}
-                    alt={t(nameKey as any)}
+                    alt={t(nameKey as Parameters<typeof t>[0])}
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-105"
                     style={{ filter: 'brightness(0.7) sepia(0.15)' }}
@@ -262,10 +261,10 @@ export default async function SeboPage() {
                 </div>
                 <div className="px-8 py-6">
                   <p className="text-xs font-bold tracking-[0.3em] uppercase mb-2" style={{ color: '#c9a96e' }}>
-                    {t(nameKey as any)}
+                    {t(nameKey as Parameters<typeof t>[0])}
                   </p>
                   <p style={{ fontSize: '0.95rem', color: '#c8bfb0', lineHeight: 1.6 }}>
-                    {t(lineKey as any)}
+                    {t(lineKey as Parameters<typeof t>[0])}
                   </p>
                 </div>
               </div>
@@ -446,7 +445,7 @@ function SeboMerchCard({ product }: { product: import('@/lib/cms').Product }) {
             className="italic leading-snug mb-3"
             style={{ fontSize: '0.8rem', color: '#c8bfb0', lineHeight: 1.5 }}
           >
-            "{product.shortDescription}"
+            &quot;{product.shortDescription}&quot;
           </p>
         )}
         <p className="text-xs font-semibold" style={{ color: '#e8dcc8' }}>
