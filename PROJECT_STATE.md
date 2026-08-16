@@ -2,10 +2,10 @@
 
 ## Snapshot metadata
 
-- **Last verified locally:** 2026-08-16
-- **Verification scope:** repository files, package manifests, project contracts, local documentation, Git working-tree state.
-- **Live verification:** not performed in this snapshot. Do not treat this file as proof that Railway, the public site, Alfred, Stripe, or the database are healthy.
-- **Current confidence:** high for repository topology and policy; medium for operational status because the runtime was not queried live.
+- **Last verified:** 2026-08-16
+- **Verification scope:** repository files, package manifests, project contracts, local documentation, Git working-tree state, public HTTP endpoints, DNS resolution, Alfred health endpoint, and CMS admin endpoint.
+- **Live verification:** public Storefront, Alfred `/health`, and CMS `/admin` were queried read-only and returned healthy HTTP-level responses.
+- **Current confidence:** high for public reachability and repository topology; medium for deployment/runtime internals because Railway deployment metadata, logs, database, Stripe, and Alfred internals were not queried.
 
 ## Identity and topology
 
@@ -26,6 +26,28 @@ These facts come from `memory/architecture.md` and require live confirmation bef
 - Alfred runtime is on the Raspberry Pi; local staging/configuration reference: `/home/ab/nano-py`; remote runtime path documented as `/home/nanobot-admin/foolish-core`.
 - Alfred public endpoint documented: `https://alfred.thefoolishbutcher.com`.
 - Frank is legacy and excluded from the current operational architecture.
+
+## Live evidence — 2026-08-16
+
+All checks below were read-only and performed with `curl`; no credentials,
+webhook mutations, database writes, or external actions were used.
+
+| Check | Result | Interpretation |
+|---|---|---|
+| `https://thefoolishbutcher.com` | HTTP `307` → `/it`, final HTTP `200` | Canonical root redirect and rendered Storefront response work. |
+| `https://www.thefoolishbutcher.com` | HTTP `301` → canonical host, final HTTP `200` | `www` canonicalization works. |
+| `/it`, `/en`, `/fr`, `/de`, `/es` | HTTP `200` each | Localized routes render and contain Next.js markers. |
+| `https://alfred.thefoolishbutcher.com/health` | HTTP `200`, `{"status": "ok"}` | Alfred public health endpoint responds. |
+| `https://alfred.thefoolishbutcher.com/` | HTTP `404` | Expected root behavior; not the health route. |
+| `https://cms-production-1e56.up.railway.app/admin` | HTTP `200`, Payload/Next.js headers | CMS admin application responds. |
+| CMS root `/` | HTTP `404` | No root route; not evidence that CMS is down. |
+| CMS `/api/health` | HTTP `404` JSON route-not-found | No valid health endpoint at this path; do not use it as CMS health probe. |
+| DNS | Storefront/Alfred resolve through Cloudflare; CMS hostname resolves directly | DNS resolution succeeded at check time. |
+
+The local Railway CLI is installed but the repository is not linked to a
+Railway project (`railway status` reports no linked project). Deployment
+status, build logs, runtime logs, database health, Stripe delivery, and Alfred
+internal service state therefore remain open verification items.
 
 ## Order flow
 
@@ -73,7 +95,8 @@ Run only the affected application first during diagnosis; run the full relevant 
 ## Current stage and open items
 
 - **Stage:** production system with Alfred transition/closeout documented locally; engineering policy is now Hermes → Codex → Hermes review.
-- **Open:** live health/deploy verification is not part of this snapshot.
+- **Verified:** public Storefront routes, Alfred public health, and CMS admin reachability are green at the snapshot time above.
+- **Open:** Railway project linkage/deployment metadata and build/runtime logs were not available through the local CLI.
 - **Open:** the historical `agent.md` still contains Frank transition references; it is classified as historical and should be reconciled into a dedicated operations runbook before being treated as current authority.
 - **Open:** local documentation records an unresolved CMS custom-domain item; verify whether it remains relevant before changing DNS/Railway.
 - **Open:** the repository working tree is dirty with many pre-existing modifications and untracked files. No promotion is allowed until the intended change set is isolated and the tree is clean for that promotion.
