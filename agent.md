@@ -42,7 +42,7 @@ Ultimo aggiornamento: 2026-08-16
 | --- | --- | --- |
 | 0. Credenziali e separazione | Completata, inclusa amministrazione CMS completa | Mantenere il controllo durante le fasi successive |
 | 1. Dipendenze | Completata e distribuita | Mantenere audit; risolvere il debito lint separatamente |
-| 2. Tunnel Alfred | Operativo sulla Raspberry; reboot fisico da verificare | Eseguire un riavvio amministrativo della Pi |
+| 2. Tunnel Alfred | Completata e verificata | Mantenere il tunnel e il rollback documentato |
 | 3. Affidabilità ordini | Completata e verificata | Mantenere test, cron e heartbeat giornaliero |
 | 4. PEC e storia Git | Rinviata | Attendere il cambio provider |
 
@@ -304,9 +304,7 @@ computer non è più nel percorso di produzione.
 - [x] Conservare il tunnel corrente come rollback durante la migrazione.
 - [x] Verificare endpoint pubblico e firma HMAC.
 - [x] Verificare notifica Telegram generata da un heartbeat reale.
-- [!] Riavviare la Raspberry e verificare il ripristino automatico: il comando
-  richiede autenticazione amministrativa interattiva non disponibile alla
-  sessione remota.
+- [x] Riavviare la Raspberry e verificare il ripristino automatico.
 - [x] Provare il percorso pubblico con il computer spento o isolato.
 - [x] Disattivare `alfred-pi-forward.service` e
   `cloudflared-alfred.service` sul computer solo dopo tutti i test.
@@ -324,6 +322,9 @@ computer non è più nel percorso di produzione.
 - Con entrambi i servizi locali del computer fermi e disabilitati, un heartbeat
   HMAC reale è arrivato ad Alfred ed è stato instradato fuori dalla pipeline
   ordine; nessun canale di allarme ha riportato errori.
+- Dopo il reboot completo delle 09:08:34, Alfred ha registrato nuovamente 61
+  tool, cloudflared ha ristabilito quattro connessioni QUIC e un nuovo heartbeat
+  Stripe è stato ricevuto senza creare ordini o job `N/A`.
 
 ### Rollback
 
@@ -471,11 +472,10 @@ token, email private o dati cliente.
 | 2026-08-16 | Fase 3 | Storefront distribuito e riconciliato | Deployment `2b40f34d` riuscito; home, checkout e robots 200; cron anonimo 401; audit 365 giorni: 40 sessioni, 22 pagamenti idonei, 22 ordini presenti, zero errori | Superato | Fase 2 tunnel Alfred |
 | 2026-08-16 | Fase 2 | Tunnel Alfred migrato sulla Raspberry | `cloudflared` ARM64 verificato; quattro connessioni QUIC; health 200 e heartbeat HMAC ricevuto con ponte locale disabilitato | Superato | Reboot completo della Pi |
 | 2026-08-16 | Fase 2 | Autoripartenza servizi verificata | Restart simultaneo Alfred/tunnel; 61 tool, origine e quattro connessioni ripristinati; linger attivo | Superato | Reboot completo della Pi |
-| 2026-08-16 | Fase 2 | Reboot completo richiesto | `systemctl reboot` rifiutato perché richiede autenticazione amministrativa interattiva | Attesa operatore | Eseguire reboot direttamente sulla Pi |
+| 2026-08-16 | Fase 2 | Reboot completo verificato | Boot `09:08:34`; Alfred e cloudflared enabled/active; 61 tool, quattro connessioni QUIC, health pubblico 200 e heartbeat ricevuto | Superato | Mantenere monitoraggio |
 | 2026-08-16 | Infrastruttura | Dominio CMS documentato ma assente | `admin.thefoolishbutcher.com` NXDOMAIN; nessun custom domain Railway; endpoint Railway e Alfred operativi | Da correggere | Ripristinare DNS/custom domain o aggiornare la documentazione |
 
 ## Prossima azione concordata
 
-Eseguire un reboot amministrativo completo della Raspberry e verificare il
-ritorno automatico di Alfred e del tunnel. Poi mantenere dominio CMS, lint
-Storefront e React Email come write-set separati.
+Mantenere il monitoraggio di Stripe e affrontare separatamente dominio CMS,
+lint Storefront e React Email come write-set non bloccanti.
