@@ -42,7 +42,7 @@ Ultimo aggiornamento: 2026-08-16
 | --- | --- | --- |
 | 0. Credenziali e separazione | Completata, inclusa amministrazione CMS completa | Mantenere il controllo durante le fasi successive |
 | 1. Dipendenze | Completata e distribuita | Mantenere audit; risolvere il debito lint separatamente |
-| 2. Tunnel Alfred | Da fare | Preparare `cloudflared` direttamente sulla Raspberry |
+| 2. Tunnel Alfred | Operativo sulla Raspberry; reboot fisico da verificare | Eseguire un riavvio amministrativo della Pi |
 | 3. Affidabilità ordini | Completata e verificata | Mantenere test, cron e heartbeat giornaliero |
 | 4. PEC e storia Git | Rinviata | Attendere il cambio provider |
 
@@ -284,29 +284,54 @@ di sviluppo spento.
 
 ### Stato attuale
 
-Il percorso pubblico dipende ancora da:
+Il percorso pubblico attivo è:
 
 ```text
-Cloudflare sul computer -> forward SSH Tailscale -> Raspberry -> Alfred
+Cloudflare sulla Raspberry -> 127.0.0.1:18790 -> Alfred
 ```
 
-Il forward usa ora Tailscale ed è operativo, ma il computer resta un punto
-singolo di guasto.
+`cloudflared-alfred.service` e `alfred-pi-forward.service` sul computer sono
+fermi e disabilitati. I relativi file restano disponibili come rollback, ma il
+computer non è più nel percorso di produzione.
 
 ### Attività
 
-- [ ] Verificare risorse, architettura ARM e spazio disponibile sulla Raspberry.
-- [ ] Installare `cloudflared` sulla Raspberry con pacchetto e configurazione
+- [x] Verificare risorse, architettura ARM e spazio disponibile sulla Raspberry.
+- [x] Installare `cloudflared` sulla Raspberry con pacchetto e configurazione
   compatibili.
-- [ ] Creare un servizio utente o di sistema con restart automatico.
-- [ ] Collegare il tunnel direttamente a `127.0.0.1:18791` sulla Raspberry.
-- [ ] Conservare il tunnel corrente come rollback durante la migrazione.
-- [ ] Verificare endpoint pubblico e firma HMAC.
-- [ ] Verificare notifica Telegram generata da un heartbeat reale.
-- [ ] Riavviare la Raspberry e verificare il ripristino automatico.
-- [ ] Provare il percorso pubblico con il computer spento o isolato.
-- [ ] Disattivare `alfred-pi-forward.service` e
+- [x] Creare un servizio utente o di sistema con restart automatico.
+- [x] Collegare il tunnel direttamente a `127.0.0.1:18790` sulla Raspberry.
+- [x] Conservare il tunnel corrente come rollback durante la migrazione.
+- [x] Verificare endpoint pubblico e firma HMAC.
+- [x] Verificare notifica Telegram generata da un heartbeat reale.
+- [!] Riavviare la Raspberry e verificare il ripristino automatico: il comando
+  richiede autenticazione amministrativa interattiva non disponibile alla
+  sessione remota.
+- [x] Provare il percorso pubblico con il computer spento o isolato.
+- [x] Disattivare `alfred-pi-forward.service` e
   `cloudflared-alfred.service` sul computer solo dopo tutti i test.
+
+### Evidenze operative
+
+- Raspberry `aarch64`, Debian 13, 20 GB disponibili e uscita Cloudflare 443
+  verificata.
+- `cloudflared` 2026.8.2 ARM64 scaricato dalla release ufficiale e verificato
+  con SHA-256; configurazione e credenziale tunnel hanno permessi `0600`.
+- Servizio utente abilitato con linger e restart automatico; quattro connessioni
+  QUIC registrate tra Roma e Milano.
+- Riavvio simultaneo di Alfred e cloudflared superato: origine tornata
+  raggiungibile, 61 tool registrati e `/health` pubblico HTTP 200.
+- Con entrambi i servizi locali del computer fermi e disabilitati, un heartbeat
+  HMAC reale è arrivato ad Alfred ed è stato instradato fuori dalla pipeline
+  ordine; nessun canale di allarme ha riportato errori.
+
+### Rollback
+
+Se la replica sulla Raspberry fallisce, fermare
+`cloudflared-alfred.service` sulla Pi e riabilitare temporaneamente sul computer
+prima `alfred-pi-forward.service` e poi `cloudflared-alfred.service`. I file del
+vecchio percorso non sono stati eliminati. Il backup remoto è in
+`/home/nanobot-admin/.nanobot/rollback/20260816-cloudflared-pi`.
 
 ### Criterio di chiusura
 
@@ -444,9 +469,13 @@ token, email private o dati cliente.
 | 2026-08-16 | Fase 3 | Routing eventi operativi Alfred corretto | Heartbeat instradato fuori dalla pipeline ordine; 22 test Raspberry; servizio attivo; job e nota di test errati rimossi con backup | Superato | Monitorare i successivi audit |
 | 2026-08-16 | Fase 3 | Runbook recupero ordine aggiunto | `docs/stripe-order-recovery.md`; recupero idempotente da PaymentIntent o Checkout Session, senza SQL diretto | Superato | Usare la procedura per ogni incidente |
 | 2026-08-16 | Fase 3 | Storefront distribuito e riconciliato | Deployment `2b40f34d` riuscito; home, checkout e robots 200; cron anonimo 401; audit 365 giorni: 40 sessioni, 22 pagamenti idonei, 22 ordini presenti, zero errori | Superato | Fase 2 tunnel Alfred |
+| 2026-08-16 | Fase 2 | Tunnel Alfred migrato sulla Raspberry | `cloudflared` ARM64 verificato; quattro connessioni QUIC; health 200 e heartbeat HMAC ricevuto con ponte locale disabilitato | Superato | Reboot completo della Pi |
+| 2026-08-16 | Fase 2 | Autoripartenza servizi verificata | Restart simultaneo Alfred/tunnel; 61 tool, origine e quattro connessioni ripristinati; linger attivo | Superato | Reboot completo della Pi |
+| 2026-08-16 | Fase 2 | Reboot completo richiesto | `systemctl reboot` rifiutato perché richiede autenticazione amministrativa interattiva | Attesa operatore | Eseguire reboot direttamente sulla Pi |
 | 2026-08-16 | Infrastruttura | Dominio CMS documentato ma assente | `admin.thefoolishbutcher.com` NXDOMAIN; nessun custom domain Railway; endpoint Railway e Alfred operativi | Da correggere | Ripristinare DNS/custom domain o aggiornare la documentazione |
 
 ## Prossima azione concordata
 
-Affrontare la Fase 2 portando il tunnel Cloudflare direttamente sulla Raspberry,
-mantenendo dominio CMS, lint Storefront e React Email come write-set separati.
+Eseguire un reboot amministrativo completo della Raspberry e verificare il
+ritorno automatico di Alfred e del tunnel. Poi mantenere dominio CMS, lint
+Storefront e React Email come write-set separati.
