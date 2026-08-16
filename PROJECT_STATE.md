@@ -2,10 +2,10 @@
 
 ## Snapshot metadata
 
-- **Last verified:** 2026-08-16
-- **Verification scope:** repository files, package manifests, project contracts, local documentation, Git working-tree state, public HTTP endpoints, DNS resolution, Alfred health endpoint, and CMS admin endpoint.
-- **Live verification:** public Storefront, Alfred `/health`, and CMS `/admin` were queried read-only and returned healthy HTTP-level responses.
-- **Current confidence:** high for public reachability and repository topology; medium for deployment/runtime internals because Railway deployment metadata, logs, database, Stripe, and Alfred internals were not queried.
+- **Last verified:** 2026-08-16T15:10:03Z
+- **Verification scope:** repository files, package manifests, project contracts, local documentation, Git working-tree state, public HTTP endpoints, DNS resolution, Railway production deployment metadata/metrics/logs, PostgreSQL service state, Stripe webhook HTTP-log evidence, and Alfred internal services on the Raspberry Pi.
+- **Live verification:** public Storefront, CMS admin, Alfred public/local health, Railway deployments, build logs, runtime/deploy logs, cron schedules, and Alfred systemd units were queried read-only.
+- **Current confidence:** high for deployment state, public reachability, build success, Alfred core services, and observed cron calls; medium for database health and runtime error interpretation; low/unverified for Stripe delivery because no webhook delivery record was visible and no Stripe-dashboard/API query was performed.
 
 ## Identity and topology
 
@@ -44,10 +44,111 @@ webhook mutations, database writes, or external actions were used.
 | CMS `/api/health` | HTTP `404` JSON route-not-found | No valid health endpoint at this path; do not use it as CMS health probe. |
 | DNS | Storefront/Alfred resolve through Cloudflare; CMS hostname resolves directly | DNS resolution succeeded at check time. |
 
-The local Railway CLI is installed but the repository is not linked to a
-Railway project (`railway status` reports no linked project). Deployment
-status, build logs, runtime logs, database health, Stripe delivery, and Alfred
-internal service state therefore remain open verification items.
+## Railway live evidence — 2026-08-16
+
+The authenticated Railway project is `Foolish Developer`, environment
+`production`. A temporary directory was linked for read-only CLI queries; the
+Storefront repository was not modified or linked.
+
+### Deployment state
+
+| Service group | Live result |
+|---|---|
+| Storefront | `SUCCESS`, `stopped=false`, deployment `8bb9a13a-77e0-4155-a7a0-29d222d809e0` |
+| CMS | `SUCCESS`, `stopped=false`, deployment `f7a958aa-fe42-4ce9-bbec-e2aec341cac5` |
+| B2B | `SUCCESS`, `stopped=false`, deployment `880e66de-4e2f-4f6f-9011-61728b1a61d3` |
+| Postgres, Postgres-SQwE, Valkey, umami | `SUCCESS`, `stopped=false` |
+| Seven cron services | deployment `SUCCESS`, `stopped=true`; expected for terminating `restartPolicy=NEVER` jobs, validated against recent endpoint calls where available |
+
+Storefront, CMS, and B2B deployments were created from the same repository
+commit `31543b531576d4826b1367afe27dfc75fa73f852`; their Railway roots are
+`/storefront`, `/cms`, and `/b2b` respectively.
+
+### Build and runtime/deploy logs
+
+- Storefront build: exit `0`, 76 info records, no error/warning words.
+- CMS build: exit `0`, 38 info records, no error/warning words.
+- B2B build: exit `0`, 51 records, no error/warning words.
+- Storefront deploy/runtime stream: exit `0`; historical records contain
+  application-level `error` words, so the stream is not declared entirely
+  clean without endpoint correlation.
+- CMS deploy/runtime stream: exit `0`, two warning words, no error words.
+- B2B deploy/runtime stream: exit `0`, no error/warning words.
+
+Railway HTTP metrics for the last six hours reported one Storefront 5xx and
+four CMS 5xx responses, while the queried HTTP log windows and explicit
+`>=500` filters returned no matching records. This discrepancy is recorded as
+an unresolved observability warning, not silently converted into either “no
+errors” or “application broken”.
+
+### Database
+
+- Railway Postgres deployment: `SUCCESS`, active, deployment
+  `fdc5d88a-2db3-4038-ad23-15829b4d5b58`.
+- Six-hour resource evidence: current memory about `65 MB`, volume about
+  `193 MB` of `5 GB`, no reported deadlocks.
+- Railway CLI `db_stats` returned zero connections/tables/indexes; this is not
+  interpreted as an empty or healthy database because the metric payload is
+  insufficient to prove SQL-level state.
+- A read-only `railway connect Postgres` probe did not execute: Railway
+  reported that the service has no TCP proxy URL. No database write or table
+  read was attempted.
+
+### Stripe webhook delivery
+
+- Application endpoint: `POST /api/webhook/stripe`.
+- Railway Storefront HTTP logs: zero matching records in the six-hour and
+  thirty-day queried windows.
+- No test event was sent and no Stripe Dashboard/API access was performed.
+- Delivery is therefore **unverified**, not declared successful or failed.
+  `cron-stripe-reconcile` produced observed `200` calls to its reconciliation
+  endpoint, but that is not evidence of Stripe webhook delivery.
+
+### Railway cron state
+
+| Service | Schedule | Endpoint | Current state | Observed HTTP evidence |
+|---|---|---|---|---|
+| abandoned-cart | `*/15 * * * *` | `/api/cron/abandoned-cart` | SUCCESS/stopped | 7 × `200` |
+| pwa-invite | `*/15 * * * *` | `/api/cron/pwa-invite` | SUCCESS/stopped | 7 × `200` |
+| stripe-reconcile | `*/15 * * * *` | `/api/cron/stripe-reconcile` | SUCCESS/stopped | 7 × `200` |
+| push-sequences | `0 * * * *` | `/api/cron/push-sequences` | SUCCESS/stopped | 1 × `200` |
+| review-request | `0 * * * *` | `/api/cron/review-request` | SUCCESS/stopped | 1 × `200` |
+| reengagement | `0 9 * * 1` | `/api/cron/reengagement` | SUCCESS/stopped | no run expected on the observed Sunday; last runtime records were 2026-08-10 |
+| stripe-audit-daily | `15 4 * * *` | `/api/cron/stripe-reconcile?days=365&heartbeat=1` | SUCCESS/stopped | last runtime records observed at 04:19; outside the six-hour HTTP window |
+
+All cron deployments use `restartPolicy=NEVER`; `stopped=true` is therefore
+the expected post-run state, not by itself a failure. The daily Stripe audit
+and the fifteen-minute reconcile intentionally share the same route with
+different query parameters.
+
+### Alfred internal services
+
+Read-only SSH verification reached `raspberrypi` at the documented internal
+address as user `nanobot-admin`:
+
+- `nanobot-foolish.service`: `active`, `enabled`, main PID present, result
+  `success`.
+- `cloudflared-alfred.service`: `active`, `enabled`, main PID present, result
+  `success`.
+- local `http://127.0.0.1:18790/health`: `{"status": "ok"}`.
+- `alfred-healthcheck.timer`, `alfred-railway-direct.timer`, and
+  `alfred-stripe-monitor.timer`: active, recent trigger, result `success`.
+- Last oneshot results for healthcheck, Railway direct, and Stripe monitor:
+  exit status `0`.
+- `alfred-railway-bridge.service`: not installed (`not-found`) on the Pi,
+  although a bridge unit exists in local staging. This is a documented
+  infrastructure drift; the active Pi path is the direct timer, not that
+  bridge unit.
+
+### CMS custom domain historical item
+
+Historical `agent.md` records `admin.thefoolishbutcher.com` as NXDOMAIN and
+not configured as a Railway custom domain, with an explicit decision to defer
+it while using the Railway CMS hostname. Live DNS/HTTP verification confirms
+the item is still present: `admin.thefoolishbutcher.com` does not resolve,
+while `https://cms-production-1e56.up.railway.app/admin` returns HTTP `200`.
+This is a deferred documentation/DNS item, not evidence that the current CMS
+deployment is down. No DNS or Railway domain mutation was performed.
 
 ## Order flow
 
@@ -95,10 +196,11 @@ Run only the affected application first during diagnosis; run the full relevant 
 ## Current stage and open items
 
 - **Stage:** production system with Alfred transition/closeout documented locally; engineering policy is now Hermes → Codex → Hermes review.
-- **Verified:** public Storefront routes, Alfred public health, and CMS admin reachability are green at the snapshot time above.
-- **Open:** Railway project linkage/deployment metadata and build/runtime logs were not available through the local CLI.
-- **Open:** the historical `agent.md` still contains Frank transition references; it is classified as historical and should be reconciled into a dedicated operations runbook before being treated as current authority.
-- **Open:** local documentation records an unresolved CMS custom-domain item; verify whether it remains relevant before changing DNS/Railway.
+- **Verified:** public Storefront routes, CMS admin, Railway deployment status, Storefront/CMS/B2B build logs, cron schedules and observed calls, Postgres service/resource state, Alfred core services/timers, and the deferred CMS custom-domain condition.
+- **Open:** Stripe webhook delivery is unverified because no matching HTTP log records were observed and no Stripe Dashboard/API query was performed.
+- **Open:** SQL-level database health is unverified because the Railway Postgres service has no TCP proxy URL for `railway connect` from this environment.
+- **Open:** Railway metrics and HTTP logs disagree about a small number of historical 5xx responses; retain as an observability warning until reconciled.
+- **Open:** the historical `agent.md` still contains Frank transition references; it remains historical and should be reconciled into a dedicated operations runbook before being treated as current authority.
 - **Open:** the repository working tree is dirty with many pre-existing modifications and untracked files. No promotion is allowed until the intended change set is isolated and the tree is clean for that promotion.
 
 ## Sources
