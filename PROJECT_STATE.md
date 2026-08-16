@@ -120,6 +120,11 @@ the expected post-run state, not by itself a failure. The daily Stripe audit
 and the fifteen-minute reconcile intentionally share the same route with
 different query parameters.
 
+The local `storefront/docs/railway-crons.md` documents three cron jobs, while
+Railway production currently exposes seven cron services. This is a
+configuration/documentation drift; the live Railway inventory is the current
+operational evidence until the document is reconciled deliberately.
+
 ### Alfred internal services
 
 Read-only SSH verification reached `raspberrypi` at the documented internal
