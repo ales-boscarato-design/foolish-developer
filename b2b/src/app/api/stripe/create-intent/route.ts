@@ -3,10 +3,9 @@ import Stripe from 'stripe'
 import { getServerSession } from '@/lib/auth'
 import { checkVatNumber } from '@/lib/vies'
 import { ensureB2BAuthTable, findB2BUserByEmail, createB2BUser } from '@/lib/db-auth'
-import { createResellerOrder } from '@/lib/db'
+import { createB2BOrder, type B2BLineItemInput } from '@/lib/cms-orders'
 import { calculateLineTotal } from '@/lib/pricing'
 import { calculateResellerShipping } from '@/lib/shipping'
-import type { PriceTier } from '@/lib/cms'
 
 const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY!)
 
@@ -58,19 +57,21 @@ export async function POST(req: NextRequest) {
   // retail non ne applica, e caricare un +4% a chi paga con carta
   // spinge verso il bonifico proprio i rivenditori che con Stripe si
   // troverebbero a casa. La commissione la assorbiamo, come nel retail.
-  const productsTotal = (items as {
-    productName: string; variantLabel: string; qty: number; unitPrice: number; priceTiers: PriceTier[]
-  }[]).reduce((sum, item) => sum + calculateLineTotal(item.unitPrice, item.qty, item.priceTiers), 0)
+  const orderItems = items as B2BLineItemInput[]
+  const productsTotal = orderItems.reduce(
+    (sum, item) => sum + calculateLineTotal(item.unitPrice, item.qty, item.priceTiers),
+    0,
+  )
   const shipping = calculateResellerShipping(productsTotal, form.shippingCountry)
   const total = Math.round((productsTotal + shipping.cost) * 100) / 100
   const amountCents = Math.round(total * 100)
 
   const orderNumber = generateOrderNumber()
 
-  // Create order in DB with pipeline_state = 'received', payment pending
-  let orderId: number
+  // Create the pending order through Payload so all CMS hooks run.
+  let orderId: string | number
   try {
-    orderId = await createResellerOrder({
+    const order = await createB2BOrder({
       orderNumber,
       customerEmail: email,
       customerName: form.shippingName,
@@ -86,7 +87,7 @@ export async function POST(req: NextRequest) {
       shippingCity: form.shippingCity,
       shippingPostalCode: form.shippingPostalCode,
       shippingCountry: form.shippingCountry,
-      lineItems: items,
+      lineItems: orderItems,
       total,
       shippingCost: shipping.cost,
       paymentMethod: 'stripe',
@@ -97,8 +98,9 @@ export async function POST(req: NextRequest) {
           : `[VIES NON VERIFICATA — controllare a mano] ${vat.detail ?? ''}`,
       ].filter(Boolean).join('\n'),
     })
+    orderId = order.orderId
   } catch (err) {
-    console.error('[stripe/create-intent] createResellerOrder failed:', err)
+    console.error('[stripe/create-intent] CMS order create failed:', err)
     return NextResponse.json({ error: 'Errore creazione ordine' }, { status: 500 })
   }
 
@@ -113,6 +115,8 @@ export async function POST(req: NextRequest) {
         resellerEmail: email,
       },
       automatic_payment_methods: { enabled: true },
+    }, {
+      idempotencyKey: orderNumber,
     })
   } catch (err) {
     console.error('[stripe/create-intent] stripe.paymentIntents.create failed (orderId=%s):', orderId, err)

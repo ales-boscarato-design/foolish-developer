@@ -93,6 +93,7 @@ const syncCustomer: CollectionAfterChangeHook = async ({ doc, operation, req }) 
       limit: 1,
       depth: 0,
       overrideAccess: true,
+      req,
     })
 
     if (existing.docs.length === 0) {
@@ -105,6 +106,7 @@ const syncCustomer: CollectionAfterChangeHook = async ({ doc, operation, req }) 
           totalOrders: 1,
         },
         overrideAccess: true,
+        req,
       })
     } else {
       const customer = existing.docs[0] as unknown as Record<string, unknown>
@@ -118,6 +120,7 @@ const syncCustomer: CollectionAfterChangeHook = async ({ doc, operation, req }) 
           ...(operation === 'create' ? { totalOrders: currentTotal + 1 } : {}),
         },
         overrideAccess: true,
+        req,
       })
     }
   } catch (err) {
@@ -713,6 +716,43 @@ export const Orders: CollectionConfig = {
         { name: 'total', type: 'number', required: true, label: 'Totale (€)', admin: { width: '33%' } },
         { name: 'shippingCost', type: 'number', label: 'Spedizione (€)', admin: { width: '33%' } },
         { name: 'productionEtaDays', type: 'number', label: 'ETA produzione (giorni)', admin: { width: '33%' } },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'paymentStatus',
+          type: 'select',
+          defaultValue: 'pending',
+          label: 'Stato pagamento',
+          admin: { width: '33%' },
+          options: [
+            { label: 'In attesa', value: 'pending' },
+            { label: 'Pagato', value: 'paid' },
+            { label: 'Fallito', value: 'failed' },
+            { label: 'Rimborsato', value: 'refunded' },
+            { label: 'Annullato', value: 'cancelled' },
+          ],
+        },
+        {
+          name: 'paymentMethod',
+          type: 'select',
+          label: 'Metodo pagamento',
+          admin: { width: '33%' },
+          options: [
+            { label: 'Bonifico bancario', value: 'bonifico' },
+            { label: 'Stripe', value: 'stripe' },
+            { label: 'Manuale', value: 'manual' },
+          ],
+        },
+        {
+          name: 'stripePaymentIntentId',
+          type: 'text',
+          unique: true,
+          label: 'Stripe PaymentIntent ID',
+          admin: { width: '34%', readOnly: true },
+        },
       ],
     },
 
