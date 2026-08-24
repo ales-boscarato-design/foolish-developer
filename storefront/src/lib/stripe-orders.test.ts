@@ -22,6 +22,7 @@ function checkoutSession(overrides: Partial<Stripe.Checkout.Session> = {}): Stri
     livemode: true,
     mode: 'payment',
     payment_status: 'paid',
+    payment_intent: 'pi_live_order_test',
     amount_total: 3_500,
     currency: 'eur',
     customer_email: 'order-test@example.invalid',
@@ -44,9 +45,11 @@ test('a duplicated paid session creates one CMS order', async () => {
   const originalFetch = globalThis.fetch
   let lookupCount = 0
   let createCount = 0
+  let createBody: Record<string, unknown> | null = null
   globalThis.fetch = async (_input, init) => {
     if (init?.method === 'POST') {
       createCount += 1
+      createBody = JSON.parse(String(init.body)) as Record<string, unknown>
       return jsonResponse({ id: 101, orderNumber: 'FOOLISH-ORDER-TEST' }, 201)
     }
     lookupCount += 1
@@ -61,6 +64,11 @@ test('a duplicated paid session creates one CMS order', async () => {
     assert.equal(first.created, true)
     assert.equal(duplicate.created, false)
     assert.equal(createCount, 1)
+    assert.ok(createBody, 'CMS create payload was not captured')
+    const persistedBody = createBody as Record<string, unknown>
+    assert.equal(persistedBody.paymentStatus, 'paid')
+    assert.equal(persistedBody.paymentMethod, 'stripe')
+    assert.equal(persistedBody.stripePaymentIntentId, 'pi_live_order_test')
   } finally {
     globalThis.fetch = originalFetch
   }

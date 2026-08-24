@@ -86,6 +86,9 @@ export async function createOrderInCMS(session: Stripe.Checkout.Session): Promis
   const customerPhone = meta.customer_phone ?? ''
   const customerEmail = session.customer_email ?? session.customer_details?.email ?? ''
   const total = (session.amount_total ?? 0) / 100
+  const stripePaymentIntentId = typeof session.payment_intent === 'string'
+    ? session.payment_intent
+    : session.payment_intent?.id
 
   let parsedItems: ParsedItem[] = []
   try {
@@ -145,6 +148,9 @@ export async function createOrderInCMS(session: Stripe.Checkout.Session): Promis
       shippingAddress,
       customerLocale: countryToLocale(shippingAddress.country),
       pipelineState: 'received',
+      paymentStatus: session.payment_status === 'paid' ? 'paid' : 'pending',
+      paymentMethod: 'stripe',
+      stripePaymentIntentId: stripePaymentIntentId || undefined,
     }),
   })
 
