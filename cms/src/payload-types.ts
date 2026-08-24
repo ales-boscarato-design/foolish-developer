@@ -475,6 +475,9 @@ export interface Order {
   total: number;
   shippingCost?: number | null;
   productionEtaDays?: number | null;
+  paymentStatus?: ('pending' | 'paid' | 'failed' | 'refunded' | 'cancelled') | null;
+  paymentMethod?: ('bonifico' | 'stripe' | 'manual') | null;
+  stripePaymentIntentId?: string | null;
   lineItems:
     | {
         [k: string]: unknown;
@@ -1080,6 +1083,9 @@ export interface OrdersSelect<T extends boolean = true> {
   total?: T;
   shippingCost?: T;
   productionEtaDays?: T;
+  paymentStatus?: T;
+  paymentMethod?: T;
+  stripePaymentIntentId?: T;
   lineItems?: T;
   trackingNumber?: T;
   trackingCarrier?: T;

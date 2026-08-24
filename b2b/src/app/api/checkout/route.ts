@@ -2,11 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from '@/lib/auth'
 import { checkVatNumber } from '@/lib/vies'
 import { ensureB2BAuthTable, findB2BUserByEmail, createB2BUser } from '@/lib/db-auth'
-import { createResellerOrder } from '@/lib/db'
-import { sendOrderConfirmation } from '@/lib/resend'
+import { createB2BOrder, type B2BLineItemInput } from '@/lib/cms-orders'
 import { calculateLineTotal } from '@/lib/pricing'
 import { calculateResellerShipping } from '@/lib/shipping'
-import type { PriceTier } from '@/lib/cms'
 
 function generateOrderNumber(): string {
   const date = new Date()
@@ -55,14 +53,11 @@ export async function POST(req: NextRequest) {
   }
 
   // Recalculate total server-side — never trust client-supplied amounts
-  const lineItemsForEmail = (items as {
-    productName: string; variantLabel: string; qty: number; unitPrice: number; priceTiers: PriceTier[]
-  }[]).map(item => ({
-    name: `${item.productName} — ${item.variantLabel}`,
-    qty: item.qty,
-    total: calculateLineTotal(item.unitPrice, item.qty, item.priceTiers),
-  }))
-  const productsTotal = lineItemsForEmail.reduce((sum, i) => sum + i.total, 0)
+  const orderItems = items as B2BLineItemInput[]
+  const productsTotal = orderItems.reduce(
+    (sum, item) => sum + calculateLineTotal(item.unitPrice, item.qty, item.priceTiers),
+    0,
+  )
   const shipping = calculateResellerShipping(productsTotal, form.shippingCountry)
   const serverTotal = productsTotal + shipping.cost
 
@@ -95,7 +90,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await createResellerOrder({
+    await createB2BOrder({
       orderNumber,
       customerEmail: email,
       customerName: form.shippingName,
@@ -111,29 +106,15 @@ export async function POST(req: NextRequest) {
       shippingCity: form.shippingCity,
       shippingPostalCode: form.shippingPostalCode,
       shippingCountry: form.shippingCountry,
-      lineItems: items,
+      lineItems: orderItems,
       total: serverTotal,
       shippingCost: shipping.cost,
       paymentMethod: 'bonifico',
       notes,
     })
   } catch (err) {
-    console.error('[checkout] createResellerOrder failed:', err)
+    console.error('[checkout] CMS order create failed:', err)
     return NextResponse.json({ error: 'Errore creazione ordine' }, { status: 500 })
-  }
-
-  try {
-    await sendOrderConfirmation({
-      email,
-      contactName: session?.contactName ?? form.shippingName ?? '',
-      orderNumber,
-      total: serverTotal,
-      paymentMethod: 'bonifico',
-      lineItems: lineItemsForEmail,
-    })
-  } catch (err) {
-    console.error('[checkout] sendOrderConfirmation failed:', err)
-    // Order is already saved — don't fail the request
   }
 
   return NextResponse.json({ orderNumber })
