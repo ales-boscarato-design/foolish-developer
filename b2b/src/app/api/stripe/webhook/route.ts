@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { updateB2BPayment } from '@/lib/cms-orders'
+import { getB2BOrderNumber } from '@/lib/stripe-webhook'
 
 const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY!)
 const getWebhookSecret = () => process.env.STRIPE_B2B_WEBHOOK_SECRET!
@@ -18,11 +19,14 @@ export async function POST(req: NextRequest) {
 
   if (event.type === 'payment_intent.succeeded') {
     const pi = event.data.object as Stripe.PaymentIntent
-    const orderNumber = pi.metadata.orderNumber
+    const orderNumber = getB2BOrderNumber(pi.metadata)
 
     if (!orderNumber) {
-      console.error('[stripe/webhook] missing orderNumber in metadata:', pi.metadata)
-      return NextResponse.json({ error: 'Invalid order metadata' }, { status: 500 })
+      // The Stripe account can deliver Storefront payment events to this
+      // endpoint as well. They are not B2B payments and must be acknowledged
+      // so Stripe does not retry them indefinitely.
+      console.warn('[stripe/webhook] ignoring payment_intent.succeeded without B2B orderNumber:', pi.id)
+      return NextResponse.json({ received: true, ignored: true })
     }
 
     try {
