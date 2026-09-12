@@ -14,6 +14,8 @@
  * Credenziali: variabili d'ambiente, oppure un file locale (permessi 600):
  *   ~/.hermes/secrets/foolish-cms.env  con
  *     PAYLOAD_PUBLIC_URL=https://cms-production-1e56.up.railway.app
+ *     CMS_API_KEY=...              # preferito: nel CMS, Utenti -> API key
+ *     # oppure, in alternativa, le credenziali admin:
  *     CMS_ADMIN_EMAIL=...
  *     CMS_ADMIN_PASSWORD=...
  *     AFFILIATE_STATS_SECRET=...      # segreto dedicato al link statistiche (obbligatorio per generarlo;
@@ -49,6 +51,9 @@ const config = {
   storefrontUrl: (process.env.STOREFRONT_URL || fileEnv.STOREFRONT_URL || 'https://thefoolishbutcher.com').replace(/\/+$/, ''),
   email: process.env.CMS_ADMIN_EMAIL || fileEnv.CMS_ADMIN_EMAIL || '',
   password: process.env.CMS_ADMIN_PASSWORD || fileEnv.CMS_ADMIN_PASSWORD || '',
+  // Preferita quando c'e': l'API key di un utente CMS evita di custodire la
+  // password di un amministratore ed e' revocabile dal CMS.
+  apiKey: process.env.CMS_API_KEY || fileEnv.CMS_API_KEY || '',
   // Segreto dedicato: deve essere lo stesso configurato sullo storefront. Non si
   // riusa PAYLOAD_API_SECRET, così un leak di quel segreto non permette di firmare
   // i link statistiche di tutti gli affiliati.
@@ -112,12 +117,23 @@ function parseArguments(argv) {
   return options
 }
 
+/**
+ * Autenticazione accettata da Payload: l'API key di un utente, oppure il
+ * token di una sessione admin. Qualsiasi altra forma non viene inviata.
+ */
+function authHeader(auth) {
+  if (!auth || typeof auth.value !== 'string' || auth.value === '') return {}
+  if (auth.kind === 'apiKey') return { Authorization: `users API-Key ${auth.value}` }
+  if (auth.kind === 'session') return { Authorization: `JWT ${auth.value}` }
+  return {}
+}
+
 async function api(token, method, route, body) {
   const response = await fetch(`${config.cmsUrl}${route}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `JWT ${token}` } : {}),
+      ...authHeader(token),
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   })
@@ -136,9 +152,10 @@ async function api(token, method, route, body) {
 }
 
 async function login() {
+  if (config.apiKey !== '') return { kind: 'apiKey', value: config.apiKey }
   if (config.email === '' || config.password === '') {
     throw new Error(
-      `Credenziali admin mancanti. Crea ${SECRETS_FILE} (permessi 600) con CMS_ADMIN_EMAIL e CMS_ADMIN_PASSWORD.`,
+      `Credenziali CMS mancanti. Crea ${SECRETS_FILE} (permessi 600) con CMS_API_KEY, oppure con CMS_ADMIN_EMAIL e CMS_ADMIN_PASSWORD.`,
     )
   }
   const result = await api(null, 'POST', '/api/users/login', {
@@ -146,7 +163,7 @@ async function login() {
     password: config.password,
   })
   if (typeof result?.token !== 'string' || result.token === '') throw new Error('Login senza token')
-  return result.token
+  return { kind: 'session', value: result.token }
 }
 
 function statsToken(slug) {
