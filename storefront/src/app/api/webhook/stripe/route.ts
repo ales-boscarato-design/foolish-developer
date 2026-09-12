@@ -5,6 +5,13 @@ import { createCustomerOffer } from '@/lib/account-db'
 import { sendWelcomeEmail, countryToLocale } from '@/lib/resend'
 import { notifyNanobot } from '@/lib/nanobot'
 import { createOrderInCMSWithRetry } from '@/lib/stripe-orders'
+import {
+  AffiliateAttributionError,
+  attributePaidCheckout,
+  createAffiliateAttributionCms,
+  hasAffiliateRefundMarker,
+  updateAffiliateConversionForStripeChargeRefund,
+} from '@/lib/affiliate-attribution'
 import { attachScheduleToSubscription } from '@/lib/stripe-subscription-schedule'
 import { getBenefitForCycle, type PlanKey, type Zone } from '@/lib/subscription-plans'
 
@@ -163,6 +170,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
+  if (event.type === 'charge.refunded') {
+    if (!hasAffiliateRefundMarker(event.data.object)) {
+      return NextResponse.json({ received: true })
+    }
+
+    try {
+      const result = await updateAffiliateConversionForStripeChargeRefund({
+        charge: event.data.object,
+        cms: createAffiliateAttributionCms(),
+      })
+      if (result.status === 'missing') {
+        return NextResponse.json({ error: 'Affiliate conversion unavailable' }, { status: 503 })
+      }
+    } catch {
+      // Keep the event retryable until the ledger is safely reconciled. Do not
+      // include payment, customer, or secret data in the log.
+      console.error('[webhook] affiliate refund status update failed')
+      return NextResponse.json({ error: 'Affiliate refund persistence failed' }, { status: 503 })
+    }
+    return NextResponse.json({ received: true })
+  }
+
+  if (event.type === 'refund.updated') {
+    // A Refund contains only its individual amount, not the charge's
+    // aggregate amount_refunded. Without retrieving the charge, mapping this
+    // event to a cumulative partial/full ledger state would require guessing.
+    return NextResponse.json({ received: true })
+  }
+
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object
 
@@ -244,6 +280,30 @@ export async function POST(req: NextRequest) {
         { error: 'CMS order persistence failed', orderRef },
         { status: 503 },
       )
+    }
+
+    // Affiliate attribution is deliberately best-effort. It reads only
+    // server-generated Stripe metadata, and must never turn a persisted paid
+    // order into a failed Stripe delivery.
+    try {
+      await attributePaidCheckout({
+        session,
+        orderNumber: orderRef,
+        cms: createAffiliateAttributionCms(),
+      })
+    } catch (err) {
+      const code = err instanceof AffiliateAttributionError ? err.code : 'order_patch_failed'
+      console.error(`[webhook] affiliate attribution failed ${orderRef}: ${code}`)
+      try {
+        await notifyNanobot('/hooks/foolish-storefront-order', {
+          source: 'storefront',
+          stripeSessionId: session.id,
+          externalRef: orderRef,
+          affiliateAttributionError: code,
+        })
+      } catch (notifyError) {
+        console.error(`[webhook] affiliate attribution alert FAILED ${orderRef}:`, notifyError)
+      }
     }
 
     // Upsert cliente in Payload CMS customers

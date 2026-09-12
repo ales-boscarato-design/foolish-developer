@@ -24,7 +24,19 @@ export const PromoCodes: CollectionConfig = {
     ],
   },
   fields: [
-    { name: 'code', type: 'text', required: true, unique: true, label: 'Codice' },
+    {
+      name: 'code',
+      type: 'text',
+      required: true,
+      unique: true,
+      label: 'Codice',
+      validate: (value: unknown) => {
+        if (typeof value !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(value)) {
+          return 'Il codice promo deve contenere solo lettere, numeri, _ o - (1–64 caratteri)'
+        }
+        return true
+      },
+    },
     {
       name: 'type',
       type: 'select',

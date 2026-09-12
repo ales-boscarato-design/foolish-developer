@@ -12,6 +12,18 @@ export const EU_COUNTRIES = new Set([
   'NO','IS','LI','CH', // SEE / Svizzera inclusi
 ])
 
+export const ALLOWED_SHIPPING_COUNTRIES = [
+  'IT','DE','FR','ES','NL','BE','AT','CH','PL','PT','SE','DK','NO',
+  'US','GB','CA','AU','JP','BR',
+] as const
+
+export type AllowedShippingCountry = typeof ALLOWED_SHIPPING_COUNTRIES[number]
+
+export function isAllowedShippingCountry(value: unknown): value is AllowedShippingCountry {
+  return typeof value === 'string'
+    && ALLOWED_SHIPPING_COUNTRIES.includes(value as AllowedShippingCountry)
+}
+
 export type ShippingZone = 'IT' | 'EU' | 'WORLD'
 
 export interface ShippingRate {

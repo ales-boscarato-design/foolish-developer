@@ -194,8 +194,9 @@ export async function reconcilePaidStripeOrders(params: {
   stripe: Stripe
   lookbackDays: number
   maxSessions?: number
+  affiliateAttribution?: (session: Stripe.Checkout.Session, orderNumber: string) => Promise<void>
 }): Promise<StripeOrderReconciliationResult> {
-  const { stripe, lookbackDays, maxSessions = 1_000 } = params
+  const { stripe, lookbackDays, maxSessions = 1_000, affiliateAttribution } = params
   const createdAfter = Math.floor(Date.now() / 1000) - lookbackDays * 86_400
   const sessions = await stripe.checkout.sessions
     .list({ created: { gte: createdAfter }, limit: 100 })
@@ -222,25 +223,26 @@ export async function reconcilePaidStripeOrders(params: {
   for (const sessionSummary of eligible) {
     const orderRef = getStripeOrderRef(sessionSummary)
     try {
+      // Retrieve the complete session before checking the order so attribution
+      // can repair a missed ledger even when the order already exists.
+      const session = await stripe.checkout.sessions.retrieve(sessionSummary.id)
       if (await findCmsOrder(orderRef)) {
         result.alreadyPresent += 1
-        continue
+      } else {
+        const persistence = await createOrderInCMSWithRetry(session)
+        if (persistence.created) {
+          result.recovered.push({
+            orderRef,
+            stripeSessionId: session.id,
+            amount: (session.amount_total ?? 0) / 100,
+            currency: session.currency?.toUpperCase() ?? null,
+          })
+        } else {
+          result.alreadyPresent += 1
+        }
       }
 
-      // Recuperiamo la sessione completa: gli indirizzi nelle API Stripe
-      // recenti vivono in collected_information e non sempre nella lista.
-      const session = await stripe.checkout.sessions.retrieve(sessionSummary.id)
-      const persistence = await createOrderInCMSWithRetry(session)
-      if (persistence.created) {
-        result.recovered.push({
-          orderRef,
-          stripeSessionId: session.id,
-          amount: (session.amount_total ?? 0) / 100,
-          currency: session.currency?.toUpperCase() ?? null,
-        })
-      } else {
-        result.alreadyPresent += 1
-      }
+      if (affiliateAttribution) await affiliateAttribution(session, orderRef)
     } catch (error) {
       result.errors.push({
         orderRef,

@@ -1,5 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { resolveCheckoutCatalog } from '@/lib/catalog'
+import { shouldMarkAffiliateCheckoutPromo } from '@/lib/affiliate-checkout-marker'
+import {
+  AFFILIATE_REFERRAL_COOKIE,
+  normalizeAffiliateSlug,
+  resolveAffiliateBySlug,
+} from '@/lib/affiliate-referral'
+import {
+  allocateProductDiscount,
+  buildCheckoutMetadata,
+  calculateCheckoutPromo,
+  calculateServerShippingCostCents,
+  normalizePromoCode,
+  normalizeCheckoutCustomer,
+  normalizeCheckoutItems,
+  parsePromoCodes,
+  type PromoRecord,
+} from '@/lib/promo'
+
+type StripeAllowedCountry = NonNullable<
+  Stripe.Checkout.SessionCreateParams['shipping_address_collection']
+>['allowed_countries'][number]
 
 export const dynamic = 'force-dynamic'
 
@@ -20,12 +42,36 @@ async function assertCMSOrderAccess(): Promise<void> {
   }
 }
 
-interface CartItem {
-  productName: string
-  variantLabel: string
-  price: number
-  quantity: number
-  sku: string
+async function findPromoRecord(code: string): Promise<PromoRecord | null> {
+  const secret = process.env.PAYLOAD_API_SECRET
+
+  if (secret) {
+    try {
+      const cmsRes = await fetch(
+        `${CMS_URL}/api/promo-codes?where[code][equals]=${encodeURIComponent(code)}&depth=0&limit=1`,
+        {
+          headers: { 'x-storefront-secret': secret },
+          cache: 'no-store',
+        },
+      )
+      if (cmsRes.ok) {
+        const cmsData = await cmsRes.json()
+        const cmsCode = cmsData.docs?.[0] as PromoRecord | undefined
+        // A CMS record wins over fallbacks, including inactive, mismatched, or
+        // malformed records. calculateCheckoutPromo validates its code.
+        if (cmsCode) return cmsCode
+      }
+    } catch {
+      // CMS unreachable — the safe environment fallback may still be checked.
+    }
+  }
+
+  // PROMO_CODES only carries a type, so accept the two types whose discount is
+  // fully defined server-side. Personal percent offers are intentionally not
+  // redeemed here because paid-order consumption is not atomic in this path.
+  const type = parsePromoCodes(process.env.PROMO_CODES)[code]
+  const safeType = type === 'free_shipping' || type === 'percent_pro' ? type : null
+  return safeType ? { code, type: safeType, active: true } : null
 }
 
 export async function POST(req: NextRequest) {
@@ -46,68 +92,179 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
-  const { items, shippingCost, customer, discountAmount, discountLabel } = await req.json()
-  const phone: string = customer?.phone ?? ''
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Richiesta non valida' }, { status: 400 })
+  }
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'Richiesta non valida' }, { status: 400 })
+  }
+
+  const request = body as {
+    items?: unknown
+    customer?: unknown
+    promoCode?: unknown
+  }
+  const items = request.items
+  if (!Array.isArray(items) || items.length === 0) {
+    return NextResponse.json({ error: 'Carrello non valido' }, { status: 400 })
+  }
+  const catalogResult = await resolveCheckoutCatalog(items)
+  if (catalogResult.status === 'unavailable') {
+    return NextResponse.json(
+      { error: 'Catalogo temporaneamente non disponibile' },
+      { status: 503 },
+    )
+  }
+  if (catalogResult.status !== 'ok') {
+    return NextResponse.json({ error: 'Carrello non valido' }, { status: 400 })
+  }
+  const normalizedItems = normalizeCheckoutItems(catalogResult.items)
+  if (!normalizedItems) {
+    return NextResponse.json({ error: 'Carrello non valido' }, { status: 400 })
+  }
+
+  const customer = normalizeCheckoutCustomer(request.customer)
+  if (!customer) {
+    return NextResponse.json({ error: 'Dati cliente non validi' }, { status: 400 })
+  }
+
+  const normalizedPromoCode = normalizePromoCode(request.promoCode)
+  const promoWasSubmitted = request.promoCode !== undefined && request.promoCode !== null && request.promoCode !== ''
+  if (promoWasSubmitted && !normalizedPromoCode) {
+    return NextResponse.json({ error: 'Codice promo non valido' }, { status: 400 })
+  }
+
+  // Referral fallback: an affiliate link stores only the affiliate slug in a
+  // first-party cookie. The slug is resolved server-side, so the visitor never
+  // supplies the code and a forged cookie cannot invent an affiliate.
+  const referralSlug = normalizeAffiliateSlug(req.cookies.get(AFFILIATE_REFERRAL_COOKIE)?.value)
+  let promoCodeToApply = normalizedPromoCode
+  let promoFromReferral = false
+  if (!promoCodeToApply && referralSlug) {
+    const referral = await resolveAffiliateBySlug(referralSlug)
+    if (referral) {
+      promoCodeToApply = referral.promoCode
+      promoFromReferral = true
+    }
+  }
+
+  let promoRecord: PromoRecord | null = null
+  let promoResult: ReturnType<typeof calculateCheckoutPromo> = { status: 'none' }
+  if (promoCodeToApply) {
+    promoRecord = await findPromoRecord(promoCodeToApply)
+    promoResult = calculateCheckoutPromo({
+      promoCode: promoCodeToApply,
+      items: normalizedItems,
+      record: promoRecord,
+    })
+    if (promoResult.status !== 'valid') {
+      // A submitted code must be valid. A referral code the visitor never asked
+      // for must never block the sale: the discount is simply dropped, and no
+      // affiliate marker is written.
+      if (!promoFromReferral) {
+        return NextResponse.json({ error: 'Codice promo non valido' }, { status: 400 })
+      }
+      promoRecord = null
+      promoResult = { status: 'none' }
+    }
+  }
+
+  const promo = promoResult.status === 'valid' ? promoResult.promo : null
+
+  // shippingCost from the browser is intentionally ignored. Shipping is
+  // derived from the validated customer country and server-normalized subtotal.
+  const serverShippingCostCents = calculateServerShippingCostCents(
+    normalizedItems,
+    customer.country,
+    promo?.freeShipping === true,
+  )
+  if (serverShippingCostCents === null) {
+    return NextResponse.json({ error: 'Costo di spedizione non valido' }, { status: 400 })
+  }
+
+  const discountAmountCents = promo?.discountAmountCents ?? 0
+  const chargedProductLines = allocateProductDiscount(normalizedItems, discountAmountCents)
+  if (!chargedProductLines) {
+    return NextResponse.json({ error: 'Sconto non valido' }, { status: 400 })
+  }
+
   const orderRef = `FOOLISH-${Date.now()}`
+  const shippingCostCents = serverShippingCostCents
 
   const lineItems = [
-    ...items.map((item: CartItem) => ({
+    ...chargedProductLines.map((item) => ({
       price_data: {
         currency: 'eur',
-        unit_amount: Math.round(item.price * 100),
+        unit_amount: item.unitAmountCents,
         product_data: {
-          name: `${item.productName} — ${item.variantLabel}`,
+          name: `${item.name} — ${item.variantLabel}`,
           metadata: { sku: item.sku },
         },
       },
-      quantity: item.quantity,
+      quantity: item.qty,
     })),
-    ...(shippingCost > 0 ? [{
+    ...(shippingCostCents > 0 ? [{
       price_data: {
         currency: 'eur',
-        unit_amount: Math.round(shippingCost * 100),
+        unit_amount: shippingCostCents,
         product_data: { name: 'Spedizione' },
-      },
-      quantity: 1,
-    }] : []),
-    ...(discountAmount && discountAmount > 0 ? [{
-      price_data: {
-        currency: 'eur',
-        unit_amount: -Math.round(discountAmount * 100),
-        product_data: { name: discountLabel || 'Sconto promozionale' },
       },
       quantity: 1,
     }] : []),
   ]
 
-  const session = await stripe.checkout.sessions.create({
-    mode: 'payment',
-    line_items: lineItems,
-    customer_email: customer.email,
-    billing_address_collection: 'auto',
-    shipping_address_collection: {
-      allowed_countries: ['IT','DE','FR','ES','NL','BE','AT','CH','PL','PT','SE','DK','NO','US','GB','CA','AU','JP','BR'],
-    },
-    success_url: `${STOREFRONT_URL}/grazie?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${STOREFRONT_URL}/checkout`,
-    metadata: {
-      order_ref: orderRef,
-      customer_name: customer.name,
-      customer_country: customer.country,
-      customer_address: `${customer.address}|${customer.city}|${customer.postalCode}`,
-      customer_phone: phone,
-      items_json: JSON.stringify(
-        items.map((i: CartItem) => ({
-          sku: i.sku,
-          qty: i.quantity,
-          name: i.productName,
-          variantLabel: i.variantLabel,
-          price: i.price,
-        })),
-      ),
-    },
+  const metadata = buildCheckoutMetadata({
+    orderRef,
+    customer,
+    chargedProductLines,
+    promo,
   })
+  if (!metadata) {
+    return NextResponse.json({ error: 'Dati ordine troppo lunghi' }, { status: 400 })
+  }
 
-  return NextResponse.json({ checkoutUrl: session.url })
+  const shouldMarkAffiliate = await shouldMarkAffiliateCheckoutPromo(promoRecord)
+  const sessionMetadata = shouldMarkAffiliate && promo
+    ? {
+        ...metadata,
+        affiliate_id: String(shouldMarkAffiliate.affiliateId),
+        affiliate_slug: shouldMarkAffiliate.affiliateSlug,
+        affiliate_promo_code: shouldMarkAffiliate.affiliatePromoCode,
+      }
+    : metadata
+
+  try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: lineItems,
+      customer_email: customer.email,
+      billing_address_collection: 'auto',
+      shipping_address_collection: {
+        allowed_countries: [customer.country as StripeAllowedCountry],
+      },
+      success_url: `${STOREFRONT_URL}/grazie?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${STOREFRONT_URL}/checkout`,
+      metadata: sessionMetadata,
+      ...(shouldMarkAffiliate && promo
+        ? {
+            payment_intent_data: {
+              metadata: {
+                affiliate_id: String(shouldMarkAffiliate.affiliateId),
+                affiliate_slug: shouldMarkAffiliate.affiliateSlug,
+                affiliate_promo_code: shouldMarkAffiliate.affiliatePromoCode,
+              },
+            },
+          }
+        : {}),
+    })
+
+    return NextResponse.json({ checkoutUrl: session.url })
+  } catch (err) {
+    console.error('[stripe/checkout] Stripe session creation failed:', err)
+    return NextResponse.json({ error: 'Pagamento temporaneamente non disponibile' }, { status: 502 })
+  }
 }
