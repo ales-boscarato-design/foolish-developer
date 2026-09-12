@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { routing } from '@/i18n/routing'
+import { preferredLocale } from '@/lib/accept-language'
 import {
   AFFILIATE_REFERRAL_COOKIE,
   normalizeAffiliateSlug,
@@ -41,9 +42,19 @@ function noStoreRedirect(location: string): NextResponse {
  */
 export async function GET(req: NextRequest, context: RouteContext) {
   const { locale, slug } = await context.params
-  const safeLocale = routing.locales.includes(locale as (typeof routing.locales)[number])
+  const requestedLocale = routing.locales.includes(locale as (typeof routing.locales)[number])
     ? locale
     : routing.defaultLocale
+  // A language-specific link (/es/a/nestor) keeps the language it was shared
+  // with: that choice was deliberate. A link on the default locale is the
+  // neutral one, so it localises to the visitor's browser language — the same
+  // thing the shop's own root does — and a Spanish visitor stops landing on the
+  // Italian home. The referral cookie is path-wide, so the discount is
+  // unaffected by the language the visitor ends up on.
+  const visitorLocale = preferredLocale(req.headers.get('accept-language'), routing.locales)
+  const safeLocale = requestedLocale === routing.defaultLocale
+    ? visitorLocale ?? requestedLocale
+    : requestedLocale
   const home = `/${safeLocale}`
 
   const normalizedSlug = normalizeAffiliateSlug(slug)

@@ -7,6 +7,7 @@ const STOREFRONT_SECRET = 'test-storefront-secret'
 process.env.PAYLOAD_API_SECRET = STOREFRONT_SECRET
 
 import { GET } from '../app/[locale]/a/[slug]/route'
+import { preferredLocale } from './accept-language'
 
 /**
  * Route-level test of the referral link.
@@ -64,13 +65,15 @@ before(async () => {
 after(() => { server.close() })
 
 /** A request as the runtime sees it in production: proxied origin, internal host. */
-function proxiedRequest(path: string): NextRequest {
-  return new NextRequest(new Request(`http://0.0.0.0:8080${path}`, { headers: { host: '0.0.0.0:8080' } }))
+function proxiedRequest(path: string, acceptLanguage?: string): NextRequest {
+  const headers: Record<string, string> = { host: '0.0.0.0:8080' }
+  if (acceptLanguage !== undefined) headers['accept-language'] = acceptLanguage
+  return new NextRequest(new Request(`http://0.0.0.0:8080${path}`, { headers }))
 }
 
-async function callRoute(path: string, slug = 'nestor') {
-  const response = await GET(proxiedRequest(path), {
-    params: Promise.resolve({ locale: 'it', slug }),
+async function callRoute(path: string, slug = 'nestor', acceptLanguage?: string) {
+  const response = await GET(proxiedRequest(path, acceptLanguage), {
+    params: Promise.resolve({ locale: path.split('/')[1] ?? 'it', slug }),
   })
   return {
     status: response.status,
@@ -117,4 +120,68 @@ test('an escaping ?to= target falls back to the locale home, still relative', as
 
   assert.equal(result.location, '/it')
   assert.ok(!String(result.location).includes('evil.com'))
+})
+
+// The shop localises a language-less URL from the browser (/ + a Spanish browser
+// answers 307 /es), so the neutral link must do the same instead of pinning every
+// visitor to Italian.
+
+test('the neutral link localises to the visitor language', async () => {
+  const spanish = await callRoute('/it/a/nestor', 'nestor', 'es-ES,es;q=0.9,en;q=0.8')
+  const german = await callRoute('/it/a/nestor', 'nestor', 'de')
+
+  assert.equal(spanish.location, '/es')
+  assert.equal(german.location, '/de')
+  // The discount must survive the language switch: the cookie belongs to the
+  // response, not to the language.
+  assert.match(String(spanish.cookie), /foolish_ref=nestor/)
+})
+
+test('an unsupported visitor language falls back to the link language', async () => {
+  const result = await callRoute('/it/a/nestor', 'nestor', 'pt-BR,pt;q=0.9')
+
+  assert.equal(result.location, '/it')
+})
+
+test('quality values decide, not the order of the header', async () => {
+  const result = await callRoute('/it/a/nestor', 'nestor', 'es;q=0.3, fr;q=0.9')
+
+  assert.equal(result.location, '/fr')
+})
+
+test('a language-specific link keeps its own language', async () => {
+  const result = await callRoute('/es/a/nestor', 'nestor', 'de-DE,de;q=0.9')
+
+  assert.equal(result.location, '/es')
+})
+
+test('an explicit ?to= target is never re-localised', async () => {
+  const result = await callRoute('/it/a/nestor?to=%2Fprodotti', 'nestor', 'es-ES,es;q=0.9')
+
+  assert.equal(result.location, '/prodotti')
+})
+
+test('a malformed or empty language header is not a preference', async () => {
+  const empty = await callRoute('/it/a/nestor', 'nestor', '')
+  const wildcard = await callRoute('/it/a/nestor', 'nestor', '*')
+  const rejected = await callRoute('/it/a/nestor', 'nestor', 'es;q=0')
+
+  assert.equal(empty.location, '/it')
+  assert.equal(wildcard.location, '/it')
+  assert.equal(rejected.location, '/it')
+})
+
+test('the language parser handles case, subtags and junk without throwing', () => {
+  const locales = ['it', 'en', 'fr', 'es', 'de']
+
+  assert.equal(preferredLocale('ES-es', locales), 'es')
+  assert.equal(preferredLocale('es-MX,es;q=0.8', locales), 'es')
+  assert.equal(preferredLocale('  fr ; q=0.7 , de;q=0.5 ', locales), 'fr')
+  assert.equal(preferredLocale('de;q=0.5,es;q=0.9', locales), 'es')
+  assert.equal(preferredLocale('zz-ZZ,pt;q=0.4', locales), null)
+  assert.equal(preferredLocale('q=0.9', locales), null)
+  assert.equal(preferredLocale('', locales), null)
+  assert.equal(preferredLocale(undefined, locales), null)
+  assert.equal(preferredLocale(null, locales), null)
+  assert.equal(preferredLocale('es', []), null)
 })
