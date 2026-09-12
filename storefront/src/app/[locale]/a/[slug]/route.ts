@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { routing } from '@/i18n/routing'
+import { preferredLocale } from '@/lib/accept-language'
 import {
   AFFILIATE_REFERRAL_COOKIE,
   normalizeAffiliateSlug,
@@ -16,9 +17,16 @@ type RouteContext = { params: Promise<{ locale: string; slug: string }> }
  * Every response of this route is uncacheable and unindexable: the success
  * branch carries the referral cookie, and the fallback branches must not be
  * cached either, or a stale redirect would outlive the referral.
+ *
+ * The Location is always a relative path. Deriving an absolute URL from the
+ * request emits whatever origin the runtime sees, which behind a proxy is the
+ * internal bind address (https://0.0.0.0:8080/it) and not the public host: the
+ * visitor would be sent to a dead address. A relative Location is resolved by
+ * the browser against the host it already asked for, so it is correct on every
+ * deployment and adds no redirect surface.
  */
-function noStoreRedirect(url: URL): NextResponse {
-  const response = NextResponse.redirect(url, { status: 302 })
+function noStoreRedirect(location: string): NextResponse {
+  const response = new NextResponse(null, { status: 302, headers: { Location: location } })
   response.headers.set('Cache-Control', 'no-store')
   response.headers.set('X-Robots-Tag', 'noindex')
   return response
@@ -34,10 +42,20 @@ function noStoreRedirect(url: URL): NextResponse {
  */
 export async function GET(req: NextRequest, context: RouteContext) {
   const { locale, slug } = await context.params
-  const safeLocale = routing.locales.includes(locale as (typeof routing.locales)[number])
+  const requestedLocale = routing.locales.includes(locale as (typeof routing.locales)[number])
     ? locale
     : routing.defaultLocale
-  const home = new URL(`/${safeLocale}`, req.url)
+  // A language-specific link (/es/a/nestor) keeps the language it was shared
+  // with: that choice was deliberate. A link on the default locale is the
+  // neutral one, so it localises to the visitor's browser language — the same
+  // thing the shop's own root does — and a Spanish visitor stops landing on the
+  // Italian home. The referral cookie is path-wide, so the discount is
+  // unaffected by the language the visitor ends up on.
+  const visitorLocale = preferredLocale(req.headers.get('accept-language'), routing.locales)
+  const safeLocale = requestedLocale === routing.defaultLocale
+    ? visitorLocale ?? requestedLocale
+    : requestedLocale
+  const home = `/${safeLocale}`
 
   const normalizedSlug = normalizeAffiliateSlug(slug)
   if (normalizedSlug === null) {
@@ -51,9 +69,10 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
   // `?to=` is resolved and origin-checked in the lib: a prefix test on the raw
   // string is not enough, because the URL parser strips tab/CR/LF and turns
-  // "/<tab>/evil.com" into an external protocol-relative URL.
+  // "/<tab>/evil.com" into an external protocol-relative URL. Only the path it
+  // returns is used, so the emitted Location stays relative.
   const target = safeRedirectTarget(req.nextUrl.searchParams.get('to'), req.url)
-  const response = noStoreRedirect(new URL(target ?? `/${safeLocale}`, req.url))
+  const response = noStoreRedirect(target ?? home)
 
   const maxAge = referralCookieMaxAgeSeconds(affiliate.cookieWindowDays)
   if (maxAge !== null) {
