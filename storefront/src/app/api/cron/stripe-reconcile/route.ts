@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { notifyStripeReconciliation } from '@/lib/stripe-reconciliation-alert'
 import { reconcilePaidStripeOrders } from '@/lib/stripe-orders'
+import { attributePaidCheckout, createAffiliateAttributionCms } from '@/lib/affiliate-attribution'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -30,6 +31,13 @@ export async function GET(req: NextRequest) {
     const result = await reconcilePaidStripeOrders({
       stripe: new Stripe(process.env.STRIPE_SECRET_KEY),
       lookbackDays,
+      affiliateAttribution: async (session, orderNumber) => {
+        await attributePaidCheckout({
+          session,
+          orderNumber,
+          cms: createAffiliateAttributionCms(),
+        })
+      },
     })
 
     console.log('[stripe-reconcile]', JSON.stringify(result))

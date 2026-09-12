@@ -17,6 +17,8 @@ import { OfferConfig } from './collections/OfferConfig'
 import { Announcements } from './collections/Announcements'
 import { SubscriptionPlans } from './collections/SubscriptionPlans'
 import { Subscriptions } from './collections/Subscriptions'
+import { Affiliates } from './collections/Affiliates'
+import { AffiliateConversions } from './collections/AffiliateConversions'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -58,6 +60,8 @@ export default buildConfig({
     Announcements,
     SubscriptionPlans,
     Subscriptions,
+    Affiliates,
+    AffiliateConversions,
     {
       slug: 'users',
       auth: {

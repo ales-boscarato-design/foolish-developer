@@ -97,6 +97,49 @@ test('a webhook and reconciler create race resolves as already present', async (
   }
 })
 
+test('charged product prices keep the parser from treating a discount as shipping', async () => {
+  const originalFetch = globalThis.fetch
+  let createBody: Record<string, unknown> | null = null
+  globalThis.fetch = async (_input, init) => {
+    if (init?.method === 'POST') {
+      createBody = JSON.parse(String(init.body)) as Record<string, unknown>
+      return jsonResponse({ id: 505, orderNumber: 'FOOLISH-ORDER-TEST' }, 201)
+    }
+    return jsonResponse({ docs: [] })
+  }
+
+  try {
+    const session = checkoutSession({
+      amount_total: 3_000,
+      metadata: {
+        order_ref: 'FOOLISH-DISCOUNT-TEST',
+        customer_name: 'Order Test',
+        customer_country: 'IT',
+        customer_address: 'Via Test 1|Torino|10100',
+        items_json: JSON.stringify([
+          { sku: 'TEST-SKU', qty: 1, name: 'Test', variantLabel: 'A', price: 20 },
+        ]),
+        promo_discount_amount_cents: '500',
+      },
+    })
+
+    await createOrderInCMS(session)
+    assert.ok(createBody, 'CMS create payload was not captured')
+    const persistedBody = createBody as Record<string, unknown>
+    assert.equal(persistedBody.total, 30)
+    assert.equal(persistedBody.shippingCost, 10)
+    assert.deepEqual(persistedBody.lineItems, [{
+      sku: 'TEST-SKU',
+      name: 'Test',
+      variantLabel: 'A',
+      quantity: 1,
+      unitPrice: 20,
+    }])
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
 test('temporary CMS failures are retried and eventually succeed', async () => {
   let attempts = 0
   const expected: OrderPersistenceResult = {
@@ -175,6 +218,49 @@ test('reconciliation recovers a paid session even if its webhook was missed', as
     assert.equal(result.recovered[0]?.orderRef, 'FOOLISH-ORDER-TEST')
     assert.equal(result.errors.length, 0)
     assert.equal(createCount, 1)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('reconciliation invokes attribution for a paid session whose order already exists', async () => {
+  const originalFetch = globalThis.fetch
+  let retrieveCount = 0
+  let attributionSession: Stripe.Checkout.Session | null = null
+  let attributionOrderRef: string | null = null
+  globalThis.fetch = async () => jsonResponse({ docs: [{ id: 606, orderNumber: 'FOOLISH-ORDER-TEST' }] })
+
+  const paid = checkoutSession()
+  const stripe = {
+    checkout: {
+      sessions: {
+        list: () => ({
+          autoPagingToArray: async () => [paid],
+        }),
+        retrieve: async (id: string) => {
+          retrieveCount += 1
+          assert.equal(id, paid.id)
+          return paid
+        },
+      },
+    },
+  } as unknown as Stripe
+
+  try {
+    const result = await reconcilePaidStripeOrders({
+      stripe,
+      lookbackDays: 30,
+      affiliateAttribution: async (session, orderNumber) => {
+        attributionSession = session
+        attributionOrderRef = orderNumber
+      },
+    })
+    assert.equal(result.alreadyPresent, 1)
+    assert.equal(result.recovered.length, 0)
+    assert.equal(result.errors.length, 0)
+    assert.equal(retrieveCount, 1)
+    assert.equal((attributionSession as unknown as Stripe.Checkout.Session).id, paid.id)
+    assert.equal(attributionOrderRef, 'FOOLISH-ORDER-TEST')
   } finally {
     globalThis.fetch = originalFetch
   }

@@ -79,13 +79,19 @@ export interface Config {
     announcements: Announcement;
     'subscription-plans': SubscriptionPlan;
     subscriptions: Subscription;
+    affiliates: Affiliate;
+    'affiliate-conversions': AffiliateConversion;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    affiliates: {
+      conversions: 'affiliate-conversions';
+    };
+  };
   collectionsSelect: {
     products: ProductsSelect<false> | ProductsSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
@@ -99,6 +105,8 @@ export interface Config {
     announcements: AnnouncementsSelect<false> | AnnouncementsSelect<true>;
     'subscription-plans': SubscriptionPlansSelect<false> | SubscriptionPlansSelect<true>;
     subscriptions: SubscriptionsSelect<false> | SubscriptionsSelect<true>;
+    affiliates: AffiliatesSelect<false> | AffiliatesSelect<true>;
+    'affiliate-conversions': AffiliateConversionsSelect<false> | AffiliateConversionsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -539,6 +547,11 @@ export interface Order {
       }[]
     | null;
   source?: ('storefront' | 'woocommerce' | 'manual' | 'reseller' | 'subscription') | null;
+  affiliatePromoCode?: string | null;
+  affiliateSlug?: string | null;
+  affiliateEligibleAmountCents?: number | null;
+  affiliateCommissionRateBps?: number | null;
+  affiliateCommissionCents?: number | null;
   pageToken?: string | null;
   revolutOrderId?: string | null;
   revolutStatus?: string | null;
@@ -805,6 +818,60 @@ export interface Subscription {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliates".
+ */
+export interface Affiliate {
+  id: number;
+  name: string;
+  /**
+   * Solo minuscole, numeri e trattini; deve iniziare e finire con una lettera o un numero.
+   */
+  slug: string;
+  status: 'active' | 'paused' | 'archived';
+  contactEmail?: string | null;
+  /**
+   * Un codice promo può essere assegnato a un solo affiliato.
+   */
+  promoCode: number | PromoCode;
+  commissionBaseRateBps: number;
+  commissionStepRateBps: number;
+  commissionStepThresholdCents: number;
+  commissionMaxRateBps: number;
+  cookieWindowDays: number;
+  conversions?: {
+    docs?: (number | AffiliateConversion)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-conversions".
+ */
+export interface AffiliateConversion {
+  id: number;
+  stripeSessionId: string;
+  stripePaymentIntentId?: string | null;
+  orderNumber?: string | null;
+  affiliate: number | Affiliate;
+  promoCodeSnapshot: string;
+  affiliateSlugSnapshot: string;
+  eligibleAmountCents: number;
+  commissionRateBps: number;
+  commissionAmountCents: number;
+  currency: string;
+  paymentStatus: 'paid' | 'refunded' | 'partially_refunded' | 'cancelled';
+  refundStatus: 'none' | 'partial' | 'full';
+  amountRefundedCents: number;
+  paidAt?: string | null;
+  refundedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
@@ -902,6 +969,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'subscriptions';
         value: number | Subscription;
+      } | null)
+    | ({
+        relationTo: 'affiliates';
+        value: number | Affiliate;
+      } | null)
+    | ({
+        relationTo: 'affiliate-conversions';
+        value: number | AffiliateConversion;
       } | null)
     | ({
         relationTo: 'users';
@@ -1134,6 +1209,11 @@ export interface OrdersSelect<T extends boolean = true> {
         id?: T;
       };
   source?: T;
+  affiliatePromoCode?: T;
+  affiliateSlug?: T;
+  affiliateEligibleAmountCents?: T;
+  affiliateCommissionRateBps?: T;
+  affiliateCommissionCents?: T;
   pageToken?: T;
   revolutOrderId?: T;
   revolutStatus?: T;
@@ -1347,6 +1427,48 @@ export interface SubscriptionsSelect<T extends boolean = true> {
   cyclesCompleted?: T;
   startedAt?: T;
   canceledAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliates_select".
+ */
+export interface AffiliatesSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  status?: T;
+  contactEmail?: T;
+  promoCode?: T;
+  commissionBaseRateBps?: T;
+  commissionStepRateBps?: T;
+  commissionStepThresholdCents?: T;
+  commissionMaxRateBps?: T;
+  cookieWindowDays?: T;
+  conversions?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "affiliate-conversions_select".
+ */
+export interface AffiliateConversionsSelect<T extends boolean = true> {
+  stripeSessionId?: T;
+  stripePaymentIntentId?: T;
+  orderNumber?: T;
+  affiliate?: T;
+  promoCodeSnapshot?: T;
+  affiliateSlugSnapshot?: T;
+  eligibleAmountCents?: T;
+  commissionRateBps?: T;
+  commissionAmountCents?: T;
+  currency?: T;
+  paymentStatus?: T;
+  refundStatus?: T;
+  amountRefundedCents?: T;
+  paidAt?: T;
+  refundedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

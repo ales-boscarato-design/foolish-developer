@@ -20,10 +20,25 @@ export async function GET() {
     { headers: { 'x-storefront-secret': process.env.PAYLOAD_API_SECRET! }, next: { revalidate: 0 } }
   )
   const ordersData = ordersRes.ok ? await ordersRes.json() : { docs: [] }
+  // Affiliate commission snapshots are internal: the customer sees the order,
+  // not what the shop pays an affiliate on it.
+  const orders = (ordersData.docs ?? []).map((order: Record<string, unknown>) => {
+    const customerVisibleOrder = { ...order }
+    for (const field of [
+      'affiliatePromoCode',
+      'affiliateSlug',
+      'affiliateEligibleAmountCents',
+      'affiliateCommissionRateBps',
+      'affiliateCommissionCents',
+    ]) {
+      delete customerVisibleOrder[field]
+    }
+    return customerVisibleOrder
+  })
 
   return NextResponse.json({
     subscriber,
-    orders: ordersData.docs ?? [],
+    orders,
     wishlist,
   })
 }

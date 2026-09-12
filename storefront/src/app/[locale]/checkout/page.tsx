@@ -4,16 +4,15 @@ import { useState, useRef, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { useCart } from '@/lib/cart'
 import { track } from '@/lib/analytics'
-import { calculateShipping, freeShippingRemaining } from '@/lib/shipping'
+import {
+  ALLOWED_SHIPPING_COUNTRIES,
+  calculateShipping,
+  freeShippingRemaining,
+} from '@/lib/shipping'
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { cmsImageUrl } from '@/lib/cms'
-
-const COUNTRY_CODES = [
-  'IT','DE','FR','ES','NL','BE','AT','CH','PL','PT','SE','DK','NO',
-  'US','GB','CA','AU','JP','BR',
-]
 
 // Postal code format per country
 const POSTAL_CODE_RE: Record<string, RegExp> = {
@@ -132,7 +131,7 @@ export default function CheckoutPage() {
       const res = await fetch('/api/promo/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: promoCode, total: cartTotal }),
+        body: JSON.stringify({ code: promoCode, items }),
       })
       const data = await res.json()
       if (data.valid) {
@@ -423,7 +422,7 @@ export default function CheckoutPage() {
               className={inputBase}
               style={inputStyle('country', !!country)}
             >
-              {COUNTRY_CODES.map((code) => (
+              {ALLOWED_SHIPPING_COUNTRIES.map((code) => (
                 <option key={code} value={code}>{t(`countries.${code}`)}</option>
               ))}
             </select>
@@ -638,7 +637,7 @@ export default function CheckoutPage() {
                   className={inputBase}
                   style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
                 >
-                  {COUNTRY_CODES.map((code) => (
+                  {ALLOWED_SHIPPING_COUNTRIES.map((code) => (
                     <option key={code} value={code}>{t(`countries.${code}`)}</option>
                   ))}
                 </select>
