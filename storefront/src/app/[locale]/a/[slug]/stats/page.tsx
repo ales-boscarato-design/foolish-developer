@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import {
   fetchAffiliateConversions,
   nextTierThresholdCents,
@@ -11,34 +12,35 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
-  title: 'Statistiche affiliazione',
-  robots: { index: false, follow: false, nocache: true },
-}
-
 type PageProps = {
   params: Promise<{ locale: string; slug: string }>
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-const euro = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' })
-const percent = new Intl.NumberFormat('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-const dateOnly = new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })
-
-function formatEuro(cents: number): string {
-  return euro.format(cents / 100)
+/**
+ * Formatters follow the page language, not the shop's default one: a Spanish
+ * affiliate reads "1.234,56 €" and a date in Spanish, exactly as the rest of the
+ * site does in its own locale.
+ */
+function formattersFor(locale: string) {
+  return {
+    euro: new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }),
+    percent: new Intl.NumberFormat(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 }),
+    date: new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'long', year: 'numeric' }),
+  }
 }
 
-function formatRate(bps: number): string {
-  return `${percent.format(bps / 100)}%`
-}
-
-function formatDate(value: string | null): string {
-  return value === null ? '—' : dateOnly.format(new Date(value))
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: 'affiliateStats' })
+  return {
+    title: t('title'),
+    robots: { index: false, follow: false, nocache: true },
+  }
 }
 
 export default async function AffiliateStatsPage({ params, searchParams }: PageProps) {
-  const { slug } = await params
+  const { locale, slug } = await params
   const query = await searchParams
 
   const normalizedSlug = normalizeAffiliateSlug(slug)
@@ -46,6 +48,12 @@ export default async function AffiliateStatsPage({ params, searchParams }: PageP
   if (normalizedSlug === null || !verifyAffiliateStatsToken(normalizedSlug, rawToken)) {
     notFound()
   }
+
+  const t = await getTranslations({ locale, namespace: 'affiliateStats' })
+  const format = formattersFor(locale)
+  const formatEuro = (cents: number): string => format.euro.format(cents / 100)
+  const formatRate = (bps: number): string => `${format.percent.format(bps / 100)}%`
+  const formatDate = (value: string | null): string => (value === null ? '—' : format.date.format(new Date(value)))
 
   // Reporting uses the reporting resolver: pausing or archiving an affiliate
   // stops the discount but must not erase the figures it already earned.
@@ -56,11 +64,8 @@ export default async function AffiliateStatsPage({ params, searchParams }: PageP
   if (conversions === null) {
     return (
       <main style={{ maxWidth: 640, margin: '0 auto', padding: '64px 24px', fontFamily: 'inherit' }}>
-        <h1 style={{ fontSize: 22, marginBottom: 12 }}>Dati temporaneamente non disponibili</h1>
-        <p style={{ opacity: 0.75, lineHeight: 1.6 }}>
-          Non riusciamo a leggere le tue vendite in questo momento. Riprova tra qualche minuto:
-          se il problema resta, segnalalo e lo sistemiamo.
-        </p>
+        <h1 style={{ fontSize: 22, marginBottom: 12 }}>{t('errorTitle')}</h1>
+        <p style={{ opacity: 0.75, lineHeight: 1.6 }}>{t('errorBody')}</p>
       </main>
     )
   }
@@ -75,24 +80,24 @@ export default async function AffiliateStatsPage({ params, searchParams }: PageP
     : stats.currentRateBps
 
   const rows: Array<[string, string]> = [
-    ['Vendite attribuite', String(stats.salesCount)],
-    ['Fatturato eleggibile', formatEuro(stats.eligibleAmountCents)],
-    ['Commissione maturata', formatEuro(stats.commissionAmountCents)],
-    ['Aliquota attuale', formatRate(currentRateBps)],
-    ['Ultima vendita', formatDate(stats.lastPaidAt)],
+    [t('sales'), String(stats.salesCount)],
+    [t('revenue'), formatEuro(stats.eligibleAmountCents)],
+    [t('commission'), formatEuro(stats.commissionAmountCents)],
+    [t('rate'), formatRate(currentRateBps)],
+    [t('lastSale'), formatDate(stats.lastPaidAt)],
   ]
   if (stats.refundedCount > 0) {
-    rows.push(['Ordini rimborsati', String(stats.refundedCount)])
+    rows.push([t('refundedOrders'), String(stats.refundedCount)])
   }
 
   return (
     <main style={{ maxWidth: 640, margin: '0 auto', padding: '64px 24px', fontFamily: 'inherit' }}>
       <p style={{ textTransform: 'uppercase', letterSpacing: '0.12em', fontSize: 12, opacity: 0.6, marginBottom: 8 }}>
-        The Foolish Butcher — affiliazione
+        {t('eyebrow')}
       </p>
       <h1 style={{ fontSize: 26, marginBottom: 4 }}>{affiliate.slug}</h1>
       <p style={{ opacity: 0.7, marginBottom: 32 }}>
-        Codice collegato: <strong>{affiliate.promoCode ?? '—'}</strong>
+        {t('linkedCode')} <strong>{affiliate.promoCode ?? '—'}</strong>
       </p>
 
       <dl style={{ display: 'grid', gap: 12, margin: 0 }}>
@@ -109,14 +114,15 @@ export default async function AffiliateStatsPage({ params, searchParams }: PageP
 
       {nextThreshold !== null && missingToNext !== null && (
         <p style={{ marginTop: 28, opacity: 0.75, lineHeight: 1.6 }}>
-          Prossimo aumento di commissione a {formatEuro(nextThreshold)} di fatturato eleggibile:
-          mancano {formatEuro(missingToNext)}.
+          {t('nextTier', {
+            threshold: formatEuro(nextThreshold),
+            missing: formatEuro(missingToNext),
+          })}
         </p>
       )}
 
       <p style={{ marginTop: 40, fontSize: 12, opacity: 0.55, lineHeight: 1.6 }}>
-        Pagina privata, aggiornata in tempo reale dal registro vendite. I numeri non includono
-        gli ordini non ancora pagati.
+        {t('footer')}
       </p>
     </main>
   )

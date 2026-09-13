@@ -599,5 +599,20 @@
       "body": "Erhalte Tattoo XXL oder PMU 3 Visi jeden Monat. Ab dem zweiten Monat geht der Versand auf uns, ab dem sechsten zusätzlich -10%.",
       "cta": "Abo entdecken"
     }
+  },
+  "affiliateStats": {
+    "title": "Affiliate-Statistiken",
+    "errorTitle": "Daten vorübergehend nicht verfügbar",
+    "errorBody": "Wir können Ihre Verkäufe gerade nicht auslesen. Versuchen Sie es in ein paar Minuten erneut: bleibt das Problem bestehen, melden Sie es uns und wir beheben es.",
+    "eyebrow": "The Foolish Butcher — Partnerprogramm",
+    "linkedCode": "Verknüpfter Code:",
+    "sales": "Zugeordnete Verkäufe",
+    "revenue": "Anrechenbarer Umsatz",
+    "commission": "Aufgelaufene Provision",
+    "rate": "Aktueller Satz",
+    "lastSale": "Letzter Verkauf",
+    "refundedOrders": "Erstattete Bestellungen",
+    "nextTier": "Nächste Provisionsstufe bei {threshold} anrechenbarem Umsatz: es fehlen {missing}.",
+    "footer": "Private Seite, in Echtzeit aus dem Verkaufsregister aktualisiert. Die Zahlen enthalten keine noch nicht bezahlten Bestellungen."
   }
 }

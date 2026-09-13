@@ -12,7 +12,8 @@
     "test:catalog": "tsx --test src/lib/catalog.test.ts",
     "test:promo": "tsx --test src/lib/promo.test.ts",
     "test:affiliate-referral": "tsx --test src/lib/affiliate-referral.test.ts",
-    "test:affiliate-route": "tsx --test src/lib/affiliate-referral-route.test.ts"
+    "test:affiliate-route": "tsx --test src/lib/affiliate-referral-route.test.ts",
+    "test:affiliate-i18n": "tsx --test src/lib/affiliate-stats-i18n.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
