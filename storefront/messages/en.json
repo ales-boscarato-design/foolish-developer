@@ -599,5 +599,20 @@
       "body": "Get Tattoo XXL or PMU 3 Visi delivered every month. From the second month, shipping's on us — from the sixth, an extra -10%.",
       "cta": "Discover the subscription"
     }
+  },
+  "affiliateStats": {
+    "title": "Affiliate statistics",
+    "errorTitle": "Data temporarily unavailable",
+    "errorBody": "We can't read your sales right now. Try again in a few minutes: if the problem persists, let us know and we'll fix it.",
+    "eyebrow": "The Foolish Butcher — affiliate programme",
+    "linkedCode": "Linked code:",
+    "sales": "Attributed sales",
+    "revenue": "Eligible revenue",
+    "commission": "Accrued commission",
+    "rate": "Current rate",
+    "lastSale": "Last sale",
+    "refundedOrders": "Refunded orders",
+    "nextTier": "Next commission step at {threshold} of eligible revenue: {missing} to go.",
+    "footer": "Private page, updated in real time from the sales ledger. The figures do not include orders that have not been paid yet."
   }
 }
