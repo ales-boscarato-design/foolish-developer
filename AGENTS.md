@@ -97,6 +97,14 @@ Transactional emails use Resend + React Email templates (`storefront/src/emails/
 
 Hermes is the project director and the gate for diagnosis, review, promotion, and deployment. Alfred is the current Foolish operational runtime in Nanobot on the Pi; live runtime state must be checked separately.
 
+### Custodia operativa di `main`
+
+Il desktop Project **Engineering — The Foolish Butcher** (`/home/alessandro/Foolish/foolish-developer`) è il custode *operativo* di `main`: riceve i task Kanban, impone diagnosi → worktree → PR → review → gate → verifica deploy e mantiene il referto/rollback. Non è però un'identità GitHub: la proprietà del repository, l'approvazione finale e l'accesso di emergenza restano ad Alessandro.
+
+- Nessun worker, token o GitHub App del runtime riceve bypass su `main` o effettua push diretto.
+- Le regole di `main` sono modifiche di governance: richiedono task Kanban, evidenza del cambiamento e rollback, anche se sono eseguite dall'identità GitHub autorizzata.
+- L'identità tecnica ordinaria deve avere solo i permessi strettamente necessari per branch, PR e CI; `Administration: write` è temporaneo e limitato alle modifiche di regole approvate.
+
 For a coding task:
 
 1. Hermes reads `PROJECT_CONTRACT.md`, the relevant architecture documentation, and this file.
