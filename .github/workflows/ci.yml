@@ -1,0 +1,106 @@
+# Integrazione continua FOOLISH: controlli su ogni pull request e su main.
+#
+# Questo workflow NON esegue deploy e NON esegue migration: il deploy lo fa Railway dal
+# merge su main, e le migration le applica il servizio CMS all'avvio. Il gate qui sotto
+# verifica proprio che nessun workflow si prenda quel compito (vedi checkNoDeployInWorkflows).
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Gate, test e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # al gate serve il riferimento di diff (merge-base col branch di base)
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            storefront/package-lock.json
+            cms/package-lock.json
+            b2b/package-lock.json
+
+      - name: Install storefront
+        working-directory: storefront
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Install CMS
+        working-directory: cms
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Install B2B
+        working-directory: b2b
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Test del gate
+        run: node --test scripts/release-gate.test.mjs
+
+      - name: Gate pre-deploy
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -n "${BASE_SHA:-}" ] && git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            node scripts/release-gate.mjs --ci --base "$BASE_SHA"
+          else
+            node scripts/release-gate.mjs --ci --base HEAD~1
+          fi
+
+      - name: Storefront — lint
+        working-directory: storefront
+        run: npx eslint .
+
+      - name: Storefront — tipi
+        working-directory: storefront
+        run: npx tsc --noEmit
+
+      - name: Storefront — test
+        working-directory: storefront
+        run: |
+          npm run test:orders --silent
+          npm run test:emails --silent
+          npm run test:catalog --silent
+          npm run test:promo --silent
+          npm run test:affiliate-referral --silent
+          npm run test:affiliate-route --silent
+          npm run test:affiliate-i18n --silent
+
+      - name: Storefront — build
+        working-directory: storefront
+        run: npm run build
+
+      - name: CMS — tipi
+        working-directory: cms
+        run: npx tsc --noEmit
+
+      - name: CMS — build (genera import map e tipi)
+        working-directory: cms
+        run: npm run build
+
+      - name: B2B — tipi
+        working-directory: b2b
+        run: npx tsc --noEmit
+
+      - name: B2B — build
+        working-directory: b2b
+        run: npm run build
