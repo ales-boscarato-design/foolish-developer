@@ -168,12 +168,23 @@ test('i percorsi foglia annidati vengono appiattiti', () => {
 })
 
 test('un segreto in un file viene rilevato', () => {
+  // Il valore finto si compone a runtime: il file di test non deve contenere per davvero
+  // una stringa che sembra un segreto, o il gate segnala se stesso (giusto).
+  const fakeWebhookSecret = ['whsec', 'abcdefghijklmnop'].join('_')
   const findings = scanForSecrets([
-    { path: 'x.ts', content: "const key = 'whsec_abcdefghijklmnop'" },
+    { path: 'x.ts', content: `const key = '${fakeWebhookSecret}'` },
     { path: 'y.ts', content: 'const niente = 1' },
   ])
   assert.equal(findings.length, 1)
   assert.match(findings[0], /x\.ts/)
+})
+
+test('i file del gate non contengono stringhe che sembrano segreti', () => {
+  const dir = path.join(repoRoot, 'scripts')
+  const files = fs
+    .readdirSync(dir)
+    .map((name) => ({ path: name, content: fs.readFileSync(path.join(dir, name), 'utf8') }))
+  assert.deepEqual(scanForSecrets(files), [])
 })
 
 test('codice pulito non produce falsi positivi sui segreti', () => {

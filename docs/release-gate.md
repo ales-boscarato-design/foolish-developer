@@ -50,3 +50,12 @@ webhook che legge metadata diversi da quelli scritti sono guasti veri già visti
 3. Aggiungi in `scripts/release-gate.test.mjs` **un caso che fallisce**: un gate che non sa fallire
    non è un gate. I test sintetici coprono i casi negativi; gli invarianti reali chiudono il cerchio
    sul repository.
+
+## Due dettagli che fanno passare un gate che in CI fallirà
+
+- **I controlli basati sul diff guardano i file committati.** Su un albero con file nuovi non ancora
+  tracciati il gate non li vede: eseguilo **dopo il commit**, o il verde locale non vale. È il modo in
+  cui il controllo sui segreti ha lasciato passare, in locale, un file nuovo che in CI ha poi segnalato.
+- **Il gate scansiona anche i file del gate.** Nei test non si scrivono stringhe che *sembrano*
+  segreti, nemmeno finte: si compongono a runtime (`['whsec', 'abcdef'].join('_')`), altrimenti il
+  gate segnala se stesso.
