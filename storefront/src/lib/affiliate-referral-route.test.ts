@@ -9,6 +9,9 @@ process.env.PAYLOAD_API_SECRET = STOREFRONT_SECRET
 import { GET } from '../app/[locale]/a/[slug]/route'
 import { preferredLocale } from './accept-language'
 
+/** Marcatore visibile aggiunto al percorso di atterraggio (il cookie resta la fonte per i soldi). */
+const MARKERS = 'ref=nestor&utm_source=affiliate&utm_medium=referral&utm_campaign=nestor'
+
 /**
  * Route-level test of the referral link.
  *
@@ -86,7 +89,7 @@ test('the redirect target is relative even when the origin is the internal proxy
   const result = await callRoute('/it/a/nestor')
 
   assert.equal(result.status, 302)
-  assert.equal(result.location, '/it')
+  assert.equal(result.location, `/it?${MARKERS}`)
   // The three ways this could regress into an unreachable or hostile target.
   assert.ok(!String(result.location).startsWith('http'), 'Location must not be absolute')
   assert.ok(!String(result.location).includes('0.0.0.0'), 'Location must not carry the internal host')
@@ -106,19 +109,20 @@ test('an unknown affiliate redirects relatively and sets no referral cookie', as
 
   assert.equal(result.status, 302)
   assert.equal(result.location, '/it')
+  assert.ok(!String(result.location).includes('ref='), 'no visible marker without a resolved affiliate')
   assert.ok(!String(result.cookie).includes('foolish_ref'), 'no referral cookie for an unknown slug')
 })
 
 test('an internal ?to= target stays relative and keeps query and hash', async () => {
   const result = await callRoute('/it/a/nestor?to=%2Fprodotti%3Fcolore%3Dnero%23top')
 
-  assert.equal(result.location, '/prodotti?colore=nero#top')
+  assert.equal(result.location, `/prodotti?colore=nero&${MARKERS}#top`)
 })
 
 test('an escaping ?to= target falls back to the locale home, still relative', async () => {
   const result = await callRoute('/it/a/nestor?to=%2F%2Fevil.com')
 
-  assert.equal(result.location, '/it')
+  assert.equal(result.location, `/it?${MARKERS}`)
   assert.ok(!String(result.location).includes('evil.com'))
 })
 
@@ -130,8 +134,8 @@ test('the neutral link localises to the visitor language', async () => {
   const spanish = await callRoute('/it/a/nestor', 'nestor', 'es-ES,es;q=0.9,en;q=0.8')
   const german = await callRoute('/it/a/nestor', 'nestor', 'de')
 
-  assert.equal(spanish.location, '/es')
-  assert.equal(german.location, '/de')
+  assert.equal(spanish.location, `/es?${MARKERS}`)
+  assert.equal(german.location, `/de?${MARKERS}`)
   // The discount must survive the language switch: the cookie belongs to the
   // response, not to the language.
   assert.match(String(spanish.cookie), /foolish_ref=nestor/)
@@ -140,25 +144,25 @@ test('the neutral link localises to the visitor language', async () => {
 test('an unsupported visitor language falls back to the link language', async () => {
   const result = await callRoute('/it/a/nestor', 'nestor', 'pt-BR,pt;q=0.9')
 
-  assert.equal(result.location, '/it')
+  assert.equal(result.location, `/it?${MARKERS}`)
 })
 
 test('quality values decide, not the order of the header', async () => {
   const result = await callRoute('/it/a/nestor', 'nestor', 'es;q=0.3, fr;q=0.9')
 
-  assert.equal(result.location, '/fr')
+  assert.equal(result.location, `/fr?${MARKERS}`)
 })
 
 test('a language-specific link keeps its own language', async () => {
   const result = await callRoute('/es/a/nestor', 'nestor', 'de-DE,de;q=0.9')
 
-  assert.equal(result.location, '/es')
+  assert.equal(result.location, `/es?${MARKERS}`)
 })
 
 test('an explicit ?to= target is never re-localised', async () => {
   const result = await callRoute('/it/a/nestor?to=%2Fprodotti', 'nestor', 'es-ES,es;q=0.9')
 
-  assert.equal(result.location, '/prodotti')
+  assert.equal(result.location, `/prodotti?${MARKERS}`)
 })
 
 test('a malformed or empty language header is not a preference', async () => {
@@ -166,9 +170,23 @@ test('a malformed or empty language header is not a preference', async () => {
   const wildcard = await callRoute('/it/a/nestor', 'nestor', '*')
   const rejected = await callRoute('/it/a/nestor', 'nestor', 'es;q=0')
 
-  assert.equal(empty.location, '/it')
-  assert.equal(wildcard.location, '/it')
-  assert.equal(rejected.location, '/it')
+  assert.equal(empty.location, `/it?${MARKERS}`)
+  assert.equal(wildcard.location, `/it?${MARKERS}`)
+  assert.equal(rejected.location, `/it?${MARKERS}`)
+})
+
+test('the visible marker and the cookie always name the same affiliate', async () => {
+  const result = await callRoute('/it/a/nestor')
+  const location = String(result.location)
+  const cookie = String(result.cookie)
+
+  const fromUrl = new URLSearchParams(location.split('?')[1] ?? '').get('ref')
+  const fromCookie = /foolish_ref=([^;]+)/.exec(cookie)?.[1] ?? null
+
+  assert.equal(fromUrl, 'nestor')
+  // Se un giorno i due divergessero, l'URL mostrerebbe un affiliato e la
+  // commissione andrebbe a un altro: il test lo blocca qui.
+  assert.equal(fromUrl, fromCookie)
 })
 
 test('the language parser handles case, subtags and junk without throwing', () => {
