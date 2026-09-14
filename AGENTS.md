@@ -113,4 +113,21 @@ cd storefront && npx tsc --noEmit
 cd ../cms && npx tsc --noEmit
 ```
 
+## Pre-deploy gate (obbligatorio)
+
+`scripts/release-gate.mjs` verifica i contratti fra file che i test non coprono (migration
+registrate, metadata del checkout verso il webhook, parità delle traduzioni, segreti, lockfile).
+Va eseguito prima di proporre una promozione, e gira da sé su ogni pull request
+(`.github/workflows/ci.yml`).
+
+```bash
+node --test scripts/release-gate.test.mjs   # il gate stesso, casi negativi inclusi
+node scripts/release-gate.mjs               # sul branch di lavoro
+```
+
+Un gate rosso non si aggira: si corregge la causa, oppure si spiega per iscritto perché il
+controllo è sbagliato — e in quel caso si aggiorna il controllo con un test che lo prova.
+Nessun workflow esegue deploy o migration: il deploy lo fa Railway dal merge su `main`, le
+migration le applica il servizio CMS all'avvio.
+
 Workers do not bypass Hermes, change production credentials, or perform external actions without the required approval. Historical `CLAUDE.md` instructions and Frank/nanobot pipeline descriptions are not operational authority and must not be followed.
