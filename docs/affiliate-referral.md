@@ -97,13 +97,16 @@ L'elenco completo è in Marketing → Affiliate Conversions.
 
 ```bash
 node scripts/create-affiliate.mjs \
-  --name "Néstor" --slug nestor --code NESTOR15 \
+  --name "Néstor" --slug nestor --code NEST15 \
   --email <email> \
   --percent 15 --step-percent 3 --threshold-euro 500 --max-percent 38
 ```
 
-È idempotente: rilanciato sullo stesso slug aggiorna la configurazione. Alla fine
-stampa il link di referral e il link privato alle statistiche.
+È idempotente: rilanciato sullo stesso slug aggiorna la configurazione. Quando si
+sostituisce il codice, aggiornare prima l'affiliato e poi disattivare il vecchio
+promo dal CMS senza cancellarlo: gli snapshot delle conversioni storiche restano
+leggibili senza permettere nuove attribuzioni. Alla fine stampa il link di referral
+e il link privato alle statistiche.
 
 Credenziali: variabili d'ambiente oppure il file locale
 `~/.hermes/secrets/foolish-cms.env` (permessi `600`):
