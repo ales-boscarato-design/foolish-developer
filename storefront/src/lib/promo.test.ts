@@ -295,6 +295,7 @@ test('bounds cart payloads and rejects metadata that exceeds Stripe limits', () 
       phone: '',
     },
     chargedProductLines: chargedLines,
+    shippingCostCents: 765,
   })
   assert.equal(metadata, null)
 })
@@ -314,4 +315,62 @@ test('missing or malformed promo codes do not produce a discount', () => {
 
   assert.equal(missing.status, 'invalid')
   assert.equal(malformed.status, 'invalid')
+})
+
+test('la spedizione incassata viaggia nei metadata come intero in centesimi', () => {
+  const normalized = normalizeCheckoutItems([
+    { price: 43.2, quantity: 1, productName: 'T-Sheet Duoskin', variantLabel: 'A4', sku: 'TS-DUO-A4' },
+  ])
+  assert.ok(normalized)
+  if (!normalized) return
+  const chargedLines = allocateProductDiscount(normalized, 0)
+  assert.ok(chargedLines)
+  if (!chargedLines) return
+  const customer = {
+    email: 'test@example.com',
+    name: 'Test Customer',
+    country: 'CH' as const,
+    address: 'Via Test 1',
+    city: 'Torino',
+    postalCode: '10100',
+    phone: '',
+  }
+
+  const metadata = buildCheckoutMetadata({
+    orderRef: 'FOOLISH-TEST',
+    customer,
+    chargedProductLines: chargedLines,
+    shippingCostCents: 5249,
+  })
+  assert.ok(metadata)
+  if (!metadata) return
+  assert.equal(metadata.shipping_cost_cents, '5249')
+  // Il parser ricostruisce l'importo delle righe da items_json: se le due cose
+  // divergessero, il residuo `amount_total - righe` non sarebbe la spedizione.
+  assert.deepEqual(JSON.parse(metadata.items_json), [
+    { sku: 'TS-DUO-A4', qty: 1, name: 'T-Sheet Duoskin', variantLabel: 'A4', price: 43.2 },
+  ])
+
+  // La spedizione gratuita si dichiara con 0, non con l'assenza della chiave:
+  // l'assenza significa "sessione precedente a questo contratto" e riporta il
+  // parser sul residuo.
+  const freeShipping = buildCheckoutMetadata({
+    orderRef: 'FOOLISH-TEST',
+    customer,
+    chargedProductLines: chargedLines,
+    shippingCostCents: 0,
+  })
+  assert.ok(freeShipping)
+  assert.equal(freeShipping.shipping_cost_cents, '0')
+
+  // Un importo non intero, negativo o non finito non diventa metadata: il
+  // chiamante fallisce chiuso invece di registrare un numero inventato.
+  for (const invalid of [-1, 7.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+    assert.equal(buildCheckoutMetadata({
+      orderRef: 'FOOLISH-TEST',
+      customer,
+      chargedProductLines: chargedLines,
+      shippingCostCents: invalid,
+    }), null)
+  }
 })

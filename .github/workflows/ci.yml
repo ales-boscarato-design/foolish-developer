@@ -84,6 +84,7 @@ jobs:
           npm run test:affiliate-referral --silent
           npm run test:affiliate-route --silent
           npm run test:affiliate-i18n --silent
+          npm run test:reorder --silent
 
       - name: Storefront — build
         working-directory: storefront

@@ -220,6 +220,7 @@ export async function POST(req: NextRequest) {
     orderRef,
     customer,
     chargedProductLines,
+    shippingCostCents,
     promo,
   })
   if (!metadata) {
