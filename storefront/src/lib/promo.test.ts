@@ -151,11 +151,14 @@ test('la promo "spedizione gratuita" non azzera una tariffa extra-UE', () => {
   assert.equal(calculateServerShippingCostCents(items, 'CH', true), 4772)
   assert.equal(calculateServerShippingCostCents(items, 'CH', false), 4772)
 
-  // Paese extra-UE senza misura: non esiste un prezzo da addebitare, ma non
-  // deve MAI diventare zero (zero = spedire a spese di Foolish).
-  assert.equal(calculateServerShippingCostCents(items, 'US', false), null)
-  assert.equal(calculateServerShippingCostCents(items, 'GB', true), null)
-  assert.equal(calculateServerShippingCostCents(items, 'NO', false), null)
+  // Paese extra-UE senza misura: dal 21/09/2026 si vende, con l'aliquota del
+  // paese di destinazione e il pavimento di 48,00 EUR. La promo non deve MAI
+  // azzerare quella tariffa: zero qui vorrebbe dire regalare anche dazi, IVA
+  // all'importazione e fee DDP.
+  assert.equal(calculateServerShippingCostCents(items, 'US', true), 7293)
+  assert.equal(calculateServerShippingCostCents(items, 'US', false), 7293)
+  assert.equal(calculateServerShippingCostCents(items, 'GB', true), 5684)
+  assert.equal(calculateServerShippingCostCents(items, 'NO', true), 6958)
 
   // Unione Europea: il comportamento di prima non cambia.
   assert.equal(calculateServerShippingCostCents(items, 'DE', true), 0)

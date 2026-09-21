@@ -4,8 +4,9 @@ import {
   ALLOWED_SHIPPING_COUNTRIES,
   DDP_CAPABLE_CARRIER,
   DEFAULT_EXTRA_EU_PROFILE,
+  DESTINATION_TAX_RULES,
   SWITZERLAND_PROFILE,
-  UNCALIBRATED_EXTRA_EU_FLAT,
+  UNCALIBRATED_EXTRA_EU_FLOOR,
   UNCALIBRATED_EXTRA_EU_POLICY,
   calculateLandedCost,
   calculateShipping,
@@ -121,13 +122,14 @@ test('nessuna spedizione extra-UE parte sotto il costo sdoganato stimato', () =>
   // con la politica di default E con quella prudenziale.
   const values = [0, 1, 9.99, 25, 47.5, 99, 150, 249.99, 250, 400, 999.99, 2500, 10000]
 
-  for (const policy of ['quote_required', 'conservative_profile'] as const) {
+  for (const policy of ['quote_required', 'destination_profile'] as const) {
     for (const country of ALLOWED_SHIPPING_COUNTRIES) {
       if (getShippingZone(country) !== 'EXTRA_EU') continue
       for (const goods of values) {
         const rate = calculateShipping(goods, country, policy)
 
-        // Paese senza misura: non si incassa nulla e non si inventa un prezzo.
+        // Paese senza profilo (nessuna linea DDP): non si incassa nulla e non
+        // si inventa un prezzo.
         if (rate.requiresQuote) {
           assert.equal(rate.cost, 0, `${country} @ ${goods} [${policy}]: un preventivo non incassa`)
           assert.equal(rate.landedCost, null, `${country} @ ${goods} [${policy}]: nessuna stima inventata`)
@@ -142,6 +144,13 @@ test('nessuna spedizione extra-UE parte sotto il costo sdoganato stimato', () =>
           rate.cost >= rate.landedCost.estimatedCost,
           `${country} @ ${goods} [${policy}]: addebitato ${rate.cost} < costo stimato ${rate.landedCost.estimatedCost}`,
         )
+        // Paese non misurato: la rete di sicurezza e' il pavimento, non il costo.
+        if (!rate.landedCost.calibrated) {
+          assert.ok(
+            rate.cost >= UNCALIBRATED_EXTRA_EU_FLOOR,
+            `${country} @ ${goods} [${policy}]: ${rate.cost} sotto il pavimento ${UNCALIBRATED_EXTRA_EU_FLOOR}`,
+          )
+        }
         assert.ok(rate.cost > 0, `${country} @ ${goods} [${policy}]: costo non addebitato`)
         // Il costo e' un importo in centesimi: niente frazioni di centesimo.
         assert.equal(Number.isInteger(Math.round(rate.cost * 100)), true)
@@ -167,36 +176,53 @@ test('il costo sdoganato cresce col valore della merce (nessun buco per eccesso 
   }
 })
 
-test('un paese extra-UE non ancora misurato si quota, non si indovina (default)', () => {
-  assert.equal(UNCALIBRATED_EXTRA_EU_POLICY, 'quote_required', 'il default resta fail-closed')
+test('un paese extra-UE senza misura si VENDE con le aliquote del paese di destinazione (default)', () => {
+  // Decisione di Alessandro del 21/09/2026 (via alfred): niente quote_required
+  // come stato definitivo. Il pavimento di 48,00 EUR e' la rete di sicurezza.
+  assert.equal(UNCALIBRATED_EXTRA_EU_POLICY, 'destination_profile')
 
-  for (const country of ['US', 'GB', 'CA', 'AU', 'JP', 'BR', 'NO'] as const) {
+  for (const country of ['US', 'GB', 'CA', 'AU', 'JP', 'NO'] as const) {
     const rate = calculateShipping(99, country)
     assert.equal(rate.zone, 'EXTRA_EU')
-    assert.equal(rate.requiresQuote, true, `${country}: venduto con un prezzo non misurato`)
-    assert.equal(rate.cost, 0)
-    assert.equal(rate.landedCost, null)
-    assert.equal(shippingRequiresQuote(country), true)
+    assert.equal(rate.requiresQuote, false, `${country}: un paese senza misura si vende`)
+    assert.ok(rate.landedCost, `${country}: manca la scomposizione`)
+    if (!rate.landedCost) continue
+    assert.equal(rate.landedCost.calibrated, false, `${country}: resta non misurato, e lo dichiara`)
+    assert.ok(rate.cost >= UNCALIBRATED_EXTRA_EU_FLOOR)
+    assert.ok(rate.cost >= rate.landedCost.estimatedCost)
+    assert.equal(shippingRequiresQuote(country), false)
   }
 
   // La Svizzera e' misurata: si vende, e non si quota.
   assert.equal(shippingRequiresQuote('CH'), false)
   assert.equal(shippingRequiresQuote('IT'), false)
   assert.equal(shippingRequiresQuote('DE'), false)
+
+  // Il Brasile resta l'unica destinazione in preventivo: nessuna linea DDP.
+  assert.equal(shippingRequiresQuote('BR'), true)
+
+  // L'interruttore fail-closed resta raggiungibile: si puo' tornare a quotare.
+  const quoted = calculateShipping(99, 'US', 'quote_required')
+  assert.equal(quoted.requiresQuote, true)
+  assert.equal(quoted.cost, 0)
+  assert.equal(quoted.landedCost, null)
 })
 
 test('il Brasile non ha alcuna linea DDP: resta in preventivo anche girando la politica', () => {
   // Non e' prudenza: il 21/09/2026 l'account non ha nessun servizio DDP verso BR,
-  // quindi il modello landed-cost non e' costruibile e non si applica.
+  // quindi il modello landed-cost non e' costruibile. E non si ripiega sul DAP:
+  // la pipeline di spedizione blocca (customs.json, ddp: true) un pacco DAP,
+  // quindi un ordine BR incassato oggi non sarebbe spedibile.
   assert.equal(DDP_CAPABLE_CARRIER.BR, undefined)
+  assert.equal(DESTINATION_TAX_RULES.BR, undefined)
   assert.equal(uncalibratedExtraEuProfile('BR'), null)
   assert.equal(shippingRequiresQuote('BR'), true)
-  assert.equal(shippingRequiresQuote('BR', 'conservative_profile'), true)
-  assert.equal(calculateShipping(99, 'BR', 'conservative_profile').cost, 0)
-  assert.equal(calculateShipping(99, 'BR', 'conservative_profile').landedCost, null)
+  assert.equal(shippingRequiresQuote('BR', 'destination_profile'), true)
+  assert.equal(calculateShipping(99, 'BR', 'destination_profile').cost, 0)
+  assert.equal(calculateShipping(99, 'BR', 'destination_profile').landedCost, null)
 })
 
-test('la politica prudenziale usa la linea DDP-capace, mai il preventivo piu\' economico', () => {
+test('il profilo di un paese non misurato: trasporto DDP-capace e aliquota del paese di destinazione', () => {
   // Preventivi Packlink 21/09/2026, collo 40x40x10 / 2,0 kg. Tutte le linee piu'
   // economiche di questi paesi NON supportano il DDP (`ddp: None`): la loro
   // carrier non e' un'alternativa a parita' di servizio.
@@ -204,7 +230,7 @@ test('la politica prudenziale usa la linea DDP-capace, mai il preventivo piu\' e
 
   for (const [country, cheapest] of Object.entries(cheapestQuote)) {
     const profile = uncalibratedExtraEuProfile(country as keyof typeof cheapestQuote)
-    assert.ok(profile, `${country}: manca il profilo prudenziale`)
+    assert.ok(profile, `${country}: manca il profilo`)
     if (!profile) continue
     assert.ok(
       profile.carrier > cheapest,
@@ -218,26 +244,92 @@ test('la politica prudenziale usa la linea DDP-capace, mai il preventivo piu\' e
   assert.equal(uncalibratedExtraEuProfile('GB')?.carrier, 18.50)
   assert.equal(uncalibratedExtraEuProfile('US')?.carrier, 37.60)
 
+  // L'aliquota NON e' piu' l'8,1% svizzero esteso a tutti: e' quella del paese
+  // di destinazione, e la fonte dice che e' una regola di legge, non una misura.
+  const expectedVat: Record<string, number> = { GB: 0.20, NO: 0.25, CA: 0.15, AU: 0.10, JP: 0.10, US: 0 }
+
   for (const country of ['US', 'GB', 'NO', 'CA', 'AU', 'JP'] as const) {
     const profile = uncalibratedExtraEuProfile(country)
     assert.ok(profile)
     if (!profile) continue
-    // Il profilo prudenziale tiene le regole CH e le dichiara nel source.
+    assert.equal(profile.importVatRate, expectedVat[country], `${country}: aliquota IVA non e' quella del paese`)
+    assert.equal(profile.importVatRate, DESTINATION_TAX_RULES[country]?.importVatRate)
+    // I parametri tecnici restano quelli misurati su CH: assunzione dichiarata.
     assert.equal(profile.fixedImportFee, DEFAULT_EXTRA_EU_PROFILE.fixedImportFee)
-    assert.equal(profile.importVatRate, DEFAULT_EXTRA_EU_PROFILE.importVatRate)
-    assert.equal(profile.dutyRate, DEFAULT_EXTRA_EU_PROFILE.dutyRate)
+    assert.equal(profile.ddpFee, DEFAULT_EXTRA_EU_PROFILE.ddpFee)
+    assert.equal(profile.handlingFee, DEFAULT_EXTRA_EU_PROFILE.handlingFee)
     assert.equal(profile.calibrated, false)
     assert.equal(profile.source.startsWith('prudenziale'), true)
     assert.ok(profile.source.includes('NON misurati'), `${country}: gli oneri import non sono misurati`)
+    assert.ok(
+      (DESTINATION_TAX_RULES[country]?.source.length ?? 0) > 40,
+      `${country}: la regola non cita la sua fonte`,
+    )
 
-    const rate = calculateShipping(99, country, 'conservative_profile')
+    const rate = calculateShipping(99, country)
     assert.equal(rate.requiresQuote, false)
     assert.ok(rate.landedCost)
     if (!rate.landedCost) continue
     assert.equal(rate.landedCost.carrier, profile.carrier)
-    assert.ok(rate.cost >= UNCALIBRATED_EXTRA_EU_FLAT, `${country}: sotto il pavimento storico`)
+    assert.ok(rate.cost >= UNCALIBRATED_EXTRA_EU_FLOOR, `${country}: sotto il pavimento`)
     assert.ok(rate.cost >= rate.landedCost.estimatedCost)
   }
+})
+
+test('il pavimento di 48,00 EUR si applica DOPO il calcolo e solo ai paesi non misurati', () => {
+  assert.equal(UNCALIBRATED_EXTRA_EU_FLOOR, 48.00)
+
+  // Sotto il pavimento: si vende lo stesso, ma non sotto la rete di sicurezza.
+  for (const [country, goods] of [['GB', 0], ['GB', 30], ['NO', 0], ['NO', 10]] as const) {
+    const rate = calculateShipping(goods, country)
+    assert.equal(rate.cost, UNCALIBRATED_EXTRA_EU_FLOOR, `${country} @ ${goods}: non e' al pavimento`)
+    assert.ok(rate.landedCost)
+    assert.ok(
+      (rate.landedCost?.estimatedCost ?? 0) < UNCALIBRATED_EXTRA_EU_FLOOR,
+      `${country} @ ${goods}: qui il costo sdoganato supera il pavimento`,
+    )
+  }
+
+  // Sopra il pavimento: si addebita il costo sdoganato, non il pavimento.
+  const gb = calculateShipping(150, 'GB')
+  assert.equal(gb.cost, 69.10)
+  assert.ok(gb.cost > UNCALIBRATED_EXTRA_EU_FLOOR)
+
+  // I paesi MISURATI non lo ricevono: una misura non si arrotonda a un prezzo.
+  assert.equal(calculateShipping(99, 'CH').cost, 47.72)
+  assert.ok(calculateShipping(99, 'CH').cost < UNCALIBRATED_EXTRA_EU_FLOOR)
+  assert.equal(calculateShipping(0, 'CH').cost, 35.70)
+})
+
+test('le aliquote applicate sono quelle del paese: IVA all\'import dove esiste, dazio dove serve', () => {
+  // GB: IVA 20% su merce + trasporto REALE (99,00 + 18,50) = 23,50. Con l'8,1%
+  // svizzero sarebbero 9,52: ~14 EUR di perdita per spedizione, sotto DDP.
+  const gb = calculateShipping(99, 'GB').landedCost
+  assert.ok(gb)
+  assert.equal(gb?.importVat, 23.50)
+  assert.equal(gb?.duty, 0)
+
+  // NO: MVA 25% su (99,00 + 23,99) = 30,75.
+  assert.equal(calculateShipping(99, 'NO').landedCost?.importVat, 30.75)
+
+  // CA: la provincia non e' nota al checkout -> si applica la MASSIMA HST (15%):
+  // mai meno di quello che si paga davvero.
+  assert.equal(calculateShipping(99, 'CA').landedCost?.importVat, 21.34)
+
+  // AU e JP: 10% (GST / consumption tax).
+  assert.equal(calculateShipping(99, 'AU').landedCost?.importVat, 16.35)
+  assert.equal(calculateShipping(99, 'JP').landedCost?.importVat, 16.33)
+
+  // US: nessuna IVA federale all'import, ma la franchise di 800 USD e' SOSPESA
+  // dal 29/08/2025: oggi ogni spedizione paga dazio. Un profilo a dazio zero
+  // qui vorrebbe dire vendere sotto costo su ogni ordine.
+  for (const goods of [0, 99, 500]) {
+    const us = calculateShipping(goods, 'US').landedCost
+    assert.ok(us)
+    assert.equal(us?.importVat, 0)
+    assert.ok((us?.duty ?? 0) > 0, `US @ ${goods}: dazio a zero con la de minimis sospesa`)
+  }
+  assert.equal(calculateShipping(99, 'US').landedCost?.duty, 20.49) // 15% di (99,00 + 37,60)
 })
 
 test('un carrello non finito non diventa un prezzo NaN e il margine non puo\' essere negativo', () => {

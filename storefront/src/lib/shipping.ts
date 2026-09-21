@@ -29,6 +29,15 @@
  * e US gli oneri import non esistono sul nostro conto e non sono stimabili —
  * quei profili restano non misurati per costruzione, non per pigrizia.
  *
+ * Sempre il 21/09/2026 Alessandro ha deciso cosa fare dei paesi senza misura: si
+ * VENDONO, con l'aliquota IVA all'importazione DEL PAESE DI DESTINAZIONE (non
+ * l'8,1% svizzero, che su GB/NO era sotto costo) e un pavimento di 48,00 EUR
+ * sulla spedizione addebitata. Le aliquote sono regole di LEGGE, ognuna con la
+ * sua fonte in DESTINATION_TAX_RULES; i dazi restano l'assunzione piu' debole
+ * del modello e sono dichiarati uno per uno. Il Brasile e' l'unica eccezione:
+ * resta in preventivo — nessun servizio dell'account sdoganA verso BR, e la
+ * pipeline di spedizione blocca un pacco che partirebbe in DAP.
+ *
  * Il profilo di ogni paese e' qui dentro, in un solo posto: lo storefront lo
  * usa per il totale mostrato e per quello incassato. La chiave API Packlink NON
  * entra mai nel calcolo: qui ci sono solo tariffe e oneri misurati, mai
@@ -88,7 +97,12 @@ export interface LandedCostBreakdown {
   margin: number
   /** Costo sdoganato stimato, senza margine. */
   estimatedCost: number
-  /** Totale addebitabile al cliente (arrotondato per eccesso al centesimo). */
+  /**
+   * Totale della STIMA: costo sdoganato + margine, arrotondato per eccesso al
+   * centesimo. NON include il pavimento dei paesi non misurati — quello lo
+   * applica `calculateShipping`, e il prezzo addebitato al cliente e' sempre
+   * `ShippingRate.cost` (merce 0 in GB: qui `total` = 33,04, `cost` = 48,00).
+   */
   total: number
   /** false = paese non ancora misurato: il profilo e' prudenziale, non calibrato. */
   calibrated: boolean
@@ -107,8 +121,10 @@ export interface ShippingRate {
   /** Se una promo "spedizione gratuita" puo' azzerare questa tariffa. */
   freeShippingPromoAllowed: boolean
   /**
-   * true: la destinazione e' extra-UE e non esiste ancora una misura per quel
-   * paese. Non si inventa un numero e non si incassa: la spedizione si quota.
+   * true: la spedizione si quota a mano, non si incassa un prezzo stimato.
+   * Vale quando la politica e' girata su 'quote_required' o quando il paese
+   * non ha un profilo (nessuna linea DDP, oggi il Brasile). Dal 21/09/2026 il
+   * default VENDE i paesi non misurati: qui true e' l'eccezione, non la regola.
    */
   requiresQuote: boolean
 }
@@ -264,6 +280,11 @@ export const LANDED_COST_COUNTRIES: Partial<Record<AllowedShippingCountry, Extra
  * BR non compare: il 21/09/2026 nessun servizio di questo account supporta il
  * DDP verso il Brasile. Senza linea DDP il modello landed-cost non e'
  * costruibile — non e' una scelta di prudenza, e' una funzione che non esiste.
+ * E non si ripiega sul DAP: la pipeline di spedizione ha `ddp: true` e BLOCCA
+ * i servizi che non lo supportano (customs.json), quindi un ordine BR non
+ * sarebbe spedibile. Si sblocca con una linea DDP verso BR, o con una scelta
+ * esplicita di spedire in DAP — che cambia la promessa al cliente (dazi e IVA
+ * li paga il destinatario) e va decisa, non dedotta dal codice.
  */
 export const DDP_CAPABLE_CARRIER: Partial<Record<AllowedShippingCountry, { carrier: number; source: string }>> = {
   GB: {
@@ -292,53 +313,156 @@ export const DDP_CAPABLE_CARRIER: Partial<Record<AllowedShippingCountry, { carri
   },
 }
 
-/** Profilo prudenziale: regole CH, trasporto della linea DDP-capace del paese. */
+/**
+ * Parametri TECNICI condivisi dai paesi non misurati: assicurazione, spese di
+ * sdoganamento, fee DDP, gestione. MISURATI su CH (ordine 31) e applicati agli
+ * altri paesi come ASSUNZIONE dichiarata — non sono aliquote e non dipendono
+ * dal paese: la quota assicurativa e' una regola di Packlink, la fee DDP e la
+ * gestione sono i prezzi del nostro account, la spesa di sdoganamento e' il
+ * disborso del corriere. Le ALIQUOTE per paese NON vengono da qui: stanno in
+ * DESTINATION_TAX_RULES.
+ */
 export const DEFAULT_EXTRA_EU_PROFILE: ExtraEuProfile = {
   ...SWITZERLAND_PROFILE,
   calibrated: false,
-  source: 'prudenziale — profilo CH misurato, esteso a un paese non ancora misurato',
+  source: 'parametri tecnici misurati su CH, applicati a un paese non misurato',
 }
 
 /**
- * Profilo prudenziale per un paese non misurato, o null se per quel paese non
- * esiste alcuna linea DDP: in quel caso non c'e' niente da stimare, si quota.
+ * Regole FISCALI DEL PAESE DI DESTINAZIONE per i paesi che non hanno una misura
+ * nostra. Sono aliquote di LEGGE, non misure: ognuna porta la sua fonte, ed e'
+ * l'unica cosa che si puo' scrivere senza una spedizione DDP reale.
+ *
+ * Perche' l'aliquota del paese e non l'8,1% svizzero: gli oneri import in DDP
+ * li paga Foolish, quindi applicare l'aliquota sbagliata non e' un dettaglio di
+ * arrotondamento — con l'8,1% su una merce da 99,00 il Regno Unito ci costerebbe
+ * 23,50 di IVA contro 9,52 incassati (~14 EUR di perdita per spedizione).
+ *
+ * scelta 2026-09-21 (Alessandro, via alfred): i paesi senza misura si VENDONO,
+ * con l'aliquota del paese di destinazione e il pavimento di 48,00 EUR.
+ *
+ * ASSUNZIONE DICHIARATA sui dazi: tutti i profili non misurati mettono il dazio
+ * a zero tranne gli Stati Uniti. E' un'assunzione, non una misura:
+ *  - GB: origine UE dichiarata (customs.json, country_of_origin IT) -> zero
+ *    dazio sotto l'accordo UE-UK SE la dichiarazione di origine viaggia con la
+ *    fattura doganale; senza quella dichiarazione si applica la tariffa UKGT e
+ *    il profilo e' sotto costo. APERTO: verificare che la dichiarazione ci sia.
+ *  - CH: zero dazi sui capitoli 25-97 dal 1/1/2024 — questo e' misurato.
+ *  - NO/CA/AU/JP: il dazio dipende dal codice doganale e non e' mai stato
+ *    misurato. AU ha una franchigia di 1.000 AUD sul dazio, quindi a zero sotto
+ *    quella soglia; sopra, il profilo non e' coperto.
+ *  - US: nessuna IVA federale all'import, ma la franchise di 800 USD e' stata
+ *    SOSPESA per tutti i paesi (EO 14324, 29/08/2025) e la sospensione e' stata
+ *    prorogata dopo la sentenza IEEPA del 20/02/2026: OGGI ogni spedizione
+ *    entra in dogana con dazio. La catena normativa e' instabile (IEEPA
+ *    annullata -> Section 122 10% dal 24/02/2026 -> scaduta il 24/07/2026 ->
+ *    Section 301 di sostituzione), i prodotti di origine UE restano sul tetto
+ *    del 15% dell'accordo. Qui si applica il 15%: coerente con i due addebiti
+ *    post-consegna MISURATI sul nostro account (+17,82 su 137,60 = 12,9% e
+ *    +41,41 su 454,87 = 9,1% del valore + trasporto).
+ */
+export interface DestinationTaxRule {
+  /** IVA all'importazione del paese di destinazione. 0 = non esiste (US). */
+  importVatRate: number
+  /** Dazio all'importazione. 0 = esente o non applicabile. */
+  dutyRate: number
+  /** Fonte della regola: legge, con data. Non e' una nostra misura. */
+  source: string
+}
+
+export const DESTINATION_TAX_RULES: Partial<Record<AllowedShippingCountry, DestinationTaxRule>> = {
+  GB: {
+    importVatRate: 0.20,
+    dutyRate: 0,
+    source: 'IVA UK import 20% (standard rate, calcolata su valore + dazio + trasporto); dazio 0 con dichiarazione di origine UE (TCA)',
+  },
+  NO: {
+    importVatRate: 0.25,
+    dutyRate: 0,
+    source: 'MVA norvegese 25% su (merce + trasporto); soglia NOK 350 sul solo dazio, IVA dovuta dalla prima corona',
+  },
+  CA: {
+    importVatRate: 0.15,
+    dutyRate: 0,
+    source: 'GST 5% federale + quota provinciale: HST fino al 15% (NB/NL/PE) — la provincia non e\' nota al checkout, si applica la MASSIMA',
+  },
+  AU: {
+    importVatRate: 0.10,
+    dutyRate: 0,
+    source: 'GST 10% su (valore + trasporto + dazio); dazio 0 sotto 1.000 AUD di valore',
+  },
+  JP: {
+    importVatRate: 0.10,
+    dutyRate: 0,
+    source: 'consumption tax 10% su (valore + dazio); franchigia JPY 10.000 non applicabile ai carrelli nostri',
+  },
+  US: {
+    importVatRate: 0,
+    dutyRate: 0.15,
+    source: 'nessuna IVA federale all\'import; dazio 15% (tetto dell\'accordo UE-USA per i prodotti di origine UE) — la franchise 800 USD e\' sospesa dal 29/08/2025',
+  },
+}
+
+/**
+ * Profilo per un paese non misurato: parametri tecnici condivisi (misurati su
+ * CH), trasporto della linea DDP-capace del paese e aliquote del paese di
+ * destinazione. null quando per quel paese manca una delle due cose: senza
+ * linea DDP non c'e' un costo sdoganato da stimare (BR oggi).
  */
 export function uncalibratedExtraEuProfile(country: AllowedShippingCountry): ExtraEuProfile | null {
   const line = DDP_CAPABLE_CARRIER[country]
-  if (!line) return null
+  const tax = DESTINATION_TAX_RULES[country]
+  if (!line || !tax) return null
   return {
     ...DEFAULT_EXTRA_EU_PROFILE,
     carrier: line.carrier,
-    source: `prudenziale — oneri import NON misurati (regole CH applicate); ${line.source}`,
+    importVatRate: tax.importVatRate,
+    dutyRate: tax.dutyRate,
+    source: `prudenziale — aliquote del paese di destinazione, oneri import NON misurati (${tax.source}); trasporto: ${line.source}`,
   }
 }
 
-/** Tariffa piatta minima per un paese non misurato (storico "Resto del mondo"). */
-export const UNCALIBRATED_EXTRA_EU_FLAT = 37.95
+/**
+ * Pavimento della spedizione addebitata su un paese non misurato: 48,00 EUR,
+ * deciso da Alessandro il 21/09/2026. Si applica DOPO il calcolo del costo
+ * sdoganato, arrotondando per eccesso: sotto quella soglia il paese si vende
+ * lo stesso, ma la spedizione non scende mai sotto il pavimento.
+ *
+ * Perche' non e' la vecchia tariffa piatta da 37,95: quella era un prezzo, non
+ * una rete di sicurezza — si applicava a costo sdoganato ignorato. Questa e' un
+ * minimo sopra una stima che esiste, e resta solo come rete finche' il paese
+ * non ha una misura vera. Il pavimento NON si applica ai paesi misurati (CH:
+ * 47,72 al punto misurato, che e' una misura e non si arrotonda a un prezzo).
+ *
+ * Non e' un prezzo di vendita: e' il punto sotto il quale una spedizione
+ * extra-UE non parte, in attesa della quota DDP live servita dalla Pi.
+ */
+export const UNCALIBRATED_EXTRA_EU_FLOOR = 48.00
 
 /**
  * Cosa fare con un paese extra-UE che non ha ancora una misura.
  *
- *   'quote_required'      (default) non si vende a un prezzo indovinato: la
- *                         spedizione si quota a mano finche' il paese non ha
- *                         la sua misura. E' l'unica politica che non puo'
- *                         spedire sotto costo, perche' non spedisce affatto.
- *   'conservative_profile'  si applica il profilo CH misurato con il pavimento
- *                         storico, sul trasporto della linea DDP-capace.
- *                         Sblocca le vendite, ma NON e' prudente sugli oneri
- *                         import: il Regno Unito ha IVA 20% e la Norvegia 25%
- *                         (qui si applica l'8,1% svizzero: sotto costo), gli
- *                         Stati Uniti non hanno IVA all'importazione sotto gli
- *                         800 USD (sopra costo). Il trasporto e' misurato o
- *                         preventivato, gli oneri no.
+ *   'destination_profile' (default) si vende con le aliquote del paese di
+ *                         destinazione (DESTINATION_TAX_RULES) e il pavimento
+ *                         di 48,00 EUR. Decisione di Alessandro del
+ *                         21/09/2026: i paesi senza misura si vendono, e la
+ *                         stima regge finche' il pavimento e' la rete di
+ *                         sicurezza. Il trasporto e' misurato o preventivato,
+ *                         gli oneri import sono di legge — non misurati.
+ *   'quote_required'      si torna a non vendere a un prezzo non misurato: la
+ *                         spedizione si quota a mano. E' l'interruttore
+ *                         fail-closed, tenuto perche' una politica di prezzo
+ *                         deve poter essere spenta con una riga.
  *
- * La scelta e' commerciale: default fail-closed, si cambia con una riga. Il
- * Brasile resta `quote_required` in ogni caso, anche girando questa politica,
- * perche' non ha alcuna linea DDP.
+ * La scelta e' commerciale e ora e' presa: il default vende. Il Brasile resta
+ * `quote_required` anche girando questa politica, perche' non ha alcuna linea
+ * DDP — e non e' prudenza: la pipeline di spedizione blocca (customs.json,
+ * `ddp: true`) un pacco che partirebbe in DAP, quindi vendere BR oggi vorrebbe
+ * dire incassare un ordine che non si puo' spedire.
  */
-export type UncalibratedExtraEuPolicy = 'quote_required' | 'conservative_profile'
+export type UncalibratedExtraEuPolicy = 'quote_required' | 'destination_profile'
 
-export const UNCALIBRATED_EXTRA_EU_POLICY: UncalibratedExtraEuPolicy = 'quote_required'
+export const UNCALIBRATED_EXTRA_EU_POLICY: UncalibratedExtraEuPolicy = 'destination_profile'
 
 interface FlatZoneConfig {
   cost: number
@@ -459,11 +583,14 @@ export function calculateShipping(
   const landed = calculateLandedCost(cartTotal, profile)
 
   // Guardia di accettazione: su extra-UE non si parte mai sotto il costo
-  // sdoganato stimato. Per i paesi non misurati la tariffa piatta storica
-  // resta un pavimento.
+  // sdoganato stimato. Per i paesi non misurati si applica DOPO il calcolo il
+  // pavimento di 48,00 EUR (decisione di Alessandro, 21/09/2026), arrotondando
+  // per eccesso: un totale sotto il pavimento diventa il pavimento, mai un
+  // prezzo piu' basso. I paesi misurati non lo ricevono: una misura non si
+  // arrotonda a un prezzo (CH resta 47,72 al punto misurato).
   const cost = profile.calibrated
     ? landed.total
-    : Math.max(landed.total, UNCALIBRATED_EXTRA_EU_FLAT)
+    : cents(Math.max(landed.total, UNCALIBRATED_EXTRA_EU_FLOOR))
 
   const freeAbove = profile.freeAbove
   const isFree = freeAbove !== null && cartTotal >= freeAbove
