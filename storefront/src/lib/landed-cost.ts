@@ -29,15 +29,26 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 import {
   DEFAULT_EXTRA_EU_PROFILE,
-  EXTRA_EU_MARGIN_RATE,
-  EXTRA_EU_MINIMUM_SHIPPING,
   LANDED_COST_COUNTRIES,
-  calculateLandedCost,
   getShippingZone,
   type ExtraEuProfile,
-  type LandedCostBreakdown,
 } from './shipping'
-import landedCostTable from './landed-cost-table.json'
+import {
+  EXTRA_EU_MINIMUM_SHIPPING_CENTS,
+  extraEuMarginCents,
+  priceFromBasisCents,
+  profileCostCents,
+  prudentialBasisCents,
+  tableCostCents,
+  toCents,
+} from './landed-cost-price'
+
+// La parte PURA della catena di prezzo — tabella in casa, profilo di paese,
+// margine, pavimento — vive in `landed-cost-price.ts`, che non ha credenziali e
+// puo' girare anche nel browser: e' la stessa aritmetica che la pagina di
+// checkout applica quando la risposta del server non arriva. Qui resta solo
+// quello che non esce dal server: la chiamata alla Pi e il gettone firmato.
+export { loadLandedCostTable, profileCostCents, tableCostCents } from './landed-cost-price'
 
 /** Endpoint del servizio di quota sulla Pi (dietro il tunnel di Alfred). */
 export const LANDED_COST_DEFAULT_URL = 'https://alfred.thefoolishbutcher.com/landed-cost/v1/quote'
@@ -111,40 +122,9 @@ export interface ExtraEuShippingResolution {
   tableCostCents: number | null
 }
 
-interface LandingTableBand {
-  goodsValueCents: number
-  costBasisCents: number
-  shippingAndImportCents: number
-  serviceId: number | null
-  checkoutInvoiceNumber: string | null
-  quotedAt: string | null
-}
-
-interface LandingTableCountry {
-  bands: LandingTableBand[]
-}
-
-let cachedTable: Map<string, LandingTableBand[]> | null = null
-
-function toCents(value: unknown): number | null {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return null
-  const cents = Math.round(value * 100)
-  if (!Number.isSafeInteger(cents)) return null
-  return cents
-}
-
 function positiveCents(value: unknown): number | null {
   const cents = toCents(value)
   return cents !== null && cents > 0 ? cents : null
-}
-
-/**
- * Intero di centesimi GIA' in centesimi (tabella in casa, che nasce dai centesimi
- * della quota): convertirli di nuovo moltiplicherebbe il prezzo per 100.
- */
-function positiveCentsInt(value: unknown): number | null {
-  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) return null
-  return value
 }
 
 function boundedString(value: unknown, maxLength: number): string | null {
@@ -152,83 +132,6 @@ function boundedString(value: unknown, maxLength: number): string | null {
   const trimmed = value.trim()
   if (trimmed.length === 0 || trimmed.length > maxLength) return null
   return trimmed
-}
-
-/**
- * Tabella dei prezzi reali tenuta in casa, letta una volta e validata.
- *
- * Una banda senza importi interi e positivi viene SCARTATA: una tabella
- * malformata deve degradare al profilo, mai produrre un prezzo a zero.
- */
-export function loadLandedCostTable(raw: unknown = landedCostTable): Map<string, LandingTableBand[]> {
-  if (cachedTable && raw === landedCostTable) return cachedTable
-  const bands = new Map<string, LandingTableBand[]>()
-
-  if (raw && typeof raw === 'object') {
-    const countries = (raw as { countries?: unknown }).countries
-    if (countries && typeof countries === 'object' && !Array.isArray(countries)) {
-      for (const [code, value] of Object.entries(countries as Record<string, unknown>)) {
-        const country = code.trim().toUpperCase()
-        if (!/^[A-Z]{2}$/.test(country)) continue
-        const entries = (value as LandingTableCountry | null)?.bands
-        if (!Array.isArray(entries)) continue
-        const parsed: LandingTableBand[] = []
-        for (const entry of entries) {
-          if (!entry || typeof entry !== 'object') continue
-          const candidate = entry as unknown as Record<string, unknown>
-          const goodsValueCents = positiveCentsInt(candidate.goods_value_cents)
-          const costBasisCents = positiveCentsInt(candidate.cost_basis_cents)
-          const shippingAndImportCents = positiveCentsInt(candidate.shipping_and_import_cents)
-          if (goodsValueCents === null || costBasisCents === null || shippingAndImportCents === null) continue
-          parsed.push({
-            goodsValueCents,
-            costBasisCents,
-            shippingAndImportCents,
-            serviceId: Number.isSafeInteger(candidate.service_id) ? candidate.service_id as number : null,
-            checkoutInvoiceNumber: boundedString(candidate.checkout_invoice_number, 64),
-            quotedAt: boundedString(candidate.quoted_at, 40),
-          })
-        }
-        if (parsed.length > 0) {
-          parsed.sort((a, b) => a.goodsValueCents - b.goodsValueCents)
-          bands.set(country, parsed)
-        }
-      }
-    }
-  }
-
-  if (raw === landedCostTable) cachedTable = bands
-  return bands
-}
-
-/**
- * Costo reale dalla tabella in casa per quel valore di merce.
- *
- * Si prende la banda piu' piccola che copre il carrello (mai una banda piu'
- * bassa della merce: sarebbe una sottostima). Sopra l'ultima banda si usa
- * l'ultima banda misurata: e' un PAVIMENTO del costo reale, non una stima — la
- * stima per quei carrelli la fa il profilo di paese, e il chiamante prende il
- * maggiore dei due.
- */
-export function tableCostCents(countryCode: string, goodsCents: number): number | null {
-  const country = String(countryCode ?? '').trim().toUpperCase()
-  const bands = loadLandedCostTable().get(country)
-  if (!bands || bands.length === 0) return null
-  const goods = Number.isFinite(goodsCents) ? Math.max(0, Math.round(goodsCents)) : 0
-  for (const band of bands) {
-    if (goods <= band.goodsValueCents) return band.costBasisCents
-  }
-  return bands[bands.length - 1]!.costBasisCents
-}
-
-/** Stima di costo del profilo di paese (senza margine, senza pavimento). */
-export function profileCostCents(countryCode: string, goodsCents: number): number | null {
-  const country = String(countryCode ?? '').trim().toUpperCase()
-  if (getShippingZone(country) !== 'EXTRA_EU') return null
-  const profile: ExtraEuProfile = LANDED_COST_COUNTRIES[country as keyof typeof LANDED_COST_COUNTRIES]
-    ?? DEFAULT_EXTRA_EU_PROFILE
-  const landed: LandedCostBreakdown = calculateLandedCost(goodsCents / 100, profile)
-  return toCents(landed.estimatedCost)
 }
 
 /**
@@ -632,19 +535,18 @@ export async function resolveExtraEuShipping(args: {
   } else if (profileCost === null && tableCost === null) {
     return null
   } else {
-    const fromProfile = profileCost ?? 0
-    const fromTable = tableCost ?? 0
-    basisCostCents = Math.max(fromProfile, fromTable)
-    source = fromTable > fromProfile ? 'price_table' : 'profile'
+    // Stessa funzione che il browser applica quando la risposta del server non
+    // e' arrivata (`extraEuDisplayedPriceCents` in `landed-cost-price.ts`):
+    // prenderne una sola delle due fonti sottostima il costo.
+    basisCostCents = prudentialBasisCents(profileCost, tableCost)
+    source = (tableCost ?? 0) > (profileCost ?? 0) ? 'price_table' : 'profile'
   }
 
-  // Stessa aritmetica del profilo di paese (`calculateLandedCost`): margine
-  // arrotondato al mezzo centesimo per eccesso, poi somma. Cosi' il prezzo
-  // della quota e quello del profilo nascono con la stessa regola.
-  const marginRate = Number.isFinite(EXTRA_EU_MARGIN_RATE) ? Math.max(0, EXTRA_EU_MARGIN_RATE) : 0
-  const marginCents = Math.round(basisCostCents * marginRate)
-  const withMargin = basisCostCents + marginCents
-  const minChargeCents = Math.ceil(EXTRA_EU_MINIMUM_SHIPPING * 100)
+  // Stessa aritmetica del profilo di paese (`calculateLandedCost`) e della
+  // pagina di checkout: margine sulla base, poi pavimento.
+  const marginCents = extraEuMarginCents(basisCostCents)
+  const withMargin = priceFromBasisCents(basisCostCents)
+  const minChargeCents = EXTRA_EU_MINIMUM_SHIPPING_CENTS
 
   // Il gettone congela il PREZZO mostrato (margine GIA' dentro), non una base
   // di costo: si applica come pavimento sul prezzo finale, fuori dalla base.

@@ -83,6 +83,7 @@ jobs:
           npm run test:promo --silent
           npm run test:shipping --silent
           npm run test:landed-cost --silent
+          npm run test:landed-cost-display --silent
           npm run test:spedizione-quote --silent
           npm run test:subscription --silent
           npm run test:affiliate-referral --silent

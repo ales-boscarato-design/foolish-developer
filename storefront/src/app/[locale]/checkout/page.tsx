@@ -9,6 +9,7 @@ import {
   calculateShipping,
   freeShippingRemaining,
 } from '@/lib/shipping'
+import { extraEuDisplayedPriceCents } from '@/lib/landed-cost-price'
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -122,16 +123,26 @@ export default function CheckoutPage() {
   : 0
   const isExtraEuDestination = baseShipping.zone === 'EXTRA_EU'
   const cartLinesKey = items.map((item) => `${item.sku}:${item.quantity}`).join('|')
-  // Quello che il cliente vede e' quello che paga: se il negozio ha risolto il
-  // prezzo (quota o base prudenziale in casa) si mostra QUEL prezzo; finche' non
-  // e' arrivato, la stima del modulo di spedizione — che per l'extra-UE e' gia'
-  // la base prudenziale, mai zero.
+  // Quello che il cliente vede e' quello che paga. Sulle destinazioni extra-UE
+  // il prezzo lo decide il negozio: se il server ha risposto si mostra QUEL
+  // prezzo (e' lo stesso che il gettone firmato fa incassare); se la risposta
+  // non e' arrivata, o e' stata rifiutata (429, 503, carrello con pack), si
+  // applica la STESSA regola del server — `max(profilo di paese, tabella in
+  // casa)` + margine + pavimento — non il solo profilo di paese. Con il profilo
+  // e basta il cliente vedeva 50,14 e pagava 95,73 su un carrello verso il
+  // Canada (misurato il 21/09/2026: 18 combinazioni su 32 divergevano, sempre
+  // col cliente sotto).
   const quoteKey = `${country}|${form.city}|${form.postalCode}|${cartLinesKey}`
   // Un prezzo vale solo per il carrello e la destinazione che l'hanno prodotto:
   // un prezzo vecchio non si mostra su un carrello nuovo.
   const activeQuote = quotedShipping && quotedShipping.key === quoteKey ? quotedShipping : null
-  const displayShippingCost = isExtraEuDestination && activeQuote
-    ? activeQuote.costCents / 100
+  const displayShippingCostCents = extraEuDisplayedPriceCents({
+    countryCode: country,
+    goodsCents: Math.round(cartTotal * 100),
+    serverQuotedCents: activeQuote?.costCents ?? null,
+  })
+  const displayShippingCost = displayShippingCostCents !== null
+    ? displayShippingCostCents / 100
     : shipping.cost
   const shippingPriceVerified = activeQuote?.verified === true
   const grandTotal = cartTotal + displayShippingCost - proDiscount
