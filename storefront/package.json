@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:orders": "tsx --test src/lib/stripe-orders.test.ts",
+    "test:printful": "tsx --test src/app/api/webhook/printful-fulfillment/route.test.ts",
     "test:emails": "tsx --test src/emails/copy.test.ts",
     "test:catalog": "tsx --test src/lib/catalog.test.ts",
     "test:promo": "tsx --test src/lib/promo.test.ts",
@@ -16,6 +17,7 @@
     "test:affiliate-referral": "tsx --test src/lib/affiliate-referral.test.ts",
     "test:affiliate-route": "tsx --test src/lib/affiliate-referral-route.test.ts",
     "test:affiliate-i18n": "tsx --test src/lib/affiliate-stats-i18n.test.ts",
+    "test:reorder": "tsx --test src/lib/reorder.test.ts src/lib/reorder-route.test.ts",
     "test:landed-cost": "tsx --test src/lib/landed-cost.test.ts",
     "test:landed-cost-display": "tsx --test src/lib/landed-cost-display.test.ts",
     "test:spedizione-quote": "tsx --test src/app/api/spedizione/quote/route.test.ts"

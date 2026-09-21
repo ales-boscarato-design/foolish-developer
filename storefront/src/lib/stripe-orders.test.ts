@@ -4,6 +4,7 @@ import type Stripe from 'stripe'
 import {
   createOrderInCMS,
   createOrderInCMSWithRetry,
+  parseDeclaredShippingCostCents,
   reconcilePaidStripeOrders,
   type OrderPersistenceResult,
 } from './stripe-orders'
@@ -264,4 +265,122 @@ test('reconciliation invokes attribution for a paid session whose order already 
   } finally {
     globalThis.fetch = originalFetch
   }
+})
+
+/** Persiste la sessione e restituisce il corpo con cui è stato creato l'ordine. */
+async function persistAndCapture(session: Stripe.Checkout.Session): Promise<Record<string, unknown>> {
+  const originalFetch = globalThis.fetch
+  let createBody: Record<string, unknown> | null = null
+  globalThis.fetch = async (_input, init) => {
+    if (init?.method === 'POST') {
+      createBody = JSON.parse(String(init.body)) as Record<string, unknown>
+      return jsonResponse({ id: 707, orderNumber: String((createBody as Record<string, unknown>).orderNumber) }, 201)
+    }
+    return jsonResponse({ docs: [] })
+  }
+  try {
+    await createOrderInCMS(session)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+  const captured = createBody as Record<string, unknown> | null
+  assert.ok(captured, 'CMS create payload was not captured')
+  return captured
+}
+
+/** Metadata di un ordine da 30,00 € di merce: il residuo sarebbe 5,00 €. */
+function metadataWithProductLines(extra: Record<string, string> = {}): Record<string, string> {
+  return {
+    order_ref: 'FOOLISH-ORDER-TEST',
+    customer_name: 'Order Test',
+    customer_country: 'IT',
+    customer_address: 'Via Test 1|Torino|10100',
+    items_json: JSON.stringify([
+      { sku: 'TEST-SKU', qty: 1, name: 'Test', variantLabel: 'A', price: 30 },
+    ]),
+    ...extra,
+  }
+}
+
+test('parseDeclaredShippingCostCents accetta solo interi non negativi', () => {
+  assert.equal(parseDeclaredShippingCostCents({ shipping_cost_cents: '0' }), 0)
+  assert.equal(parseDeclaredShippingCostCents({ shipping_cost_cents: '5249' }), 5249)
+  for (const raw of ['', ' ', '-1', '+1', '1.5', '7,65', '1e3', ' 765 ', 'abc', '9'.repeat(10)]) {
+    assert.equal(parseDeclaredShippingCostCents({ shipping_cost_cents: raw }), null, JSON.stringify(raw))
+  }
+  assert.equal(parseDeclaredShippingCostCents({}), null)
+})
+
+test('la spedizione registrata è quella incassata, non il valore merce', async () => {
+  // Sessione con le righe prodotto assenti dai metadata e la spedizione
+  // dichiarata: prima di questo contratto il residuo `amount_total - 0`
+  // registrava l'intero valore merce nel campo spedizione (era il difetto dei
+  // riordini). La spedizione svizzera misurata è 52,49 su 99,00 di merce.
+  const persisted = await persistAndCapture(checkoutSession({
+    amount_total: 15_149,
+    metadata: {
+      order_ref: 'FOOLISH-REORDER-TEST',
+      customer_name: 'Order Test',
+      customer_country: 'CH',
+      customer_address: 'Via Test 1|Torino|10100',
+      shipping_cost_cents: '5249',
+    },
+  }))
+
+  assert.equal(persisted.shippingCost, 52.49)
+  assert.equal(persisted.total, 151.49)
+})
+
+test('la spedizione registrata è quella incassata, non il residuo', async () => {
+  // Con le righe prodotto corrette il residuo sarebbe 5,00: la sessione dichiara
+  // invece i 7,65 effettivamente incassati per il trasporto.
+  const persisted = await persistAndCapture(checkoutSession({
+    amount_total: 3_500,
+    metadata: metadataWithProductLines({ shipping_cost_cents: '765' }),
+  }))
+
+  assert.equal(persisted.shippingCost, 7.65)
+})
+
+test('senza la chiave dichiarata resta il residuo delle sessioni precedenti', async () => {
+  const persisted = await persistAndCapture(checkoutSession({
+    amount_total: 3_500,
+    metadata: metadataWithProductLines(),
+  }))
+
+  assert.equal(persisted.shippingCost, 5)
+})
+
+test('una spedizione dichiarata malformata non diventa un importo', async () => {
+  for (const raw of ['7.65', '-1', '', 'abc', '9'.repeat(10), ' 765 ']) {
+    const persisted = await persistAndCapture(checkoutSession({
+      amount_total: 3_500,
+      metadata: metadataWithProductLines({ shipping_cost_cents: raw }),
+    }))
+    assert.equal(persisted.shippingCost, 5, `valore dichiarato ${JSON.stringify(raw)}`)
+  }
+})
+
+test('un items_json che è JSON valido ma non una lista non perde l\'ordine pagato', async () => {
+  // Metadata corrotti ma sintatticamente validi: il residuo dei metadata non deve
+  // far esplodere la create (`parsedItems.reduce` su un oggetto) e far rispondere
+  // 503 su un ordine già pagato, che resterebbe fuori dal CMS. Le righe restano
+  // vuote e la spedizione arriva dalla chiave dichiarata.
+  const persisted = await persistAndCapture(checkoutSession({
+    amount_total: 15_149,
+    metadata: {
+      order_ref: 'FOOLISH-CORRUPT-METADATA',
+      customer_name: 'Order Test',
+      customer_country: 'IT',
+      customer_address: 'Via Test 1|Torino|10100',
+      items_json: '{"sku":"TEST-SKU"}',
+      shipping_cost_cents: '5249',
+    },
+  }))
+
+  assert.equal(persisted.shippingCost, 52.49)
+  assert.equal(persisted.total, 151.49)
+  // Nessuna riga prodotto ricostruibile dai metadata: l'ordine esiste comunque,
+  // con la spedizione dichiarata invece del residuo.
+  assert.deepEqual(persisted.lineItems, [])
 })

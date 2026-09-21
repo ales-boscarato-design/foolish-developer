@@ -11,6 +11,74 @@ interface ParsedItem {
   price: number
 }
 
+interface ShippingAddress {
+  name: string
+  address1: string
+  address2: string
+  city: string
+  postalCode: string
+  country: string
+}
+
+/**
+ * Indirizzo confermato dal cliente nel checkout. È la sola fonte che deve finire
+ * su Printful: `session.shipping_details` di primo livello non esiste più (rimosso
+ * dalla versione API 2025-03-31.basil: vedi `node_modules/stripe/CHANGELOG.md`), e
+ * i metadata `customer_*` sono ciò che il cliente ha scritto *prima* di confermare
+ * l'indirizzo — per un riordino sono quelli dell'ordine di partenza.
+ */
+function collectedShippingAddress(
+  session: Stripe.Checkout.Session,
+  customerName: string,
+): ShippingAddress | null {
+  const details = session.collected_information?.shipping_details
+  if (!details) return null
+  return {
+    name: customerName,
+    address1: details.address.line1 ?? '',
+    address2: details.address.line2 ?? '',
+    city: details.address.city ?? '',
+    postalCode: details.address.postal_code ?? '',
+    country: details.address.country ?? '',
+  }
+}
+
+/** Sessioni storiche, create quando la API esponeva `session.shipping_details`. */
+function legacyShippingAddress(
+  session: Stripe.Checkout.Session,
+  customerName: string,
+): ShippingAddress | null {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const shippingDetails = (session as any).shipping_details as {
+    address?: { line1?: string; line2?: string; city?: string; postal_code?: string; country?: string }
+  } | null
+  if (!shippingDetails?.address) return null
+  return {
+    name: customerName,
+    address1: shippingDetails.address.line1 ?? '',
+    address2: shippingDetails.address.line2 ?? '',
+    city: shippingDetails.address.city ?? '',
+    postalCode: shippingDetails.address.postal_code ?? '',
+    country: shippingDetails.address.country ?? '',
+  }
+}
+
+/** Ultimo ripiego: `customer_address` = `address|city|postalCode`. */
+function metadataShippingAddress(
+  meta: Record<string, string>,
+  customerName: string,
+): ShippingAddress {
+  const parts = (meta.customer_address ?? '').split('|')
+  return {
+    name: customerName,
+    address1: parts[0] ?? '',
+    address2: '',
+    city: parts[1] ?? '',
+    postalCode: parts[2] ?? '',
+    country: meta.customer_country ?? '',
+  }
+}
+
 async function findPrintfulVariantForSku(sku: string): Promise<string | null> {
   const cmsUrl = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
   const res = await fetch(
@@ -129,7 +197,8 @@ export async function POST(req: NextRequest) {
 
       let parsedItems: ParsedItem[] = []
       try {
-        parsedItems = JSON.parse(meta.items_json ?? '[]')
+        const parsed: unknown = JSON.parse(meta.items_json ?? '[]')
+        parsedItems = Array.isArray(parsed) ? (parsed as ParsedItem[]) : []
       } catch {
         return NextResponse.json({ received: true })
       }
@@ -151,37 +220,12 @@ export async function POST(req: NextRequest) {
 
       const customerName = meta.customer_name ?? session.customer_details?.name ?? ''
 
-      // Stesso pattern di cast già usato nel webhook Stripe principale per lo
-      // stesso identico campo (session.shipping_details non è ancora tipizzato
-      // nelle @types di questa versione della SDK Stripe).
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const shippingDetails = (session as any).shipping_details as {
-        address?: { line1?: string; line2?: string; city?: string; postal_code?: string; country?: string }
-      } | null
-
-      const shipping = shippingDetails?.address
-        ? {
-            name: customerName,
-            address1: shippingDetails.address.line1 ?? '',
-            address2: shippingDetails.address.line2 ?? '',
-            city: shippingDetails.address.city ?? '',
-            postalCode: shippingDetails.address.postal_code ?? '',
-            country: shippingDetails.address.country ?? '',
-          }
-        : (() => {
-            // fallback: parsing dal metadata customer_address (address|city|postalCode),
-            // stesso fallback usato nel webhook principale per checkout senza
-            // raccolta nativa Stripe dell'indirizzo di spedizione.
-            const parts = (meta.customer_address ?? '').split('|')
-            return {
-              name: customerName,
-              address1: parts[0] ?? '',
-              address2: '',
-              city: parts[1] ?? '',
-              postalCode: parts[2] ?? '',
-              country: meta.customer_country ?? '',
-            }
-          })()
+      // L'indirizzo che parte è quello che il cliente ha confermato nella sessione
+      // (vedi `collectedShippingAddress`); i campi storici e i metadata restano come
+      // ripiego per le sessioni vecchie.
+      const shipping = collectedShippingAddress(session, customerName)
+        ?? legacyShippingAddress(session, customerName)
+        ?? metadataShippingAddress(meta, customerName)
 
       await createPrintfulOrder({ orderRef, items: merchItems, shipping })
       console.log(`[printful-webhook] Ordine Printful creato per ${orderRef} (${merchItems.length} righe)`)

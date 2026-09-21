@@ -58,6 +58,19 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+/**
+ * Importo incassato per la spedizione, dichiarato dal checkout nella sessione
+ * (`shipping_cost_cents`, in centesimi). `null` quando la chiave manca o non e' un
+ * intero non negativo: sono le sessioni create prima di questo contratto, per le
+ * quali resta il residuo `amount_total - righe prodotto`.
+ */
+export function parseDeclaredShippingCostCents(meta: Record<string, string>): number | null {
+  const raw = meta.shipping_cost_cents
+  if (typeof raw !== 'string' || !/^\d{1,9}$/.test(raw)) return null
+  const cents = Number(raw)
+  return Number.isSafeInteger(cents) ? cents : null
+}
+
 export function getStripeOrderRef(session: Stripe.Checkout.Session): string {
   return session.metadata?.order_ref ?? `FOOLISH-${session.id}`
 }
@@ -92,14 +105,38 @@ export async function createOrderInCMS(session: Stripe.Checkout.Session): Promis
 
   let parsedItems: ParsedItem[] = []
   try {
-    parsedItems = JSON.parse(meta.items_json ?? '[]') as ParsedItem[]
-  } catch {
+    const parsed: unknown = JSON.parse(meta.items_json ?? '[]')
     // Un ordine pagato deve comunque essere visibile anche con metadata
-    // parzialmente corrotti; il riconciliatore lo segnalerà con righe vuote.
+    // parzialmente corrotti; il riconciliatore lo segnalerà con righe vuote. Anche
+    // un `items_json` che è JSON valido ma non una lista deve finire qui e non far
+    // fallire la create: le righe restano vuote e la spedizione arriva dalla chiave
+    // dichiarata dal checkout.
+    parsedItems = Array.isArray(parsed) ? (parsed as ParsedItem[]) : []
+  } catch {
+    // JSON non valido: stesso esito, righe vuote.
   }
 
-  const itemsTotal = parsedItems.reduce((sum, item) => sum + item.price * item.qty, 0)
-  const shippingCost = Math.max(0, Number((total - itemsTotal).toFixed(2)))
+  const itemsTotalCents = parsedItems.reduce(
+    (sum, item) => sum + Math.round(item.price * 100) * item.qty,
+    0,
+  )
+  // La spedizione registrata e' quella incassata davvero: il checkout la dichiara
+  // nei metadata (`shipping_cost_cents`). Il residuo `amount_total - righe
+  // prodotto` resta solo come ripiego per le sessioni create prima di questo
+  // contratto; senza righe prodotto quel residuo e' l'intero totale, cioe' il
+  // valore merce nel campo spedizione.
+  const declaredShippingCents = parseDeclaredShippingCostCents(meta)
+  const residualShippingCents = Math.max(0, (session.amount_total ?? 0) - itemsTotalCents)
+  if (declaredShippingCents === null && parsedItems.length === 0) {
+    console.error(
+      `[stripe-order] ${orderRef}: nessuna riga prodotto nei metadata, la spedizione registrata e' un residuo non verificabile`,
+    )
+  } else if (declaredShippingCents !== null && declaredShippingCents !== residualShippingCents) {
+    console.error(
+      `[stripe-order] ${orderRef}: spedizione dichiarata ${declaredShippingCents} cent, residuo ${residualShippingCents} cent`,
+    )
+  }
+  const shippingCost = Number(((declaredShippingCents ?? residualShippingCents) / 100).toFixed(2))
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const legacyShipping = (session as any).shipping_details as {

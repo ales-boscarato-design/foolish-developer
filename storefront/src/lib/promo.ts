@@ -419,8 +419,18 @@ export function buildCheckoutMetadata(args: {
   orderRef: string
   customer: CheckoutCustomer
   chargedProductLines: ChargedProductLine[]
+  /**
+   * Importo incassato per la spedizione, in centesimi (la riga "Spedizione" della
+   * sessione; 0 quando la spedizione e' gratuita). Obbligatorio: e' la sola fonte
+   * del campo `shippingCost` dell'ordine. Il parser non deve piu' ricostruirlo dal
+   * residuo `amount_total - righe prodotto`, che con metadata incompleti registra
+   * l'intero valore merce nel campo spedizione.
+   */
+  shippingCostCents: number
   promo?: ValidatedPromo | null
 }): Record<string, string> | null {
+  if (!Number.isSafeInteger(args.shippingCostCents) || args.shippingCostCents < 0) return null
+
   const metadata: Record<string, string> = {
     order_ref: args.orderRef,
     customer_name: args.customer.name,
@@ -434,6 +444,7 @@ export function buildCheckoutMetadata(args: {
       variantLabel: item.variantLabel,
       price: item.price,
     }))),
+    shipping_cost_cents: String(args.shippingCostCents),
   }
 
   if (args.promo) {

@@ -286,6 +286,7 @@ export async function POST(req: NextRequest) {
     orderRef,
     customer,
     chargedProductLines,
+    shippingCostCents,
     // La promo "spedizione gratuita" non azzera una tariffa extra-UE: il
     // metadato registra cio' che e' successo davvero, non cio' che la promo
     // prometteva. Un documento che dichiara "spedizione gratuita" mentre la
