@@ -1,5 +1,5 @@
 // storefront/src/lib/subscription-plans.ts
-import { EU_COUNTRIES } from './shipping'
+import { EU_CUSTOMS_UNION } from './shipping'
 
 export type PlanKey = 'tattoo' | 'pmu'
 export type Zone = 'IT' | 'EU'
@@ -80,9 +80,35 @@ export function getNextTierCyclesRemaining(cyclesCompleted: number): number {
   return Math.max(0, 6 - cyclesCompleted)
 }
 
+/**
+ * Destinazioni ammesse su una NUOVA attivazione, per zona.
+ *
+ * Solo territorio doganale UE, perche' un abbonamento verso una destinazione
+ * extra-UE addebita 14,99 EUR di spedizione a ogni ciclo (la scala
+ * dell'abbonamento e' un prodotto, non un confine doganale) contro un costo
+ * sdoganato stimato di 40,99 (tattoo) / 43,79 (pmu): e' una spedizione sotto
+ * costo che si ripete ogni mese.
+ *
+ * Decisione di Alessandro (21/09/2026): le NUOVE attivazioni verso destinazioni
+ * extra-UE restano chiuse; i rinnovi gia' attivi non cambiano. `SUBSCRIPTION_LADDER`
+ * resta percio' intatto (CH/NO/IS/LI comprese in `EU_COUNTRIES`): e' la storia
+ * dei contratti in corso, che si tocca caso per caso, non una lista di
+ * destinazioni vendibili.
+ *
+ * La destinazione la decide il server: questa lista finisce in
+ * `shipping_address_collection.allowed_countries` di Stripe, quindi un
+ * indirizzo extra-UE non e' accettato al checkout dell'abbonamento anche se il
+ * client chiede la zona "EU" nel body.
+ */
 export const ZONE_COUNTRIES: Record<Zone, string[]> = {
   IT: ['IT'],
-  EU: [...EU_COUNTRIES],
+  EU: [...EU_CUSTOMS_UNION],
+}
+
+/** true se la destinazione puo' aprire una nuova attivazione per quella zona. */
+export function isActivatableDestination(zone: Zone, countryCode: string): boolean {
+  const c = String(countryCode ?? '').toUpperCase()
+  return ZONE_COUNTRIES[zone].includes(c)
 }
 
 export const PLAN_NAMES: Record<PlanKey, string> = {

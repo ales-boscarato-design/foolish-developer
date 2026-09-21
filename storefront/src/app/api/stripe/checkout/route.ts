@@ -18,6 +18,7 @@ import {
   parsePromoCodes,
   type PromoRecord,
 } from '@/lib/promo'
+import { isFreeShippingPromoAllowed, shippingRequiresQuote } from '@/lib/shipping'
 
 type StripeAllowedCountry = NonNullable<
   Stripe.Checkout.SessionCreateParams['shipping_address_collection']
@@ -131,6 +132,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Dati cliente non validi' }, { status: 400 })
   }
 
+  // Destinazione extra-UE senza una misura di costo sdoganato: non esiste un
+  // prezzo da incassare. Si ferma l'ordine e si quota (con sdoganamento, IVA
+  // all'importazione e fee DDP inclusi) invece di spedire sotto costo.
+  if (shippingRequiresQuote(customer.country)) {
+    return NextResponse.json(
+      {
+        error: 'Per questa destinazione calcoliamo la spedizione con lo sdoganamento incluso: scrivici e la quotiamo prima del pagamento.',
+      },
+      { status: 409 },
+    )
+  }
+
   const normalizedPromoCode = normalizePromoCode(request.promoCode)
   const promoWasSubmitted = request.promoCode !== undefined && request.promoCode !== null && request.promoCode !== ''
   if (promoWasSubmitted && !normalizedPromoCode) {
@@ -220,7 +233,13 @@ export async function POST(req: NextRequest) {
     orderRef,
     customer,
     chargedProductLines,
-    promo,
+    // La promo "spedizione gratuita" non azzera una tariffa extra-UE: il
+    // metadato registra cio' che e' successo davvero, non cio' che la promo
+    // prometteva. Un documento che dichiara "spedizione gratuita" mentre la
+    // spedizione e' stata incassata e' una discrepanza in fattura.
+    promo: promo && promo.freeShipping && !isFreeShippingPromoAllowed(customer.country)
+      ? { ...promo, freeShipping: false }
+      : promo,
   })
   if (!metadata) {
     return NextResponse.json({ error: 'Dati ordine troppo lunghi' }, { status: 400 })
