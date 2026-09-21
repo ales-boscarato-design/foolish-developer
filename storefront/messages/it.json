@@ -77,6 +77,10 @@
     "promoApply": "Applica",
     "promoFreeShipping": "✓ Spedizione gratuita applicata",
     "shippingLandedNote": "Comprende trasporto, sdoganamento e IVA all'importazione",
+    "promoFreeShippingShort": "Spedizione gratuita",
+    "promoFreeShippingNotApplicable": "non applicabile a questa destinazione",
+    "shippingQuoteRequired": "Da quotare",
+    "shippingQuoteRequiredNote": "Per questa destinazione la spedizione si quota con lo sdoganamento incluso (trasporto, oneri doganali, IVA all'importazione, fee DDP): scrivici prima di pagare.",
     "promoInvalid": "Codice non valido",
     "promoRemove": "Rimuovi",
     "promoProDiscount": "Sconto Pro {percent}%",
@@ -338,7 +342,7 @@
     "shippingRates": {
       "italy": "Italia: 7,65€ · gratuita sopra 50€",
       "europe": "Unione Europea: 14,99€ · gratuita sopra 150€",
-      "extraEu": "Extra-UE (Svizzera, Norvegia, Regno Unito, …): spedizione calcolata al checkout, comprende trasporto, sdoganamento e IVA all'importazione"
+      "extraEu": "Extra-UE (Svizzera, Norvegia, Regno Unito, …): spedizione calcolata al checkout, comprende trasporto, sdoganamento e IVA all'importazione; per le destinazioni non ancora quotabili la spedizione si calcola su richiesta"
     },
     "withdrawal": "5. Diritto di recesso",
     "withdrawalText1": "Ai sensi del D.Lgs. 206/2005, il consumatore ha diritto di recedere dal contratto entro 14 giorni dalla ricezione del prodotto, senza necessità di fornire motivazione, a condizione che il prodotto sia integro e non utilizzato. Per avviare il recesso scrivere a {email}.",

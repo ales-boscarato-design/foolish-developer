@@ -150,7 +150,12 @@ test('la promo "spedizione gratuita" non azzera una tariffa extra-UE', () => {
   // non deve regalare dazi, IVA all'importazione e fee DDP.
   assert.equal(calculateServerShippingCostCents(items, 'CH', true), 4772)
   assert.equal(calculateServerShippingCostCents(items, 'CH', false), 4772)
-  assert.equal(calculateServerShippingCostCents(items, 'NO', true) !== 0, true)
+
+  // Paese extra-UE senza misura: non esiste un prezzo da addebitare, ma non
+  // deve MAI diventare zero (zero = spedire a spese di Foolish).
+  assert.equal(calculateServerShippingCostCents(items, 'US', false), null)
+  assert.equal(calculateServerShippingCostCents(items, 'GB', true), null)
+  assert.equal(calculateServerShippingCostCents(items, 'NO', false), null)
 
   // Unione Europea: il comportamento di prima non cambia.
   assert.equal(calculateServerShippingCostCents(items, 'DE', true), 0)

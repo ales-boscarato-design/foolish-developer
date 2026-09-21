@@ -52,3 +52,15 @@ export function calculateResellerShipping(cartTotal: number, countryCode: string
   const { cost, freeAbove } = config[zone]
   return { mode: 'calculated', cost: cartTotal >= freeAbove ? 0 : cost, zone }
 }
+
+/**
+ * Nota da mettere sull'ordine quando il trasporto non e' stato incassato.
+ * Un ordine in modalita' `quote` viaggia con costo 0: senza questa riga, chi
+ * prepara il pacco vede un ordine pagato e lo spedisce. La nota sta nelle note
+ * dell'ordine perche' e' li' che guarda chi spedisce (stesso posto dell'esito
+ * VIES), non in un campo che nessuno apre.
+ */
+export function shippingQuoteNote(mode: ResellerShippingResult['mode']): string | null {
+  if (mode !== 'quote') return null
+  return '[SPEDIZIONE DA QUOTARE — trasporto non incassato: completare il preventivo (sdoganamento incluso se extra-UE) prima di spedire]'
+}

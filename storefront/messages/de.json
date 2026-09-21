@@ -77,6 +77,10 @@
     "promoApply": "Anwenden",
     "promoFreeShipping": "✓ Kostenloser Versand angewendet",
     "shippingLandedNote": "Inklusive Transport, Zollabfertigung und Einfuhrumsatzsteuer",
+    "promoFreeShippingShort": "Kostenloser Versand",
+    "promoFreeShippingNotApplicable": "für dieses Ziel nicht anwendbar",
+    "shippingQuoteRequired": "Auf Anfrage",
+    "shippingQuoteRequiredNote": "Für dieses Ziel wird der Versand inklusive Zollabfertigung angeboten (Transport, Zoll, Einfuhrumsatzsteuer, DDP-Gebühr): schreiben Sie uns vor der Zahlung.",
     "promoInvalid": "Ungültiger Code",
     "promoRemove": "Entfernen",
     "promoProDiscount": "Pro-Rabatt {percent}%",
@@ -338,7 +342,7 @@
     "shippingRates": {
       "italy": "Italien: 7,65€ · kostenlos ab 50€",
       "europe": "Europäische Union: 14,99€ · kostenlos ab 150€",
-      "extraEu": "Außerhalb der EU (Schweiz, Norwegen, Vereinigtes Königreich, …): Versand wird an der Kasse berechnet, inklusive Transport, Zollabfertigung und Einfuhrumsatzsteuer"
+      "extraEu": "Außerhalb der EU (Schweiz, Norwegen, Vereinigtes Königreich, …): Versand wird an der Kasse berechnet, inklusive Transport, Zollabfertigung und Einfuhrumsatzsteuer; für noch nicht kalkulierbare Ziele auf Anfrage"
     },
     "withdrawal": "5. Widerrufsrecht",
     "withdrawalText1": "Gemäß D.Lgs. 206/2005 hat der Verbraucher das Recht, den Vertrag innerhalb von 14 Tagen nach Erhalt des Produkts ohne Angabe von Gründen zu widerrufen, sofern das Produkt unversehrt und unbenutzt ist. Um den Widerruf auszuüben, schreiben Sie an {email}.",
