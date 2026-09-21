@@ -20,7 +20,7 @@ process.env.LANDED_COST_SHARED_SECRET = SHARED_SECRET
 process.env.SHIPPING_QUOTE_TOKEN_SECRET = 'test-token-secret'
 
 import { POST } from './route'
-import { cartFingerprint, verifyQuoteToken } from '@/lib/landed-cost'
+import { cartFingerprint, resolveExtraEuShipping, verifyQuoteToken } from '@/lib/landed-cost'
 
 const PRICES: Record<string, number> = {
   'T-3D-WMN-BCK': 99,
@@ -124,6 +124,18 @@ test('destinazione extra-UE: risponde il prezzo della quota, senza segreti', asy
   const fingerprint = cartFingerprint([{ sku: 'T-3D-WMN-BCK', quantity: 1 }], 'CH')
   assert.equal(verifyQuoteToken(body.quoteToken, { countryCode: 'CH', fingerprint }), 5249)
   assert.equal(verifyQuoteToken(body.quoteToken, { countryCode: 'CH', fingerprint: 'altro' }), null)
+
+  // ACCETTAZIONE: quello che il carrello ha mostrato e' quello che il checkout
+  // incassa riusando il gettone di QUESTA route. Il checkout chiama lo stesso
+  // resolver con lo stesso carrello risolto dal catalogo e `goodsCents` = 9.900.
+  const charged = await resolveExtraEuShipping({
+    countryCode: 'CH',
+    goodsCents: 9900,
+    items: [{ sku: 'T-3D-WMN-BCK', quantity: 1 }],
+    quoteToken: body.quoteToken,
+  })
+  assert.ok(charged)
+  assert.equal(charged.costCents, body.costCents)
 })
 
 test('Pi di Alfred giu: si risponde con la base prudenziale in casa, non con un errore', async () => {

@@ -17,6 +17,7 @@ import { cartSubtotalCents, normalizeCheckoutItems } from '@/lib/promo'
 import { getShippingZone, isAllowedShippingCountry } from '@/lib/shipping'
 import {
   cartFingerprint,
+  isPackSku,
   resolveExtraEuShipping,
   signQuoteToken,
   type ExtraEuShippingResolution,
@@ -119,8 +120,10 @@ export async function POST(req: NextRequest) {
 
   // Un carrello con pack: lo sku del pack non e' uno sku di variante, e il
   // servizio di quota non lo conosce. Meglio nessuna quota che una quota su un
-  // carrello piu' piccolo di quello che si paga.
-  const hasPackLine = items.some((item) => item.sku.includes('-pack-'))
+  // carrello piu' piccolo di quello che si paga. Stessa guardia nel resolver
+  // usato dal checkout (`resolveExtraEuShipping`), cosi' il checkout non manda
+  // comunque gli sku-pack alla Pi.
+  const hasPackLine = items.some((item) => isPackSku(item.sku))
   if (hasPackLine) {
     return NextResponse.json(
       { error: 'Per questo carrello la spedizione si quota con la base prudenziale' },

@@ -538,6 +538,16 @@ export function normalizeQuoteItems(
 }
 
 /**
+ * Uno sku di pack (`<variant-sku>-pack-<pack-id>`) non e' una variante del
+ * catalogo doganale: il servizio di quota non lo conosce e quoterebbe un
+ * carrello diverso da quello che si paga. Definizione UNICA, usata sia dalla
+ * route della quota sia dal resolver usato dal checkout.
+ */
+export function isPackSku(sku: unknown): boolean {
+  return typeof sku === 'string' && sku.toLowerCase().includes('-pack-')
+}
+
+/**
  * Catena di risoluzione del prezzo extra-UE. Restituisce `null` SOLO quando non
  * esiste alcuna base di prezzo per quella destinazione: e' l'unico caso in cui
  * non si vende (regola di Alessandro), perche' non c'e' niente da addebitare.
@@ -560,6 +570,13 @@ export async function resolveExtraEuShipping(args: {
   const items = args.items ? [...args.items] : []
   const fingerprint = cartFingerprint(items, country)
 
+  // Uno sku di pack non e' una variante del catalogo doganale del servizio:
+  // quotare quel carrello significherebbe quotare un carrello piu' piccolo di
+  // quello che si paga. La guardia sta QUI, non solo nella route della quota,
+  // cosi' vale anche per il checkout (che altrimenti manda gli sku-pack alla Pi
+  // e dipende dal 409 del servizio per non incassare un prezzo sbagliato).
+  const packLine = items.some((item) => isPackSku(item.sku))
+
   // 1. prezzo congelato dal gettone: e' quello che il cliente ha visto.
   const frozenCents = verifyQuoteToken(args.quoteToken, {
     countryCode: country,
@@ -573,6 +590,8 @@ export async function resolveExtraEuShipping(args: {
   const config = args.quoteConfig ?? quoteClientConfig()
   if (!config.enabled) {
     quoteFailure = 'disabled'
+  } else if (packLine) {
+    quoteFailure = 'unsupported_cart_line'
   } else if (items.length === 0) {
     quoteFailure = 'no_items'
   } else {
@@ -619,10 +638,6 @@ export async function resolveExtraEuShipping(args: {
     source = fromTable > fromProfile ? 'price_table' : 'profile'
   }
 
-  // Il gettone non abbassa mai il prezzo: se il costo verificato e' salito, si
-  // addebita il maggiore (mai sotto il costo sdoganato), non il piu' basso.
-  if (frozenCents !== null) basisCostCents = Math.max(basisCostCents, frozenCents)
-
   // Stessa aritmetica del profilo di paese (`calculateLandedCost`): margine
   // arrotondato al mezzo centesimo per eccesso, poi somma. Cosi' il prezzo
   // della quota e quello del profilo nascono con la stessa regola.
@@ -630,7 +645,16 @@ export async function resolveExtraEuShipping(args: {
   const marginCents = Math.round(basisCostCents * marginRate)
   const withMargin = basisCostCents + marginCents
   const minChargeCents = Math.ceil(EXTRA_EU_MINIMUM_SHIPPING * 100)
-  const costCents = Math.max(withMargin, minChargeCents)
+
+  // Il gettone congela il PREZZO mostrato (margine GIA' dentro), non una base
+  // di costo: si applica come pavimento sul prezzo finale, fuori dalla base.
+  // Se entrasse nella base, il margine verrebbe applicato una seconda volta e
+  // il cliente pagherebbe piu' di quello che ha visto (misurato il 21/09/2026:
+  // mostrato 52,49, incassato 57,74). Regola invariata: il gettone non ABBASSA
+  // mai il prezzo — se il costo verificato adesso e' piu' alto, si addebita
+  // quello piu' alto, mai meno del costo sdoganato.
+  const frozenFloorCents = frozenCents ?? 0
+  const costCents = Math.max(withMargin, minChargeCents, frozenFloorCents)
 
   if (!Number.isSafeInteger(costCents) || costCents <= 0) return null
 
@@ -640,7 +664,7 @@ export async function resolveExtraEuShipping(args: {
     basisCostCents,
     marginCents,
     minChargeCents,
-    minimumChargeApplied: costCents > withMargin,
+    minimumChargeApplied: minChargeCents > withMargin && minChargeCents > frozenFloorCents,
     quote,
     verified: quote !== null,
     quoteFailure,

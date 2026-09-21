@@ -12,6 +12,7 @@ import {
   MAX_QUOTE_ITEMS,
   cartFingerprint,
   fetchLandedCostQuote,
+  isPackSku,
   loadLandedCostTable,
   normalizeQuoteItems,
   parseQuoteResponse,
@@ -356,19 +357,93 @@ test('resolveExtraEuShipping: la quota gonfiata dalla quantita non si incassa', 
   assert.ok(resolution.costCents >= 7649 + Math.round(7649 * 0.1))
 })
 
-test('resolveExtraEuShipping: il gettone non abbassa mai il prezzo', async () => {
-  const fingerprint = cartFingerprint([{ sku: 'T-3D-WMN-BCK', quantity: 1 }], 'CH')
-  const token = signQuoteToken({ countryCode: 'CH', fingerprint, costCents: 3000 })
-  assert.ok(token)
-  const resolution = await resolveExtraEuShipping({
+test('resolveExtraEuShipping: il gettone incassa ESATTAMENTE il prezzo mostrato', async () => {
+  // Il carrello mostra il prezzo della route /api/spedizione/quote, che firma il
+  // gettone con QUEL prezzo (margine gia' dentro). Il checkout riusa lo stesso
+  // gettone: deve incassare lo stesso importo. Prima della correzione del
+  // 21/09/2026 incassava il prezzo mostrato +10% (52,49 mostrato, 57,74
+  // incassato), perche' il gettone veniva piegato dentro la BASE di costo e il
+  // margine veniva applicato una seconda volta.
+  const items = [{ sku: 'T-3D-WMN-BCK', quantity: 1 }]
+  const fingerprint = cartFingerprint(items, 'CH')
+  const cases = [
+    { nome: 'quota live', extra: { quoteConfig: QUOTE_CONFIG, fetchImpl: stubFetch(() => quoteResponse()) } },
+    { nome: 'base prudenziale', extra: { quoteConfig: { ...QUOTE_CONFIG, enabled: false } } },
+  ]
+  for (const scenario of cases) {
+    const options = {
+      countryCode: 'CH',
+      goodsCents: 9900,
+      items,
+      destination: { zip: '4058', city: 'Basel' },
+      ...scenario.extra,
+    }
+    const shown = await resolveExtraEuShipping(options)
+    assert.ok(shown, scenario.nome)
+    assert.equal(shown.costCents, 5249, scenario.nome)
+    const token = signQuoteToken({ countryCode: 'CH', fingerprint, costCents: shown.costCents })
+    assert.ok(token, scenario.nome)
+    const charged = await resolveExtraEuShipping({ ...options, quoteToken: token })
+    assert.ok(charged, scenario.nome)
+    assert.equal(charged.costCents, shown.costCents, scenario.nome)
+    // il gettone non e' la base di costo: il prezzo non cambia anche senza
+    const control = await resolveExtraEuShipping(options)
+    assert.ok(control, scenario.nome)
+    assert.equal(control.costCents, shown.costCents, scenario.nome)
+  }
+})
+
+test('resolveExtraEuShipping: il gettone non abbassa il prezzo (e non lo gonfia)', async () => {
+  const items = [{ sku: 'T-3D-WMN-BCK', quantity: 1 }]
+  const fingerprint = cartFingerprint(items, 'CH')
+  const options = {
     countryCode: 'CH',
     goodsCents: 9900,
-    items: [{ sku: 'T-3D-WMN-BCK', quantity: 1 }],
-    quoteToken: token,
-    quoteConfig: { ...QUOTE_CONFIG, enabled: false },
+    items,
+    quoteConfig: QUOTE_CONFIG,
+    fetchImpl: stubFetch(() => quoteResponse()),
+  }
+  // gettone SOTTO la base fresca (4.000 < 4.772): vince la base fresca
+  const lower = signQuoteToken({ countryCode: 'CH', fingerprint, costCents: 4000 })
+  assert.ok(lower)
+  const withLower = await resolveExtraEuShipping({ ...options, quoteToken: lower })
+  assert.ok(withLower)
+  assert.equal(withLower.costCents, 5249)
+  // gettone FRA la base e il prezzo (4.772 < 5.000 < 5.249): vince il prezzo
+  // fresco, non `gettone + 10%` (che sarebbe 5.500)
+  const middle = signQuoteToken({ countryCode: 'CH', fingerprint, costCents: 5000 })
+  assert.ok(middle)
+  const withMiddle = await resolveExtraEuShipping({ ...options, quoteToken: middle })
+  assert.ok(withMiddle)
+  assert.equal(withMiddle.costCents, 5249)
+  assert.equal(withMiddle.basisCostCents, 4772)
+  assert.equal(withMiddle.minimumChargeApplied, false)
+})
+
+test('resolveExtraEuShipping: un carrello con pack non viene mai mandato alla quota', async () => {
+  // Lo sku del pack non e' una variante del catalogo doganale: la guardia vive
+  // nel resolver (non solo nella route), cosi' vale anche per il checkout.
+  assert.equal(isPackSku('T-3D-WMN-BCK-pack-2'), true)
+  assert.equal(isPackSku('T-3D-WMN-BCK-PACK-2'), true)
+  assert.equal(isPackSku('T-3D-WMN-BCK'), false)
+  assert.equal(isPackSku(undefined), false)
+  let calls = 0
+  const resolution = await resolveExtraEuShipping({
+    countryCode: 'CH',
+    goodsCents: 19_800,
+    items: [{ sku: 'T-3D-WMN-BCK-pack-2', quantity: 1 }],
+    quoteConfig: QUOTE_CONFIG,
+    fetchImpl: stubFetch(() => {
+      calls += 1
+      return quoteResponse()
+    }),
   })
   assert.ok(resolution)
-  assert.equal(resolution.costCents, 5249)
+  assert.equal(calls, 0)
+  assert.equal(resolution.quote, null)
+  assert.equal(resolution.quoteFailure, 'unsupported_cart_line')
+  assert.equal(resolution.verified, false)
+  assert.ok(resolution.costCents > 0)
 })
 
 test('su ogni destinazione extra-UE il prezzo e un intero di centesimi, mai zero', async () => {
