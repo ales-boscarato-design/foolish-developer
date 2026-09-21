@@ -62,8 +62,11 @@ function normalizeCountry(value: unknown): string | null {
  *  2. l'indirizzo di spedizione del cliente (`customer.shipping`), dove Stripe
  *     Checkout lo salva al momento dell'attivazione.
  *
- * Un errore di Stripe non viene interpretato: si annota `lookupFailed` e il
- * chiamante decide (senza paese non si autorizza il cambio).
+ * Solo l'ULTIMA fattura conta, e l'ordine della lista non si assume (si
+ * confronta `created`): un paese trovato su una fattura vecchia non e' una
+ * prova di dove si spedisce adesso, e un cambio di tariffa non si autorizza su
+ * un indizio. Un errore di Stripe non viene interpretato: si annota
+ * `lookupFailed` e il chiamante decide (senza paese non si autorizza il cambio).
  */
 export async function resolveSubscriptionDestination(
   stripe: Stripe,
@@ -73,10 +76,12 @@ export async function resolveSubscriptionDestination(
 
   try {
     const invoices = await stripe.invoices.list({ subscription: subscriptionId, limit: 3 })
-    for (const invoice of invoices.data ?? []) {
-      const country = normalizeCountry(invoice.customer_shipping?.address?.country)
-      if (country) return { country, source: 'invoice', lookupFailed }
-    }
+    const latest = (invoices.data ?? []).reduce<Stripe.Invoice | null>(
+      (newest, invoice) => (newest && newest.created >= invoice.created ? newest : invoice),
+      null,
+    )
+    const country = normalizeCountry(latest?.customer_shipping?.address?.country)
+    if (country) return { country, source: 'invoice', lookupFailed }
   } catch {
     lookupFailed = true
   }
@@ -118,7 +123,7 @@ export async function changeSubscriptionZone(
   if (!docRes.ok) return { status: 404, body: { error: 'Abbonamento non trovato' } }
   const doc = (await docRes.json()) as SubscriptionDoc
 
-  if (String(doc.customerEmail ?? '').toLowerCase() !== request.sessionEmail.toLowerCase()) {
+  if (String(doc.customerEmail ?? '').toLowerCase() !== String(request.sessionEmail ?? '').toLowerCase()) {
     return { status: 403, body: { error: 'Non autorizzato' } }
   }
   if (doc.zone === newZone) {

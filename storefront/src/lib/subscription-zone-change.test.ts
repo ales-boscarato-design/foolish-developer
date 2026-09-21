@@ -80,6 +80,8 @@ test.beforeEach(() => {
 interface StripeScenario {
   /** `customer_shipping.address.country` di ogni fattura, in ordine (null = fattura senza indirizzo). */
   invoiceCountries?: (string | null)[]
+  /** `created` di ogni fattura: l'ordine della lista non va dato per scontato. */
+  invoiceCreated?: number[]
   invoicesError?: boolean
   customerCountry?: string | null
   customerError?: boolean
@@ -107,6 +109,7 @@ function fakeStripe(scenario: StripeScenario = {}) {
         return {
           data: countries.map((country, index) => ({
             id: `in_test_${index}`,
+            created: scenario.invoiceCreated?.[index] ?? 1_700_000_000 - index,
             customer_shipping: country ? { name: 'Cliente Test', address: { country } } : null,
           })),
         }
@@ -190,10 +193,12 @@ function firstPhaseAmount(phases: unknown[]): number {
 }
 
 test("destinazione svizzera: il cambio zona verso EU e' respinto e non scrive niente", async () => {
-  // Il numero che giustifica il blocco: la scala EU addebita 14,99 di spedizione,
-  // la destinazione svizzera costa 52,49 su 45,00 di merce (misura del 21/09/2026).
+  // Il numero che giustifica il blocco (misurato il 21/09/2026): la scala EU
+  // addebita 14,99 di spedizione a ciclo, la destinazione svizzera costa 48,00
+  // su un carrello da 45,00 e 52,49 su uno da 99,00.
   assert.equal(getBenefitForCycle('tattoo', 'EU', 1).shippingPrice, 14.99)
   assert.ok(calculateShipping(45, 'CH').cost > 14.99)
+  assert.ok(calculateShipping(99, 'CH').cost > 14.99)
 
   const { call, calls, patches } = setup({ invoiceCountries: ['CH'] })
   const result = await call({ newZone: 'EU' })
@@ -283,6 +288,38 @@ test('fattura senza indirizzo: si ripiega sull indirizzo di spedizione del clien
   assert.equal(calls.customersRetrieve, 1)
   assert.equal(calls.scheduleUpdate, 0)
   assert.equal(patches().length, 0)
+})
+
+test('si guarda solo la fattura piu recente: un paese vecchio non autorizza il cambio', async () => {
+  // La fattura piu' recente (created 2000) non porta indirizzo; una piu' vecchia
+  // (created 1000) porta la Germania. Un paese trovato all'indietro nella storia
+  // non e' una prova di dove si spedisce adesso: si ripiega sul cliente, e se
+  // nemmeno li' c'e' un paese il cambio resta rifiutato.
+  const { call, calls, patches } = setup({
+    invoiceCountries: [null, 'DE'],
+    invoiceCreated: [2000, 1000],
+    customerCountry: null,
+  })
+  const result = await call({ newZone: 'EU' })
+
+  assert.equal(result.status, 409)
+  assert.equal(calls.customersRetrieve, 1)
+  assert.equal(calls.scheduleUpdate, 0)
+  assert.equal(patches().length, 0)
+})
+
+test("l'ordine della lista fatture non si assume: conta la piu' recente per created", async () => {
+  // In lista la svizzera viene per prima, ma la piu' recente per `created` e' la
+  // tedesca: se il codice si fidasse dell'ordine della lista rifiuterebbe un
+  // cambio legittimo (destinazione UE).
+  const { call, patches } = setup({
+    invoiceCountries: ['CH', 'DE'],
+    invoiceCreated: [1000, 2000],
+  })
+  const result = await call({ newZone: 'EU' })
+
+  assert.equal(result.status, 200)
+  assert.equal(patches().length, 1)
 })
 
 test('destinazione non determinabile: il cambio non si autorizza (fail-closed)', async () => {

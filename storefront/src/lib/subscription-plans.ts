@@ -122,9 +122,9 @@ export function isActivatableDestination(zone: Zone, countryCode: string): boole
  * la destinazione e' extra-UE il cambio non e' piu' possibile — la tariffa
  * segue il destino. Un abbonato con indirizzo svizzero che passasse alla scala
  * `EU` pagherebbe 14,99 EUR di spedizione a ciclo contro un costo sdoganato
- * stimato di 52,49 su 45,00 di merce (`shipping.ts`, misura del 21/09/2026): la
- * stessa perdita che la chiusura delle nuove attivazioni extra-UE esiste per
- * evitare, per una via diversa.
+ * stimato di 48,00 su un carrello da 45,00 e 52,49 su uno da 99,00 (`shipping.ts`,
+ * misurato il 21/09/2026): la stessa perdita che la chiusura delle nuove
+ * attivazioni extra-UE esiste per evitare, per una via diversa.
  *
  * Destinazione ignota -> false (fail-closed): un cambio di tariffa non si
  * autorizza su un indirizzo che non si sa dove sia. I rinnovi in corso non
