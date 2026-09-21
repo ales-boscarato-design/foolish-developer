@@ -86,6 +86,7 @@ jobs:
           npm run test:landed-cost-display --silent
           npm run test:spedizione-quote --silent
           npm run test:subscription --silent
+          npm run test:subscription-zone --silent
           npm run test:affiliate-referral --silent
           npm run test:affiliate-route --silent
           npm run test:affiliate-i18n --silent
