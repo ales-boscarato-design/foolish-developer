@@ -23,12 +23,15 @@ import {
 /**
  * Il caso che ha aperto il problema, nudo e crudo: ordine CMS 31 / Basel CH,
  * merce 99,00 EUR, collo 40x40x10 / 2,0 kg.
- *   corriere 23,00 + gestione 0,99 + assicurazione 4,00 + dogana 14,77 + DDP 4,96
- *   = 47,72 EUR reali, contro 14,99 EUR incassati.
+ *   corriere 23,00 + gestione 0,99 + assicurazione 3,57 + dogana 14,77 + DDP 4,96
+ *   = 47,29 EUR reali, contro 14,99 EUR incassati.
  * E la scomposizione reale di quei 14,77: dazi 0,00 + IVA 9,88 + sdoganamento 4,89.
- * Il prezzo addebitato e' il COSTO + il margine deciso da Alessandro (10%): 52,49.
+ * L'assicurazione (3,57) e' il 2,5% della base approvata il 21/09/2026
+ * (`goods_plus_shipping`: merce 99,00 + 43,72 di spedizione sostenuta = 142,72);
+ * il 4,00 di prima veniva da una base assicurata diversa (160,00), smentita.
+ * Il prezzo addebitato e' il COSTO + il margine deciso da Alessandro (10%): 52,02.
  */
-const MEASURED_ORDER = { goods: 99, total: 47.72, importVat: 9.88, importFee: 4.89, charged: 52.49 }
+const MEASURED_ORDER = { goods: 99, total: 47.29, importVat: 9.88, importFee: 4.89, charged: 52.02 }
 
 /**
  * Prezzo addebitato sul carrello misurato (merce 99,00), paese per paese.
@@ -36,16 +39,19 @@ const MEASURED_ORDER = { goods: 99, total: 47.72, importVat: 9.88, importFee: 4.
  * Ogni numero qui e' calcolato a mano dalla politica — non letto dal modulo — e
  * serve a fissare il PUNTO DI PREZZO, non solo la coerenza interna: costo
  * sdoganato + 10% di margine, poi il pavimento di 48,00 EUR se sotto.
+ * L'assicurazione di ogni paese e' il 2,5% della base approvata il 21/09/2026
+ * (merce + costo di spedizione sostenuto, premio escluso), non il 4,04% della
+ * merce che stava qui prima.
  * BR non compare: non ha una linea DDP, quindi si quota (test dedicato).
  */
 const CHARGED_AT_99: Record<string, number> = {
-  CH: 52.49, // 47,72 + 4,77
-  GB: 63.83, // 58,03 + 5,80: IVA 20% su 99+19,49, dazio 0 perche' sotto £135
-  NO: 76.54, // 69,58 + 6,96: MVA 25% su 99+23,99
-  US: 99.37, // 90,34 + 9,03: nessuna IVA import, dazio 15% su 99+52,74
-  CA: 87.41, // 79,46 + 7,95: HST massima 15% su 99+43,28
-  AU: 105.30, // 95,73 + 9,57: GST 10% su 99+64,54
-  JP: 105.05, // 95,50 + 9,55: consumption tax 10% su 99+64,33
+  CH: 52.02, // 47,29 + 4,73: assicurazione 2,5% di (99,00 + 43,72) = 3,57
+  GB: 63.65, // 57,86 + 5,79: IVA 20% su 99+19,49, dazio 0 perche' sotto £135
+  NO: 76.66, // 69,69 + 6,97: MVA 25% su 99+23,99
+  US: 100.07, // 90,97 + 9,10: nessuna IVA import, dazio 15% su 99+52,74
+  CA: 87.80, // 79,82 + 7,98: HST massima 15% su 99+43,28
+  AU: 106.15, // 96,50 + 9,65: GST 10% su 99+64,54
+  JP: 105.89, // 96,26 + 9,63: consumption tax 10% su 99+64,33
 }
 
 const EXTRA_EU_COUNTRIES = ['CH', 'GB', 'NO', 'US', 'CA', 'AU', 'JP'] as const
@@ -70,10 +76,10 @@ test('l\'ordine misurato viene ricostruito al centesimo (costo), e addebitato co
   assert.ok(rate.landedCost)
   if (!rate.landedCost) return
 
-  // Scomposizione della misura reale (47,72 = 23,00 + 0,99 + 4,00 + 14,77 + 4,96).
+  // Scomposizione della misura reale (47,29 = 23,00 + 0,99 + 3,57 + 14,77 + 4,96).
   assert.equal(rate.landedCost.carrier, 23.0)
   assert.equal(rate.landedCost.handlingFee, 0.99)
-  assert.equal(rate.landedCost.insurance, 4.0)
+  assert.equal(rate.landedCost.insurance, 3.57)
   assert.equal(rate.landedCost.ddpFee, 4.96)
   assert.equal(rate.landedCost.duty, 0, 'cap. 25-97 esenti dal 1/1/2024')
   // MISURATO dentro i customs_and_duties: IVA 9,88 e sdoganamento 4,89.
@@ -82,13 +88,13 @@ test('l\'ordine misurato viene ricostruito al centesimo (costo), e addebitato co
   // Le spese di sdoganamento sono una voce misurata (import_fees_amount), non il
   // residuo dei 14,77 che l'IVA non spiega: il vecchio 4,08 era compensazione.
   assert.equal(rate.landedCost.fixedImportFee, MEASURED_ORDER.importFee)
-  // Il COSTO misurato resta 47,72: e' l'asserzione di calibrazione.
+  // Il COSTO misurato resta 47,29: e' l'asserzione di calibrazione.
   assert.equal(rate.landedCost.estimatedCost, MEASURED_ORDER.total)
   assert.equal(rate.landedCost.calibrated, true)
   assert.ok(rate.landedCost.source.includes('CMS 31'))
 
   // Ma il prezzo addebitato e' costo + margine: sono due numeri diversi.
-  assert.equal(rate.landedCost.margin, 4.77)
+  assert.equal(rate.landedCost.margin, 4.73)
   assert.equal(rate.landedCost.total, MEASURED_ORDER.charged)
   assert.equal(rate.cost, MEASURED_ORDER.charged)
   assert.equal(rate.minimumChargeApplied, false, 'sul caso misurato vince la stima, non il pavimento')
@@ -122,7 +128,7 @@ test('il margine extra-UE e\' il 10% deciso da Alessandro, non 0', () => {
 
   const landed = calculateLandedCost(MEASURED_ORDER.goods, SWITZERLAND_PROFILE)
   assert.equal(landed.estimatedCost, MEASURED_ORDER.total)
-  assert.equal(landed.margin, 4.77)
+  assert.equal(landed.margin, 4.73)
   assert.equal(landed.total, MEASURED_ORDER.charged)
   // E la tariffa che finisce nella riga Stripe e' il prezzo, non il costo.
   assert.equal(calculateShipping(MEASURED_ORDER.goods, 'CH').cost, MEASURED_ORDER.charged)
@@ -146,16 +152,17 @@ test('le regole misurate valgono fuori dal punto misurato (non e\' una compensaz
   }
 
   // Ancore esterne, due colonne: il COSTO e' quello calcolato in modo
-  // indipendente sulla misura di Alfred (ipotesi «il valore assicurato segue la
-  // merce»); il PREZZO e' quel costo + 10%, con il pavimento sotto.
+  // indipendente sulla misura di Alfred con la copertura APPROVATA (il premio
+  // segue la base merce + spedizione); il PREZZO e' quel costo + 10%, con il
+  // pavimento sotto.
   const anchors: Array<[number, number, number]> = [
-    [30, 39.34, 48.00], // 43,27 stimati: sotto il pavimento, quindi 48,00
-    [50, 41.77, 48.00], // 45,95 stimati: sotto il pavimento
-    [99, 47.72, 52.49],
-    [150, 53.91, 59.30],
-    [200, 59.98, 65.98],
-    [300, 72.12, 79.33],
-    [500, 96.40, 106.04],
+    [30, 39.83, 48.00], // 43,81 stimati: sotto il pavimento, quindi 48,00
+    [50, 41.99, 48.00], // 46,19 stimati: sotto il pavimento
+    [99, 47.29, 52.02],
+    [150, 52.80, 58.08],
+    [200, 58.20, 64.02],
+    [300, 69.00, 75.90],
+    [500, 90.61, 99.67],
   ]
   for (const [goods, cost, price] of anchors) {
     const rate = calculateShipping(goods, 'CH')
@@ -185,15 +192,15 @@ test('il prezzo per paese e\' quello dell\'IVA di destinazione (non l\'8,1% sviz
   assert.ok(landedGb.estimatedCost > landedCh.estimatedCost, 'GB non e\' piu\' caro della Svizzera')
   assert.ok(landedNo.estimatedCost > landedCh.estimatedCost, 'NO non e\' piu\' caro della Svizzera')
 
-  // Con l'8,1% svizzero il costo di GB scenderebbe a 43,93 contro un prezzo di
-  // 63,83: 19,90 EUR di scarto che l'aliquota sbagliata nasconderebbe.
+  // Con l'8,1% svizzero il costo di GB scenderebbe a 43,40 contro un prezzo di
+  // 63,65: 20,25 EUR di scarto che l'aliquota sbagliata nasconderebbe.
   const gbAsSwiss = calculateLandedCost(99, { ...uncalibratedExtraEuProfile('GB')!, importVatRate: 0.081 })
-  assert.equal(gbAsSwiss.estimatedCost, 43.93)
+  assert.equal(gbAsSwiss.estimatedCost, 43.40)
   assert.ok(
     gbAsSwiss.estimatedCost < landedGb.estimatedCost,
     'sotto l\'8,1% GB dovrebbe costare meno, non di piu\'',
   )
-  assert.equal(Math.round((CHARGED_AT_99.GB - gbAsSwiss.estimatedCost) * 100) / 100, 19.90)
+  assert.equal(Math.round((CHARGED_AT_99.GB - gbAsSwiss.estimatedCost) * 100) / 100, 20.25)
 })
 
 test('nessuna spedizione extra-UE parte sotto il costo stimato ne\' sotto il pavimento', () => {
@@ -411,8 +418,8 @@ test('il pavimento di 48,00 EUR si applica DOPO il calcolo, a ogni destinazione 
 
   // Sopra il pavimento: si addebita il costo sdoganato + margine, non il pavimento.
   const gb = calculateShipping(150, 'GB')
-  assert.equal(gb.landedCost?.estimatedCost, 70.29)
-  assert.equal(gb.cost, 77.32) // 70,29 + 7,03
+  assert.equal(gb.landedCost?.estimatedCost, 69.59)
+  assert.equal(gb.cost, 76.55) // 69,59 + 6,96
   assert.ok(gb.cost > EXTRA_EU_MINIMUM_SHIPPING)
   assert.equal(gb.minimumChargeApplied, false)
 
@@ -481,18 +488,20 @@ test('un carrello non finito non diventa un prezzo NaN e il margine non puo\' es
   for (const bad of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
     const rate = calculateShipping(bad, 'CH')
     assert.ok(Number.isFinite(rate.cost), `${bad}: prezzo non finito`)
-    // Senza merce restano il trasporto, gli oneri fissi e l'IVA minima:
-    // 23,00 + 0,99 + 4,89 + 4,96 + 1,86 (8,1% su 23,00) = 35,70 di costo, +10%
-    // = 39,27. Sotto il pavimento, quindi si addebitano 48,00.
-    assert.equal(rate.landedCost?.estimatedCost, 35.70)
-    assert.equal(rate.landedCost?.total, 39.27)
+    // Senza merce restano il trasporto, gli oneri fissi, l'IVA minima e il
+    // premio assicurativo sulla sola spedizione: 23,00 + 0,99 + 4,89 + 4,96 +
+    // 1,86 (8,1% su 23,00) = 35,70 di spedizione sostenuta, premio 2,5% di
+    // 35,70 = 0,89, costo 36,59, +10% = 40,25. Sotto il pavimento, quindi si
+    // addebitano 48,00.
+    assert.equal(rate.landedCost?.estimatedCost, 36.59)
+    assert.equal(rate.landedCost?.total, 40.25)
     assert.equal(rate.cost, EXTRA_EU_MINIMUM_SHIPPING)
   }
 
   // Nessuna configurazione puo' far partire una spedizione sotto costo.
   const greedy = calculateLandedCost(99, { ...SWITZERLAND_PROFILE, marginRate: -0.5 })
-  assert.equal(greedy.estimatedCost, 47.72)
-  assert.equal(greedy.total, 47.72)
+  assert.equal(greedy.estimatedCost, 47.29)
+  assert.equal(greedy.total, 47.29)
   assert.equal(greedy.margin, 0)
 })
 
@@ -505,8 +514,12 @@ test('un carrello negativo non produce una scomposizione negativa', () => {
     assert.ok(rate.landedCost, `${bad}: manca la scomposizione`)
     if (!rate.landedCost) continue
     assert.equal(rate.landedCost.importVat, 1.86, `${bad}: IVA negativa o diversa da quella a merce zero`)
-    assert.equal(rate.landedCost.insurance, 0, `${bad}: assicurazione negativa`)
-    assert.equal(rate.landedCost.estimatedCost, 35.70, `${bad}: costo diverso da quello a merce zero`)
+    // Il premio segue la base APPROVATA (merce + spedizione sostenuta): con
+    // merce zero la base e' la sola spedizione (35,70), quindi il premio non e'
+    // zero ma 0,89. Non e' un negativo: e' la copertura del trasporto.
+    assert.equal(rate.landedCost.insurance, 0.89, `${bad}: assicurazione negativa o diversa da quella a merce zero`)
+    assert.ok(rate.landedCost.insurance >= 0, `${bad}: assicurazione negativa`)
+    assert.equal(rate.landedCost.estimatedCost, 36.59, `${bad}: costo diverso da quello a merce zero`)
     assert.ok(rate.landedCost.duty >= 0, `${bad}: dazio negativo`)
     assert.equal(rate.cost, EXTRA_EU_MINIMUM_SHIPPING)
   }
@@ -523,7 +536,7 @@ test('una merce con frazioni di centesimo viene arrotondata al centesimo prima d
   assert.equal(calculateShipping(99.999, 'CH').cost, calculateShipping(100, 'CH').cost)
   // E la merce arrotondata e' quella che compare nella scomposizione.
   const landed = calculateShipping(99.004, 'CH').landedCost
-  assert.equal(landed?.insurance, 4.0) // 4,04% di 99,00
+  assert.equal(landed?.insurance, 3.57) // 2,5% della base approvata (99,00 + 43,72)
 })
 
 test('il profilo di un paese non misurato dichiara la base dei parametri tecnici', () => {
@@ -702,16 +715,18 @@ test('GB: sotto £135 di valore merce il dazio e\' zero, sopra entra nel totale'
   assert.equal(landed.dutyBand, 'above')
   // 4,42% della base doganale (157,20 + 19,49) = 7,81.
   assert.equal(landed.duty, 7.81)
-  // Il dazio entra nel costo sdoganato, voce per voce: 19,49 corriere + 6,35
-  // assicurazione + 7,81 dazio + 36,90 IVA 20% di (157,20 + 19,49 + 7,81 = 184,50)
-  // + 4,89 sdoganamento + 4,96 fee DDP + 0,99 gestione = 81,39.
-  assert.equal(landed.estimatedCost, 81.39)
-  // Poi il margine deciso da Alessandro (10%): 8,14, quindi 89,53 addebitati.
-  assert.equal(landed.margin, 8.14)
-  assert.equal(landed.total, 89.53)
-  assert.equal(above.cost, 89.53)
-  // Lo stesso carrello senza dazio costerebbe 72,02: la differenza e' 9,37, cioe'
-  // il dazio 7,81 piu' l'IVA che il dazio stesso genera (20% di 7,81 = 1,56).
+  // Il dazio entra nel costo sdoganato, voce per voce: 19,49 corriere + 5,81
+  // assicurazione (2,5% della base approvata: 157,20 + 75,04) + 7,81 dazio +
+  // 36,90 IVA 20% di (157,20 + 19,49 + 7,81 = 184,50) + 4,89 sdoganamento +
+  // 4,96 fee DDP + 0,99 gestione = 80,85.
+  assert.equal(landed.estimatedCost, 80.85)
+  // Poi il margine deciso da Alessandro (10%): 8,08, quindi 88,93 addebitati.
+  assert.equal(landed.margin, 8.08)
+  assert.equal(landed.total, 88.93)
+  assert.equal(above.cost, 88.93)
+  // Lo stesso carrello senza dazio costerebbe 71,24: la differenza e' 9,61,
+  // cioe' il dazio 7,81 piu' l'IVA che il dazio stesso genera (20% di 7,81 =
+  // 1,56) e il premio assicurativo che segue la spedizione piu' cara (0,24).
   // La base dell'IVA include il dazio: se non lo includesse, l'IVA dovuta
   // sarebbe sottostimata di 1,56 su questo carrello.
   const withoutDuty = calculateLandedCost(justOver, {
@@ -719,8 +734,8 @@ test('GB: sotto £135 di valore merce il dazio e\' zero, sopra entra nel totale'
     dutyAboveThreshold: undefined,
     dutyRate: 0,
   })
-  assert.equal(withoutDuty.estimatedCost, 72.02)
-  assert.equal(Math.round((landed.estimatedCost - withoutDuty.estimatedCost) * 100) / 100, 9.37)
+  assert.equal(withoutDuty.estimatedCost, 71.24)
+  assert.equal(Math.round((landed.estimatedCost - withoutDuty.estimatedCost) * 100) / 100, 9.61)
   assert.equal(
     Math.round((landed.importVat - withoutDuty.importVat) * 100) / 100,
     1.56,
@@ -729,8 +744,8 @@ test('GB: sotto £135 di valore merce il dazio e\' zero, sopra entra nel totale'
 
   // Sopra soglia il dazio cresce col valore: a merce 200 sono 9,70 (4,42% di 219,49).
   assert.equal(calculateShipping(200, 'GB').landedCost?.duty, 9.70)
-  assert.equal(calculateShipping(200, 'GB').landedCost?.estimatedCost, 93.95)
-  assert.equal(calculateShipping(200, 'GB').cost, 103.35)
+  assert.equal(calculateShipping(200, 'GB').landedCost?.estimatedCost, 93.02)
+  assert.equal(calculateShipping(200, 'GB').cost, 102.32)
 })
 
 test('GB: la soglia si confronta sul valore merce, non sulla base doganale', () => {
@@ -746,8 +761,8 @@ test('GB: la soglia si confronta sul valore merce, non sulla base doganale', () 
   assert.ok(landed)
   assert.equal(landed?.duty, 0)
   assert.equal(landed?.dutyBand, 'relief')
-  assert.equal(landed?.estimatedCost, 67.89)
-  assert.equal(calculateShipping(goods, 'GB').cost, 74.68) // 67,89 + 6,79
+  assert.equal(landed?.estimatedCost, 67.29)
+  assert.equal(calculateShipping(goods, 'GB').cost, 74.02) // 67,29 + 6,73
 })
 
 test('GB: la fascia sopra soglia non tocca gli altri paesi ne\' l\'aliquota piatta', () => {
