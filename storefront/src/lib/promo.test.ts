@@ -146,19 +146,47 @@ test('la promo "spedizione gratuita" non azzera una tariffa extra-UE', () => {
   assert.ok(items)
   if (!items) return
 
-  // Svizzera: il costo sdoganato misurato (47,72 EUR) resta intero. La promo
-  // non deve regalare dazi, IVA all'importazione e fee DDP.
-  assert.equal(calculateServerShippingCostCents(items, 'CH', true), 4772)
-  assert.equal(calculateServerShippingCostCents(items, 'CH', false), 4772)
+  // Svizzera: il costo sdoganato misurato (47,72 EUR) + il margine deciso da
+  // Alessandro (10%) = 52,49 resta intero. La promo non deve regalare dazi,
+  // IVA all'importazione e fee DDP.
+  assert.equal(calculateServerShippingCostCents(items, 'CH', true), 5249)
+  assert.equal(calculateServerShippingCostCents(items, 'CH', false), 5249)
 
-  // Paese extra-UE senza misura: dal 21/09/2026 si vende, con l'aliquota del
-  // paese di destinazione e il pavimento di 48,00 EUR. La promo non deve MAI
-  // azzerare quella tariffa: zero qui vorrebbe dire regalare anche dazi, IVA
-  // all'importazione e fee DDP.
-  assert.equal(calculateServerShippingCostCents(items, 'US', true), 7293)
-  assert.equal(calculateServerShippingCostCents(items, 'US', false), 7293)
-  assert.equal(calculateServerShippingCostCents(items, 'GB', true), 5684)
-  assert.equal(calculateServerShippingCostCents(items, 'NO', true), 6958)
+  // Paese extra-UE senza misura: dal 21/09/2026 si vende, con l'aliquota IVA del
+  // paese di destinazione, gli oneri misurati su CH, il trasporto della linea
+  // DDP-capace e il pavimento di 48,00 EUR. La promo non deve MAI azzerare quella
+  // tariffa: zero qui vorrebbe dire regalare anche dazi, IVA all'importazione e
+  // fee DDP.
+  assert.equal(calculateServerShippingCostCents(items, 'US', true), 9937)
+  assert.equal(calculateServerShippingCostCents(items, 'US', false), 9937)
+  assert.equal(calculateServerShippingCostCents(items, 'GB', true), 6383)
+  assert.equal(calculateServerShippingCostCents(items, 'NO', true), 7654)
+  assert.equal(calculateServerShippingCostCents(items, 'CA', true), 8741)
+  assert.equal(calculateServerShippingCostCents(items, 'AU', true), 10530)
+  assert.equal(calculateServerShippingCostCents(items, 'JP', true), 10505)
+
+  // Il Brasile non ha una linea DDP: la spedizione si quota, non si incassa
+  // nulla. null (e non 0) e' l'unica risposta che non regala la spedizione.
+  assert.equal(calculateServerShippingCostCents(items, 'BR', true), null)
+  assert.equal(calculateServerShippingCostCents(items, 'BR', false), null)
+
+  // Proprieta' strutturale (era di main, in versione piu' debole: una lista
+  // fissa di paesi): ogni destinazione extra-UE o si quota (null), o produce una
+  // riga Stripe che non sta mai sotto il pavimento — promo o non promo. Cosi'
+  // l'aggiunta di un paese nuovo non puo' passare sotto silenzio.
+  for (const country of ['CH', 'NO', 'US', 'GB', 'CA', 'AU', 'JP', 'BR'] as const) {
+    for (const promo of [true, false]) {
+      const cents = calculateServerShippingCostCents(items, country, promo)
+      if (country === 'BR') {
+        assert.equal(cents, null, 'BR: la spedizione si quota, non si incassa')
+        continue
+      }
+      assert.ok(
+        cents !== null && cents >= 4800,
+        `${country} (promo=${promo}): riga Stripe sotto il pavimento (${cents})`,
+      )
+    }
+  }
 
   // Unione Europea: il comportamento di prima non cambia.
   assert.equal(calculateServerShippingCostCents(items, 'DE', true), 0)
