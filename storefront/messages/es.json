@@ -76,6 +76,11 @@
     "promoPlaceholder": "Ingresa el código",
     "promoApply": "Aplicar",
     "promoFreeShipping": "✓ Envío gratuito aplicado",
+    "shippingLandedNote": "Incluye transporte, despacho de aduanas e IVA de importación",
+    "promoFreeShippingShort": "Envío gratuito",
+    "promoFreeShippingNotApplicable": "no aplicable a este destino",
+    "shippingQuoteRequired": "A presupuestar",
+    "shippingQuoteRequiredNote": "Para este destino el envío se presupuesta con el despacho de aduanas incluido (transporte, aranceles, IVA de importación, tarifa DDP): escríbenos antes de pagar.",
     "promoInvalid": "Código inválido",
     "promoRemove": "Quitar",
     "promoProDiscount": "Descuento Pro {percent}%",
@@ -336,8 +341,8 @@
     "shippingText": "Los envíos se realizan desde Italia en un plazo de 3 a 5 días laborables desde la confirmación del pedido, excepto en períodos de alta demanda comunicados explícitamente.",
     "shippingRates": {
       "italy": "Italia: 7,65€ · gratis a partir de 50€",
-      "europe": "Europa: 14,99€ · gratis a partir de 150€",
-      "world": "Resto del mundo: 37,95€ · gratis a partir de 250€"
+      "europe": "Unión Europea: 14,99€ · gratis a partir de 150€",
+      "extraEu": "Fuera de la UE (Suiza, Noruega, Reino Unido, …): envío calculado al pagar, incluye transporte, despacho de aduanas e IVA de importación; para los destinos aún no presupuestables, el envío se calcula a petición"
     },
     "withdrawal": "5. Derecho de desistimiento",
     "withdrawalText1": "En virtud del D.Lgs. 206/2005, el consumidor tiene derecho a desistir del contrato en un plazo de 14 días desde la recepción del producto, sin necesidad de justificación, siempre que el producto esté intacto y sin usar. Para ejercer el desistimiento, escriba a {email}.",

@@ -4,7 +4,7 @@ import { checkVatNumber } from '@/lib/vies'
 import { ensureB2BAuthTable, findB2BUserByEmail, createB2BUser } from '@/lib/db-auth'
 import { createB2BOrder, type B2BLineItemInput } from '@/lib/cms-orders'
 import { calculateLineTotal } from '@/lib/pricing'
-import { calculateResellerShipping } from '@/lib/shipping'
+import { calculateResellerShipping, shippingQuoteNote } from '@/lib/shipping'
 
 function generateOrderNumber(): string {
   const date = new Date()
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     vat.status === 'valid'
       ? `[VIES OK] ${vat.name ?? 'partita IVA valida'}${vat.address ? ' — ' + vat.address : ''}`
       : `[VIES NON VERIFICATA — controllare a mano] ${vat.detail ?? ''}`
-  const notes = [form.notes?.trim(), vatNote].filter(Boolean).join('\n')
+  const notes = [form.notes?.trim(), vatNote, shippingQuoteNote(shipping.mode)].filter(Boolean).join('\n')
 
   // Ospite: l'account nasce dall'ordine, senza password. La imposta al
   // primo accesso (percorso già esistente per i migrati da pro_members)

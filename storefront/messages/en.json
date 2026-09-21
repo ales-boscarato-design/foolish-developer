@@ -76,6 +76,11 @@
     "promoPlaceholder": "Enter code",
     "promoApply": "Apply",
     "promoFreeShipping": "✓ Free shipping applied",
+    "shippingLandedNote": "Includes carriage, customs clearance and import VAT",
+    "promoFreeShippingShort": "Free shipping",
+    "promoFreeShippingNotApplicable": "not applicable to this destination",
+    "shippingQuoteRequired": "To be quoted",
+    "shippingQuoteRequiredNote": "For this destination shipping is quoted with customs clearance included (carriage, duties, import VAT, DDP fee): write to us before paying.",
     "promoInvalid": "Invalid code",
     "promoRemove": "Remove",
     "promoProDiscount": "Pro discount {percent}%",
@@ -336,8 +341,8 @@
     "shippingText": "Shipments are made from Italy within 3–5 working days from order confirmation, except during high-demand periods communicated explicitly.",
     "shippingRates": {
       "italy": "Italy: 7.65€ · free over 50€",
-      "europe": "Europe: 14.99€ · free over 150€",
-      "world": "Rest of world: 37.95€ · free over 250€"
+      "europe": "European Union: 14.99€ · free over 150€",
+      "extraEu": "Outside the EU (Switzerland, Norway, United Kingdom, …): shipping calculated at checkout, includes carriage, customs clearance and import VAT; for destinations we cannot quote yet, shipping is quoted on request"
     },
     "withdrawal": "5. Right of withdrawal",
     "withdrawalText1": "Under D.Lgs. 206/2005, the consumer has the right to withdraw from the contract within 14 days of receiving the product, without the need to provide justification, provided the product is intact and unused. To exercise withdrawal write to {email}.",

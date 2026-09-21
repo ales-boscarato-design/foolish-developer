@@ -135,6 +135,41 @@ test('server shipping uses the normalized subtotal and preserves free-above-thre
   assert.equal(calculateServerShippingCostCents(thresholdItems, 'XX', false), null)
 })
 
+test('la promo "spedizione gratuita" non azzera una tariffa extra-UE', () => {
+  const items = normalizeCheckoutItems([{
+    price: 99,
+    quantity: 1,
+    productName: 'Test',
+    variantLabel: 'A',
+    sku: 'TEST',
+  }])
+  assert.ok(items)
+  if (!items) return
+
+  // Svizzera: il costo sdoganato misurato (47,72 EUR) + il margine deciso da
+  // Alessandro (10%) = 52,49 resta intero. La promo non deve regalare dazi,
+  // IVA all'importazione e fee DDP.
+  assert.equal(calculateServerShippingCostCents(items, 'CH', true), 5249)
+  assert.equal(calculateServerShippingCostCents(items, 'CH', false), 5249)
+
+  // Paesi extra-UE non ancora misurati: profilo prudenziale col pavimento di
+  // 48,00 EUR. Il Regno Unito e la Norvegia stanno sopra il pavimento per
+  // costruzione (IVA all'importazione 20% e 25%); gli Stati Uniti ci arrivano
+  // per effetto del pavimento (nessuna IVA all'importazione sotto 800 USD).
+  // Mai zero: zero = spedire a spese di Foolish.
+  assert.equal(calculateServerShippingCostCents(items, 'GB', true), 6976)
+  assert.equal(calculateServerShippingCostCents(items, 'NO', false), 7702)
+  assert.equal(calculateServerShippingCostCents(items, 'US', false), 4800)
+  for (const country of ['GB', 'NO', 'US', 'CA', 'AU', 'JP', 'BR']) {
+    const cents = calculateServerShippingCostCents(items, country, true)
+    assert.ok(cents !== null && cents >= 4800, `${country}: riga Stripe sotto il pavimento (${cents})`)
+  }
+
+  // Unione Europea: il comportamento di prima non cambia.
+  assert.equal(calculateServerShippingCostCents(items, 'DE', true), 0)
+  assert.equal(calculateServerShippingCostCents(items, 'DE', false), 1499)
+})
+
 test('allocates a discount across non-negative product prices with at most two lines per item', () => {
   const lines = allocateProductDiscount([
     { price: 10, quantity: 3, productName: 'Test', variantLabel: 'A', sku: 'TEST-A' },
