@@ -33,6 +33,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Parametri non validi' }, { status: 400 })
   }
 
+  // La destinazione la decide il server, non il body: `zone` sceglie solo la
+  // scala di prezzo, e la lista di indirizzi ammessi viene da ZONE_COUNTRIES
+  // (solo territorio doganale UE). Un abbonamento verso una destinazione
+  // extra-UE addebiterebbe 14,99 EUR di spedizione a ogni ciclo contro un costo
+  // sdoganato di 40,99/43,79: le nuove attivazioni li' restano chiuse
+  // (decisione di Alessandro 21/09/2026). I rinnovi gia' attivi non passano di
+  // qui e non cambiano.
+  const allowedCountries = ZONE_COUNTRIES[zone]
+  if (!allowedCountries || allowedCountries.length === 0) {
+    return NextResponse.json({ error: 'Parametri non validi' }, { status: 400 })
+  }
+
   const firstPhase = SUBSCRIPTION_LADDER[plan][zone].phases[0]
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
@@ -41,7 +53,7 @@ export async function POST(req: NextRequest) {
     customer_email: email,
     billing_address_collection: 'auto',
     shipping_address_collection: {
-      allowed_countries: ZONE_COUNTRIES[zone] as AllowedCountry[],
+      allowed_countries: allowedCountries as AllowedCountry[],
     },
     line_items: [
       {

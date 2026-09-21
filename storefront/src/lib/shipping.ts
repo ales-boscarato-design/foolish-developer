@@ -18,6 +18,21 @@
  * 99,00 EUR → incassato 14,99 EUR di spedizione, costo reale 47,72 EUR.
  * Perdita 32,73 EUR su un pacco (3,18 volte l'incassato).
  *
+ * Punti di prezzo e politica — decisi da Alessandro il 21/09/2026: questo file
+ * li applica, non li sceglie.
+ *   1. margine extra-UE 10% (`EXTRA_EU_MARGIN_RATE`): sul caso misurato CH
+ *      47,72 di costo + 4,77 di margine = 52,49 EUR addebitati.
+ *   2. le destinazioni extra-UE senza misura SI VENDONO, con un profilo
+ *      prudenziale per paese che usa l'IVA all'importazione della destinazione:
+ *      il profilo svizzero (8,1%) NON e' prudente per il Regno Unito (20%) ne'
+ *      per la Norvegia (25%).
+ *   3. pavimento `EXTRA_EU_MINIMUM_SHIPPING` (48,00) sulla spedizione
+ *      addebitata extra-UE, applicato DOPO il calcolo, mai sotto.
+ *   4. spedizione gratuita extra-UE inesistente e promo "spedizione gratuita"
+ *      che non azzera la tariffa extra-UE.
+ *   5. de minimis svizzera (IVA sotto CHF 5) SPENTA: l'IVA si addebita anche
+ *      quando la dogana non la riscuoterebbe.
+ *
  * Il profilo di ogni paese e' qui dentro, in un solo posto: lo storefront lo
  * usa per il totale mostrato e per quello incassato. La chiave API Packlink NON
  * entra mai nel calcolo: qui ci sono solo tariffe e oneri misurati, mai
@@ -30,14 +45,11 @@ export const EU_CUSTOMS_UNION = new Set([
 ])
 
 /**
- * Zone commerciali dell'abbonamento ("abbonamento pelle mensile"). Resta com'e'
- * era — Svizzera e Norvegia comprese — perche' la scala dei prezzi di un
- * abbonamento e' un prodotto, non un confine doganale. Restringere questa lista
- * toglierebbe di colpo l'abbonamento a chi oggi puo' farlo; allinearla al costo
- * sdoganato cambia un importo ricorrente. Sono due decisioni commerciali, non
- * un effetto collaterale di questa modifica (il punto e' aperto e tracciato
- * fuori dal codice: oggi un rinnovo verso CH addebita 14,99 contro ~41-44 di
- * costo sdoganato).
+ * Zona commerciale storica dell'abbonamento. Comprende Svizzera e Norvegia
+ * perche' la scala dei prezzi di un abbonamento e' un prodotto, non un confine
+ * doganale. NON e' piu' usata per aprire nuove attivazioni (vedi
+ * ZONE_COUNTRIES in subscription-plans.ts): resta come storia dei rinnovi gia'
+ * attivi, che Alessandro tocca caso per caso.
  */
 export const EU_COUNTRIES = new Set([
   ...EU_CUSTOMS_UNION,
@@ -98,8 +110,17 @@ export interface ShippingRate {
   /**
    * true: la destinazione e' extra-UE e non esiste ancora una misura per quel
    * paese. Non si inventa un numero e non si incassa: la spedizione si quota.
+   * Rimane per la politica `quote_required`; con la politica di default
+   * (`conservative_profile`) non si presenta su nessuna destinazione ammessa.
    */
   requiresQuote: boolean
+  /**
+   * Pavimento di spedizione addebitata (`EXTRA_EU_MINIMUM_SHIPPING`). null
+   * sulle zone senza dogana, dove non esiste.
+   */
+  minimumCharge: number | null
+  /** true quando e' il pavimento (non la stima) a determinare `cost`. */
+  minimumChargeApplied: boolean
 }
 
 export interface ExtraEuProfile {
@@ -148,6 +169,28 @@ export interface ExtraEuProfile {
 }
 
 /**
+ * Margine sopra il costo sdoganato, su ogni destinazione extra-UE.
+ * Punto di prezzo deciso da Alessandro (21/09/2026): 10%. Un cuscinetto che
+ * cresce col valore, come cresce il costo: a margine 0 basta uno scostamento di
+ * calibrazione e si e' di nuovo sotto.
+ */
+export const EXTRA_EU_MARGIN_RATE = 0.10
+
+/**
+ * Parametri del collo di riferimento MISURATO (40x40x10 / 2,0 kg, Basel CH).
+ * Sono la base di ogni profilo extra-UE finche' per quel paese non c'e' una
+ * misura: stesso corriere, stessa assicurazione, stessa fee DDP, stessa
+ * gestione, stesso residuo di sdoganamento.
+ */
+const REFERENCE_PARCEL = {
+  carrier: 23.00,
+  insuranceRate: 0.0404,
+  fixedImportFee: 4.08,
+  ddpFee: 4.96,
+  handlingFee: 0.99,
+} as const
+
+/**
  * Profilo Svizzera — MISURATO, non stimato.
  *
  * Ordine CMS 31 / FOOLISH-1788184527086, Basel 4058, collo 40x40x10 / 2,0 kg,
@@ -163,24 +206,19 @@ export interface ExtraEuProfile {
  *
  * UN SOLO PUNTO DI MISURA: e' una calibrazione a un punto. La curva va tarata
  * su 3-5 spedizioni extra-UE con valori diversi (Alfred registra il costo reale
- * di ognuna con `pipeline.py margini`). Finche' non ci sono, il profilo resta
- * prudenziale: meglio addebitare un euro in piu' che regalare lo sdoganamento.
+ * di ognuna con `pipeline.py margini`). Costo e prezzo sono due cose diverse:
+ * 47,72 e' il costo misurato, 52,49 il prezzo addebitato (costo + 10%).
  */
 export const SWITZERLAND_PROFILE: ExtraEuProfile = {
-  carrier: 23.00,
-  insuranceRate: 0.0404,
+  ...REFERENCE_PARCEL,
   dutyRate: 0,
   importVatRate: 0.081,
-  fixedImportFee: 4.08,
-  ddpFee: 4.96,
-  handlingFee: 0.99,
   // De minimis CH: nessuna IVA se l'imposta e' sotto CHF 5 (≈ CHF 62 di valore
   // complessivo). Tenuta SPENTA: la soglia in EUR dipende dal cambio, e
   // sbagliarla vuol dire spedire sotto costo. Da accendere con un cambio
   // confermato, non con un cambio stimato.
   importVatExemptBelow: null,
-  // Punto di prezzo: da approvare. 0 = la spedizione viaggia a costo.
-  marginRate: 0,
+  marginRate: EXTRA_EU_MARGIN_RATE,
   // Mai gratuita: sopra soglia lo sdoganamento lo pagherebbe Foolish.
   freeAbove: null,
   freeShippingPromoAllowed: false,
@@ -189,44 +227,124 @@ export const SWITZERLAND_PROFILE: ExtraEuProfile = {
 }
 
 /**
- * Copertura per paese. Ogni paese extra-UE di ALLOWED_SHIPPING_COUNTRIES che
- * non compare qui usa DEFAULT_EXTRA_EU_PROFILE e viene marcato `calibrated:
- * false`: il prezzo non scende sotto il profilo misurato piu' caro.
+ * Profilo prudenziale per una destinazione extra-UE non ancora misurata.
+ *
+ * L'unico parametro che deve venire dal paese e' l'IVA all'importazione (e il
+ * dazio, dove e' noto): il resto e' il collo di riferimento misurato. Non e'
+ * una misura del paese — e' il numero piu' onesto disponibile finche' non c'e'
+ * una spedizione reale da leggere. La misura (card t_089d1b01, registro
+ * `pipeline.py margini`) sostituisce il profilo senza toccare altro: basta
+ * rimpiazzare la voce in `LANDED_COST_COUNTRIES`.
+ */
+function prudentProfile(params: {
+  importVatRate: number
+  source: string
+  dutyRate?: number
+}): ExtraEuProfile {
+  return {
+    ...REFERENCE_PARCEL,
+    dutyRate: params.dutyRate ?? 0,
+    importVatRate: params.importVatRate,
+    importVatExemptBelow: null,
+    marginRate: EXTRA_EU_MARGIN_RATE,
+    freeAbove: null,
+    freeShippingPromoAllowed: false,
+    calibrated: false,
+    source: params.source,
+  }
+}
+
+/**
+ * Copertura per paese — la regola e' per paese, non un flat unico.
+ *
+ * `CH` e' l'unico profilo misurato. Gli altri paesi extra-UE ammessi hanno un
+ * profilo prudenziale che usa l'**IVA all'importazione della destinazione**: e'
+ * il punto tecnico che rende il pavimento una rete e non una soluzione. Con
+ * l'8,1% svizzero anche a 48,00 EUR si resta sotto costo di 17,27 in GB e di
+ * 24,53 in NO: li' la tariffa deve stare sopra il pavimento per costruzione.
  */
 export const LANDED_COST_COUNTRIES: Partial<Record<AllowedShippingCountry, ExtraEuProfile>> = {
   CH: SWITZERLAND_PROFILE,
+
+  // Regno Unito: import VAT 20% (aliquota standard); dazio 0 sotto £135.
+  GB: prudentProfile({
+    importVatRate: 0.20,
+    source: 'prudenziale — non misurato: IVA all\'importazione UK 20%, resto dal collo di riferimento CH',
+  }),
+  // Norvegia: 25% (VOEC sui bassi valori).
+  NO: prudentProfile({
+    importVatRate: 0.25,
+    source: 'prudenziale — non misurato: IVA all\'importazione NO 25%, resto dal collo di riferimento CH',
+  }),
+  // Stati Uniti: nessuna IVA all'importazione sotto gli 800 USD (de minimis).
+  // Sopra quella soglia il pacco e' daziabile e le voci non sono modellate:
+  // e' il paese dove il pavimento fa il lavoro (vedi nota di debolezza in
+  // fondo al file).
+  US: prudentProfile({
+    importVatRate: 0,
+    source: 'prudenziale — non misurato: nessuna IVA all\'importazione sotto gli 800 USD, resto dal collo di riferimento CH',
+  }),
+  // Canada: GST federale 5%, HST 13-15% secondo provincia. Si usa 13%.
+  CA: prudentProfile({
+    importVatRate: 0.13,
+    source: 'prudenziale — non misurato: GST/HST 13%, resto dal collo di riferimento CH',
+  }),
+  // Australia: GST 10% sui beni importati.
+  AU: prudentProfile({
+    importVatRate: 0.10,
+    source: 'prudenziale — non misurato: GST 10%, resto dal collo di riferimento CH',
+  }),
+  // Giappone: consumption tax 10%.
+  JP: prudentProfile({
+    importVatRate: 0.10,
+    source: 'prudenziale — non misurato: consumption tax 10%, resto dal collo di riferimento CH',
+  }),
+  // Brasile: carico IVA/ICMS alto e variabile per stato. Si usa 25%.
+  BR: prudentProfile({
+    importVatRate: 0.25,
+    source: 'prudenziale — non misurato: ICMS ~25%, resto dal collo di riferimento CH',
+  }),
 }
 
-/** Profilo prudenziale per i paesi non ancora misurati. */
-export const DEFAULT_EXTRA_EU_PROFILE: ExtraEuProfile = {
-  ...SWITZERLAND_PROFILE,
-  calibrated: false,
-  source: 'prudenziale — profilo CH misurato, esteso a un paese non ancora misurato',
-}
+/**
+ * Fallback per un codice paese extra-UE senza profilo dedicato.
+ *
+ * Non e' una destinazione vendibile (ALLOWED_SHIPPING_COUNTRIES non lo
+ * contiene: il checkout la rifiuta prima di arrivare qui), quindi non deve
+ * essere preciso — deve essere il piu' prudente: l'aliquota piu' alta fra i
+ * profili, cosi' un errore di configurazione non diventa una spedizione sotto
+ * costo.
+ */
+export const DEFAULT_EXTRA_EU_PROFILE: ExtraEuProfile = prudentProfile({
+  importVatRate: 0.25,
+  source: 'prudenziale — fallback generico, paese non mappato o non vendibile: non e\' una misura',
+})
 
-/** Tariffa piatta minima per un paese non misurato (storico "Resto del mondo"). */
-export const UNCALIBRATED_EXTRA_EU_FLAT = 37.95
+/**
+ * Pavimento di spedizione addebitata su una destinazione extra-UE.
+ * Deciso da Alessandro (21/09/2026): 48,00 EUR, mai meno, arrotondato per
+ * eccesso. Si applica DOPO il calcolo, a OGNI destinazione extra-UE (compresa
+ * la Svizzera misurata: sotto ~50 EUR di merce il costo stimato scende sotto
+ * il pavimento e vince il pavimento — e' una politica di prezzo, non una
+ * misura). Sul caso misurato non cambia nulla: 52,49 > 48,00.
+ */
+export const EXTRA_EU_MINIMUM_SHIPPING = 48.00
 
 /**
  * Cosa fare con un paese extra-UE che non ha ancora una misura.
  *
- *   'quote_required'      (default) non si vende a un prezzo indovinato: la
- *                         spedizione si quota a mano finche' il paese non ha
- *                         la sua misura. E' l'unica politica che non puo'
- *                         spedire sotto costo, perche' non spedisce affatto.
- *   'conservative_profile'  si applica il profilo CH misurato con il pavimento
- *                         storico. Sblocca le vendite, ma il profilo CH NON e'
- *                         prudente per tutti: il Regno Unito ha IVA 20% e la
- *                         Norvegia 25% (sotto-stimato), gli Stati Uniti non
- *                         hanno IVA all'importazione sotto gli 800 USD
- *                         (sovra-stimato). Fuori dalla Svizzera e' un numero
- *                         che non viene da una misura.
- *
- * La scelta e' commerciale: default fail-closed, si cambia con una riga.
+ *   'conservative_profile'  (default, decisione di Alessandro 21/09/2026) si
+ *                         vende col profilo prudenziale del paese — che usa
+ *                         l'IVA all'importazione della destinazione — piu' il
+ *                         pavimento `EXTRA_EU_MINIMUM_SHIPPING`.
+ *   'quote_required'      non si vende a un prezzo non misurato: la spedizione
+ *                         si quota a mano. Resta come rete di sicurezza per un
+ *                         profilo che si rivelasse sbagliato: si attiva con
+ *                         una riga e non spedisce affatto.
  */
 export type UncalibratedExtraEuPolicy = 'quote_required' | 'conservative_profile'
 
-export const UNCALIBRATED_EXTRA_EU_POLICY: UncalibratedExtraEuPolicy = 'quote_required'
+export const UNCALIBRATED_EXTRA_EU_POLICY: UncalibratedExtraEuPolicy = 'conservative_profile'
 
 interface FlatZoneConfig {
   cost: number
@@ -321,15 +439,17 @@ export function calculateShipping(
       landedCost: null,
       freeShippingPromoAllowed: true,
       requiresQuote: false,
+      minimumCharge: null,
+      minimumChargeApplied: false,
     }
   }
 
   const country = String(countryCode ?? '').toUpperCase() as AllowedShippingCountry
   const profile = LANDED_COST_COUNTRIES[country] ?? DEFAULT_EXTRA_EU_PROFILE
 
-  // Paese extra-UE mai misurato: nessun numero inventato. La spedizione si
-  // quota a mano (fail-closed) oppure si applica il profilo misurato con il
-  // pavimento storico, se la politica e' stata girata di proposito.
+  // Paese extra-UE senza profilo misurato: la politica di default lo vende col
+  // profilo prudenziale del paese; con 'quote_required' non si inventa un
+  // numero e la spedizione si quota a mano.
   if (!profile.calibrated && policy === 'quote_required') {
     return {
       zone,
@@ -339,17 +459,19 @@ export function calculateShipping(
       landedCost: null,
       freeShippingPromoAllowed: false,
       requiresQuote: true,
+      minimumCharge: null,
+      minimumChargeApplied: false,
     }
   }
 
   const landed = calculateLandedCost(cartTotal, profile)
 
   // Guardia di accettazione: su extra-UE non si parte mai sotto il costo
-  // sdoganato stimato. Per i paesi non misurati la tariffa piatta storica
-  // resta un pavimento.
-  const cost = profile.calibrated
-    ? landed.total
-    : Math.max(landed.total, UNCALIBRATED_EXTRA_EU_FLAT)
+  // sdoganato stimato. Il pavimento (`EXTRA_EU_MINIMUM_SHIPPING`) si applica
+  // DOPO il calcolo, come ultima rete di sicurezza, su ogni destinazione
+  // extra-UE: se ne sta sotto e' la stima a essere debole, e li' si addebita
+  // di piu', non meno.
+  const cost = Math.max(landed.total, EXTRA_EU_MINIMUM_SHIPPING)
 
   const freeAbove = profile.freeAbove
   const isFree = freeAbove !== null && cartTotal >= freeAbove
@@ -362,6 +484,8 @@ export function calculateShipping(
     landedCost: landed,
     freeShippingPromoAllowed: profile.freeShippingPromoAllowed,
     requiresQuote: false,
+    minimumCharge: EXTRA_EU_MINIMUM_SHIPPING,
+    minimumChargeApplied: cost > landed.total,
   }
 }
 
@@ -398,3 +522,38 @@ export function freeShippingRemaining(cartTotal: number, countryCode: string): n
   const threshold = FLAT_ZONE_CONFIG[zone].freeAbove
   return Math.max(0, threshold - cartTotal)
 }
+
+/**
+ * LIMITI DICHIARATI di questi profili — quello che il modello NON sa.
+ *
+ * 1. Collo di riferimento. `carrier` 23,00 e `insuranceRate` 4,04% sono del
+ *    collo misurato (40x40x10 / 2,0 kg). Peso e volume non sono modellati: un
+ *    collo piu' pesante o piu' ingombrante costa di piu', e una destinazione
+ *    intercontinentale costa probabilmente piu' della Svizzera a parita' di
+ *    collo. Il pavimento copre l'errore verso il basso, non lo elimina.
+ * 2. `fixedImportFee` 4,08 e' il residuo misurato in Svizzera (i
+ *    `customs_and_duties` che l'IVA 8,1% non spiega): usato come allowance di
+ *    sdoganamento per gli altri paesi, dove non e' stato misurato.
+ * 3. Dazi non modellati fuori dalla Svizzera (dove sono 0 per legge). In
+ *    particolare gli Stati Uniti: sotto gli 800 USD il pacco non e' daziabile
+ *    (e l'IVA all'importazione non esiste), sopra quella soglia scattano dazio
+ *    e MPF, che qui non sono stimati: e' il caso che il pavimento solleva e che
+ *    la misura deve sostituire.
+ * 4. Aliquote dei profili prudenziali (GB 20%, NO 25%, CA 13%, AU 10%, JP 10%,
+ *    BR 25%) sono aliquote di legge della destinazione, non misure: sono la
+ *    parte che rende il profilo prudente invece che ottimista, e la prima cosa
+ *    che la calibrazione sostituisce.
+ *
+ * Sostituire un profilo con la sua misura = rimpiazzare la voce in
+ * `LANDED_COST_COUNTRIES` (card t_089d1b01) e rilanciare i test: nessun altro
+ * punto del codice conosce i parametri.
+ *
+ * La base del calcolo puo' diventare una QUOTA REALE e non una stima: `alfred`
+ * ha verificato il 21/09/2026 che `POST /pro/shipments/products` (DDP selezionato
+ * + fattura doganale, fuori dal prefisso /v1) restituisce porterage,
+ * management_fee, insurance, ddp_fee e customs_and_duties con il supplemento DDP
+ * identico a quello poi addebitato (dettagli in DOGANA-OPERATIVA.md). Quando la
+ * quota arriva, sostituisce il profilo del paese; il pavimento resta la rete di
+ * sicurezza sotto di essa. Il costo dell'etichetta non entra mai nel checkout:
+ * la chiave Packlink resta solo sulla Pi e qui non c'e' nessuna credenziale.
+ */
