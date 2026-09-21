@@ -734,8 +734,8 @@ test('GB: sotto £135 di valore merce il dazio e\' zero, sopra entra nel totale'
 })
 
 test('GB: la soglia si confronta sul valore merce, non sulla base doganale', () => {
-  // Merce 140,00 = 120,23 GBP (sotto la soglia) + trasporto 18,50 = 158,50 di
-  // base doganale, cioe' 136,12 GBP: sopra soglia. Se il confronto fosse sulla
+  // Merce 140,00 = 120,23 GBP (sotto la soglia) + trasporto 19,49 = 159,49 di
+  // base doganale, cioe' 136,97 GBP: sopra soglia. Se il confronto fosse sulla
   // base doganale, qui scatterebbe un dazio che la norma non chiede — la soglia
   // e' sull'intrinsic value della merce, trasporto e assicurazione esclusi.
   const goods = 140

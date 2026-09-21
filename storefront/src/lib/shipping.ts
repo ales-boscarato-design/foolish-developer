@@ -123,7 +123,7 @@ export interface LandedCostBreakdown {
    * centesimo PRIMA della somma), arrotondato per eccesso al centesimo. NON
    * include il pavimento — quello lo applica `calculateShipping` a OGNI
    * destinazione extra-UE, Svizzera misurata compresa, e il prezzo addebitato al
-   * cliente e' sempre `ShippingRate.cost` (merce 0 in GB: qui `total` = 36,34,
+   * cliente e' sempre `ShippingRate.cost` (merce 0 in GB: qui `total` = 37,65,
    * `cost` = 48,00 perche' vince il pavimento).
    */
   total: number
@@ -437,7 +437,7 @@ export const DEFAULT_EXTRA_EU_PROFILE: ExtraEuProfile = {
  * Perche' l'aliquota del paese e non l'8,1% svizzero: gli oneri import in DDP
  * li paga Foolish, quindi applicare l'aliquota sbagliata non e' un dettaglio di
  * arrotondamento — con l'8,1% su una merce da 99,00 il Regno Unito ci costerebbe
- * 23,50 di IVA contro 9,52 incassati (~14 EUR di perdita per spedizione).
+ * 23,70 di IVA contro 9,60 incassati (~14 EUR di perdita per spedizione).
  *
  * scelta 2026-09-21 (Alessandro, via alfred): i paesi senza misura si VENDONO,
  * con l'aliquota del paese di destinazione e il pavimento di 48,00 EUR.
