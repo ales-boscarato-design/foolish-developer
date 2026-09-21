@@ -5,7 +5,7 @@ import { checkVatNumber } from '@/lib/vies'
 import { ensureB2BAuthTable, findB2BUserByEmail, createB2BUser } from '@/lib/db-auth'
 import { createB2BOrder, type B2BLineItemInput } from '@/lib/cms-orders'
 import { calculateLineTotal } from '@/lib/pricing'
-import { calculateResellerShipping } from '@/lib/shipping'
+import { calculateResellerShipping, shippingQuoteNote } from '@/lib/shipping'
 
 const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY!)
 
@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
         vat.status === 'valid'
           ? `[VIES OK] ${vat.name ?? 'partita IVA valida'}`
           : `[VIES NON VERIFICATA — controllare a mano] ${vat.detail ?? ''}`,
+        shippingQuoteNote(shipping.mode),
       ].filter(Boolean).join('\n'),
     })
     orderId = order.orderId

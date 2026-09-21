@@ -10,6 +10,7 @@ import {
   freeShippingRemaining,
   getShippingZone,
   isFreeShippingPromoAllowed,
+  shippingRequiresQuote,
 } from './shipping'
 
 /**
@@ -80,6 +81,17 @@ test('nessuna spedizione extra-UE parte sotto il costo sdoganato stimato', () =>
     if (getShippingZone(country) !== 'EXTRA_EU') continue
     for (const goods of values) {
       const rate = calculateShipping(goods, country)
+
+      // Paese senza misura: non si incassa nulla e non si inventa un prezzo.
+      // (Se un giorno la politica diventa 'conservative_profile', il paese
+      // ricade nel ramo sotto e deve reggere le stesse disuguaglianze.)
+      if (rate.requiresQuote) {
+        assert.equal(rate.cost, 0, `${country} @ ${goods}: un preventivo non incassa`)
+        assert.equal(rate.landedCost, null, `${country} @ ${goods}: nessuna stima inventata`)
+        assert.equal(rate.isFree, false)
+        continue
+      }
+
       assert.ok(rate.landedCost, `${country} @ ${goods}: manca la scomposizione`)
       if (!rate.landedCost) continue
       assert.equal(rate.isFree, false, `${country} @ ${goods}: spedizione gratuita su extra-UE`)
@@ -111,19 +123,52 @@ test('il costo sdoganato cresce col valore della merce (nessun buco per eccesso 
   }
 })
 
-test('un paese extra-UE non ancora misurato resta prudenziale e dichiarato', () => {
+test('un paese extra-UE non ancora misurato si quota, non si indovina (default)', () => {
   for (const country of ['US', 'GB', 'CA', 'AU', 'JP', 'BR', 'NO'] as const) {
     const rate = calculateShipping(99, country)
+    assert.equal(rate.zone, 'EXTRA_EU')
+    assert.equal(rate.requiresQuote, true, `${country}: venduto con un prezzo non misurato`)
+    assert.equal(rate.cost, 0)
+    assert.equal(rate.landedCost, null)
+    assert.equal(shippingRequiresQuote(country), true)
+  }
+
+  // La Svizzera e' misurata: si vende, e non si quota.
+  assert.equal(shippingRequiresQuote('CH'), false)
+  assert.equal(shippingRequiresQuote('IT'), false)
+  assert.equal(shippingRequiresQuote('DE'), false)
+
+  // Il profilo CH non e' prudente per tutti (IVA 20% in GB, 25% in NO; nessuna
+  // IVA all'importazione negli USA sotto gli 800 USD): per questo non e' il
+  // default. Se la politica viene girata di proposito, il pavimento storico
+  // resta e la disuguaglianza col costo stimato regge comunque.
+  for (const country of ['US', 'GB', 'NO'] as const) {
+    const rate = calculateShipping(99, country, 'conservative_profile')
+    assert.equal(rate.requiresQuote, false)
     assert.ok(rate.landedCost)
-    if (!rate.landedCost) return
+    if (!rate.landedCost) continue
     assert.equal(rate.landedCost.calibrated, false)
     assert.equal(rate.landedCost.source.startsWith('prudenziale'), true)
-    // Pavimento storico e profilo misurato piu' caro: il maggiore dei due.
     assert.ok(rate.cost >= UNCALIBRATED_EXTRA_EU_FLAT)
     assert.ok(rate.cost >= calculateLandedCost(99, DEFAULT_EXTRA_EU_PROFILE).total)
-    // E comunque mai sotto il costo stimato.
     assert.ok(rate.cost >= rate.landedCost.estimatedCost)
   }
+})
+
+test('un carrello non finito non diventa un prezzo NaN e il margine non puo\' essere negativo', () => {
+  for (const bad of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+    const rate = calculateShipping(bad, 'CH')
+    assert.ok(Number.isFinite(rate.cost), `${bad}: prezzo non finito`)
+    // Senza merce restano gli oneri fissi e l'IVA minima: 23,00 + 0,99 +
+    // 4,08 + 4,96 + 2,34 (8,1% su 28,95).
+    assert.equal(rate.cost, 35.37)
+  }
+
+  // Nessuna configurazione puo' far partire una spedizione sotto costo.
+  const greedy = calculateLandedCost(99, { ...SWITZERLAND_PROFILE, marginRate: -0.5 })
+  assert.equal(greedy.estimatedCost, 47.72)
+  assert.equal(greedy.total, 47.72)
+  assert.equal(greedy.margin, 0)
 })
 
 test('Italia e Unione Europea restano come erano', () => {

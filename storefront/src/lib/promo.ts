@@ -240,6 +240,12 @@ export function calculateServerShippingCostCents(
   if (subtotalCents === null) return null
 
   const baseShipping = calculateShipping(subtotalCents / 100, uppercaseCountry)
+
+  // Destinazione senza misura: non esiste un prezzo da addebitare. Mai 0 —
+  // zero vorrebbe dire velocizzare a spese di Foolish. Il chiamante la tratta
+  // come preventivo (vedi shippingRequiresQuote).
+  if (baseShipping.requiresQuote) return null
+
   const baseShippingCostCents = moneyToCents(baseShipping.cost)
   if (baseShippingCostCents === null) return null
 

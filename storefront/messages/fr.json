@@ -77,6 +77,10 @@
     "promoApply": "Appliquer",
     "promoFreeShipping": "✓ Livraison gratuite appliquée",
     "shippingLandedNote": "Comprend le transport, le dédouanement et la TVA à l'importation",
+    "promoFreeShippingShort": "Livraison gratuite",
+    "promoFreeShippingNotApplicable": "non applicable à cette destination",
+    "shippingQuoteRequired": "À devis",
+    "shippingQuoteRequiredNote": "Pour cette destination, la livraison est chiffrée dédouanement inclus (transport, droits de douane, TVA à l'importation, frais DDP) : écrivez-nous avant de payer.",
     "promoInvalid": "Code invalide",
     "promoRemove": "Supprimer",
     "promoProDiscount": "Réduction Pro {percent}%",
@@ -338,7 +342,7 @@
     "shippingRates": {
       "italy": "Italie : 7,65€ · gratuite dès 50€",
       "europe": "Union européenne : 14,99€ · gratuite dès 150€",
-      "extraEu": "Hors UE (Suisse, Norvège, Royaume-Uni, …) : livraison calculée au paiement, comprend le transport, le dédouanement et la TVA à l'importation"
+      "extraEu": "Hors UE (Suisse, Norvège, Royaume-Uni, …) : livraison calculée au paiement, transport, dédouanement et TVA à l'importation inclus ; pour les destinations non encore chiffrables, la livraison est établie sur demande"
     },
     "withdrawal": "5. Droit de rétractation",
     "withdrawalText1": "En vertu du D.Lgs. 206/2005, le consommateur a le droit de se rétracter du contrat dans un délai de 14 jours à compter de la réception du produit, sans avoir à fournir de motivation, à condition que le produit soit intact et non utilisé. Pour exercer la rétractation, écrivez à {email}.",

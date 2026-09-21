@@ -121,6 +121,7 @@ export default function CheckoutPage() {
 
   const canPay =
     !loading &&
+    !baseShipping.requiresQuote &&
     !!form.name && !!form.email && !!form.address && !!form.city && !!form.postalCode &&
     !!form.phone && !phoneError &&
     emailStatus !== 'invalid' &&
@@ -332,7 +333,7 @@ export default function CheckoutPage() {
               </div>
             </div>
           )}
-          {remaining === 0 && (
+          {shipping.isFree && (
             <div
               className="flex items-center gap-2 rounded-xl p-3.5 mb-6 border text-sm font-medium"
               style={{
@@ -343,6 +344,15 @@ export default function CheckoutPage() {
             >
               <CheckCircle size={14} />
               {t('freeShippingApplied')}
+            </div>
+          )}
+
+          {baseShipping.requiresQuote && (
+            <div
+              className="rounded-xl p-4 mb-6 border text-sm"
+              style={{ backgroundColor: 'var(--surface-1)', borderColor: '#151515', color: 'var(--muted-fg)' }}
+            >
+              {t('shippingQuoteRequiredNote')}
             </div>
           )}
 
@@ -666,7 +676,9 @@ export default function CheckoutPage() {
               <div className="flex justify-between py-2" style={{ borderBottom: '1px solid var(--surface-3)' }}>
                 <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>Spedizione — {country}</span>
                 <span className="text-mono text-sm" style={{ color: shipping.isFree ? '#5a9c52' : 'var(--foreground)' }}>
-                  {shipping.isFree ? 'Gratuita' : `€${shipping.cost.toFixed(2)}`}
+                  {baseShipping.requiresQuote
+                    ? t('shippingQuoteRequired')
+                    : shipping.isFree ? 'Gratuita' : `€${shipping.cost.toFixed(2)}`}
                 </span>
               </div>
 
@@ -739,7 +751,9 @@ export default function CheckoutPage() {
                         ? `−${promoData.discountPercent}%`
                         : promoType === 'amount' && promoData?.discountAmount
                         ? `−€${promoData.discountAmount.toFixed(2)}`
-                        : 'Spedizione gratuita'
+                        : freeShippingByPromo
+                        ? t('promoFreeShippingShort')
+                        : t('promoFreeShippingNotApplicable')
                     }
                   </span>
                   <button onClick={removePromo} className="text-label" style={{ color: 'var(--muted-fg)' }}>

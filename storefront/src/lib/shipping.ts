@@ -30,10 +30,19 @@ export const EU_CUSTOMS_UNION = new Set([
 ])
 
 /**
- * Nome storico usato dal resto del codice (abbonamenti, zone). Coincide con
- * l'unione doganale: la Svizzera e la Norvegia NON ne fanno parte.
+ * Zone commerciali dell'abbonamento ("abbonamento pelle mensile"). Resta com'e'
+ * era — Svizzera e Norvegia comprese — perche' la scala dei prezzi di un
+ * abbonamento e' un prodotto, non un confine doganale. Restringere questa lista
+ * toglierebbe di colpo l'abbonamento a chi oggi puo' farlo; allinearla al costo
+ * sdoganato cambia un importo ricorrente. Sono due decisioni commerciali, non
+ * un effetto collaterale di questa modifica (il punto e' aperto e tracciato
+ * fuori dal codice: oggi un rinnovo verso CH addebita 14,99 contro ~41-44 di
+ * costo sdoganato).
  */
-export const EU_COUNTRIES = EU_CUSTOMS_UNION
+export const EU_COUNTRIES = new Set([
+  ...EU_CUSTOMS_UNION,
+  'NO','IS','LI','CH',
+])
 
 export const ALLOWED_SHIPPING_COUNTRIES = [
   'IT','DE','FR','ES','NL','BE','AT','CH','PL','PT','SE','DK','NO',
@@ -86,6 +95,11 @@ export interface ShippingRate {
   landedCost: LandedCostBreakdown | null
   /** Se una promo "spedizione gratuita" puo' azzerare questa tariffa. */
   freeShippingPromoAllowed: boolean
+  /**
+   * true: la destinazione e' extra-UE e non esiste ancora una misura per quel
+   * paese. Non si inventa un numero e non si incassa: la spedizione si quota.
+   */
+  requiresQuote: boolean
 }
 
 export interface ExtraEuProfile {
@@ -193,6 +207,27 @@ export const DEFAULT_EXTRA_EU_PROFILE: ExtraEuProfile = {
 /** Tariffa piatta minima per un paese non misurato (storico "Resto del mondo"). */
 export const UNCALIBRATED_EXTRA_EU_FLAT = 37.95
 
+/**
+ * Cosa fare con un paese extra-UE che non ha ancora una misura.
+ *
+ *   'quote_required'      (default) non si vende a un prezzo indovinato: la
+ *                         spedizione si quota a mano finche' il paese non ha
+ *                         la sua misura. E' l'unica politica che non puo'
+ *                         spedire sotto costo, perche' non spedisce affatto.
+ *   'conservative_profile'  si applica il profilo CH misurato con il pavimento
+ *                         storico. Sblocca le vendite, ma il profilo CH NON e'
+ *                         prudente per tutti: il Regno Unito ha IVA 20% e la
+ *                         Norvegia 25% (sotto-stimato), gli Stati Uniti non
+ *                         hanno IVA all'importazione sotto gli 800 USD
+ *                         (sovra-stimato). Fuori dalla Svizzera e' un numero
+ *                         che non viene da una misura.
+ *
+ * La scelta e' commerciale: default fail-closed, si cambia con una riga.
+ */
+export type UncalibratedExtraEuPolicy = 'quote_required' | 'conservative_profile'
+
+export const UNCALIBRATED_EXTRA_EU_POLICY: UncalibratedExtraEuPolicy = 'quote_required'
+
 interface FlatZoneConfig {
   cost: number
   freeAbove: number
@@ -224,7 +259,9 @@ export function calculateLandedCost(
   cartTotal: number,
   profile: ExtraEuProfile,
 ): LandedCostBreakdown {
-  const goods = Math.max(0, roundCents(cartTotal))
+  // Un valore non finito non deve diventare NaN nel prezzo mostrato: si tratta
+  // come merce a zero (restano comunque gli oneri fissi).
+  const goods = Number.isFinite(cartTotal) ? Math.max(0, roundCents(cartTotal)) : 0
 
   const insurance = roundCents(goods * profile.insuranceRate)
   const carrier = roundCents(profile.carrier)
@@ -244,7 +281,10 @@ export function calculateLandedCost(
   const estimatedCost = roundCents(
     carrier + insurance + duty + importVat + fixedImportFee + ddpFee + handlingFee,
   )
-  const margin = roundCents(estimatedCost * profile.marginRate)
+  // Un margine negativo non e' un'opzione: la tariffa non parte mai sotto il
+  // costo sdoganato stimato, qualunque cosa dica la configurazione.
+  const marginRate = Number.isFinite(profile.marginRate) ? Math.max(0, profile.marginRate) : 0
+  const margin = roundCents(estimatedCost * marginRate)
   const total = cents(estimatedCost + margin)
 
   return {
@@ -263,7 +303,11 @@ export function calculateLandedCost(
   }
 }
 
-export function calculateShipping(cartTotal: number, countryCode: string): ShippingRate {
+export function calculateShipping(
+  cartTotal: number,
+  countryCode: string,
+  policy: UncalibratedExtraEuPolicy = UNCALIBRATED_EXTRA_EU_POLICY,
+): ShippingRate {
   const zone = getShippingZone(countryCode)
 
   if (zone === 'IT' || zone === 'EU') {
@@ -276,16 +320,33 @@ export function calculateShipping(cartTotal: number, countryCode: string): Shipp
       isFree,
       landedCost: null,
       freeShippingPromoAllowed: true,
+      requiresQuote: false,
     }
   }
 
   const country = String(countryCode ?? '').toUpperCase() as AllowedShippingCountry
   const profile = LANDED_COST_COUNTRIES[country] ?? DEFAULT_EXTRA_EU_PROFILE
+
+  // Paese extra-UE mai misurato: nessun numero inventato. La spedizione si
+  // quota a mano (fail-closed) oppure si applica il profilo misurato con il
+  // pavimento storico, se la politica e' stata girata di proposito.
+  if (!profile.calibrated && policy === 'quote_required') {
+    return {
+      zone,
+      cost: 0,
+      freeAbove: null,
+      isFree: false,
+      landedCost: null,
+      freeShippingPromoAllowed: false,
+      requiresQuote: true,
+    }
+  }
+
   const landed = calculateLandedCost(cartTotal, profile)
 
   // Guardia di accettazione: su extra-UE non si parte mai sotto il costo
-  // sdoganato stimato. Per i paesi non misurati il profilo e' prudenziale e la
-  // tariffa piatta storica resta un pavimento.
+  // sdoganato stimato. Per i paesi non misurati la tariffa piatta storica
+  // resta un pavimento.
   const cost = profile.calibrated
     ? landed.total
     : Math.max(landed.total, UNCALIBRATED_EXTRA_EU_FLAT)
@@ -300,7 +361,16 @@ export function calculateShipping(cartTotal: number, countryCode: string): Shipp
     isFree,
     landedCost: landed,
     freeShippingPromoAllowed: profile.freeShippingPromoAllowed,
+    requiresQuote: false,
   }
+}
+
+/** true se per questo paese la spedizione va quotata a mano, non incassata. */
+export function shippingRequiresQuote(
+  countryCode: string,
+  policy: UncalibratedExtraEuPolicy = UNCALIBRATED_EXTRA_EU_POLICY,
+): boolean {
+  return calculateShipping(0, countryCode, policy).requiresQuote
 }
 
 /** Se una promo "spedizione gratuita" puo' azzerare la tariffa per questo paese. */
