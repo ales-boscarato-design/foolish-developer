@@ -13,7 +13,7 @@ import { EU_CUSTOMS_UNION, getShippingZone } from './shipping'
  * Decisione di Alessandro (21/09/2026): le nuove attivazioni dell'abbonamento
  * verso destinazioni extra-UE restano chiuse. La ragione e' un numero: un ciclo
  * verso CH addebita 14,99 EUR di spedizione contro un costo sdoganato stimato
- * di 40,99 (tattoo) / 43,79 (pmu), ogni mese.
+ * di 41,17 (tattoo) / 43,90 (pmu), ogni mese.
  */
 const EXTRA_EU_DESTINATIONS = ['CH', 'NO', 'IS', 'LI', 'GB', 'US', 'CA', 'AU', 'JP', 'BR'] as const
 

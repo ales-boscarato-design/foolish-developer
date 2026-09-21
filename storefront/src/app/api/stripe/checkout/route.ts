@@ -135,9 +135,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Dati cliente non validi' }, { status: 400 })
   }
 
-  // Destinazione extra-UE senza una misura di costo sdoganato: non esiste un
-  // prezzo da incassare. Si ferma l'ordine e si quota (con sdoganamento, IVA
-  // all'importazione e fee DDP inclusi) invece di spedire sotto costo.
+  // Destinazione extra-UE SENZA profilo (nessuna linea DDP: oggi il Brasile):
+  // non esiste un prezzo da incassare. Si ferma l'ordine e si quota (con
+  // sdoganamento, IVA all'importazione e fee DDP inclusi) invece di spedire
+  // sotto costo. Dal 21/09/2026 i paesi senza misura ma con una linea DDP
+  // VENDONO (aliquote del paese di destinazione + pavimento 48,00 EUR): questa
+  // guardia non li intercetta piu', e resta come rete per i paesi senza profilo.
   if (shippingRequiresQuote(customer.country)) {
     return NextResponse.json(
       {

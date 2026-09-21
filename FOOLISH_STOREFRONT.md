@@ -329,8 +329,12 @@ STOREFRONT_URL=https://thefoolishbutcher.com
 - [x] **Foto:** sito attuale come base, nuove foto integrate durante produzione
 - [x] **Spedizione:**
   - Italia: 7,65€ (gratis sopra 50€)
-  - Europa: 14,99€ (gratis sopra 150€)
-  - Resto del mondo: 37,95€ (gratis sopra 250€)
+  - Europa (territorio doganale UE): 14,99€ (gratis sopra 150€)
+  - Extra-UE (fuori dal territorio doganale: **Svizzera e Norvegia comprese**): costo sdoganato + 10% di
+    margine, mai gratuita, con un pavimento di 48,00€ sulla spedizione addebitata.
+    Profilo CH misurato (47,72€ di costo sull'ordine 31, merce 99€ → 52,49€ addebitati); gli altri paesi
+    vendono col preventivo corrente della linea DDP-capace e l'aliquota IVA all'importazione del paese di
+    destinazione. Il Brasile resta in preventivo (nessuna linea DDP). **Fonte di verità: `storefront/src/lib/shipping.ts`.**
   - Phase 3: integrazione Packlink Pro per tariffe reali in tempo reale
 - [x] **IVA:** inclusa nei prezzi esposti
 - [x] **Stock limitato:** sezione separata, non sempre visibile, appare solo quando popolata — forte urgency
@@ -342,11 +346,19 @@ STOREFRONT_URL=https://thefoolishbutcher.com
 function calculateShipping(cartTotal, country):
   if country == 'IT':
     return cartTotal >= 50 ? 0 : 7.65
-  if country in EU_COUNTRIES:
+  if country in EU_CUSTOMS_UNION:      # territorio doganale UE, non "Europa"
     return cartTotal >= 150 ? 0 : 14.99
-  else:  # resto del mondo
-    return cartTotal >= 250 ? 0 : 37.95
+  else:  # Extra-UE: trasporto + assicurazione + dazio + IVA import + sdoganamento + fee DDP + gestione
+    duty    = importDuty(goods, carrier, country)      # aliquota del paese, azzerata sotto soglia dove e' la legge ad azzerarla
+    vatBase = round(goods + carrier + duty)            # base IVA: merce + trasporto reale + dazio
+    landed  = carrier + insurance + duty + round(vatBase * importVatRate) + fixedImportFee + ddpFee + handlingFee
+    margin  = round(landed * 0.10)                     # margine 10% deciso da Alessandro (21/09/2026), al centesimo
+    price   = ceil(landed + margin)                    # il margine si arrotonda PRIMA della somma: 47,72 → 4,77 → 52,49
+    return max(price, 48.00)                           # pavimento applicato DOPO il calcolo, su OGNI extra-UE (CH: sotto 65,34€ di merce)
 ```
+
+Restano fuori: il paese senza profilo (nessuna linea DDP: oggi BR) si quota a mano, non si incassa.
+Pseudocodice di orientamento: i parametri e i commenti che li giustificano stanno in `storefront/src/lib/shipping.ts`.
 
 Packlink Pro Phase 3: al checkout, dopo inserimento CAP/paese, chiamata API Packlink
 per tariffa reale → sostituisce le tariffe fisse. Packlink già integrato in Phase 1 per tracking,

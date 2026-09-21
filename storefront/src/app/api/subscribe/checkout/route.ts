@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   // scala di prezzo, e la lista di indirizzi ammessi viene da ZONE_COUNTRIES
   // (solo territorio doganale UE). Un abbonamento verso una destinazione
   // extra-UE addebiterebbe 14,99 EUR di spedizione a ogni ciclo contro un costo
-  // sdoganato di 40,99/43,79: le nuove attivazioni li' restano chiuse
+  // sdoganato di 41,17/43,90: le nuove attivazioni li' restano chiuse
   // (decisione di Alessandro 21/09/2026). I rinnovi gia' attivi non passano di
   // qui e non cambiano.
   const allowedCountries = ZONE_COUNTRIES[zone]
