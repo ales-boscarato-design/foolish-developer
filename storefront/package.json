@@ -15,7 +15,10 @@
     "test:subscription": "tsx --test src/lib/subscription-plans.test.ts",
     "test:affiliate-referral": "tsx --test src/lib/affiliate-referral.test.ts",
     "test:affiliate-route": "tsx --test src/lib/affiliate-referral-route.test.ts",
-    "test:affiliate-i18n": "tsx --test src/lib/affiliate-stats-i18n.test.ts"
+    "test:affiliate-i18n": "tsx --test src/lib/affiliate-stats-i18n.test.ts",
+    "test:landed-cost": "tsx --test src/lib/landed-cost.test.ts",
+    "test:landed-cost-display": "tsx --test src/lib/landed-cost-display.test.ts",
+    "test:spedizione-quote": "tsx --test src/app/api/spedizione/quote/route.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",

@@ -12,13 +12,15 @@ import {
   buildCheckoutMetadata,
   calculateCheckoutPromo,
   calculateServerShippingCostCents,
+  cartSubtotalCents,
   normalizePromoCode,
   normalizeCheckoutCustomer,
   normalizeCheckoutItems,
   parsePromoCodes,
   type PromoRecord,
 } from '@/lib/promo'
-import { isFreeShippingPromoAllowed, shippingRequiresQuote } from '@/lib/shipping'
+import { getShippingZone, isFreeShippingPromoAllowed, shippingRequiresQuote } from '@/lib/shipping'
+import { resolveExtraEuShipping } from '@/lib/landed-cost'
 
 type StripeAllowedCountry = NonNullable<
   Stripe.Checkout.SessionCreateParams['shipping_address_collection']
@@ -107,6 +109,7 @@ export async function POST(req: NextRequest) {
     items?: unknown
     customer?: unknown
     promoCode?: unknown
+    quoteToken?: unknown
   }
   const items = request.items
   if (!Array.isArray(items) || items.length === 0) {
@@ -187,14 +190,61 @@ export async function POST(req: NextRequest) {
 
   const promo = promoResult.status === 'valid' ? promoResult.promo : null
 
-  // shippingCost from the browser is intentionally ignored. Shipping is
-  // derived from the validated customer country and server-normalized subtotal.
-  const serverShippingCostCents = calculateServerShippingCostCents(
-    normalizedItems,
-    customer.country,
-    promo?.freeShipping === true,
-  )
-  if (serverShippingCostCents === null) {
+  // shippingCost from the browser is intentionally ignored. IT/EU restano la
+  // tariffa del corriere; extra-UE il prezzo nasce dalla quota live servita
+  // dalla Pi (con la tabella in casa e il profilo di paese come rete): quello
+  // che il cliente ha visto nel carrello e' quello che paga qui.
+  const subtotalCents = cartSubtotalCents(normalizedItems)
+  if (subtotalCents === null || subtotalCents <= 0) {
+    return NextResponse.json({ error: 'Carrello non valido' }, { status: 400 })
+  }
+
+  let serverShippingCostCents: number | null = null
+  const shippingMetadata: Record<string, string> = {}
+  if (getShippingZone(customer.country) === 'EXTRA_EU') {
+    const resolution = await resolveExtraEuShipping({
+      countryCode: customer.country,
+      goodsCents: subtotalCents,
+      destination: { zip: customer.postalCode, city: customer.city },
+      items: normalizedItems.map((item) => ({ sku: item.sku, quantity: item.quantity })),
+      quoteToken: request.quoteToken,
+    })
+    if (!resolution) {
+      // Nessuna base di prezzo per quella destinazione: non si vende a un
+      // prezzo inventato (unica eccezione alla regola "un guasto costa
+      // precisione, non vendite").
+      return NextResponse.json(
+        {
+          error: 'Per questa destinazione non riusciamo a calcolare la spedizione con lo sdoganamento: scrivici e la quotiamo prima del pagamento.',
+        },
+        { status: 409 },
+      )
+    }
+    serverShippingCostCents = resolution.costCents
+    shippingMetadata.shipping_source = resolution.source
+    shippingMetadata.shipping_basis_cents = String(resolution.basisCostCents)
+    if (resolution.quote?.checkoutInvoiceNumber) {
+      shippingMetadata.shipping_quote_ref = resolution.quote.checkoutInvoiceNumber
+    }
+    if (resolution.quote?.parcel) {
+      const parcel = resolution.quote.parcel
+      shippingMetadata.shipping_parcel_json = JSON.stringify({
+        weight: parcel.weightKg,
+        length: parcel.lengthCm,
+        width: parcel.widthCm,
+        height: parcel.heightCm,
+        packages: parcel.packages,
+      })
+    }
+  } else {
+    serverShippingCostCents = calculateServerShippingCostCents(
+      normalizedItems,
+      customer.country,
+      promo?.freeShipping === true,
+    )
+    shippingMetadata.shipping_source = 'carrier_flat'
+  }
+  if (serverShippingCostCents === null || !Number.isSafeInteger(serverShippingCostCents) || serverShippingCostCents < 0) {
     return NextResponse.json({ error: 'Costo di spedizione non valido' }, { status: 400 })
   }
 
@@ -246,14 +296,20 @@ export async function POST(req: NextRequest) {
   }
 
   const shouldMarkAffiliate = await shouldMarkAffiliateCheckoutPromo(promoRecord)
+  // Le chiavi della spedizione viaggiano con quelle dell'ordine: l'ordine
+  // registra DA DOVE viene il prezzo della riga "spedizione e import" (quota
+  // live, tabella in casa o profilo prudenziale), il riferimento della fattura
+  // doganale di checkout e il collo quotato, cosi' la spedizione vera usa lo
+  // stesso collo che ha prodotto il prezzo.
+  const orderMetadata = { ...metadata, ...shippingMetadata }
   const sessionMetadata = shouldMarkAffiliate && promo
     ? {
-        ...metadata,
+        ...orderMetadata,
         affiliate_id: String(shouldMarkAffiliate.affiliateId),
         affiliate_slug: shouldMarkAffiliate.affiliateSlug,
         affiliate_promo_code: shouldMarkAffiliate.affiliatePromoCode,
       }
-    : metadata
+    : orderMetadata
 
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
