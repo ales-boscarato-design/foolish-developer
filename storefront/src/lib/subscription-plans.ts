@@ -86,7 +86,7 @@ export function getNextTierCyclesRemaining(cyclesCompleted: number): number {
  * Solo territorio doganale UE, perche' un abbonamento verso una destinazione
  * extra-UE addebita 14,99 EUR di spedizione a ogni ciclo (la scala
  * dell'abbonamento e' un prodotto, non un confine doganale) contro un costo
- * sdoganato stimato di 40,99 (tattoo) / 43,79 (pmu): e' una spedizione sotto
+ * sdoganato stimato di 41,17 (tattoo) / 43,90 (pmu): e' una spedizione sotto
  * costo che si ripete ogni mese.
  *
  * Decisione di Alessandro (21/09/2026): le NUOVE attivazioni verso destinazioni
