@@ -28,7 +28,8 @@ const PRICES: Record<string, number> = {
   'TS-A5': 12.5,
 }
 
-/** Risposta del servizio di quota con la forma reale (CH, Basel, merce 99). */
+/** Risposta del servizio di quota con la forma reale (CH, Basel, merce 99), dopo
+ * la correzione della copertura assicurata approvata (`goods_plus_shipping`). */
 function quoteBody() {
   return {
     status: 'ok',
@@ -40,11 +41,22 @@ function quoteBody() {
         carrier: 'UPS',
         service_name: 'Standard Access Point',
         transport: 23,
-        insurance: 2.48,
+        insurance: 3.57,
         import_charges: 14.77,
         ddp_fee: 4.96,
-        shipping_and_import: 46.2,
-        landed_cost_estimate: 47.72,
+        shipping_and_import: 47.29,
+        landed_cost_estimate: 47.29,
+        insurance_coverage: {
+          policy: 'goods_plus_shipping',
+          base: 142.72,
+          declared_goods_value: 99,
+          shipping_cost_excluding_premium: 43.72,
+          rate: 0.025,
+          premium: 3.57,
+          premium_quoted: 3.57,
+          premium_agrees: true,
+          minimum_premium: 0.99,
+        },
         checkout_invoice_number: 'TFC-WEB-00011',
         expires_at: 1_800_000_000,
       },
@@ -109,7 +121,7 @@ test('destinazione extra-UE: risponde il prezzo della quota, senza segreti', asy
   assert.equal(response.status, 200)
   const body = await response.json()
   assert.equal(body.country, 'CH')
-  assert.equal(body.costCents, 5249)
+  assert.equal(body.costCents, 5202)
   assert.equal(body.source, 'live_quote')
   assert.equal(body.verified, true)
   assert.equal(body.checkoutInvoiceNumber, 'TFC-WEB-00011')
@@ -122,7 +134,7 @@ test('destinazione extra-UE: risponde il prezzo della quota, senza segreti', asy
 
   // il gettone congela ESATTAMENTE quel prezzo per quel carrello
   const fingerprint = cartFingerprint([{ sku: 'T-3D-WMN-BCK', quantity: 1 }], 'CH')
-  assert.equal(verifyQuoteToken(body.quoteToken, { countryCode: 'CH', fingerprint }), 5249)
+  assert.equal(verifyQuoteToken(body.quoteToken, { countryCode: 'CH', fingerprint }), 5202)
   assert.equal(verifyQuoteToken(body.quoteToken, { countryCode: 'CH', fingerprint: 'altro' }), null)
 
   // ACCETTAZIONE: quello che il carrello ha mostrato e' quello che il checkout
