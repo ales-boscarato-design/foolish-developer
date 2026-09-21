@@ -83,6 +83,17 @@ export default function CheckoutPage() {
   // Payment
   const [loading, setLoading] = useState(false)
 
+  // Extra-UE: il prezzo della riga "spedizione e import" servito dal negozio
+  // (quota live sulla Pi, tabella dei prezzi reali in casa, profilo prudenziale
+  // di paese come ultima rete). Il browser non calcola tariffe doganali.
+  const [quotedShipping, setQuotedShipping] = useState<{
+    /** Carrello + destinazione che hanno prodotto questo prezzo. */
+    key: string
+    costCents: number
+    verified: boolean
+    token: string | null
+  } | null>(null)
+
   // Cart session capture for abandoned cart flow
   useEffect(() => {
     if (!form.email || !form.email.includes('@') || items.length === 0) return
@@ -109,8 +120,64 @@ export default function CheckoutPage() {
   const proDiscount = (promoType === 'percent_pro' || promoType === 'percent' || promoType === 'amount')
   ? (promoData?.discountAmount ?? 0)
   : 0
-  const grandTotal = cartTotal + shipping.cost - proDiscount
+  const isExtraEuDestination = baseShipping.zone === 'EXTRA_EU'
+  const cartLinesKey = items.map((item) => `${item.sku}:${item.quantity}`).join('|')
+  // Quello che il cliente vede e' quello che paga: se il negozio ha risolto il
+  // prezzo (quota o base prudenziale in casa) si mostra QUEL prezzo; finche' non
+  // e' arrivato, la stima del modulo di spedizione — che per l'extra-UE e' gia'
+  // la base prudenziale, mai zero.
+  const quoteKey = `${country}|${form.city}|${form.postalCode}|${cartLinesKey}`
+  // Un prezzo vale solo per il carrello e la destinazione che l'hanno prodotto:
+  // un prezzo vecchio non si mostra su un carrello nuovo.
+  const activeQuote = quotedShipping && quotedShipping.key === quoteKey ? quotedShipping : null
+  const displayShippingCost = isExtraEuDestination && activeQuote
+    ? activeQuote.costCents / 100
+    : shipping.cost
+  const shippingPriceVerified = activeQuote?.verified === true
+  const grandTotal = cartTotal + displayShippingCost - proDiscount
   const remaining = freeShippingByPromo ? 0 : freeShippingRemaining(cartTotal, country)
+
+  // Chiede al negozio il prezzo extra-UE della destinazione: la risposta e' la
+  // stessa che il checkout ricalcola (o il gettone firmato di quel prezzo).
+  useEffect(() => {
+    if (!isExtraEuDestination || items.length === 0) return
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      fetch('/api/spedizione/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          country,
+          city: form.city,
+          postalCode: form.postalCode,
+          items: items.map((item) => ({ sku: item.sku, quantity: item.quantity })),
+        }),
+        signal: controller.signal,
+      })
+        .then(async (res) => {
+          if (!res.ok) throw new Error(`quote ${res.status}`)
+          const data = await res.json()
+          if (!Number.isSafeInteger(data?.costCents) || data.costCents <= 0) throw new Error('quote non valida')
+          setQuotedShipping({
+            key: quoteKey,
+            costCents: data.costCents,
+            verified: data.verified === true,
+            token: typeof data.quoteToken === 'string' ? data.quoteToken : null,
+          })
+        })
+        .catch(() => {
+          if (controller.signal.aborted) return
+          setQuotedShipping(null)
+        })
+    }, 600)
+    return () => {
+      controller.abort()
+      clearTimeout(timer)
+    }
+    // La chiave raccoglie carrello e destinazione: il carrello e' un array nuovo
+    // a ogni render e non deve rilanciare la richiesta.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isExtraEuDestination, quoteKey])
 
   const validatePhone = (phone: string) => /^[\d\s+\-()\u00AD]{6,}$/.test(phone.trim())
 
@@ -213,12 +280,16 @@ export default function CheckoutPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items,
-          shippingCost: shipping.cost,
+          shippingCost: displayShippingCost,
           total: grandTotal,
           customer: { ...form, country },
           fiscalCode: fiscalCode || undefined,
           billingAddress: billingDifferent ? billing : undefined,
           promoCode: promoStatus === 'valid' ? promoCode : undefined,
+          // Extra-UE: il gettone firmato dal server con il prezzo mostrato qui.
+          // Il checkout non si fida di un prezzo mandato dal browser: o
+          // riconosce il gettone di QUEL carrello, o risolve da capo.
+          quoteToken: activeQuote?.token ?? undefined,
           discountAmount: proDiscount > 0 ? proDiscount : undefined,
           discountLabel: promoType === 'percent_pro' && promoData?.discountPercent
             ? `Sconto Foolish Pro ${promoData.discountPercent}%`
@@ -678,13 +749,15 @@ export default function CheckoutPage() {
                 <span className="text-mono text-sm" style={{ color: shipping.isFree ? '#5a9c52' : 'var(--foreground)' }}>
                   {baseShipping.requiresQuote
                     ? t('shippingQuoteRequired')
-                    : shipping.isFree ? 'Gratuita' : `€${shipping.cost.toFixed(2)}`}
+                    : shipping.isFree ? 'Gratuita' : `€${displayShippingCost.toFixed(2)}`}
                 </span>
               </div>
 
-              {shipping.landedCost && !shipping.isFree && (
+              {isExtraEuDestination && !shipping.isFree && (
                 <p className="text-xs pb-2" style={{ color: 'var(--muted-fg)' }}>
-                  {t('shippingLandedNote')}
+                  {shippingPriceVerified
+                    ? t('shippingVerifiedNote')
+                    : t('shippingPrudentialNote')}
                 </p>
               )}
 
