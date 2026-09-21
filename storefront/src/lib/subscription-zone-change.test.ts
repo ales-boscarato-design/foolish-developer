@@ -6,7 +6,7 @@
  * su Stripe, sulla fattura o sul cliente). Prima di questa copertura il percorso
  * non aveva alcun test, e un abbonato con indirizzo svizzero poteva passare alla
  * scala `EU` pagando 14,99 EUR di spedizione a ciclo contro un costo sdoganato
- * misurato di 52,49 EUR su 45,00 di merce.
+ * misurato di 48,00 EUR su un carrello da 45,00 e 52,49 EUR su uno da 99,00.
  *
  * Il finto client Stripe e lo stub di `fetch` (solo CMS) tengono il test
  * ermetico: nessuna rete, nessuna credenziale. Ogni caso verifica anche che cosa
@@ -259,6 +259,7 @@ test('destinazione UE (DE), cambio IT -> EU: e\' ammesso, con le fasi della scal
   assert.equal(patches().length, 1)
   assert.equal(patches()[0].body, JSON.stringify({ zone: 'EU' }))
   assert.equal(patches()[0].secret, STOREFRONT_SECRET)
+  assert.equal(calls.customersRetrieve, 0, 'quando la fattura risponde non si legge il cliente')
 
   // cyclesCompleted 0 -> prossimo ciclo 1 -> prima fase della scala EU (45 + 14,99).
   assert.equal(schedulePhases[0].length, 3)
@@ -369,6 +370,23 @@ test('abbonamento di un altro cliente: 403 e nessuna chiamata a Stripe', async (
     scheduleRetrieve: 0,
     scheduleUpdate: 0,
   })
+})
+
+test('email assente da un lato solo: 403, non un via libera', async () => {
+  // "entrambe vuote" non vuol dire "uguali, quindi autorizzato": un documento
+  // senza intestatario non si modifica da una sessione senza email.
+  const session = setup({ invoiceCountries: ['CH'] })
+
+  cmsDoc = subscriptionDoc({ customerEmail: '' })
+  const docWithoutEmail = await session.call({ sessionEmail: '' })
+  assert.equal(docWithoutEmail.status, 403)
+
+  cmsDoc = subscriptionDoc()
+  const sessionWithoutEmail = await session.call({ sessionEmail: '' })
+  assert.equal(sessionWithoutEmail.status, 403)
+
+  assert.equal(session.calls.invoicesList, 0)
+  assert.equal(session.calls.scheduleUpdate, 0)
 })
 
 test('parametri non validi: 400 senza toccare Stripe ne il CMS', async () => {

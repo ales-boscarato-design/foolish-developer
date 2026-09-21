@@ -3,7 +3,9 @@
 // Nucleo del cambio di zona di un abbonamento. Vive fuori dalla route perche' la
 // destinazione reale dell'abbonamento non e' nel CMS: va letta da Stripe, e senza
 // questa lettura il cambio di zona diventa una scorciatoia per pagare 14,99 EUR di
-// spedizione su una destinazione extra-UE (costo sdoganato stimato 40,99/43,79).
+// spedizione su una destinazione extra-UE (costo sdoganato stimato 48,00 su un
+// carrello da 45,00 e 52,49 su uno da 99,00 verso la Svizzera; 41,17/43,90 sono le
+// stime dei piani nel modello corrente, `shipping.ts`).
 //
 // Il cambio di zona e' un cambio di TARIFFA: passa dalla stessa policy delle nuove
 // attivazioni (`isZoneChangeAllowed`), e quando la destinazione non e' chiara non
@@ -123,7 +125,11 @@ export async function changeSubscriptionZone(
   if (!docRes.ok) return { status: 404, body: { error: 'Abbonamento non trovato' } }
   const doc = (await docRes.json()) as SubscriptionDoc
 
-  if (String(doc.customerEmail ?? '').toLowerCase() !== String(request.sessionEmail ?? '').toLowerCase()) {
+  const sessionEmail = String(request.sessionEmail ?? '').trim().toLowerCase()
+  const docEmail = String(doc.customerEmail ?? '').trim().toLowerCase()
+  // Email assente da un lato solo: non e' un'autorizzazione. Un documento senza
+  // intestatario non deve poter essere modificato da una sessione senza email.
+  if (!sessionEmail || !docEmail || docEmail !== sessionEmail) {
     return { status: 403, body: { error: 'Non autorizzato' } }
   }
   if (doc.zone === newZone) {
