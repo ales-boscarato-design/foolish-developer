@@ -85,6 +85,14 @@ export interface LandedCostBreakdown {
   insurance: number
   /** Dazio all'importazione. */
   duty: number
+  /**
+   * La regola che ha prodotto quel dazio: `flat` aliquota piatta su tutto il
+   * valore, `relief` merce sotto la soglia di legge (dazio azzerato dal relief),
+   * `above` merce sopra la soglia. Serve a leggere un preventivo — e a
+   * distinguere «zero perche' la norma lo azzera» da «zero perche' nessuno l'ha
+   * scritto» — senza rifare il calcolo a mano.
+   */
+  dutyBand: DutyBand
   /** IVA all'importazione (0 se sotto la soglia di de minimis). */
   importVat: number
   /** Oneri fissi di sdoganamento che non dipendono dal valore (disborso corriere). */
@@ -140,8 +148,18 @@ export interface ExtraEuProfile {
    * punto di misura, non una regola verificata (vedi SWITZERLAND_PROFILE).
    */
   insuranceRate: number
-  /** Dazio all'importazione: quota sulla base CIF (merce + trasporto). */
+  /**
+   * Dazio all'importazione: quota sulla base CIF (merce + trasporto). E'
+   * l'aliquota che vale SOTTO la soglia di `dutyAboveThreshold`, e su tutto il
+   * valore quando la fascia non c'e'.
+   */
   dutyRate: number
+  /**
+   * Fascia di dazio che scatta SOPRA una soglia di valore merce, quando sotto la
+   * soglia il dazio e' azzerato da un relief di legge. Assente = nessuna soglia:
+   * l'aliquota piatta `dutyRate` vale su tutto il valore. Vedi `importDuty`.
+   */
+  dutyAboveThreshold?: DutyAboveThreshold
   /** IVA all'importazione: quota sulla base imponibile (merce + trasporto reale). */
   importVatRate: number
   /**
@@ -179,6 +197,41 @@ export interface ExtraEuProfile {
   /** true solo se i parametri vengono da una spedizione reale misurata. */
   calibrated: boolean
   /** Provenienza dei numeri. */
+  source: string
+}
+
+/** Fascia che ha determinato il dazio: vedi `importDuty`. */
+export type DutyBand = 'flat' | 'relief' | 'above'
+
+/**
+ * Fascia di dazio che scatta sopra una soglia di valore merce, quando sotto la
+ * soglia il dazio e' azzerato da un relief di legge.
+ *
+ * Perche' la soglia sta nella valuta della legge e non in EUR: la norma la
+ * scrive in sterline (£135), e il confronto va fatto li'. Portare la soglia in
+ * EUR una volta per tutte la legherebbe a un cambio che nel codice non c'e', e
+ * il giorno che il cambio si muove il confine della fascia si sposta senza che
+ * nessuno lo veda. Qui il cambio e' DICHIARATO e datato (`foreignPerEur`),
+ * quindi il confine e' riproducibile e si aggiorna in un punto solo.
+ *
+ * La soglia si confronta sul VALORE MERCE (il prezzo della merce venduta per
+ * l'export, trasporto e assicurazione esclusi: e' la definizione di "intrinsic
+ * value" del relief), non su merce + trasporto. Sono due grandezze diverse e un
+ * carrello puo' avere la base doganale sopra soglia restando esente.
+ */
+export interface DutyAboveThreshold {
+  /** Valore merce massimo (incluso) che resta esente, nella valuta della legge. */
+  thresholdForeign: number
+  /** Cambio dichiarato: quante unita' di valuta estera vale 1 EUR. */
+  foreignPerEur: number
+  /** Valuta della soglia (ISO 4217): si legge la soglia senza indovinarla. */
+  currency: string
+  /**
+   * Aliquota applicata sopra la soglia, sulla base doganale. Una fascia a
+   * aliquota zero non ha senso: sotto soglia c'e' gia' il relief.
+   */
+  dutyRate: number
+  /** Fonte della soglia e dell'aliquota, con la data. Non e' una nostra misura. */
   source: string
 }
 
@@ -341,16 +394,33 @@ export const DEFAULT_EXTRA_EU_PROFILE: ExtraEuProfile = {
  * scelta 2026-09-21 (Alessandro, via alfred): i paesi senza misura si VENDONO,
  * con l'aliquota del paese di destinazione e il pavimento di 48,00 EUR.
  *
- * ASSUNZIONE DICHIARATA sui dazi: tutti i profili non misurati mettono il dazio
- * a zero tranne gli Stati Uniti. E' un'assunzione, non una misura:
- *  - GB: origine UE dichiarata (customs.json, country_of_origin IT) -> zero
- *    dazio sotto l'accordo UE-UK SE la dichiarazione di origine viaggia con la
- *    fattura doganale; senza quella dichiarazione si applica la tariffa UKGT e
- *    il profilo e' sotto costo. APERTO: verificare che la dichiarazione ci sia.
+ * ASSUNZIONE DICHIARATA sui dazi: i profili non misurati mettono il dazio a zero
+ * tranne gli Stati Uniti. E' un'assunzione, non una misura — tranne GB, dove
+ * l'azzeramento sotto soglia ha ora una base di legge ed e' scritto come fascia:
+ *  - GB: dazio 0 sotto £135 di valore merce, per LEGGE e non per un accordo —
+ *    relief «consignments containing goods of negligible value», §5 del
+ *    «United Kingdom Customs Tariff: Reliefs from Import Duty» v1.8 («full
+ *    relief in respect of goods of negligible value»; «the intrinsic value of
+ *    the goods must not exceed £135», trasporto e assicurazione esclusi). Sopra
+ *    la soglia il dazio e' quello di tariffa: 6,00% sulla resina (cod.
+ *    3926909790) e 2,00% sulla pelle siliconica (cod. 4016999790), 4,42% in
+ *    blend sulla composizione nota — in DDP lo paghiamo noi.
+ *    NON e' il TCA a tenere il dazio a zero: la preferenza UE a 0,00% esiste in
+ *    tariffa (SI 2020/1457) ma richiede una prova di origine che oggi NON
+ *    viaggia con la fattura doganale (verifica 21/09/2026, t_73bfca79: nel PDF
+ *    reale c'e' la colonna `Country of origin: IT`, non la formula di origine
+ *    preferenziale, e il contratto della fattura doganale Packlink non ha un
+ *    campo dove scriverla).
+ *    ATTENZIONE — il relief e' in RIMOZIONE: GOV.UK, consultation response
+ *    luglio 2026, nuove regole sull'LVI obbligatorie «by October 2028 at the
+ *    latest». Da allora il dazio torna anche sotto £135 e l'unico modo di
+ *    restare a zero e' lo statement on origin (materia del commercialista).
  *  - CH: zero dazi sui capitoli 25-97 dal 1/1/2024 — questo e' misurato.
  *  - NO/CA/AU/JP: il dazio dipende dal codice doganale e non e' mai stato
- *    misurato. AU ha una franchigia di 1.000 AUD sul dazio, quindi a zero sotto
- *    quella soglia; sopra, il profilo non e' coperto.
+ *    misurato. NO (accordo SEE) ha dazio 0 CONDIZIONATO alla prova di origine,
+ *    esattamente come GB: la stessa verifica e' aperta, e finche' non e' chiusa
+ *    quel profilo resta un'assunzione. AU ha una franchigia di 1.000 AUD sul
+ *    dazio, quindi a zero sotto quella soglia; sopra, il profilo non e' coperto.
  *  - US: nessuna IVA federale all'import, ma la franchise di 800 USD e' stata
  *    SOSPESA per tutti i paesi (EO 14324, 29/08/2025) e la sospensione e' stata
  *    prorogata dopo la sentenza IEEPA del 20/02/2026: OGGI ogni spedizione
@@ -366,15 +436,53 @@ export interface DestinationTaxRule {
   importVatRate: number
   /** Dazio all'importazione. 0 = esente o non applicabile. */
   dutyRate: number
+  /**
+   * Fascia di dazio sopra una soglia di valore merce (relief di legge sotto la
+   * soglia). Assente = l'aliquota piatta `dutyRate` vale su tutto il valore.
+   */
+  dutyAboveThreshold?: DutyAboveThreshold
   /** Fonte della regola: legge, con data. Non e' una nostra misura. */
   source: string
 }
 
+/**
+ * Cambio di riferimento DICHIARATO: quanti GBP vale 1 EUR (Banca centrale
+ * europea via frankfurter.dev, 18/09/2026 — 1 EUR = 0,8588 GBP). Sta in una
+ * costante perche' la soglia del relief GB e' scritta in sterline: il confronto
+ * si fa in GBP con questo numero, quindi aggiornare il cambio sposta il confine
+ * della fascia in un punto solo. A questo cambio £135 ≈ 157,20 EUR di merce.
+ */
+export const GBP_PER_EUR = 0.8588
+
 export const DESTINATION_TAX_RULES: Partial<Record<AllowedShippingCountry, DestinationTaxRule>> = {
   GB: {
     importVatRate: 0.20,
+    // Lo zero NON viene dal TCA. La dichiarazione di origine UE non viaggia con
+    // la fattura doganale (verifica 21/09/2026, t_73bfca79: nel PDF reale
+    // dell'ordine 31 c'e' la colonna `Country of origin: IT`, non la formula di
+    // origine preferenziale, e il contratto della fattura doganale Packlink non
+    // ha nessun campo dove scriverla). Lo zero sta qui perche' sotto £135 di
+    // valore merce il dazio UK e' azzerato da un RELIEF DI LEGGE — con o senza
+    // dichiarazione di origine — ed e' la fascia in cui lo storefront vende.
     dutyRate: 0,
-    source: 'IVA UK import 20% (standard rate, calcolata su valore + dazio + trasporto); dazio 0 con dichiarazione di origine UE (TCA)',
+    // Sopra la soglia il relief non copre piu' niente e si applica il dazio di
+    // tariffa, che in DDP paghiamo noi. La soglia e' in GBP e si confronta sul
+    // valore merce (intrinsic value), non su merce + trasporto.
+    dutyAboveThreshold: {
+      thresholdForeign: 135,
+      foreignPerEur: GBP_PER_EUR,
+      currency: 'GBP',
+      // 4,42% = blend sulla composizione misurata dell'ordine 31: 39,62% pelle
+      // × 2,00% + 60,38% resina × 6,00% = 4,4152%, arrotondato in ECCESSO a
+      // 4,42%: l'arrotondamento di un costo va verso l'alto, mai verso il
+      // basso. LIMITE DICHIARATO: il mix e' dell'ordine, non per riga — un
+      // carrello di sola resina paga il 6,00% e con questo blend resta scoperto
+      // di 1,58 punti di base doganale. Il modello non risolve il mix per riga
+      // e questa modifica non lo cambia.
+      dutyRate: 0.0442,
+      source: 'soglia £135 di valore merce: «United Kingdom Customs Tariff: Reliefs from Import Duty» v1.8, Section 5 «Consignments containing goods of negligible value» (§5.3: full relief dal dazio se l\'intrinsic value della merce non supera £135, trasporto e assicurazione esclusi); aliquota sopra soglia: UK Integrated Online Tariff cod. 3926909790 resina 6,00% e cod. 4016999790 pelle siliconica 2,00% (SI 2020/1430) — 4,42% in blend sulla composizione dell\'ordine 31 (39,62% pelle + 60,38% resina); soglia confrontata in GBP al cambio BCE 18/09/2026 (1 EUR = 0,8588 GBP: £135 = 157,20 EUR di merce); ATTENZIONE — il relief LVI e\' in rimozione: GOV.UK, consultation response luglio 2026, nuove regole obbligatorie «by October 2028 at the latest»',
+    },
+    source: 'IVA UK import 20% (standard rate, su valore + dazio + trasporto); dazio 0 sotto £135 di valore merce per il relief di §5 (UK Customs Tariff: Reliefs from Import Duty, consignments containing goods of negligible value) — NON per il TCA: la dichiarazione di origine UE non viaggia con la fattura doganale (verifica 21/09/2026, t_73bfca79). Sopra £135: UKGT 6,00% resina 3926909790 e 2,00% pelle siliconica 4016999790, 4,42% in blend (SI 2020/1430). Il relief e\' in rimozione: nuove regole LVI obbligatorie «by October 2028 at the latest» (GOV.UK consultation response, luglio 2026)',
   },
   NO: {
     importVatRate: 0.25,
@@ -406,8 +514,9 @@ export const DESTINATION_TAX_RULES: Partial<Record<AllowedShippingCountry, Desti
 /**
  * Profilo per un paese non misurato: parametri tecnici condivisi (misurati su
  * CH), trasporto della linea DDP-capace del paese e aliquote del paese di
- * destinazione. null quando per quel paese manca una delle due cose: senza
- * linea DDP non c'e' un costo sdoganato da stimare (BR oggi).
+ * destinazione — compresa la fascia di dazio sopra soglia, quando il paese ne ha
+ * una (GB: relief sotto £135). null quando per quel paese manca una delle due
+ * cose: senza linea DDP non c'e' un costo sdoganato da stimare (BR oggi).
  */
 export function uncalibratedExtraEuProfile(country: AllowedShippingCountry): ExtraEuProfile | null {
   const line = DDP_CAPABLE_CARRIER[country]
@@ -418,6 +527,9 @@ export function uncalibratedExtraEuProfile(country: AllowedShippingCountry): Ext
     carrier: line.carrier,
     importVatRate: tax.importVatRate,
     dutyRate: tax.dutyRate,
+    // La fascia non e' un parametro "tecnico" condiviso: o il paese ha una
+    // soglia di legge, o non ce l'ha. Qui si copia, non si inventa.
+    dutyAboveThreshold: tax.dutyAboveThreshold,
     source: `prudenziale — aliquote del paese di destinazione, oneri import NON misurati (${tax.source}); trasporto: ${line.source}`,
   }
 }
@@ -491,6 +603,40 @@ function roundCents(value: number): number {
   return Math.round(value * 100) / 100
 }
 
+/**
+ * Dazio all'importazione di un collo, con la fascia che l'ha determinato.
+ *
+ *   'flat'   il profilo non ha una fascia: l'aliquota piatta vale su tutta la
+ *            base doganale;
+ *   'relief' la fascia c'e' e la merce sta sotto (o sulla) soglia: si applica
+ *            l'aliquota piatta, che per GB e' 0 perche' la norma azzera il dazio
+ *            su quella fascia;
+ *   'above'  la fascia c'e' e la merce la supera: si applica l'aliquota della
+ *            fascia, perche' il relief non copre piu' niente.
+ *
+ * Il confronto della soglia e' sul VALORE MERCE, nella valuta dichiarata dalla
+ * fascia (per GB: sterline, al cambio dichiarato in `foreignPerEur`); il dazio
+ * si applica invece sulla base doganale, merce + trasporto. Sono due basi
+ * diverse di proposito: la soglia e' una franchigia sul valore della merce, il
+ * dazio si calcola sul valore doganale.
+ */
+export function importDuty(
+  goods: number,
+  carrier: number,
+  profile: ExtraEuProfile,
+): { duty: number; band: DutyBand } {
+  const band = profile.dutyAboveThreshold
+  const dutyBase = goods + carrier
+  if (!band) {
+    return { duty: roundCents(dutyBase * profile.dutyRate), band: 'flat' }
+  }
+  const goodsForeign = goods * band.foreignPerEur
+  if (goodsForeign > band.thresholdForeign) {
+    return { duty: roundCents(dutyBase * band.dutyRate), band: 'above' }
+  }
+  return { duty: roundCents(dutyBase * profile.dutyRate), band: 'relief' }
+}
+
 export function calculateLandedCost(
   cartTotal: number,
   profile: ExtraEuProfile,
@@ -513,7 +659,11 @@ export function calculateLandedCost(
   const exempt = profile.importVatExemptBelow !== null && vatBase < profile.importVatExemptBelow
   const importVat = exempt ? 0 : roundCents(vatBase * profile.importVatRate)
 
-  const duty = roundCents((goods + carrier) * profile.dutyRate)
+  // Dazio: due letture, e la fascia decide quale (vedi `importDuty`). Senza
+  // fascia e' l'aliquota piatta del profilo su tutta la base doganale; con la
+  // fascia, sotto la soglia di VALORE MERCE vale l'aliquota piatta — zero per GB,
+  // dove e' la norma ad azzerare il dazio — e sopra vale l'aliquota della fascia.
+  const { duty, band: dutyBand } = importDuty(goods, carrier, profile)
 
   const estimatedCost = roundCents(
     carrier + insurance + duty + importVat + fixedImportFee + ddpFee + handlingFee,
@@ -528,6 +678,7 @@ export function calculateLandedCost(
     carrier,
     insurance,
     duty,
+    dutyBand,
     importVat,
     fixedImportFee,
     ddpFee,

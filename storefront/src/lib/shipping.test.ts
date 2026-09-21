@@ -5,6 +5,7 @@ import {
   DDP_CAPABLE_CARRIER,
   DEFAULT_EXTRA_EU_PROFILE,
   DESTINATION_TAX_RULES,
+  GBP_PER_EUR,
   SWITZERLAND_PROFILE,
   UNCALIBRATED_EXTRA_EU_FLOOR,
   UNCALIBRATED_EXTRA_EU_POLICY,
@@ -398,4 +399,153 @@ test('la soglia di de minimis, se accesa, abbassa il costo senza scendere sotto 
   assert.equal(exempt.importVat, 0)
   assert.ok(exempt.total < taxed.total)
   assert.ok(exempt.total >= exempt.carrier + exempt.ddpFee + exempt.handlingFee)
+})
+
+/*
+ * GB — la soglia di £135 e la fascia di dazio sopra soglia.
+ *
+ * Il dazio 0 nella fascia che lo storefront vende NON viene dalla dichiarazione
+ * di origine UE: quella non viaggia con la fattura doganale e non e' aggiungibile
+ * (verifica in sola lettura del 21/09/2026, t_73bfca79 — nel PDF reale
+ * dell'ordine 31 c'e' la colonna `Country of origin: IT`, non la formula di
+ * origine preferenziale, e il contratto della fattura doganale Packlink non ha un
+ * campo dove scriverla). Viene dal relief «goods of negligible value»: sotto £135
+ * di valore intrinseco della merce il dazio UK e' azzerato per legge, ed e' la
+ * fascia in cui vendiamo. Sopra la soglia si applica la tariffa UKGT, che in DDP
+ * paghiamo noi.
+ */
+
+test('GB: la fascia sopra soglia e\' ancorata alla soglia di £135 e alle aliquote di tariffa', () => {
+  const rule = DESTINATION_TAX_RULES.GB
+  assert.ok(rule, 'GB: manca la regola fiscale')
+  if (!rule) return
+
+  // Sotto la soglia l'aliquota applicata e' zero: la ragione sta nella fascia.
+  assert.equal(rule.dutyRate, 0)
+  assert.ok(
+    !rule.source.includes('(TCA)'),
+    'la motivazione del dazio 0 non e\' piu\' il TCA: la dichiarazione di origine non viaggia',
+  )
+  assert.ok(rule.source.includes('relief'), 'il profilo GB deve dire che il dazio 0 e\' il relief')
+  assert.ok(rule.source.includes('Import Duty'), 'il profilo GB non cita il documento del relief')
+  assert.ok(rule.source.includes('t_73bfca79'), 'il profilo GB non cita la verifica che ha chiuso il TCA')
+
+  const band = rule.dutyAboveThreshold
+  assert.ok(band, 'GB: manca la fascia sopra soglia: sopra £135 il dazio e\' a carico nostro (DDP)')
+  if (!band) return
+
+  // La soglia e' nella valuta della legge, e il confronto si fa li'.
+  assert.equal(band.thresholdForeign, 135)
+  assert.equal(band.currency, 'GBP')
+  assert.equal(band.foreignPerEur, GBP_PER_EUR)
+
+  // 39,62% pelle × 2,00% + 60,38% resina × 6,00% = 4,4152%, in eccesso a 4,42%.
+  const blend = 0.3962 * 0.02 + 0.6038 * 0.06
+  assert.equal(blend.toFixed(4), '0.0442')
+  assert.equal(band.dutyRate, 0.0442)
+  assert.ok(band.dutyRate >= blend, 'l\'aliquota di fascia non puo\' stare sotto il blend misurato')
+  assert.ok(band.dutyRate < 0.06, 'la fascia e\' il blend, non la resina pura')
+
+  // Le fonti della fascia: il relief, le due aliquote di tariffa, il cambio, e la
+  // nota obbligatoria sulla rimozione del relief.
+  const needles = [
+    'Reliefs from Import Duty',
+    'Section 5',
+    'negligible value',
+    '£135',
+    '3926909790',
+    '4016999790',
+    '4,42%',
+    '0,8588',
+  ]
+  for (const needle of needles) {
+    assert.ok(band.source.includes(needle), `la fascia GB non cita «${needle}»`)
+  }
+  assert.ok(
+    band.source.includes('October 2028'),
+    'manca la nota sulla rimozione del relief LVI (nuove regole obbligatorie entro ottobre 2028)',
+  )
+
+  // Il profilo venduto eredita la fascia dalla regola di legge: e' la stessa.
+  assert.equal(uncalibratedExtraEuProfile('GB')?.dutyAboveThreshold?.thresholdForeign, 135)
+  assert.equal(uncalibratedExtraEuProfile('GB')?.dutyAboveThreshold?.dutyRate, 0.0442)
+})
+
+test('GB: sotto £135 di valore merce il dazio e\' zero, sopra entra nel totale', () => {
+  // Il confine e' in GBP, al cambio dichiarato: 135 / 0,8588 = 157,1961 EUR di
+  // merce. La norma dice «must not exceed £135», quindi la soglia e' inclusa.
+  const justUnder = 157.19 // 157,19 × 0,8588 = 134,9948 GBP → esente
+  const justOver = 157.20 // 157,20 × 0,8588 = 135,0034 GBP → sopra soglia
+  assert.equal(Math.round((135 / GBP_PER_EUR) * 100) / 100, 157.20)
+
+  for (const goods of [0, 30, 99, 150, justUnder]) {
+    const landed = calculateShipping(goods, 'GB').landedCost
+    assert.ok(landed, `merce ${goods}: manca la scomposizione`)
+    assert.equal(landed?.duty, 0, `merce ${goods}: sotto soglia il dazio e' azzerato dal relief`)
+    assert.equal(landed?.dutyBand, 'relief', `merce ${goods}: la fascia che ha deciso non e' il relief`)
+  }
+
+  const above = calculateShipping(justOver, 'GB')
+  const landed = above.landedCost
+  assert.ok(landed, 'merce sopra soglia: manca la scomposizione')
+  if (!landed) return
+  assert.equal(landed.dutyBand, 'above')
+  // 4,42% della base doganale (157,20 + 18,50) = 7,77.
+  assert.equal(landed.duty, 7.77)
+  // Il dazio entra nel costo sdoganato e in quello addebitato, voce per voce:
+  // 18,50 corriere + 6,35 assicurazione + 7,77 dazio + 35,14 IVA 20% di 175,70
+  // + 4,89 sdoganamento + 4,96 fee DDP + 0,99 gestione = 78,60.
+  assert.equal(landed.estimatedCost, 78.60)
+  assert.equal(above.cost, 78.60)
+  assert.equal(landed.total, 78.60)
+  // Lo stesso carrello senza dazio costerebbe 70,83: la differenza e' il dazio.
+  assert.equal(Math.round((landed.estimatedCost - 70.83) * 100) / 100, 7.77)
+
+  // Sopra soglia il dazio cresce col valore: a merce 200 sono 9,66 (4,42% di 218,50).
+  assert.equal(calculateShipping(200, 'GB').landedCost?.duty, 9.66)
+})
+
+test('GB: la soglia si confronta sul valore merce, non sulla base doganale', () => {
+  // Merce 140,00 = 120,23 GBP (sotto la soglia) + trasporto 18,50 = 158,50 di
+  // base doganale, cioe' 136,12 GBP: sopra soglia. Se il confronto fosse sulla
+  // base doganale, qui scatterebbe un dazio che la norma non chiede — la soglia
+  // e' sull'intrinsic value della merce, trasporto e assicurazione esclusi.
+  const goods = 140
+  assert.ok(goods * GBP_PER_EUR < 135, 'la merce deve stare sotto la soglia')
+  assert.ok((goods + 18.50) * GBP_PER_EUR > 135, 'la base doganale deve stare sopra la soglia')
+
+  const landed = calculateShipping(goods, 'GB').landedCost
+  assert.ok(landed)
+  assert.equal(landed?.duty, 0)
+  assert.equal(landed?.dutyBand, 'relief')
+})
+
+test('GB: la fascia sopra soglia non tocca gli altri paesi ne\' l\'aliquota piatta', () => {
+  for (const country of ['NO', 'CA', 'AU', 'JP', 'US'] as const) {
+    assert.equal(
+      DESTINATION_TAX_RULES[country]?.dutyAboveThreshold,
+      undefined,
+      `${country}: ha una fascia di dazio che non gli appartiene`,
+    )
+    assert.equal(
+      uncalibratedExtraEuProfile(country)?.dutyAboveThreshold,
+      undefined,
+      `${country}: il profilo si porta dietro la fascia di un altro paese`,
+    )
+  }
+  assert.equal(SWITZERLAND_PROFILE.dutyAboveThreshold, undefined)
+  assert.equal(
+    DEFAULT_EXTRA_EU_PROFILE.dutyAboveThreshold,
+    undefined,
+    'la fascia non e\' un parametro tecnico condiviso: e\' una soglia di legge per paese',
+  )
+
+  // US: aliquota piatta piena (la de minimis e' sospesa), nessuna soglia.
+  assert.equal(calculateShipping(99, 'US').landedCost?.duty, 20.49)
+  assert.equal(calculateShipping(99, 'US').landedCost?.dutyBand, 'flat')
+  assert.equal(calculateShipping(2500, 'US').landedCost?.dutyBand, 'flat')
+
+  // CH: misurato e senza fascia — dazio 0 per esenzione di capitolo, non per soglia.
+  assert.equal(calculateShipping(99, 'CH').landedCost?.duty, 0)
+  assert.equal(calculateShipping(2500, 'CH').landedCost?.dutyBand, 'flat')
 })
