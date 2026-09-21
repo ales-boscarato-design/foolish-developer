@@ -111,6 +111,31 @@ export function isActivatableDestination(zone: Zone, countryCode: string): boole
   return ZONE_COUNTRIES[zone].includes(c)
 }
 
+/**
+ * Un cambio di zona richiesto dal cliente cambia la tariffa che paga a ogni
+ * ciclo: la destinazione REALE dell'abbonamento deve poter stare nella zona di
+ * arrivo, esattamente come per una nuova attivazione. Per questo la regola non
+ * ha una lista propria e passa da `isActivatableDestination` — l'unica fonte
+ * delle destinazioni ammesse resta `ZONE_COUNTRIES`.
+ *
+ * Decisione di Alessandro (21/09/2026, chiudendo la falla del cambio zona): se
+ * la destinazione e' extra-UE il cambio non e' piu' possibile — la tariffa
+ * segue il destino. Un abbonato con indirizzo svizzero che passasse alla scala
+ * `EU` pagherebbe 14,99 EUR di spedizione a ciclo contro un costo sdoganato
+ * stimato di 52,49 su 45,00 di merce (`shipping.ts`, misura del 21/09/2026): la
+ * stessa perdita che la chiusura delle nuove attivazioni extra-UE esiste per
+ * evitare, per una via diversa.
+ *
+ * Destinazione ignota -> false (fail-closed): un cambio di tariffa non si
+ * autorizza su un indirizzo che non si sa dove sia. I rinnovi in corso non
+ * passano di qui e restano al prezzo contrattato.
+ */
+export function isZoneChangeAllowed(newZone: Zone, destinationCountry: string | null | undefined): boolean {
+  const country = String(destinationCountry ?? '').trim()
+  if (!country) return false
+  return isActivatableDestination(newZone, country)
+}
+
 export const PLAN_NAMES: Record<PlanKey, string> = {
   tattoo: 'Abbonamento Tattoo XXL',
   pmu: 'Abbonamento PMU 3 Visi',

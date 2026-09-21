@@ -13,6 +13,7 @@
     "test:promo": "tsx --test src/lib/promo.test.ts",
     "test:shipping": "tsx --test src/lib/shipping.test.ts",
     "test:subscription": "tsx --test src/lib/subscription-plans.test.ts",
+    "test:subscription-zone": "tsx --test src/lib/subscription-zone-change.test.ts",
     "test:affiliate-referral": "tsx --test src/lib/affiliate-referral.test.ts",
     "test:affiliate-route": "tsx --test src/lib/affiliate-referral-route.test.ts",
     "test:affiliate-i18n": "tsx --test src/lib/affiliate-stats-i18n.test.ts",
