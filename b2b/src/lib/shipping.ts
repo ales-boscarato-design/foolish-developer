@@ -3,20 +3,24 @@
  *
  * Sotto i 500€ di ordine: stesse fasce del sito retail.
  *   Italia:        7,65€  → gratis sopra 50€
- *   Europa:       14,99€  → gratis sopra 150€
- *   Resto mondo:  37,95€  → gratis sopra 250€
+ *   Unione Europea:14,99€  → gratis sopra 150€
+ *
+ * Extra-UE (Svizzera, Norvegia, Regno Unito, resto del mondo): la tariffa
+ * piatta non copre lo sdoganamento — dazi, IVA all'importazione, fee DDP,
+ * assicurazione crescono col valore della merce e su un ordine rivenditore il
+ * peso e il volume sono troppo variabili per stimarli. Si quota a parte, come
+ * gia' si fa sopra i 500€: meglio un preventivo che una spedizione sotto costo.
  *
  * Da 500€ in su: peso/volume troppo variabile per una tariffa flat —
  * si comunica il costo via email entro 24h invece di stimarlo.
  */
 
-const EU_COUNTRIES = new Set([
+const EU_CUSTOMS_UNION = new Set([
   'AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU',
   'IE','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE',
-  'NO','IS','LI','CH', // SEE / Svizzera inclusi
 ])
 
-export type ShippingZone = 'IT' | 'EU' | 'WORLD'
+export type ShippingZone = 'IT' | 'EU' | 'EXTRA_EU'
 
 export const WHOLESALE_QUOTE_THRESHOLD = 500
 
@@ -27,23 +31,22 @@ export interface ResellerShippingResult {
 }
 
 export function getShippingZone(countryCode: string): ShippingZone {
-  const c = countryCode.toUpperCase()
+  const c = String(countryCode ?? '').toUpperCase()
   if (c === 'IT') return 'IT'
-  if (EU_COUNTRIES.has(c)) return 'EU'
-  return 'WORLD'
+  if (EU_CUSTOMS_UNION.has(c)) return 'EU'
+  return 'EXTRA_EU'
 }
 
 export function calculateResellerShipping(cartTotal: number, countryCode: string): ResellerShippingResult {
   const zone = getShippingZone(countryCode)
 
-  if (cartTotal >= WHOLESALE_QUOTE_THRESHOLD) {
+  if (cartTotal >= WHOLESALE_QUOTE_THRESHOLD || zone === 'EXTRA_EU') {
     return { mode: 'quote', cost: 0, zone }
   }
 
-  const config: Record<ShippingZone, { cost: number; freeAbove: number }> = {
-    IT:    { cost: 7.65,  freeAbove: 50 },
-    EU:    { cost: 14.99, freeAbove: 150 },
-    WORLD: { cost: 37.95, freeAbove: 250 },
+  const config: Record<'IT' | 'EU', { cost: number; freeAbove: number }> = {
+    IT: { cost: 7.65, freeAbove: 50 },
+    EU: { cost: 14.99, freeAbove: 150 },
   }
 
   const { cost, freeAbove } = config[zone]

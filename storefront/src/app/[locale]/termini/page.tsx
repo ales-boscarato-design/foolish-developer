@@ -49,7 +49,7 @@ export default async function TerminiPage() {
         <ul className="list-disc pl-5 space-y-1">
           <li>{t('shippingRates.italy')}</li>
           <li>{t('shippingRates.europe')}</li>
-          <li>{t('shippingRates.world')}</li>
+          <li>{t('shippingRates.extraEu')}</li>
         </ul>
       </section>
 

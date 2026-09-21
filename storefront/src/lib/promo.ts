@@ -242,7 +242,13 @@ export function calculateServerShippingCostCents(
   const baseShipping = calculateShipping(subtotalCents / 100, uppercaseCountry)
   const baseShippingCostCents = moneyToCents(baseShipping.cost)
   if (baseShippingCostCents === null) return null
-  return freeShipping ? 0 : baseShippingCostCents
+
+  // La promo "spedizione gratuita" azzera la tariffa solo dove la tariffa e'
+  // il solo trasporto. Su una destinazione extra-UE azzererebbe anche dazi,
+  // IVA all'importazione e fee DDP: li' la promo non si applica e il costo
+  // sdoganato resta intero.
+  const freeShippingApplied = freeShipping && baseShipping.freeShippingPromoAllowed
+  return freeShippingApplied ? 0 : baseShippingCostCents
 }
 
 function isExpired(expiresAt: unknown, now: Date): boolean {
