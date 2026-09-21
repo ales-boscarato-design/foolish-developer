@@ -105,10 +105,15 @@ export async function createOrderInCMS(session: Stripe.Checkout.Session): Promis
 
   let parsedItems: ParsedItem[] = []
   try {
-    parsedItems = JSON.parse(meta.items_json ?? '[]') as ParsedItem[]
-  } catch {
+    const parsed: unknown = JSON.parse(meta.items_json ?? '[]')
     // Un ordine pagato deve comunque essere visibile anche con metadata
-    // parzialmente corrotti; il riconciliatore lo segnalerà con righe vuote.
+    // parzialmente corrotti; il riconciliatore lo segnalerà con righe vuote. Anche
+    // un `items_json` che è JSON valido ma non una lista deve finire qui e non far
+    // fallire la create: le righe restano vuote e la spedizione arriva dalla chiave
+    // dichiarata dal checkout.
+    parsedItems = Array.isArray(parsed) ? (parsed as ParsedItem[]) : []
+  } catch {
+    // JSON non valido: stesso esito, righe vuote.
   }
 
   const itemsTotalCents = parsedItems.reduce(

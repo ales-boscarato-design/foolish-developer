@@ -360,3 +360,27 @@ test('una spedizione dichiarata malformata non diventa un importo', async () => 
     assert.equal(persisted.shippingCost, 5, `valore dichiarato ${JSON.stringify(raw)}`)
   }
 })
+
+test('un items_json che è JSON valido ma non una lista non perde l\'ordine pagato', async () => {
+  // Metadata corrotti ma sintatticamente validi: il residuo dei metadata non deve
+  // far esplodere la create (`parsedItems.reduce` su un oggetto) e far rispondere
+  // 503 su un ordine già pagato, che resterebbe fuori dal CMS. Le righe restano
+  // vuote e la spedizione arriva dalla chiave dichiarata.
+  const persisted = await persistAndCapture(checkoutSession({
+    amount_total: 15_149,
+    metadata: {
+      order_ref: 'FOOLISH-CORRUPT-METADATA',
+      customer_name: 'Order Test',
+      customer_country: 'IT',
+      customer_address: 'Via Test 1|Torino|10100',
+      items_json: '{"sku":"TEST-SKU"}',
+      shipping_cost_cents: '5249',
+    },
+  }))
+
+  assert.equal(persisted.shippingCost, 52.49)
+  assert.equal(persisted.total, 151.49)
+  // Nessuna riga prodotto ricostruibile dai metadata: l'ordine esiste comunque,
+  // con la spedizione dichiarata invece del residuo.
+  assert.deepEqual(persisted.lineItems, [])
+})
