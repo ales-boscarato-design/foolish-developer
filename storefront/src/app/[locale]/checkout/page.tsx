@@ -101,7 +101,10 @@ export default function CheckoutPage() {
   // ---- Derived ----
   const cartTotal = total()
   const baseShipping = calculateShipping(cartTotal, country)
-  const freeShippingByPromo = promoType === 'free_shipping'
+  // Extra-UE: la promo "spedizione gratuita" non si applica. Azzererebbe anche
+  // dazi, IVA all'importazione e fee DDP, cioe' esattamente le voci che la
+  // tariffa piatta non copriva.
+  const freeShippingByPromo = promoType === 'free_shipping' && baseShipping.freeShippingPromoAllowed
   const shipping = freeShippingByPromo ? { ...baseShipping, cost: 0, isFree: true } : baseShipping
   const proDiscount = (promoType === 'percent_pro' || promoType === 'percent' || promoType === 'amount')
   ? (promoData?.discountAmount ?? 0)
@@ -666,6 +669,12 @@ export default function CheckoutPage() {
                   {shipping.isFree ? 'Gratuita' : `€${shipping.cost.toFixed(2)}`}
                 </span>
               </div>
+
+              {shipping.landedCost && !shipping.isFree && (
+                <p className="text-xs pb-2" style={{ color: 'var(--muted-fg)' }}>
+                  {t('shippingLandedNote')}
+                </p>
+              )}
 
               {proDiscount > 0 && (
                 <div className="flex justify-between py-2" style={{ borderBottom: '1px solid var(--surface-3)' }}>

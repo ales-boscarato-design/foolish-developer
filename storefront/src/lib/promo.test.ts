@@ -135,6 +135,28 @@ test('server shipping uses the normalized subtotal and preserves free-above-thre
   assert.equal(calculateServerShippingCostCents(thresholdItems, 'XX', false), null)
 })
 
+test('la promo "spedizione gratuita" non azzera una tariffa extra-UE', () => {
+  const items = normalizeCheckoutItems([{
+    price: 99,
+    quantity: 1,
+    productName: 'Test',
+    variantLabel: 'A',
+    sku: 'TEST',
+  }])
+  assert.ok(items)
+  if (!items) return
+
+  // Svizzera: il costo sdoganato misurato (47,72 EUR) resta intero. La promo
+  // non deve regalare dazi, IVA all'importazione e fee DDP.
+  assert.equal(calculateServerShippingCostCents(items, 'CH', true), 4772)
+  assert.equal(calculateServerShippingCostCents(items, 'CH', false), 4772)
+  assert.equal(calculateServerShippingCostCents(items, 'NO', true) !== 0, true)
+
+  // Unione Europea: il comportamento di prima non cambia.
+  assert.equal(calculateServerShippingCostCents(items, 'DE', true), 0)
+  assert.equal(calculateServerShippingCostCents(items, 'DE', false), 1499)
+})
+
 test('allocates a discount across non-negative product prices with at most two lines per item', () => {
   const lines = allocateProductDiscount([
     { price: 10, quantity: 3, productName: 'Test', variantLabel: 'A', sku: 'TEST-A' },
