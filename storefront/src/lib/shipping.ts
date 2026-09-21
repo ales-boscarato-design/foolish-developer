@@ -18,6 +18,17 @@
  * 99,00 EUR → incassato 14,99 EUR di spedizione, costo reale 47,72 EUR.
  * Perdita 32,73 EUR su un pacco (3,18 volte l'incassato).
  *
+ * Il 21/09/2026 il registro Packlink e' stato riletto per intero (229
+ * spedizioni, 21 extra-UE) e i `customs_and_duties` dell'ordine 31 sono stati
+ * aperti: dentro i 14,77 EUR ci sono dazi 0,00 + IVA all'importazione 9,88 +
+ * spese di sdoganamento 4,89. Ne escono due regole, e il profilo CH e' corretto
+ * su quelle (vedi SWITZERLAND_PROFILE): la base dell'IVA all'importazione e'
+ * merce + trasporto REALE del corriere, e le spese di sdoganamento sono una
+ * voce MISURATA, non un residuo che compensa un errore. Delle 21 spedizioni
+ * extra-UE una sola e' partita in DDP (CH): le altre 20 sono DAP, quindi per GB
+ * e US gli oneri import non esistono sul nostro conto e non sono stimabili —
+ * quei profili restano non misurati per costruzione, non per pigrizia.
+ *
  * Il profilo di ogni paese e' qui dentro, in un solo posto: lo storefront lo
  * usa per il totale mostrato e per quello incassato. La chiave API Packlink NON
  * entra mai nel calcolo: qui ci sono solo tariffe e oneri misurati, mai
@@ -103,18 +114,26 @@ export interface ShippingRate {
 }
 
 export interface ExtraEuProfile {
-  /** Trasporto per il collo di riferimento della zona. */
+  /** Trasporto per il collo di riferimento della zona (2,0 kg). */
   carrier: number
-  /** Assicurazione: quota sul valore della merce. */
+  /**
+   * Assicurazione: quota sul valore della merce. Sul punto misurato (merce
+   * 99,00) vale 4,00 EUR, cioe' il 2,5% del valore assicurato che Packlink
+   * dichiara (160,00) riscritto sulla merce (4,04%): qui non esiste un valore
+   * assicurato separato dalla merce. Il fattore 1,6162 e' un'ASSUNZIONE a un
+   * punto di misura, non una regola verificata (vedi SWITZERLAND_PROFILE).
+   */
   insuranceRate: number
   /** Dazio all'importazione: quota sulla base CIF (merce + trasporto). */
   dutyRate: number
-  /** IVA all'importazione: quota sulla base imponibile. */
+  /** IVA all'importazione: quota sulla base imponibile (merce + trasporto reale). */
   importVatRate: number
   /**
-   * Oneri fissi di sdoganamento non proporzionali al valore (disborso del
-   * corriere, brokeraggio). Nel caso misurato e' il residuo dei
-   * `customs_and_duties` che l'IVA all'importazione non spiega.
+   * Oneri di sdoganamento che non dipendono dal valore (disborso del corriere,
+   * brokeraggio). MISURATO: `import_fees_amount` = 4,89 EUR dentro i
+   * `customs_and_duties` dell'ordine 31. Non e' piu' il residuo dei 14,77 EUR
+   * che l'IVA non spiegava (era 4,08: assorbiva l'errore di base dell'IVA e
+   * faceva sbagliare il profilo di segno con merce diversa da 99,00).
    */
   fixedImportFee: number
   /** Fee DDP Packlink. */
@@ -154,24 +173,54 @@ export interface ExtraEuProfile {
  * merce 99,00 EUR. Costo reale alla cassa: 23,00 corriere + 0,99 gestione +
  * 4,00 assicurazione + 14,77 oneri doganali + 4,96 fee DDP = 47,72 EUR.
  *
- * I parametri riproducono quella misura al centesimo (vedi shipping.test.ts):
- *   IVA 8,1% su (99,00 + 23,00 + 4,00 + 0,99 + 4,96) = 10,69
- *   residuo non spiegato dall'IVA = 14,77 − 10,69 = 4,08 → fixedImportFee
+ * Il 21/09/2026 i `customs_and_duties` di quell'ordine sono stati aperti e
+ * separati (dazi 0,00 + IVA all'importazione 9,88 + sdoganamento 4,89). Le
+ * regole reali sono quindi:
+ *   IVA  8,1% su (merce 99,00 + trasporto REALE 23,00) = 9,88
+ *   spese di sdoganamento = 4,89 (misurate, non un residuo)
+ *   23,00 + 4,00 + 9,88 + 4,89 + 4,96 + 0,99 = 47,72 al centesimo
+ *
+ * Due difetti chiusi da questa misura:
+ *  - la base dell'IVA all'importazione e' merce + trasporto REALE del corriere,
+ *    non merce+trasporto+assicurazione+gestione+fee DDP (la base precedente):
+ *    gonfiare il trasporto addebitato al cliente NON aumenta l'IVA che paghiamo;
+ *  - `fixedImportFee` era 4,08 per compensazione: assorbiva l'errore di base
+ *    dell'IVA (10,69 contro 9,88) e il totale tornava per costruzione. Con merce
+ *    diversa da 99,00 il profilo sbagliava di segno: sotto costo sotto i 99 EUR,
+ *    sopra costo sopra.
  *
  * Dazio 0: i prodotti industriali dei cap. 25-97 sono esenti dal 1/1/2024 a
  * prescindere dall'origine.
  *
- * UN SOLO PUNTO DI MISURA: e' una calibrazione a un punto. La curva va tarata
- * su 3-5 spedizioni extra-UE con valori diversi (Alfred registra il costo reale
- * di ognuna con `pipeline.py margini`). Finche' non ci sono, il profilo resta
- * prudenziale: meglio addebitare un euro in piu' che regalare lo sdoganamento.
+ * ASSICURAZIONE — assunzione dichiarata, non regola: il costo misurato e' 4,00
+ * EUR su merce 99,00. Packlink dichiara "2,5% del valore assicurato" e sul punto
+ * misurato il valore assicurato era 160,00 (merce 99,00, fattura doganale
+ * 113,99): 2,5% di 160 e il 4,04% di 99 danno entrambi 4,00. Le due letture
+ * coincidono qui e divergono altrove, e con un solo punto non si sceglie: qui
+ * resta la lettura che segue la merce (una quota, non un importo fisso). Se
+ * invece il valore assicurato fosse FISSO a 160, i carrelli piccoli resterebbero
+ * sottostimati di ~4,00 EUR a merce zero e di 2,79 EUR a merce 30. Si chiarisce
+ * con un secondo punto DDP su merce diversa.
+ *
+ * UN SOLO PUNTO DI MISURA con costo sdoganato completo (le altre 20 spedizioni
+ * extra-UE sono partite in DAP: gli oneri li ha pagati il destinatario). La curva
+ * va tarata su 3-5 spedizioni DDP con valori diversi (Alfred registra il costo
+ * reale di ognuna con `pipeline.py margini`). Finche' non ci sono, il profilo
+ * resta a costo e senza margine, e nessun altro paese lo eredita come se fosse
+ * una misura.
+ *
+ * Trasporto: 23,00 e' il costo PAGATO su quell'ordine, ed e' quello che
+ * riproduce la misura. Il preventivo di oggi della stessa linea (UPS Standard
+ * Access Point 22131, 21/09/2026) e' 23,99: alla prossima calibrazione va
+ * riguardato, perche' il listino corrente e' ~1 EUR piu' caro del prezzo che
+ * questo profilo assume.
  */
 export const SWITZERLAND_PROFILE: ExtraEuProfile = {
   carrier: 23.00,
   insuranceRate: 0.0404,
   dutyRate: 0,
   importVatRate: 0.081,
-  fixedImportFee: 4.08,
+  fixedImportFee: 4.89,
   ddpFee: 4.96,
   handlingFee: 0.99,
   // De minimis CH: nessuna IVA se l'imposta e' sotto CHF 5 (≈ CHF 62 di valore
@@ -185,23 +234,83 @@ export const SWITZERLAND_PROFILE: ExtraEuProfile = {
   freeAbove: null,
   freeShippingPromoAllowed: false,
   calibrated: true,
-  source: 'misurato — CMS 31 Basel CH, collo 40x40x10 2,0 kg, merce 99,00 EUR (2026-09)',
+  source: 'misurato — CMS 31 Basel CH, collo 40x40x10 2,0 kg, merce 99,00 EUR (2026-09); preventivo stessa linea UPS 23,99 (21/09/2026)',
 }
 
 /**
  * Copertura per paese. Ogni paese extra-UE di ALLOWED_SHIPPING_COUNTRIES che
- * non compare qui usa DEFAULT_EXTRA_EU_PROFILE e viene marcato `calibrated:
- * false`: il prezzo non scende sotto il profilo misurato piu' caro.
+ * non compare qui usa un profilo prudenziale (regole CH, trasporto della linea
+ * DDP-capace) ed e' marcato `calibrated: false`.
  */
 export const LANDED_COST_COUNTRIES: Partial<Record<AllowedShippingCountry, ExtraEuProfile>> = {
   CH: SWITZERLAND_PROFILE,
 }
 
-/** Profilo prudenziale per i paesi non ancora misurati. */
+/**
+ * Trasporto della linea DDP-capace (UPS) per il collo di riferimento, paese per
+ * paese, per i paesi che NON hanno una misura completa.
+ *
+ * Perche' la linea UPS e non la piu' economica: nei preventivi Packlink del
+ * 21/09/2026 `ddp_support_level: supported` compare solo sulle linee UPS;
+ * Poste, BRT, Fedex e TNT dichiarano `ddp: None`. La piu' economica non sa
+ * sdoganare, quindi non e' un'alternativa a parita' di servizio: un profilo
+ * landed-cost costruito sul preventivo piu' basso e' sotto costo tutte le volte
+ * che lo sdoganamento lo paga Foolish.
+ *
+ * Dove esiste una spedizione reale (GB, US) vince il costo PAGATO; il preventivo
+ * di oggi della stessa linea e' piu' caro ed e' scritto accanto, perche' la
+ * prossima calibrazione deve partire da li'.
+ *
+ * BR non compare: il 21/09/2026 nessun servizio di questo account supporta il
+ * DDP verso il Brasile. Senza linea DDP il modello landed-cost non e'
+ * costruibile — non e' una scelta di prudenza, e' una funzione che non esiste.
+ */
+export const DDP_CAPABLE_CARRIER: Partial<Record<AllowedShippingCountry, { carrier: number; source: string }>> = {
+  GB: {
+    carrier: 18.50,
+    source: 'costo pagato UPS Standard Access Point GB, 2,0 kg (2025) — 17,50 fino a 1,0 kg; preventivo stessa linea 19,49 (21/09/2026)',
+  },
+  US: {
+    carrier: 37.60,
+    source: 'costo pagato UPS Express Saver US, 2,0 kg (2025); preventivo stessa linea 52,74 (21/09/2026)',
+  },
+  NO: {
+    carrier: 23.99,
+    source: 'preventivo UPS Standard Access Point NO, 2,0 kg (21/09/2026) — la piu\' economica (Fedex 17,97) non ha DDP',
+  },
+  CA: {
+    carrier: 43.28,
+    source: 'preventivo UPS Express Saver CA, 2,0 kg (21/09/2026) — la piu\' economica (BRT 33,04) non ha DDP',
+  },
+  AU: {
+    carrier: 64.54,
+    source: 'preventivo UPS Express Saver AU, 2,0 kg (21/09/2026) — la piu\' economica (BRT 37,84) non ha DDP',
+  },
+  JP: {
+    carrier: 64.33,
+    source: 'preventivo UPS Express Saver JP, 2,0 kg (21/09/2026) — la piu\' economica (Poste 57,44) non ha DDP',
+  },
+}
+
+/** Profilo prudenziale: regole CH, trasporto della linea DDP-capace del paese. */
 export const DEFAULT_EXTRA_EU_PROFILE: ExtraEuProfile = {
   ...SWITZERLAND_PROFILE,
   calibrated: false,
   source: 'prudenziale — profilo CH misurato, esteso a un paese non ancora misurato',
+}
+
+/**
+ * Profilo prudenziale per un paese non misurato, o null se per quel paese non
+ * esiste alcuna linea DDP: in quel caso non c'e' niente da stimare, si quota.
+ */
+export function uncalibratedExtraEuProfile(country: AllowedShippingCountry): ExtraEuProfile | null {
+  const line = DDP_CAPABLE_CARRIER[country]
+  if (!line) return null
+  return {
+    ...DEFAULT_EXTRA_EU_PROFILE,
+    carrier: line.carrier,
+    source: `prudenziale — oneri import NON misurati (regole CH applicate); ${line.source}`,
+  }
 }
 
 /** Tariffa piatta minima per un paese non misurato (storico "Resto del mondo"). */
@@ -215,14 +324,17 @@ export const UNCALIBRATED_EXTRA_EU_FLAT = 37.95
  *                         la sua misura. E' l'unica politica che non puo'
  *                         spedire sotto costo, perche' non spedisce affatto.
  *   'conservative_profile'  si applica il profilo CH misurato con il pavimento
- *                         storico. Sblocca le vendite, ma il profilo CH NON e'
- *                         prudente per tutti: il Regno Unito ha IVA 20% e la
- *                         Norvegia 25% (sotto-stimato), gli Stati Uniti non
- *                         hanno IVA all'importazione sotto gli 800 USD
- *                         (sovra-stimato). Fuori dalla Svizzera e' un numero
- *                         che non viene da una misura.
+ *                         storico, sul trasporto della linea DDP-capace.
+ *                         Sblocca le vendite, ma NON e' prudente sugli oneri
+ *                         import: il Regno Unito ha IVA 20% e la Norvegia 25%
+ *                         (qui si applica l'8,1% svizzero: sotto costo), gli
+ *                         Stati Uniti non hanno IVA all'importazione sotto gli
+ *                         800 USD (sopra costo). Il trasporto e' misurato o
+ *                         preventivato, gli oneri no.
  *
- * La scelta e' commerciale: default fail-closed, si cambia con una riga.
+ * La scelta e' commerciale: default fail-closed, si cambia con una riga. Il
+ * Brasile resta `quote_required` in ogni caso, anche girando questa politica,
+ * perche' non ha alcuna linea DDP.
  */
 export type UncalibratedExtraEuPolicy = 'quote_required' | 'conservative_profile'
 
@@ -269,10 +381,11 @@ export function calculateLandedCost(
   const ddpFee = roundCents(profile.ddpFee)
   const fixedImportFee = roundCents(profile.fixedImportFee)
 
-  // Base imponibile IVA all'importazione: merce + trasporto + assicurazione +
-  // costi di formalita' (gestione + fee DDP). Gli oneri fissi di disborso
-  // restano fuori: sono il residuo misurato, non una voce della base.
-  const vatBase = roundCents(goods + carrier + insurance + handlingFee + ddpFee)
+  // Base imponibile IVA all'importazione: merce + trasporto REALE del corriere.
+  // MISURATO sull'ordine 31: 8,1% di (99,00 + 23,00) = 9,88. Assicurazione,
+  // gestione e fee DDP NON entrano nella base, e il trasporto addebitato al
+  // cliente non entra qui: gonfiarlo non aumenta l'IVA che paghiamo.
+  const vatBase = roundCents(goods + carrier)
   const exempt = profile.importVatExemptBelow !== null && vatBase < profile.importVatExemptBelow
   const importVat = exempt ? 0 : roundCents(vatBase * profile.importVatRate)
 
@@ -325,12 +438,13 @@ export function calculateShipping(
   }
 
   const country = String(countryCode ?? '').toUpperCase() as AllowedShippingCountry
-  const profile = LANDED_COST_COUNTRIES[country] ?? DEFAULT_EXTRA_EU_PROFILE
+  const profile = LANDED_COST_COUNTRIES[country] ?? uncalibratedExtraEuProfile(country)
 
-  // Paese extra-UE mai misurato: nessun numero inventato. La spedizione si
-  // quota a mano (fail-closed) oppure si applica il profilo misurato con il
-  // pavimento storico, se la politica e' stata girata di proposito.
-  if (!profile.calibrated && policy === 'quote_required') {
+  // Paese senza profilo (nessuna linea DDP, es. BR) o senza misura: nessun
+  // numero inventato. La spedizione si quota a mano (fail-closed) oppure si
+  // applica il profilo misurato con il pavimento storico, se la politica e'
+  // stata girata di proposito.
+  if (!profile || (!profile.calibrated && policy === 'quote_required')) {
     return {
       zone,
       cost: 0,
