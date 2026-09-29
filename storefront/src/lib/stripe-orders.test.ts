@@ -4,6 +4,8 @@ import type Stripe from 'stripe'
 import {
   createOrderInCMS,
   createOrderInCMSWithRetry,
+  createStorefrontOrderRef,
+  isValidStorefrontOrderRef,
   reconcilePaidStripeOrders,
   type OrderPersistenceResult,
 } from './stripe-orders'
@@ -179,6 +181,18 @@ test('a permanent CMS failure exhausts exactly four attempts', async () => {
   assert.equal(attempts, 4)
 })
 
+test('storefront order refs remain valid across the legacy and collision-resistant formats', () => {
+  const timestamp = 1_746_364_800_000
+  const first = createStorefrontOrderRef(timestamp, '00000000-0000-4000-8000-000000000001')
+  const second = createStorefrontOrderRef(timestamp, '00000000-0000-4000-8000-000000000002')
+
+  assert.notEqual(first, second)
+  assert.equal(isValidStorefrontOrderRef('FOOLISH-1746364800000'), true)
+  assert.equal(isValidStorefrontOrderRef(first), true)
+  assert.equal(isValidStorefrontOrderRef(second), true)
+  assert.equal(isValidStorefrontOrderRef('FOOLISH-1746364800000-not-a-uuid'), false)
+})
+
 test('reconciliation recovers a paid session even if its webhook was missed', async () => {
   const originalFetch = globalThis.fetch
   let createCount = 0
@@ -225,36 +239,58 @@ test('reconciliation recovers a paid session even if its webhook was missed', as
 
 test('reconciliation ignores paid payment sessions without a valid storefront order_ref', async () => {
   const originalFetch = globalThis.fetch
+  const originalError = console.error
   let fetchCount = 0
+  const errors: unknown[][] = []
   globalThis.fetch = async () => {
     fetchCount += 1
     throw new Error('an unscoped paid session must not reach CMS')
   }
+  console.error = (...args: unknown[]) => errors.push(args)
 
-  const unscopedPaid = checkoutSession({
+  const missingRef = checkoutSession({
     id: 'cs_live_unscoped_paid_test',
-    metadata: { items_json: '[]' },
+    payment_intent: 'pi_live_unscoped_paid_test',
+    customer_email: 'must-not-be-logged@example.invalid',
+    metadata: { items_json: '[]', customer_name: 'Must Not Be Logged' },
+  })
+  const invalidRef = checkoutSession({
+    id: 'cs_live_invalid_ref_test',
+    payment_intent: 'pi_live_invalid_ref_test',
+    customer_email: 'must-not-be-logged-2@example.invalid',
+    metadata: { order_ref: 'FOOLISH-not-an-order-ref', items_json: '[]' },
   })
   const stripe = {
     checkout: {
       sessions: {
-        list: () => ({
-          autoPagingToArray: async () => [unscopedPaid],
-        }),
-        retrieve: async () => unscopedPaid,
+        list: () => ({ autoPagingToArray: async () => [missingRef, invalidRef] }),
+        retrieve: async () => missingRef,
       },
     },
   } as unknown as Stripe
 
   try {
     const result = await reconcilePaidStripeOrders({ stripe, lookbackDays: 30 })
-    assert.equal(result.sessionsScanned, 1)
+    assert.equal(result.sessionsScanned, 2)
     assert.equal(result.eligiblePaidSessions, 0)
     assert.equal(result.recovered.length, 0)
     assert.equal(result.errors.length, 0)
     assert.equal(fetchCount, 0)
+    assert.deepEqual(errors, [
+      [
+        '[stripe-reconcile] paid payment checkout quarantined',
+        { stripeSessionId: missingRef.id, paymentIntentId: 'pi_live_unscoped_paid_test' },
+      ],
+      [
+        '[stripe-reconcile] paid payment checkout quarantined',
+        { stripeSessionId: invalidRef.id, paymentIntentId: 'pi_live_invalid_ref_test' },
+      ],
+    ])
+    assert.equal(JSON.stringify(errors).includes('must-not-be-logged'), false)
+    assert.equal(JSON.stringify(errors).includes('Must Not Be Logged'), false)
   } finally {
     globalThis.fetch = originalFetch
+    console.error = originalError
   }
 })
 

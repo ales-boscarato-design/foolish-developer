@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import Stripe from 'stripe'
 import { countryToLocale } from '@/lib/resend'
 
@@ -48,10 +49,14 @@ export interface StripeOrderReconciliationResult {
   }>
 }
 
-// Normal storefront payment checkouts use `FOOLISH-${Date.now()}`. Keep this
-// validation tied to that contract so a Stripe session id or arbitrary
-// metadata can never become an order number.
-const STOREFRONT_ORDER_REF_RE = /^FOOLISH-\d{13}$/
+// Normal storefront payment checkouts historically used `FOOLISH-${Date.now()}`.
+// Reorders add UUID entropy so two requests in the same millisecond cannot
+// reuse an order number. Keep both formats valid for existing Stripe sessions.
+const STOREFRONT_ORDER_REF_RE = /^FOOLISH-(?:\d{13}|\d{13}-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/
+
+export function createStorefrontOrderRef(timestamp = Date.now(), entropy = randomUUID()): string {
+  return `FOOLISH-${timestamp}-${entropy}`
+}
 
 export function isValidStorefrontOrderRef(value: unknown): value is string {
   return typeof value === 'string' && STOREFRONT_ORDER_REF_RE.test(value)
@@ -212,6 +217,23 @@ export async function reconcilePaidStripeOrders(params: {
   const sessions = await stripe.checkout.sessions
     .list({ created: { gte: createdAfter }, limit: 100 })
     .autoPagingToArray({ limit: maxSessions })
+
+  for (const session of sessions) {
+    if (
+      session.livemode
+      && session.mode === 'payment'
+      && session.payment_status === 'paid'
+      && !isValidStorefrontOrderRef(session.metadata?.order_ref)
+    ) {
+      const paymentIntentId = typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : session.payment_intent?.id ?? null
+      console.error('[stripe-reconcile] paid payment checkout quarantined', {
+        stripeSessionId: session.id,
+        paymentIntentId,
+      })
+    }
+  }
 
   // Reconciliation must obey the same order_ref contract as the webhook. The
   // previous session-id fallback could turn unrelated paid Checkout sessions
