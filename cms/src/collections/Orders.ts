@@ -443,7 +443,7 @@ const notifyAlessandroByEmail: CollectionAfterChangeHook = async ({ doc, operati
 
   const addr = doc.shippingAddress as Record<string, string> | undefined
   const addressText = addr
-    ? `${addr.name}, ${addr.address1}${addr.address2 ? ' ' + addr.address2 : ''}, ${addr.postalCode} ${addr.city} (${addr.country})`
+    ? `${addr.name}, ${addr.address1}${addr.address2 ? ' ' + addr.address2 : ''}, ${addr.postalCode} ${addr.city}${addr.province ? ` (${addr.province})` : ''} (${addr.country})`
     : '—'
 
   const cmsUrl = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
@@ -782,7 +782,11 @@ export const Orders: CollectionConfig = {
           type: 'group',
           label: 'Indirizzo spedizione',
           fields: [
-            { name: 'name', type: 'text', label: 'Nome' },
+            { name: 'name', type: 'text', label: 'Nome completo' },
+            { type: 'row', fields: [
+              { name: 'firstName', type: 'text', label: 'Nome', admin: { width: '50%' } },
+              { name: 'lastName', type: 'text', label: 'Cognome', admin: { width: '50%' } },
+            ]},
             { type: 'row', fields: [
               { name: 'address1', type: 'text', label: 'Via/Piazza', admin: { width: '70%' } },
               { name: 'address2', type: 'text', label: 'Interno', admin: { width: '30%' } },
@@ -790,7 +794,8 @@ export const Orders: CollectionConfig = {
             { type: 'row', fields: [
               { name: 'city', type: 'text', label: 'Città', admin: { width: '40%' } },
               { name: 'postalCode', type: 'text', label: 'CAP', admin: { width: '30%' } },
-              { name: 'country', type: 'text', label: 'Paese', admin: { width: '30%' } },
+              { name: 'province', type: 'text', label: 'Provincia', admin: { width: '15%' } },
+              { name: 'country', type: 'text', label: 'Paese', admin: { width: '15%' } },
             ]},
           ],
         },

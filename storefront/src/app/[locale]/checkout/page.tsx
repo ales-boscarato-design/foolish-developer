@@ -55,7 +55,7 @@ export default function CheckoutPage() {
   const [country, setCountry] = useState('IT')
 
   // Shipping form
-  const [form, setForm] = useState({ name: '', email: '', address: '', city: '', postalCode: '', phone: '' })
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', address: '', city: '', postalCode: '', province: '', phone: '' })
   const [fiscalCode, setFiscalCode] = useState('')
 
   // Billing
@@ -71,6 +71,7 @@ export default function CheckoutPage() {
   // Validation state
   const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle')
   const [postalCodeError, setPostalCodeError] = useState(false)
+  const [provinceError, setProvinceError] = useState(false)
   const [phoneError, setPhoneError] = useState(false)
 
   // Address autocomplete
@@ -190,18 +191,21 @@ export default function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isExtraEuDestination, quoteKey])
 
-  const validatePhone = (phone: string) => /^[\d\s+\-()\u00AD]{6,}$/.test(phone.trim())
+  const validatePhone = (phone: string) => /(?=.*\d)^[\d\s+\-()\u00AD]{6,}$/.test(phone.trim())
 
   const validatePostalCode = (code: string, c: string) => {
     const re = POSTAL_CODE_RE[c]
     return !re || re.test(code.trim())
   }
 
+  const validateProvince = (province: string) => /^[A-Za-z]{2}$/.test(province.trim())
+
   const canPay =
     !loading &&
     !baseShipping.requiresQuote &&
-    !!form.name && !!form.email && !!form.address && !!form.city && !!form.postalCode &&
-    !!form.phone && !phoneError &&
+    !!form.firstName && !!form.lastName && !!form.email && !!form.address && !!form.city && !!form.postalCode &&
+    !!form.phone && !phoneError && !postalCodeError &&
+    (country !== 'IT' || (!!form.province && !provinceError)) &&
     emailStatus !== 'invalid' &&
     (!billingDifferent || (!!billing.name && !!billing.address && !!billing.city && !!billing.postalCode))
 
@@ -251,6 +255,10 @@ export default function CheckoutPage() {
   // ---- Postal code ----
   const handlePostalCodeBlur = () => {
     if (form.postalCode) setPostalCodeError(!validatePostalCode(form.postalCode, country))
+  }
+
+  const handleProvinceBlur = () => {
+    if (country === 'IT') setProvinceError(!validateProvince(form.province))
   }
 
   // ---- Address autocomplete ----
@@ -344,6 +352,7 @@ export default function CheckoutPage() {
     const isInvalid =
       (field === 'email' && emailStatus === 'invalid') ||
       (field === 'postalCode' && postalCodeError) ||
+      (field === 'province' && provinceError) ||
       (field === 'phone' && phoneError)
     const isValid = overrideValid ||
       (field === 'email' && emailStatus === 'valid') ||
@@ -511,7 +520,7 @@ export default function CheckoutPage() {
             {/* Country */}
             <select
               value={country}
-              onChange={(e) => { setCountry(e.target.value); setPostalCodeError(false) }}
+              onChange={(e) => { setCountry(e.target.value); setPostalCodeError(false); setProvinceError(false) }}
               onFocus={() => setFocusedField('country')}
               onBlur={() => setFocusedField(null)}
               className={inputBase}
@@ -522,21 +531,28 @@ export default function CheckoutPage() {
               ))}
             </select>
 
-            {/* Name */}
-            <div className="relative">
+            {/* Recipient name */}
+            <div className="grid grid-cols-2 gap-3">
               <input
                 type="text"
-                placeholder={t('fields.name')}
-                value={form.name}
-                onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
-                onFocus={() => setFocusedField('name')}
+                placeholder={t('fields.firstName')}
+                value={form.firstName}
+                onChange={(e) => setForm(f => ({ ...f, firstName: e.target.value }))}
+                onFocus={() => setFocusedField('firstName')}
                 onBlur={() => setFocusedField(null)}
                 className={inputBase}
-                style={inputStyle('name', !!form.name)}
+                style={inputStyle('firstName', !!form.firstName)}
               />
-              {form.name && (
-                <CheckCircle size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#5a9c52' }} />
-              )}
+              <input
+                type="text"
+                placeholder={t('fields.lastName')}
+                value={form.lastName}
+                onChange={(e) => setForm(f => ({ ...f, lastName: e.target.value }))}
+                onFocus={() => setFocusedField('lastName')}
+                onBlur={() => setFocusedField(null)}
+                className={inputBase}
+                style={inputStyle('lastName', !!form.lastName)}
+              />
             </div>
 
             {/* Email + MX check */}
@@ -655,6 +671,26 @@ export default function CheckoutPage() {
                 <p className="text-xs mt-1" style={{ color: 'var(--limited)' }}>Formato CAP non valido per {country}</p>
               )}
             </div>
+
+            {/* Italian province: explicit customer input, never inferred from CAP */}
+            {country === 'IT' && (
+              <div>
+                <input
+                  type="text"
+                  maxLength={2}
+                  placeholder={t('fields.province')}
+                  value={form.province}
+                  onChange={(e) => { setForm(f => ({ ...f, province: e.target.value.toUpperCase() })); if (provinceError) setProvinceError(false) }}
+                  onFocus={() => setFocusedField('province')}
+                  onBlur={() => { setFocusedField(null); handleProvinceBlur() }}
+                  className={inputBase}
+                  style={inputStyle('province', !!form.province && !provinceError)}
+                />
+                {provinceError && (
+                  <p className="text-xs mt-1" style={{ color: 'var(--limited)' }}>{t('provinceInvalid')}</p>
+                )}
+              </div>
+            )}
 
             {/* Codice Fiscale / P.IVA — Italy only */}
             {country === 'IT' && (

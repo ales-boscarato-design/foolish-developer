@@ -39,15 +39,19 @@
     "errorNetwork": "Error de red. Por favor reintenta.",
     "fields": {
       "name": "Nombre completo",
+      "firstName": "Nombre",
+      "lastName": "Apellidos",
       "email": "Email",
       "address": "Dirección",
       "city": "Ciudad",
       "postalCode": "Código postal",
+      "province": "Provincia (código de 2 letras)",
       "fiscalCode": "NIF / CIF / VAT",
       "phone": "Número de teléfono"
     },
     "emailInvalid": "Email inválido o inexistente — comprueba el dominio",
     "postalCodeInvalid": "Código postal inválido para el país seleccionado",
+    "provinceInvalid": "Introduce el código de la provincia (2 letras)",
     "billingTitle": "Dirección de facturación",
     "billingSameAsShipping": "La dirección de facturación coincide con la de envío",
     "countries": {

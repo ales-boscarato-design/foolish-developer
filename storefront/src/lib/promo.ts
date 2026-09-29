@@ -26,11 +26,14 @@ export interface CheckoutCartItem {
 
 export interface CheckoutCustomer {
   email: string
+  firstName: string
+  lastName: string
   name: string
   country: AllowedShippingCountry
   address: string
   city: string
   postalCode: string
+  province: string
   phone: string
 }
 
@@ -67,10 +70,12 @@ export const MAX_STRIPE_METADATA_VALUE_LENGTH = 500
 
 const CUSTOMER_FIELD_LIMITS = {
   email: 254,
-  name: 120,
+  firstName: 80,
+  lastName: 80,
   address: 180,
   city: 100,
   postalCode: 32,
+  province: 2,
   phone: 40,
 } as const
 
@@ -127,34 +132,50 @@ export function normalizeCheckoutCustomer(value: unknown): CheckoutCustomer | nu
   if (!isPlainObject(value)) return null
 
   const email = boundedString(value.email, CUSTOMER_FIELD_LIMITS.email)
-  const name = boundedString(value.name, CUSTOMER_FIELD_LIMITS.name)
+  const firstName = boundedString(value.firstName, CUSTOMER_FIELD_LIMITS.firstName)
+  const lastName = boundedString(value.lastName, CUSTOMER_FIELD_LIMITS.lastName)
   const countryValue = boundedString(value.country, 2)
   const address = boundedString(value.address, CUSTOMER_FIELD_LIMITS.address)
   const city = boundedString(value.city, CUSTOMER_FIELD_LIMITS.city)
   const postalCode = boundedString(value.postalCode, CUSTOMER_FIELD_LIMITS.postalCode)
+  const province = value.province === undefined ? '' : boundedString(value.province, CUSTOMER_FIELD_LIMITS.province)
   const phone = value.phone === undefined ? '' : boundedString(value.phone, CUSTOMER_FIELD_LIMITS.phone)
 
   const normalizedCountry = countryValue?.toUpperCase()
+  const normalizedProvince = province?.toUpperCase() ?? ''
+  const italianPhone = phone !== null && /(?=.*\d)^[\d\s+\-()\u00AD]{6,}$/.test(phone)
+  const italianAddress = normalizedCountry !== 'IT' || (
+    phone !== ''
+    && italianPhone
+    && /^\d{5}$/.test(postalCode ?? '')
+    && /^[A-Z]{2}$/.test(normalizedProvince)
+  )
   if (
     !email
-    || !name
+    || !firstName
+    || !lastName
     || !normalizedCountry
     || !isAllowedShippingCountry(normalizedCountry)
     || !address
     || !city
     || !postalCode
+    || province === null
     || phone === null
+    || !italianAddress
   ) {
     return null
   }
 
   return {
     email,
-    name,
+    firstName,
+    lastName,
+    name: `${firstName} ${lastName}`,
     country: normalizedCountry,
     address,
     city,
     postalCode,
+    province: normalizedProvince,
     phone,
   }
 }
@@ -423,8 +444,14 @@ export function buildCheckoutMetadata(args: {
 }): Record<string, string> | null {
   const metadata: Record<string, string> = {
     order_ref: args.orderRef,
+    customer_first_name: args.customer.firstName,
+    customer_last_name: args.customer.lastName,
     customer_name: args.customer.name,
     customer_country: args.customer.country,
+    customer_street: args.customer.address,
+    customer_city: args.customer.city,
+    customer_postal_code: args.customer.postalCode,
+    customer_province: args.customer.province,
     customer_address: `${args.customer.address}|${args.customer.city}|${args.customer.postalCode}`,
     customer_phone: args.customer.phone,
     items_json: JSON.stringify(args.chargedProductLines.map((item) => ({

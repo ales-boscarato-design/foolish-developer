@@ -499,10 +499,13 @@ export interface Order {
   trackingCarrier?: string | null;
   shippingAddress?: {
     name?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
     address1?: string | null;
     address2?: string | null;
     city?: string | null;
     postalCode?: string | null;
+    province?: string | null;
     country?: string | null;
   };
   notes?: string | null;
@@ -1168,10 +1171,13 @@ export interface OrdersSelect<T extends boolean = true> {
     | T
     | {
         name?: T;
+        firstName?: T;
+        lastName?: T;
         address1?: T;
         address2?: T;
         city?: T;
         postalCode?: T;
+        province?: T;
         country?: T;
       };
   notes?: T;

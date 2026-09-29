@@ -30,6 +30,18 @@ export interface OrderPersistenceRetryOptions {
   persist?: (session: Stripe.Checkout.Session) => Promise<OrderPersistenceResult>
 }
 
+export interface StripeOrderRecipient {
+  firstName: string
+  lastName: string
+  name: string
+  phone: string
+  street: string
+  city: string
+  postalCode: string
+  province: string
+  country: string
+}
+
 export interface StripeOrderReconciliationResult {
   lookbackDays: number
   sessionsScanned: number
@@ -62,6 +74,80 @@ export function getStripeOrderRef(session: Stripe.Checkout.Session): string {
   return session.metadata?.order_ref ?? `FOOLISH-${session.id}`
 }
 
+function legacyShippingAddress(session: Stripe.Checkout.Session): {
+  line1?: string
+  line2?: string
+  city?: string
+  postal_code?: string
+  country?: string
+} | null {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const legacyShipping = (session as any).shipping_details as {
+    address?: { line1?: string; line2?: string; city?: string; postal_code?: string; country?: string }
+  } | null
+  const address = session.collected_information?.shipping_details?.address ?? legacyShipping?.address
+  return address
+    ? {
+        line1: address.line1 ?? undefined,
+        line2: address.line2 ?? undefined,
+        city: address.city ?? undefined,
+        postal_code: address.postal_code ?? undefined,
+        country: address.country ?? undefined,
+      }
+    : null
+}
+
+/**
+ * Reads the server-written recipient contract from Stripe metadata. Italian
+ * orders must have every recipient/address field here: Stripe's address
+ * object has no reliable province field and must not be used to infer it.
+ */
+export function getStripeOrderRecipient(session: Stripe.Checkout.Session): StripeOrderRecipient | null {
+  const meta = session.metadata ?? {}
+  const stripeAddress = legacyShippingAddress(session)
+  const country = (meta.customer_country ?? stripeAddress?.country ?? '').trim().toUpperCase()
+  const customerName = (meta.customer_name ?? session.customer_details?.name ?? '').trim()
+  const firstName = (meta.customer_first_name ?? '').trim()
+  const lastName = (meta.customer_last_name ?? '').trim()
+  const phone = (meta.customer_phone ?? '').trim()
+  const structuredStreet = (meta.customer_street ?? '').trim()
+  const structuredCity = (meta.customer_city ?? '').trim()
+  const structuredPostalCode = (meta.customer_postal_code ?? '').trim()
+  const province = (meta.customer_province ?? '').trim().toUpperCase()
+  const legacyParts = (meta.customer_address ?? '').split('|')
+  const street = structuredStreet || (legacyParts[0] ?? '').trim() || stripeAddress?.line1?.trim() || ''
+  const city = structuredCity || (legacyParts[1] ?? '').trim() || stripeAddress?.city?.trim() || ''
+  const postalCode = structuredPostalCode || (legacyParts[2] ?? '').trim() || stripeAddress?.postal_code?.trim() || ''
+
+  if (
+    country === 'IT'
+    && (
+      !firstName
+      || !lastName
+      || !phone
+      || !/(?=.*\d)^[\d\s+\-()\u00AD]{6,}$/.test(phone)
+      || !street
+      || !city
+      || !/^\d{5}$/.test(postalCode)
+      || !/^[A-Z]{2}$/.test(province)
+    )
+  ) {
+    return null
+  }
+
+  return {
+    firstName,
+    lastName,
+    name: customerName || [firstName, lastName].filter(Boolean).join(' '),
+    phone,
+    street,
+    city,
+    postalCode,
+    province,
+    country,
+  }
+}
+
 export async function findCmsOrder(orderRef: string): Promise<CmsOrder | null> {
   const response = await fetch(
     `${cmsUrl()}/api/orders?where[orderNumber][equals]=${encodeURIComponent(orderRef)}&limit=1&depth=0`,
@@ -82,8 +168,13 @@ export async function createOrderInCMS(session: Stripe.Checkout.Session): Promis
     return { orderRef, created: false, orderId: existing.id }
   }
 
-  const customerName = meta.customer_name ?? session.customer_details?.name ?? ''
-  const customerPhone = meta.customer_phone ?? ''
+  const recipient = getStripeOrderRecipient(session)
+  if (!recipient) {
+    throw new Error('Paid order recipient data invalid')
+  }
+
+  const customerName = recipient.name
+  const customerPhone = recipient.phone
   const customerEmail = session.customer_email ?? session.customer_details?.email ?? ''
   const total = (session.amount_total ?? 0) / 100
   const stripePaymentIntentId = typeof session.payment_intent === 'string'
@@ -101,31 +192,18 @@ export async function createOrderInCMS(session: Stripe.Checkout.Session): Promis
   const itemsTotal = parsedItems.reduce((sum, item) => sum + item.price * item.qty, 0)
   const shippingCost = Math.max(0, Number((total - itemsTotal).toFixed(2)))
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const legacyShipping = (session as any).shipping_details as {
-    address?: { line1?: string; line2?: string; city?: string; postal_code?: string; country?: string }
-  } | null
-  const shipping = session.collected_information?.shipping_details ?? legacyShipping
-  const shippingAddress = shipping
-    ? {
-        name: customerName,
-        address1: shipping.address?.line1 ?? '',
-        address2: shipping.address?.line2 ?? '',
-        city: shipping.address?.city ?? '',
-        postalCode: shipping.address?.postal_code ?? '',
-        country: shipping.address?.country ?? meta.customer_country ?? '',
-      }
-    : (() => {
-        const parts = (meta.customer_address ?? '').split('|')
-        return {
-          name: customerName,
-          address1: parts[0] ?? '',
-          address2: '',
-          city: parts[1] ?? '',
-          postalCode: parts[2] ?? '',
-          country: meta.customer_country ?? '',
-        }
-      })()
+  const stripeAddress = legacyShippingAddress(session)
+  const shippingAddress = {
+    name: customerName,
+    firstName: recipient.firstName,
+    lastName: recipient.lastName,
+    address1: recipient.street,
+    address2: stripeAddress?.line2 ?? '',
+    city: recipient.city,
+    postalCode: recipient.postalCode,
+    province: recipient.province,
+    country: recipient.country,
+  }
 
   const response = await fetch(`${cmsUrl()}/api/orders`, {
     method: 'POST',
