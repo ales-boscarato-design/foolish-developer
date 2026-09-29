@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import Stripe from 'stripe'
 import { countryToLocale } from '@/lib/resend'
 
@@ -48,6 +49,19 @@ export interface StripeOrderReconciliationResult {
   }>
 }
 
+// Normal storefront payment checkouts historically used `FOOLISH-${Date.now()}`.
+// Reorders add UUID entropy so two requests in the same millisecond cannot
+// reuse an order number. Keep both formats valid for existing Stripe sessions.
+const STOREFRONT_ORDER_REF_RE = /^FOOLISH-(?:\d{13}|\d{13}-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/
+
+export function createStorefrontOrderRef(timestamp = Date.now(), entropy = randomUUID()): string {
+  return `FOOLISH-${timestamp}-${entropy}`
+}
+
+export function isValidStorefrontOrderRef(value: unknown): value is string {
+  return typeof value === 'string' && STOREFRONT_ORDER_REF_RE.test(value)
+}
+
 const cmsUrl = () => process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
 const cmsHeaders = () => ({
   'Content-Type': 'application/json',
@@ -58,8 +72,9 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-export function getStripeOrderRef(session: Stripe.Checkout.Session): string {
-  return session.metadata?.order_ref ?? `FOOLISH-${session.id}`
+export function getStripeOrderRef(session: Stripe.Checkout.Session): string | null {
+  const orderRef = session.metadata?.order_ref
+  return isValidStorefrontOrderRef(orderRef) ? orderRef : null
 }
 
 export async function findCmsOrder(orderRef: string): Promise<CmsOrder | null> {
@@ -77,6 +92,7 @@ export async function findCmsOrder(orderRef: string): Promise<CmsOrder | null> {
 export async function createOrderInCMS(session: Stripe.Checkout.Session): Promise<OrderPersistenceResult> {
   const meta = session.metadata ?? {}
   const orderRef = getStripeOrderRef(session)
+  if (!orderRef) throw new Error('Stripe storefront order_ref is missing or invalid')
   const existing = await findCmsOrder(orderRef)
   if (existing) {
     return { orderRef, created: false, orderId: existing.id }
@@ -202,13 +218,31 @@ export async function reconcilePaidStripeOrders(params: {
     .list({ created: { gte: createdAfter }, limit: 100 })
     .autoPagingToArray({ limit: maxSessions })
 
-  // items_json identifica i checkout Storefront anche nell'eventualità che
-  // order_ref sia assente; gli altri Checkout Stripe non vanno trasformati.
+  for (const session of sessions) {
+    if (
+      session.livemode
+      && session.mode === 'payment'
+      && session.payment_status === 'paid'
+      && !isValidStorefrontOrderRef(session.metadata?.order_ref)
+    ) {
+      const paymentIntentId = typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : session.payment_intent?.id ?? null
+      console.error('[stripe-reconcile] paid payment checkout quarantined', {
+        stripeSessionId: session.id,
+        paymentIntentId,
+      })
+    }
+  }
+
+  // Reconciliation must obey the same order_ref contract as the webhook. The
+  // previous session-id fallback could turn unrelated paid Checkout sessions
+  // into storefront orders.
   const eligible = sessions.filter((session) => (
     session.livemode
     && session.mode === 'payment'
     && session.payment_status === 'paid'
-    && Boolean(session.metadata?.order_ref || session.metadata?.items_json)
+    && isValidStorefrontOrderRef(session.metadata?.order_ref)
   ))
 
   const result: StripeOrderReconciliationResult = {
@@ -221,7 +255,8 @@ export async function reconcilePaidStripeOrders(params: {
   }
 
   for (const sessionSummary of eligible) {
-    const orderRef = getStripeOrderRef(sessionSummary)
+    const orderRef = sessionSummary.metadata?.order_ref
+    if (!isValidStorefrontOrderRef(orderRef)) continue
     try {
       // Retrieve the complete session before checking the order so attribution
       // can repair a missed ledger even when the order already exists.
