@@ -26,10 +26,39 @@ import {
   compareMigrationRegistration,
   compareLeafKeySets,
   compareMetadataContract,
+  collectionChangeRequiresGeneratedTypes,
   read,
 } from './release-gate.mjs'
 
 // ------------------------------------------------------------------ casi negativi
+
+test('un cambiamento solo in un hook di collection non richiede payload-types', () => {
+  const before = `
+const sendTrackingEmail = async ({ doc }) => {
+  await send('old', doc.id)
+}
+export const Orders: CollectionConfig = {
+  hooks: { afterChange: [sendTrackingEmail] },
+  fields: [{ name: 'orderNumber', type: 'text' }],
+}
+`
+  const after = before.replace("await send('old', doc.id)", "await send('new', doc.id)")
+  assert.equal(collectionChangeRequiresGeneratedTypes(before, after), false)
+})
+
+test('un cambiamento di campo o tipo di collection richiede payload-types', () => {
+  const before = `
+const sendTrackingEmail = async ({ doc }) => {
+  await send('old', doc.id)
+}
+export const Orders: CollectionConfig = {
+  hooks: { afterChange: [sendTrackingEmail] },
+  fields: [{ name: 'orderNumber', type: 'text' }],
+}
+`
+  const after = before.replace("type: 'text'", "type: 'number'")
+  assert.equal(collectionChangeRequiresGeneratedTypes(before, after), true)
+})
 
 test('una migration non registrata viene segnalata', () => {
   const problems = compareMigrationRegistration(
