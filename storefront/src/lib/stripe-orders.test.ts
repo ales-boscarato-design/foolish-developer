@@ -29,7 +29,7 @@ function checkoutSession(overrides: Partial<Stripe.Checkout.Session> = {}): Stri
     customer_details: null,
     collected_information: null,
     metadata: {
-      order_ref: 'FOOLISH-ORDER-TEST',
+      order_ref: 'FOOLISH-1746364800000',
       customer_name: 'Order Test',
       customer_country: 'IT',
       customer_address: 'Via Test 1|Torino|10100',
@@ -50,12 +50,12 @@ test('a duplicated paid session creates one CMS order', async () => {
     if (init?.method === 'POST') {
       createCount += 1
       createBody = JSON.parse(String(init.body)) as Record<string, unknown>
-      return jsonResponse({ id: 101, orderNumber: 'FOOLISH-ORDER-TEST' }, 201)
+      return jsonResponse({ id: 101, orderNumber: 'FOOLISH-1746364800000' }, 201)
     }
     lookupCount += 1
     return lookupCount === 1
       ? jsonResponse({ docs: [] })
-      : jsonResponse({ docs: [{ id: 101, orderNumber: 'FOOLISH-ORDER-TEST' }] })
+      : jsonResponse({ docs: [{ id: 101, orderNumber: 'FOOLISH-1746364800000' }] })
   }
 
   try {
@@ -82,13 +82,13 @@ test('a webhook and reconciler create race resolves as already present', async (
     lookupCount += 1
     return lookupCount === 1
       ? jsonResponse({ docs: [] })
-      : jsonResponse({ docs: [{ id: 202, orderNumber: 'FOOLISH-ORDER-TEST' }] })
+      : jsonResponse({ docs: [{ id: 202, orderNumber: 'FOOLISH-1746364800000' }] })
   }
 
   try {
     const result = await createOrderInCMS(checkoutSession())
     assert.deepEqual(result, {
-      orderRef: 'FOOLISH-ORDER-TEST',
+      orderRef: 'FOOLISH-1746364800000',
       created: false,
       orderId: 202,
     })
@@ -103,7 +103,7 @@ test('charged product prices keep the parser from treating a discount as shippin
   globalThis.fetch = async (_input, init) => {
     if (init?.method === 'POST') {
       createBody = JSON.parse(String(init.body)) as Record<string, unknown>
-      return jsonResponse({ id: 505, orderNumber: 'FOOLISH-ORDER-TEST' }, 201)
+      return jsonResponse({ id: 505, orderNumber: 'FOOLISH-1746364800000' }, 201)
     }
     return jsonResponse({ docs: [] })
   }
@@ -112,7 +112,7 @@ test('charged product prices keep the parser from treating a discount as shippin
     const session = checkoutSession({
       amount_total: 3_000,
       metadata: {
-        order_ref: 'FOOLISH-DISCOUNT-TEST',
+        order_ref: 'FOOLISH-1746364800001',
         customer_name: 'Order Test',
         customer_country: 'IT',
         customer_address: 'Via Test 1|Torino|10100',
@@ -143,7 +143,7 @@ test('charged product prices keep the parser from treating a discount as shippin
 test('temporary CMS failures are retried and eventually succeed', async () => {
   let attempts = 0
   const expected: OrderPersistenceResult = {
-    orderRef: 'FOOLISH-ORDER-TEST',
+    orderRef: 'FOOLISH-1746364800000',
     created: true,
     orderId: 303,
   }
@@ -185,7 +185,7 @@ test('reconciliation recovers a paid session even if its webhook was missed', as
   globalThis.fetch = async (_input, init) => {
     if (init?.method === 'POST') {
       createCount += 1
-      return jsonResponse({ id: 404, orderNumber: 'FOOLISH-ORDER-TEST' }, 201)
+      return jsonResponse({ id: 404, orderNumber: 'FOOLISH-1746364800000' }, 201)
     }
     return jsonResponse({ docs: [] })
   }
@@ -194,7 +194,7 @@ test('reconciliation recovers a paid session even if its webhook was missed', as
   const unpaid = checkoutSession({
     id: 'cs_live_unpaid_test',
     payment_status: 'unpaid',
-    metadata: { order_ref: 'FOOLISH-UNPAID', items_json: '[]' },
+    metadata: { order_ref: 'FOOLISH-1746364800002', items_json: '[]' },
   })
   const stripe = {
     checkout: {
@@ -215,9 +215,44 @@ test('reconciliation recovers a paid session even if its webhook was missed', as
     assert.equal(result.sessionsScanned, 2)
     assert.equal(result.eligiblePaidSessions, 1)
     assert.equal(result.recovered.length, 1)
-    assert.equal(result.recovered[0]?.orderRef, 'FOOLISH-ORDER-TEST')
+    assert.equal(result.recovered[0]?.orderRef, 'FOOLISH-1746364800000')
     assert.equal(result.errors.length, 0)
     assert.equal(createCount, 1)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('reconciliation ignores paid payment sessions without a valid storefront order_ref', async () => {
+  const originalFetch = globalThis.fetch
+  let fetchCount = 0
+  globalThis.fetch = async () => {
+    fetchCount += 1
+    throw new Error('an unscoped paid session must not reach CMS')
+  }
+
+  const unscopedPaid = checkoutSession({
+    id: 'cs_live_unscoped_paid_test',
+    metadata: { items_json: '[]' },
+  })
+  const stripe = {
+    checkout: {
+      sessions: {
+        list: () => ({
+          autoPagingToArray: async () => [unscopedPaid],
+        }),
+        retrieve: async () => unscopedPaid,
+      },
+    },
+  } as unknown as Stripe
+
+  try {
+    const result = await reconcilePaidStripeOrders({ stripe, lookbackDays: 30 })
+    assert.equal(result.sessionsScanned, 1)
+    assert.equal(result.eligiblePaidSessions, 0)
+    assert.equal(result.recovered.length, 0)
+    assert.equal(result.errors.length, 0)
+    assert.equal(fetchCount, 0)
   } finally {
     globalThis.fetch = originalFetch
   }
@@ -228,7 +263,7 @@ test('reconciliation invokes attribution for a paid session whose order already 
   let retrieveCount = 0
   let attributionSession: Stripe.Checkout.Session | null = null
   let attributionOrderRef: string | null = null
-  globalThis.fetch = async () => jsonResponse({ docs: [{ id: 606, orderNumber: 'FOOLISH-ORDER-TEST' }] })
+  globalThis.fetch = async () => jsonResponse({ docs: [{ id: 606, orderNumber: 'FOOLISH-1746364800000' }] })
 
   const paid = checkoutSession()
   const stripe = {
@@ -260,7 +295,7 @@ test('reconciliation invokes attribution for a paid session whose order already 
     assert.equal(result.errors.length, 0)
     assert.equal(retrieveCount, 1)
     assert.equal((attributionSession as unknown as Stripe.Checkout.Session).id, paid.id)
-    assert.equal(attributionOrderRef, 'FOOLISH-ORDER-TEST')
+    assert.equal(attributionOrderRef, 'FOOLISH-1746364800000')
   } finally {
     globalThis.fetch = originalFetch
   }

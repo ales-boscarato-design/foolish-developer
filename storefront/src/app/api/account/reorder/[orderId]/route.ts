@@ -37,6 +37,7 @@ export async function POST(
     },
     quantity: item.quantity,
   }))
+  const orderRef = `FOOLISH-${Date.now()}`
 
   const checkoutSession = await stripe.checkout.sessions.create({
     mode: 'payment',
@@ -45,6 +46,7 @@ export async function POST(
     cancel_url: `${process.env.STOREFRONT_URL}/account`,
     customer_email: session.email,
     metadata: {
+      order_ref: orderRef,
       reorder_from: orderId,
       customer_email: session.email,
     },
