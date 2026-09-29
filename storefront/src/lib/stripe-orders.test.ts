@@ -62,10 +62,12 @@ test('a duplicated paid session creates one CMS order', async () => {
     const first = await createOrderInCMS(checkoutSession())
     const duplicate = await createOrderInCMS(checkoutSession())
     assert.equal(first.created, true)
+    assert.equal(first.orderRef, 'FOOLISH-ORDER-TEST')
     assert.equal(duplicate.created, false)
     assert.equal(createCount, 1)
     assert.ok(createBody, 'CMS create payload was not captured')
     const persistedBody = createBody as Record<string, unknown>
+    assert.equal(persistedBody.orderNumber, 'FOOLISH-ORDER-TEST')
     assert.equal(persistedBody.paymentStatus, 'paid')
     assert.equal(persistedBody.paymentMethod, 'stripe')
     assert.equal(persistedBody.stripePaymentIntentId, 'pi_live_order_test')
