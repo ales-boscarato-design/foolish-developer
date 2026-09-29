@@ -200,6 +200,195 @@ export function compareMetadataContract(written, readsByFile) {
   return problems
 }
 
+function matchingDelimiter(source, start) {
+  const opening = source[start]
+  const closing = opening === '{' ? '}' : opening === '[' ? ']' : opening === '(' ? ')' : null
+  if (!closing) return -1
+
+  const stack = [closing]
+  let quote = null
+  for (let i = start + 1; i < source.length; i += 1) {
+    const char = source[i]
+    const next = source[i + 1]
+
+    if (quote) {
+      if (char === '\\') {
+        i += 1
+      } else if (char === quote) {
+        quote = null
+      }
+      continue
+    }
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char
+      continue
+    }
+    if (char === '/' && next === '/') {
+      const newline = source.indexOf('\n', i + 2)
+      i = newline === -1 ? source.length : newline
+      continue
+    }
+    if (char === '/' && next === '*') {
+      const end = source.indexOf('*/', i + 2)
+      i = end === -1 ? source.length : end + 1
+      continue
+    }
+
+    if (char === '{' || char === '[' || char === '(') {
+      stack.push(char === '{' ? '}' : char === '[' ? ']' : ')')
+    } else if (char === '}' || char === ']' || char === ')') {
+      if (stack.at(-1) !== char) return -1
+      stack.pop()
+      if (stack.length === 0) return i
+    }
+  }
+  return -1
+}
+
+function collectionConfig(source) {
+  const match = source.match(/export\s+const\s+[A-Za-z_$][\w$]*\s*:\s*CollectionConfig\s*=\s*{/)
+  if (!match || match.index === undefined) return null
+  const objectStart = source.indexOf('{', match.index)
+  const objectEnd = matchingDelimiter(source, objectStart)
+  if (objectEnd === -1) return null
+
+  const properties = []
+  let depth = 0
+  let quote = null
+  for (let i = objectStart + 1; i < objectEnd; i += 1) {
+    const char = source[i]
+    const next = source[i + 1]
+    if (quote) {
+      if (char === '\\') i += 1
+      else if (char === quote) quote = null
+      continue
+    }
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char
+      continue
+    }
+    if (char === '/' && next === '/') {
+      const newline = source.indexOf('\n', i + 2)
+      i = newline === -1 ? objectEnd : newline
+      continue
+    }
+    if (char === '/' && next === '*') {
+      const end = source.indexOf('*/', i + 2)
+      i = end === -1 ? objectEnd : end + 1
+      continue
+    }
+    if (char === '{' || char === '[' || char === '(') {
+      depth += 1
+      const end = matchingDelimiter(source, i)
+      if (end === -1) return null
+      i = end
+      depth -= 1
+      continue
+    }
+    if (depth === 0 && /[A-Za-z_$]/.test(char)) {
+      const property = source.slice(i).match(/^([A-Za-z_$][\w$]*)\s*:/)
+      if (property) {
+        properties.push({ name: property[1], start: i })
+        i += property[0].length - 1
+      }
+    }
+  }
+
+  return { objectStart, objectEnd, properties }
+}
+
+function topLevelDeclarations(source, beforeIndex) {
+  const prefix = source.slice(0, beforeIndex)
+  const starts = []
+  const declarationPattern = /^(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\b|^(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)(?:\s*:[\s\S]*?)?\s*=/gm
+  for (const match of prefix.matchAll(declarationPattern)) {
+    starts.push({ name: match[1] || match[2], start: match.index })
+  }
+  return starts.map((declaration, index) => ({
+    ...declaration,
+    end: starts[index + 1]?.start ?? beforeIndex,
+    body: source.slice(declaration.start, starts[index + 1]?.start ?? beforeIndex),
+  }))
+}
+
+function identifierNames(source) {
+  return [...source.matchAll(/\b[A-Za-z_$][\w$]*\b/g)].map((match) => match[0])
+}
+
+function reachableDeclarations(declarations, roots) {
+  const byName = new Map(declarations.map((declaration) => [declaration.name, declaration]))
+  const reachable = new Set([...roots].filter((name) => byName.has(name)))
+  let changed = true
+  while (changed) {
+    changed = false
+    for (const name of reachable) {
+      for (const identifier of identifierNames(byName.get(name).body)) {
+        if (byName.has(identifier) && !reachable.has(identifier)) {
+          reachable.add(identifier)
+          changed = true
+        }
+      }
+    }
+  }
+  return reachable
+}
+
+/**
+ * Returns whether a collection source change can affect generated Payload types.
+ * The only ignored source is hook code and helpers reachable exclusively from hooks.
+ */
+export function collectionChangeRequiresGeneratedTypes(beforeSource, afterSource) {
+  if (!beforeSource) return !!collectionConfig(afterSource)
+  const beforeConfig = collectionConfig(beforeSource)
+  const afterConfig = collectionConfig(afterSource)
+  if (!beforeConfig || !afterConfig) return true
+
+  const configs = [beforeConfig, afterConfig]
+  const sources = [beforeSource, afterSource]
+  const declarations = sources.flatMap((source, index) =>
+    topLevelDeclarations(source, configs[index].objectStart),
+  )
+  const declarationNames = new Set(declarations.map(({ name }) => name))
+
+  const hookSources = configs.map((config, index) => {
+    const hook = config.properties.find(({ name }) => name === 'hooks')
+    if (!hook) return ''
+    const next = config.properties.find(({ start }) => start > hook.start)
+    return sources[index].slice(hook.start, next?.start ?? config.objectEnd)
+  })
+  const nonHookConfigSources = configs.map((config, index) => {
+    const hook = config.properties.find(({ name }) => name === 'hooks')
+    if (!hook) return sources[index].slice(config.objectStart, config.objectEnd)
+    const next = config.properties.find(({ start }) => start > hook.start)
+    return [
+      sources[index].slice(config.objectStart, hook.start),
+      sources[index].slice(next?.start ?? config.objectEnd, config.objectEnd),
+    ].join('\n')
+  })
+
+  const hookRoots = new Set(hookSources.flatMap(identifierNames).filter((name) => declarationNames.has(name)))
+  const schemaRoots = new Set(nonHookConfigSources.flatMap(identifierNames).filter((name) => declarationNames.has(name)))
+  const hookReachable = reachableDeclarations(declarations, hookRoots)
+  const schemaReachable = reachableDeclarations(declarations, schemaRoots)
+  const hookOnly = new Set([...hookReachable].filter((name) => !schemaReachable.has(name)))
+
+  const normalized = sources.map((source, index) => {
+    const config = configs[index]
+    const hook = config.properties.find(({ name }) => name === 'hooks')
+    const next = hook && config.properties.find(({ start }) => start > hook.start)
+    const removals = hook ? [[hook.start, next?.start ?? config.objectEnd]] : []
+    for (const declaration of topLevelDeclarations(source, config.objectStart)) {
+      if (hookOnly.has(declaration.name)) removals.push([declaration.start, declaration.end])
+    }
+    removals.sort((a, b) => b[0] - a[0])
+    let result = source
+    for (const [start, end] of removals) result = result.slice(0, start) + result.slice(end)
+    return result.replace(/\s+/g, ' ').trim()
+  })
+
+  return normalized[0] !== normalized[1]
+}
+
 // ---------------------------------------------------------------- esecuzione
 
 const args = process.argv.slice(2)
@@ -211,6 +400,11 @@ const baseRef = baseArg !== -1 ? args[baseArg + 1] : 'origin/main'
 function git(extra) {
   const res = spawnSync('git', extra, { cwd: repoRoot, encoding: 'utf8' })
   return res.status === 0 ? res.stdout.trim() : null
+}
+
+function gitText(extra) {
+  const res = spawnSync('git', extra, { cwd: repoRoot, encoding: 'utf8' })
+  return res.status === 0 ? res.stdout : null
 }
 
 function changedFiles() {
@@ -278,12 +472,14 @@ function checkMoneyMetadataContract() {
 function checkGeneratedTypes() {
   const changed = changedFiles()
   if (changed === null) return null
-  const touchedSchema = changed.some(
-    (file) =>
-      file === 'cms/src/payload.config.ts' ||
-      (file.startsWith('cms/src/collections/') && file.endsWith('.ts')) ||
-      (file.startsWith('cms/src/fields/') && file.endsWith('.ts')),
-  )
+  const mergeBase = git(['merge-base', baseRef, 'HEAD'])
+  if (!mergeBase) return null
+  const touchedSchema = changed.some((file) => {
+    if (file === 'cms/src/payload.config.ts' || (file.startsWith('cms/src/fields/') && file.endsWith('.ts'))) return true
+    if (!file.startsWith('cms/src/collections/') || !file.endsWith('.ts')) return false
+    const beforeSource = gitText(['show', `${mergeBase}:${file}`])
+    return collectionChangeRequiresGeneratedTypes(beforeSource, read(file))
+  })
   if (!touchedSchema) return true
   return changed.includes('cms/src/payload-types.ts')
     ? true

@@ -541,6 +541,56 @@ const TRACKING_STRINGS: Record<string, {
   },
 }
 
+const PROVIDER_REASON_MAX_LENGTH = 240
+
+function sanitizeLogText(value: string): string {
+  return value
+    .replace(/Bearer\s+\S+/gi, 'Bearer [redacted]')
+    .replace(/\b(?:sk|re)_[A-Za-z0-9_-]+\b/gi, '[redacted-token]')
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[redacted-email]')
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, PROVIDER_REASON_MAX_LENGTH)
+}
+
+function maskRecipient(email: string): string {
+  const [localPart, domain] = email.split('@')
+  if (!localPart || !domain) return '[invalid-email]'
+
+  const domainParts = domain.split('.')
+  const maskedDomain = domainParts
+    .map((part, index) => index === domainParts.length - 1 ? part : `${part.charAt(0)}***`)
+    .join('.')
+
+  return `${localPart.charAt(0)}***@${maskedDomain}`
+}
+
+async function getProviderReason(response: Response): Promise<string> {
+  let body: string
+  try {
+    body = await response.text()
+  } catch {
+    return 'unreadable provider response'
+  }
+
+  if (!body.trim()) return 'empty provider response'
+
+  try {
+    const parsed: unknown = JSON.parse(body)
+    if (isRecord(parsed)) {
+      for (const key of ['message', 'error', 'name', 'code']) {
+        if (typeof parsed[key] === 'string') return sanitizeLogText(parsed[key]) || 'empty provider reason'
+      }
+      return 'unstructured provider error response'
+    }
+  } catch {
+    // Resend may return a plain-text error; sanitize that bounded reason below.
+  }
+
+  return sanitizeLogText(body) || 'empty provider reason'
+}
+
 const sendTrackingEmail: CollectionAfterChangeHook = async ({ doc, previousDoc, operation }) => {
   if (operation !== 'update') return
   if (!doc.trackingNumber) return
@@ -555,7 +605,7 @@ const sendTrackingEmail: CollectionAfterChangeHook = async ({ doc, previousDoc, 
   if (!resendKey) return
 
   const storeFrontUrl = process.env.STOREFRONT_URL ?? 'https://thefoolishbutcher.com'
-  const trackingUrl = `${storeFrontUrl}/ordine/${doc.pageToken}`
+  const trackingUrl = doc.pageToken ? `${storeFrontUrl}/ordine/${doc.pageToken}` : null
 
   const html = `
     <div style="font-family:monospace;max-width:480px;margin:0 auto;background:#0d0d0d;color:#fff;padding:32px;">
@@ -566,13 +616,15 @@ const sendTrackingEmail: CollectionAfterChangeHook = async ({ doc, previousDoc, 
         <div style="color:#555;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">${t.carrierLabel}</div>
         <div style="color:#fff;font-size:14px;font-family:monospace;">${doc.trackingCarrier ?? ''} · ${doc.trackingNumber}</div>
       </div>
+      ${trackingUrl ? `
       <a href="${trackingUrl}" style="display:inline-block;background:#c9a96e;color:#000;padding:12px 24px;text-decoration:none;font-weight:bold;font-size:13px;border-radius:4px;">${t.trackLabel}</a>
+      ` : ''}
       <p style="color:#444;font-size:11px;margin-top:32px;">${t.footer}</p>
     </div>
   `
 
   try {
-    await fetch('https://api.resend.com/emails', {
+    const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -582,8 +634,27 @@ const sendTrackingEmail: CollectionAfterChangeHook = async ({ doc, previousDoc, 
         html,
       }),
     })
+    if (!res.ok) {
+      console.error('[Orders] Tracking email failed', {
+        outcome: 'failed',
+        order: doc.orderNumber ?? doc.id,
+        status: res.status,
+        reason: await getProviderReason(res),
+      })
+      return
+    }
+
+    console.log('[Orders] Tracking email sent', {
+      outcome: 'sent',
+      order: doc.orderNumber ?? doc.id,
+      recipient: maskRecipient(doc.customerEmail),
+    })
   } catch (err) {
-    console.error('[Orders] sendTrackingEmail error:', err)
+    const reason = err instanceof Error ? err.message : String(err)
+    console.error('[Orders] sendTrackingEmail error', {
+      order: doc.orderNumber ?? doc.id,
+      reason: sanitizeLogText(reason),
+    })
   }
 }
 
