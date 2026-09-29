@@ -28,12 +28,19 @@ function checkoutSession(overrides: Partial<Stripe.Checkout.Session> = {}): Stri
     customer_email: 'order-test@example.invalid',
     customer_details: null,
     collected_information: null,
-    metadata: {
-      order_ref: 'FOOLISH-ORDER-TEST',
-      customer_name: 'Order Test',
-      customer_country: 'IT',
-      customer_address: 'Via Test 1|Torino|10100',
-      items_json: JSON.stringify([
+  metadata: {
+    order_ref: 'FOOLISH-ORDER-TEST',
+    customer_first_name: 'Order',
+    customer_last_name: 'Test',
+    customer_name: 'Order Test',
+    customer_country: 'IT',
+    customer_street: 'Via Test 1',
+    customer_city: 'Torino',
+    customer_postal_code: '10100',
+    customer_province: 'TO',
+    customer_address: 'Via Test 1|Torino|10100',
+    customer_phone: '+39 011 1234567',
+    items_json: JSON.stringify([
         { sku: 'TEST-SKU', qty: 1, name: 'Test', variantLabel: 'A', price: 30 },
       ]),
     },
@@ -69,6 +76,46 @@ test('a duplicated paid session creates one CMS order', async () => {
     assert.equal(persistedBody.paymentStatus, 'paid')
     assert.equal(persistedBody.paymentMethod, 'stripe')
     assert.equal(persistedBody.stripePaymentIntentId, 'pi_live_order_test')
+    assert.equal((persistedBody.shippingAddress as Record<string, unknown>).firstName, 'Order')
+    assert.equal((persistedBody.shippingAddress as Record<string, unknown>).lastName, 'Test')
+    assert.equal((persistedBody.shippingAddress as Record<string, unknown>).province, 'TO')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('an already-present legacy order wins before recipient validation', async () => {
+  const originalFetch = globalThis.fetch
+  let lookupCount = 0
+  let postCount = 0
+  globalThis.fetch = async (_input, init) => {
+    if (init?.method === 'POST') {
+      postCount += 1
+      return jsonResponse({ id: 606, orderNumber: 'FOOLISH-LEGACY-TEST' }, 201)
+    }
+    lookupCount += 1
+    return jsonResponse({ docs: [{ id: 606, orderNumber: 'FOOLISH-LEGACY-TEST' }] })
+  }
+
+  try {
+    const legacySession = checkoutSession({
+      metadata: {
+        order_ref: 'FOOLISH-LEGACY-TEST',
+        customer_name: 'Legacy Order',
+        customer_country: 'IT',
+        customer_address: 'Via Test 1|Torino|10100',
+        customer_phone: '',
+        items_json: '[]',
+      },
+    })
+
+    assert.deepEqual(await createOrderInCMS(legacySession), {
+      orderRef: 'FOOLISH-LEGACY-TEST',
+      created: false,
+      orderId: 606,
+    })
+    assert.equal(lookupCount, 1)
+    assert.equal(postCount, 0)
   } finally {
     globalThis.fetch = originalFetch
   }
@@ -113,9 +160,16 @@ test('charged product prices keep the parser from treating a discount as shippin
       amount_total: 3_000,
       metadata: {
         order_ref: 'FOOLISH-DISCOUNT-TEST',
+        customer_first_name: 'Order',
+        customer_last_name: 'Test',
         customer_name: 'Order Test',
         customer_country: 'IT',
+        customer_street: 'Via Test 1',
+        customer_city: 'Torino',
+        customer_postal_code: '10100',
+        customer_province: 'TO',
         customer_address: 'Via Test 1|Torino|10100',
+        customer_phone: '+39 011 1234567',
         items_json: JSON.stringify([
           { sku: 'TEST-SKU', qty: 1, name: 'Test', variantLabel: 'A', price: 20 },
         ]),
@@ -135,6 +189,45 @@ test('charged product prices keep the parser from treating a discount as shippin
       quantity: 1,
       unitPrice: 20,
     }])
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('webhook persistence rejects invalid paid Italian metadata before CMS POST', async () => {
+  const originalFetch = globalThis.fetch
+  let postCount = 0
+  globalThis.fetch = async (_input, init) => {
+    if (init?.method === 'POST') postCount += 1
+    return jsonResponse({ docs: [] })
+  }
+
+  try {
+    for (const [field, value] of [
+      ['customer_phone', '------'],
+      ['customer_province', 'T0'],
+    ] as const) {
+      const invalid = checkoutSession({
+        metadata: {
+          order_ref: `FOOLISH-INVALID-${field}`,
+          customer_first_name: 'Order',
+          customer_last_name: 'Test',
+          customer_name: 'Order Test',
+          customer_country: 'IT',
+          customer_street: 'Via Test 1',
+          customer_city: 'Torino',
+          customer_postal_code: '10100',
+          customer_province: 'TO',
+          customer_address: 'Via Test 1|Torino|10100',
+          customer_phone: '+39 011 1234567',
+          items_json: '[]',
+          [field]: value,
+        },
+      })
+
+      await assert.rejects(createOrderInCMSWithRetry(invalid, { delays: [0] }), /recipient data invalid/)
+    }
+    assert.equal(postCount, 0)
   } finally {
     globalThis.fetch = originalFetch
   }

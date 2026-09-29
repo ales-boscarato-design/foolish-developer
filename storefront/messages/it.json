@@ -39,15 +39,19 @@
     "errorNetwork": "Errore di rete. Riprova.",
     "fields": {
       "name": "Nome e cognome",
+      "firstName": "Nome",
+      "lastName": "Cognome",
       "email": "Email",
       "address": "Indirizzo",
       "city": "Città",
       "postalCode": "CAP",
+      "province": "Provincia (sigla)",
       "fiscalCode": "Codice Fiscale / P.IVA",
       "phone": "Numero di telefono"
     },
     "emailInvalid": "Email non valida o inesistente — controlla il dominio",
     "postalCodeInvalid": "CAP non valido per il paese selezionato",
+    "provinceInvalid": "Inserisci la sigla della provincia (2 lettere)",
     "billingTitle": "Indirizzo di fatturazione",
     "billingSameAsShipping": "L'indirizzo di fatturazione coincide con quello di spedizione",
     "countries": {

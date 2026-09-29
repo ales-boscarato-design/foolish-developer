@@ -37,6 +37,7 @@ import * as migration_20260728_160000_fix_users_api_key_column_name from './2026
 import * as migration_20260805_100000_add_products_seo_fields from './20260805_100000_add_products_seo_fields';
 import * as migration_20260824_100000_add_order_payment_fields from './20260824_100000_add_order_payment_fields';
 import * as migration_20260912_120000_add_affiliate_attribution from './20260912_120000_add_affiliate_attribution';
+import * as migration_20260929_100000_add_order_recipient_fields from './20260929_100000_add_order_recipient_fields';
 
 export const migrations = [
   {
@@ -233,5 +234,10 @@ export const migrations = [
     up: migration_20260912_120000_add_affiliate_attribution.up,
     down: migration_20260912_120000_add_affiliate_attribution.down,
     name: '20260912_120000_add_affiliate_attribution',
+  },
+  {
+    up: migration_20260929_100000_add_order_recipient_fields.up,
+    down: migration_20260929_100000_add_order_recipient_fields.down,
+    name: '20260929_100000_add_order_recipient_fields',
   },
 ];

@@ -39,15 +39,19 @@
     "errorNetwork": "Network error. Please retry.",
     "fields": {
       "name": "Full name",
+      "firstName": "First name",
+      "lastName": "Last name",
       "email": "Email",
       "address": "Address",
       "city": "City",
       "postalCode": "Postal code",
+      "province": "Province (2-letter code)",
       "fiscalCode": "Tax ID / VAT number",
       "phone": "Phone number"
     },
     "emailInvalid": "Invalid or non-existent email — please check the domain",
     "postalCodeInvalid": "Invalid postal code for the selected country",
+    "provinceInvalid": "Enter the province code (2 letters)",
     "billingTitle": "Billing address",
     "billingSameAsShipping": "Billing address is the same as shipping",
     "countries": {

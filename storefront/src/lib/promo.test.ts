@@ -85,26 +85,111 @@ test('rejects a CMS code mismatch and unsupported percent offers', () => {
 test('normalizes only plain, bounded customer fields and two-letter countries', () => {
   const valid = normalizeCheckoutCustomer({
     email: ' test@example.com ',
-    name: 'Test Customer',
+    firstName: 'Test',
+    lastName: 'Customer',
     country: 'it',
     address: 'Via Test 1',
     city: 'Torino',
     postalCode: '10100',
+    province: 'to',
+    phone: '+39 011 1234567',
   })
   assert.deepEqual(valid, {
     email: 'test@example.com',
+    firstName: 'Test',
+    lastName: 'Customer',
     name: 'Test Customer',
     country: 'IT',
     address: 'Via Test 1',
     city: 'Torino',
     postalCode: '10100',
-    phone: '',
+    province: 'TO',
+    phone: '+39 011 1234567',
   })
-  assert.equal(normalizeCheckoutCustomer({ ...valid, name: 123 }), null)
+  assert.equal(normalizeCheckoutCustomer({ ...valid, firstName: 123 }), null)
   assert.equal(normalizeCheckoutCustomer({ ...valid, country: 'ITA' }), null)
   assert.equal(normalizeCheckoutCustomer({ ...valid, country: 'XX' }), null)
   assert.equal(normalizeCheckoutCustomer([]), null)
-  assert.equal(normalizeCheckoutCustomer({ ...valid, name: 'x'.repeat(121) }), null)
+  assert.equal(normalizeCheckoutCustomer({ ...valid, lastName: 'x'.repeat(81) }), null)
+})
+
+test('requires complete, explicitly entered Italian recipient data', () => {
+  const complete = {
+    email: 'test@example.com',
+    firstName: 'Test',
+    lastName: 'Customer',
+    country: 'IT',
+    address: 'Via Test 1',
+    city: 'Torino',
+    postalCode: '10100',
+    province: 'TO',
+    phone: '+39 011 1234567',
+  }
+
+  for (const [field, value] of [
+    ['firstName', ''],
+    ['lastName', ''],
+    ['phone', ''],
+    ['address', ''],
+    ['city', ''],
+    ['postalCode', '1010'],
+    ['province', '101'],
+  ] as const) {
+    assert.equal(normalizeCheckoutCustomer({ ...complete, [field]: value }), null, field)
+  }
+
+  // Province is intentionally not derived from the CAP.
+  assert.equal(normalizeCheckoutCustomer({ ...complete, province: undefined }), null)
+})
+
+test('rejects malformed Italian phone and province values', () => {
+  const complete = {
+    email: 'test@example.com',
+    firstName: 'Test',
+    lastName: 'Customer',
+    country: 'IT',
+    address: 'Via Test 1',
+    city: 'Torino',
+    postalCode: '10100',
+    province: 'TO',
+    phone: '+39 011 1234567',
+  }
+
+  assert.equal(normalizeCheckoutCustomer({ ...complete, phone: '------' }), null)
+  assert.equal(normalizeCheckoutCustomer({ ...complete, province: 'T0' }), null)
+})
+
+test('checkout metadata carries structured recipient fields', () => {
+  const metadata = buildCheckoutMetadata({
+    orderRef: 'FOOLISH-STRUCTURED-TEST',
+    customer: {
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'Customer',
+      name: 'Test Customer',
+      country: 'IT',
+      address: 'Via Test 1',
+      city: 'Torino',
+      postalCode: '10100',
+      province: 'TO',
+      phone: '+39 011 1234567',
+    },
+    chargedProductLines: [{
+      sku: 'TEST',
+      qty: 1,
+      name: 'Test',
+      variantLabel: 'A',
+      price: 10,
+      unitAmountCents: 1_000,
+    }],
+  })
+
+  assert.ok(metadata)
+  assert.equal(metadata?.customer_first_name, 'Test')
+  assert.equal(metadata?.customer_last_name, 'Customer')
+  assert.equal(metadata?.customer_street, 'Via Test 1')
+  assert.equal(metadata?.customer_postal_code, '10100')
+  assert.equal(metadata?.customer_province, 'TO')
 })
 
 test('server shipping uses the normalized subtotal and preserves free-above-threshold behavior', () => {
@@ -345,12 +430,15 @@ test('bounds cart payloads and rejects metadata that exceeds Stripe limits', () 
     orderRef: 'FOOLISH-TEST',
     customer: {
       email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'Customer',
       name: 'Test Customer',
       country: 'IT',
       address: 'Via Test 1',
       city: 'Torino',
       postalCode: '10100',
-      phone: '',
+      province: 'TO',
+      phone: '+39 011 1234567',
     },
     chargedProductLines: chargedLines,
   })

@@ -39,15 +39,19 @@
     "errorNetwork": "Netzwerkfehler. Bitte erneut versuchen.",
     "fields": {
       "name": "Vollständiger Name",
+      "firstName": "Vorname",
+      "lastName": "Nachname",
       "email": "E-Mail",
       "address": "Adresse",
       "city": "Stadt",
       "postalCode": "Postleitzahl",
+      "province": "Provinz (2-Buchstaben-Code)",
       "fiscalCode": "Steuer-ID / USt-IdNr.",
       "phone": "Telefonnummer"
     },
     "emailInvalid": "Ungültige oder nicht existierende E-Mail — bitte Domain prüfen",
     "postalCodeInvalid": "Ungültige Postleitzahl für das gewählte Land",
+    "provinceInvalid": "Gib das Provinzkürzel ein (2 Buchstaben)",
     "billingTitle": "Rechnungsadresse",
     "billingSameAsShipping": "Rechnungsadresse ist identisch mit Lieferadresse",
     "countries": {

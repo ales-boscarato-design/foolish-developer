@@ -39,15 +39,19 @@
     "errorNetwork": "Erreur réseau. Veuillez réessayer.",
     "fields": {
       "name": "Nom complet",
+      "firstName": "Prénom",
+      "lastName": "Nom",
       "email": "Email",
       "address": "Adresse",
       "city": "Ville",
       "postalCode": "Code postal",
+      "province": "Province (code à 2 lettres)",
       "fiscalCode": "N° fiscal / TVA intracommunautaire",
       "phone": "Numéro de téléphone"
     },
     "emailInvalid": "Email invalide ou inexistante — vérifiez le domaine",
     "postalCodeInvalid": "Code postal invalide pour le pays sélectionné",
+    "provinceInvalid": "Saisissez le code de la province (2 lettres)",
     "billingTitle": "Adresse de facturation",
     "billingSameAsShipping": "L'adresse de facturation est identique à l'adresse de livraison",
     "countries": {
