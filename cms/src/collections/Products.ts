@@ -68,7 +68,7 @@ export const Products: CollectionConfig = {
       admin: { description: 'Es. foglio-pelle-tattoo — solo minuscole e trattini' },
       validate: (value: unknown) => {
         if (typeof value !== 'string' || !PRODUCT_SLUG_RE.test(value)) {
-          return 'Lo slug puo contenere solo minuscole, numeri e trattini singoli (es. t-sheet-dbl-abbonamento): con spazi o maiuscole l’URL del prodotto risponde 404.'
+          return 'Lo slug puo contenere solo minuscole, numeri e trattini singoli (es. t-sheet-dbl-abbonamento): con spazi o maiuscole l\'URL del prodotto risponde 404.'
         }
         return true
       },

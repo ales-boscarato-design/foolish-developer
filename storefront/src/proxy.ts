@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import createNextIntlMiddleware from 'next-intl/middleware'
 import { routing } from './i18n/routing'
-import { canonicalLegacyPath } from './lib/legacy-slugs'
+import { legacyRedirectUrl } from './lib/legacy-slugs'
 
 const intlMiddleware = createNextIntlMiddleware({
   ...routing,
@@ -42,15 +42,15 @@ export default function proxy(request: NextRequest) {
   // pagina risponde 404. Si dirotta sul percorso canonico invece di lasciare un
   // 404 a chi stava comprando.
   //
-  // Il runtime del middleware pretende un `Location` assoluto, quindi l'origine si
-  // costruisce sull'host pubblico gia' normalizzato qui sopra: derivarla dall'URL
-  // interno della richiesta farebbe uscire l'indirizzo del container dietro il
-  // proxy di Railway.
-  const legacyPath = canonicalLegacyPath(url.pathname)
-  if (legacyPath) {
-    const protocol = headers.get('x-forwarded-proto') ?? url.protocol.replace(':', '')
-    const origin = `${protocol}://${cleanHost || url.host}`
-    return NextResponse.redirect(new URL(legacyPath, origin), { status: 301 })
+  // L'URL assoluto e la scelta dell'host stanno in `lib/legacy-slugs.ts`, dove si
+  // possono provare: qui resta la sola chiamata.
+  const legacyTarget = legacyRedirectUrl(url.pathname, {
+    requestUrl: url,
+    host: headers.get('x-forwarded-host') ?? headers.get('host'),
+    forwardedProto: headers.get('x-forwarded-proto'),
+  })
+  if (legacyTarget) {
+    return NextResponse.redirect(legacyTarget, { status: 301 })
   }
 
   const cleanReq = new NextRequest(url.toString(), {
