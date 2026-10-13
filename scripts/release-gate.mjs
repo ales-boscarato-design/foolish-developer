@@ -10,6 +10,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { randomUUID } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
@@ -202,8 +203,18 @@ export function compareMetadataContract(written, readsByFile) {
 
 export const SCHEMA_FILES_RE = /^cms\/src\/(?:collections|fields)\/.*\.ts$/
 export const GENERATED_TYPES_REL = 'cms/src/payload-types.ts'
-/** La riga che il gate scrive nel file canonico per vedere se il generatore lo riscrive. */
-export const GENERATED_TYPES_SENTINEL = '// gate-sentinel: se resta, l output dei tipi non e questo file'
+/**
+ * Marcatore scritto nel file canonico per vedere se il generatore lo riscrive. La parte
+ * casuale non puo' comparire nei tipi generati (nemmeno da una `admin.description`), cosi'
+ * il criterio non produce falsi positivi.
+ *
+ * Limite dichiarato del controllo: `payload.config.ts` e' codice, non dati. Un IIFE o un
+ * `typescript.postProcess` scritto apposta puo' fabbricare l'evidenza (riscrivere il file
+ * canonico o restituire il contenuto committato). Nessun controllo che esegue la config nel
+ * proprio processo se ne difende; si vedrebbe comunque nel diff della PR.
+ */
+export const GENERATED_TYPES_SENTINEL_PREFIX = '// gate-sentinel '
+const SENTINEL_LINE = /^\s*\/\/ gate-sentinel [0-9a-f-]{8,}\s*$/gm
 
 /** Un file da cui Payload genera i tipi. */
 export function isSchemaFile(rel) {
@@ -224,7 +235,16 @@ export function isSchemaFile(rel) {
  * risponde di una cosa sola - "i tipi corrispondono allo schema" - e quella cosa la
  * verifica per intero.
  */
-export function evaluateGeneratedTypes({ generated, before, after, changed, dirty, wroteCanonical }) {
+export function evaluateGeneratedTypes({ generated, before, after, changed, dirty, wroteCanonical, spawnFailed }) {
+  // Prima le cause che manderebbero a cercare nel posto sbagliato: se il generatore non e'
+  // partito, non e' la config a essere sbagliata.
+  if (spawnFailed || generated === 'failed') {
+    const env = process.env.PAYLOAD_TS_OUTPUT_PATH ? '; PAYLOAD_TS_OUTPUT_PATH e\' impostata e vince sulla config' : ''
+    return `non e' stato possibile rigenerare ${GENERATED_TYPES_REL} dallo schema (generatore assente o in errore${env})`
+  }
+  if (process.env.PAYLOAD_TS_OUTPUT_PATH) {
+    return `PAYLOAD_TS_OUTPUT_PATH e' impostata nell'ambiente: payload scrive la' i tipi e vince sulla config, quindi ${GENERATED_TYPES_REL} non e' il file da confrontare`
+  }
   // Empirico: il file canonico E' l'output del generatore? Nessun parsing della config puo'
   // dirlo meglio (chiavi calcolate, spread, commenti-esca non lo ingannano).
   if (wroteCanonical === false) {
@@ -241,9 +261,6 @@ export function evaluateGeneratedTypes({ generated, before, after, changed, dirt
     return changed.includes(GENERATED_TYPES_REL)
       ? true
       : `${GENERATED_TYPES_REL} non nel diff mentre lo schema CMS cambia (generatore non installato: qui il controllo e' quello conservativo sul diff)`
-  }
-  if (generated === 'failed') {
-    return `non e' stato possibile rigenerare ${GENERATED_TYPES_REL} dallo schema`
   }
   return before === after
     ? true
@@ -338,8 +355,12 @@ function checkMoneyMetadataContract() {
 
 /**
  * Rigenera i tipi dallo schema e verifica empiricamente due cose: che il file canonico sia
- * davvero l'output del generatore (sentinella) e che il contenuto sia in sincrono. Il file
- * viene rimesso com'era in ogni percorso, errore compreso: il gate non lascia mutazioni.
+ * davvero l'output del generatore (sentinella) e che il contenuto sia in sincrono.
+ *
+ * Il file viene rimesso com'era in ogni percorso: errore, generatore che lo cancella, e
+ * segnali (`try/finally` non li intercetta). Una sentinella rimasta da un'esecuzione
+ * interrotta viene tolta all'inizio, cosi' un Ctrl-C non lascia righe estranee nel file
+ * tracciato.
  */
 function regenerateTypes() {
   const cmsDir = path.join(repoRoot, 'cms')
@@ -347,26 +368,39 @@ function regenerateTypes() {
   const typesPath = path.join(repoRoot, GENERATED_TYPES_REL)
   if (!fs.existsSync(bin) || !fs.existsSync(typesPath)) return { generated: 'unavailable' }
 
-  const before = fs.readFileSync(typesPath, 'utf8')
+  const committed = fs.readFileSync(typesPath, 'utf8')
+  const before = committed.replace(SENTINEL_LINE, '')
   const statusBefore = repositoryStatus()
-  // La sentinella rende il file diverso da quello che il generatore produce: se il file
-  // canonico e' il suo output, la rigenerazione lo riscrive e la sentinella sparisce; se
-  // resta, l'output e' stato dichiarato altrove (nessuna lettura della config lo direbbe
-  // meglio, e nessuna grafia della chiave puo' ingannarlo).
-  //
-  // Il contenuto si legge DENTRO il try, prima del ripristino: leggerlo dopo renderebbe il
-  // controllo inerte, perche' vedrebbe sempre il file rimesso com'era.
+  const sentinel = `${GENERATED_TYPES_SENTINEL_PREFIX}${randomUUID()}`
+
+  const restore = () => {
+    try {
+      // Sempre, anche se il file non c'e' piu': `existsSync` lascerebbe una cancellazione.
+      fs.writeFileSync(typesPath, before)
+    } catch {
+      // Il ripristino non deve mascherare l'esito del controllo.
+    }
+  }
+  const onSignal = () => {
+    restore()
+    process.exit(130)
+  }
+  process.once('SIGINT', onSignal)
+  process.once('SIGTERM', onSignal)
+
   let res
   let generatedContent
   try {
-    fs.writeFileSync(typesPath, `${before}${before.endsWith('\n') ? '' : '\n'}${GENERATED_TYPES_SENTINEL}\n`)
+    fs.writeFileSync(typesPath, `${before}${before.endsWith('\n') ? '' : '\n'}${sentinel}\n`)
     res = spawnSync(bin, ['generate:types'], { cwd: cmsDir, encoding: 'utf8' })
     generatedContent = fs.existsSync(typesPath) ? fs.readFileSync(typesPath, 'utf8') : ''
   } finally {
-    if (fs.existsSync(typesPath)) fs.writeFileSync(typesPath, before)
+    process.removeListener('SIGINT', onSignal)
+    process.removeListener('SIGTERM', onSignal)
+    restore()
   }
 
-  const wroteCanonical = !generatedContent.includes(GENERATED_TYPES_SENTINEL)
+  const wroteCanonical = !generatedContent.includes(sentinel)
   // `after` e' quello che lo schema produce (sentinella tolta dal generatore): se differisce
   // dal file committato, i tipi sono fermi.
   const after = generatedContent
@@ -378,7 +412,14 @@ function regenerateTypes() {
       : statusAfter === statusBefore
         ? false
         : changedLines(statusBefore, statusAfter) || 'cambiamento non dettagliabile'
-  return { generated: res.status === 0 ? 'done' : 'failed', before, after, dirty, wroteCanonical }
+  return {
+    generated: res.status === 0 ? 'done' : 'failed',
+    before,
+    after,
+    dirty,
+    wroteCanonical,
+    spawnFailed: res.error != null,
+  }
 }
 
 /** Le righe di stato comparse o sparite fra i due rilievi (per una diagnosi leggibile). */

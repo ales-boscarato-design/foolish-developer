@@ -111,6 +111,21 @@ test('con il file canonico riscritto e contenuto in sincrono il controllo e` ver
 
 test('un generatore che fallisce non vale come controllo verde', () => {
   assert.equal(typeof evaluateGeneratedTypes({ generated: 'failed', changed: [] }), 'string')
+  // Un binario che non parte non e' una config sbagliata: il messaggio non deve mandare a
+  // cercare la' dove non c'e' niente.
+  const detail = evaluateGeneratedTypes({ generated: 'done', changed: [], spawnFailed: true })
+  assert.match(String(detail), /generatore assente o in errore/)
+})
+
+test('PAYLOAD_TS_OUTPUT_PATH viene segnalata invece di essere ignorata', () => {
+  process.env.PAYLOAD_TS_OUTPUT_PATH = './altrove/payload-types.ts'
+  try {
+    const detail = evaluateGeneratedTypes({ generated: 'done', before: 'x', after: 'x', changed: [], dirty: false, wroteCanonical: true })
+    assert.equal(typeof detail, 'string')
+    assert.match(detail, /PAYLOAD_TS_OUTPUT_PATH/)
+  } finally {
+    delete process.env.PAYLOAD_TS_OUTPUT_PATH
+  }
 })
 
 test('i file di schema sono quelli da cui Payload genera i tipi', () => {
