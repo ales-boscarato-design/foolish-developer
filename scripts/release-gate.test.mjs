@@ -29,7 +29,6 @@ import {
   compareLeafKeySets,
   compareMetadataContract,
   evaluateGeneratedTypes,
-  generatedTypesOutputIsCanonical,
   isSchemaFile,
   read,
 } from './release-gate.mjs'
@@ -81,40 +80,32 @@ test('una rigenerazione che tocca file inattesi sotto cms/ e` un errore', () => 
   )
 })
 
-test('il percorso dei tipi generati deve essere quello canonico', () => {
+test('se il generatore non riscrive il file canonico il controllo e` rosso', () => {
+  // Verificato con la sentinella: nessuna grafia della chiave `outputFile` puo` ingannare
+  // il controllo, perche` non si legge la config: si guarda quale file viene riscritto.
+  const detail = evaluateGeneratedTypes({
+    generated: 'done',
+    before: 'x',
+    after: 'x',
+    changed: [],
+    dirty: false,
+    wroteCanonical: false,
+  })
+  assert.equal(typeof detail, 'string')
+  assert.match(detail, /non e' il file che il generatore riscrive/)
+})
+
+test('con il file canonico riscritto e contenuto in sincrono il controllo e` verde', () => {
   assert.equal(
-    generatedTypesOutputIsCanonical("  typescript: {\n    outputFile: path.resolve(dirname, 'payload-types.ts'),\n  },"),
+    evaluateGeneratedTypes({
+      generated: 'done',
+      before: 'x',
+      after: 'x',
+      changed: [],
+      dirty: false,
+      wroteCanonical: true,
+    }),
     true,
-  )
-  // Forme equivalenti innocue: virgolette diverse, commento inline, virgola assente.
-  assert.equal(generatedTypesOutputIsCanonical(`outputFile: path.resolve(dirname, "payload-types.ts")`), true)
-  assert.equal(
-    generatedTypesOutputIsCanonical(`  outputFile: path.resolve(dirname, 'payload-types.ts'), // percorso canonico\n`),
-    true,
-  )
-  // Spostarlo (anche fuori da cms/, dove lo stato git non lo vede) deve essere un errore.
-  assert.equal(
-    generatedTypesOutputIsCanonical("    outputFile: path.resolve(dirname, 'zz-probe-types.ts'),"),
-    false,
-  )
-  assert.equal(
-    generatedTypesOutputIsCanonical("    outputFile: path.resolve(dirname, '../../storefront/src/payload-types.ts'),"),
-    false,
-  )
-  assert.equal(generatedTypesOutputIsCanonical('  typescript: {},'), false)
-  // Un commento con la forma canonica NON deve decidere quale file si confronta...
-  assert.equal(
-    generatedTypesOutputIsCanonical(
-      "  // outputFile: path.resolve(dirname, 'payload-types.ts'),\n  typescript: {\n    outputFile: path.resolve(dirname, '../../storefront/.next/payload-types.ts'),\n  },",
-    ),
-    false,
-  )
-  // ...e due dichiarazioni non devono poter passare per una sola.
-  assert.equal(
-    generatedTypesOutputIsCanonical(
-      "outputFile: path.resolve(dirname, 'payload-types.ts'),\noutputFile: path.resolve(dirname, '../../storefront/.next/payload-types.ts'),",
-    ),
-    false,
   )
 })
 

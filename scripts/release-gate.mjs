@@ -202,35 +202,8 @@ export function compareMetadataContract(written, readsByFile) {
 
 export const SCHEMA_FILES_RE = /^cms\/src\/(?:collections|fields)\/.*\.ts$/
 export const GENERATED_TYPES_REL = 'cms/src/payload-types.ts'
-const GENERATED_TYPES_OUTPUT = /outputFile\s*:\s*([^\n]+)/
-const GENERATED_TYPES_OUTPUT_ALL = /outputFile\s*:/g
-const GENERATED_TYPES_OUTPUT_CANONICAL = /^path\.resolve\(\s*dirname\s*,\s*['"]payload-types\.ts['"]\s*\)$/
-
-/** Via i commenti: una riga-commento non deve poter far passare la forma attesa. */
-function stripComments(source) {
-  return String(source)
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .replace(/(^|\s)\/\/[^\n]*/g, ' ')
-}
-
-/**
- * Il percorso dei tipi generati lo decide la config, non questo file: va dichiarato nella
- * forma canonica, altrimenti il confronto qui sotto guarderebbe un file che il generatore
- * non scrive piu' (e resterebbe verde con i tipi fermi).
- *
- * Volutamente rigido e su UNA sola dichiarazione: un commento con la forma canonica o una
- * seconda dichiarazione piu' sotto non devono poter decidere quale file si confronta. Se
- * la forma della config cambia di proposito, si aggiorna questo controllo e il suo test:
- * il messaggio lo dice.
- */
-export function generatedTypesOutputIsCanonical(configSource) {
-  const clean = stripComments(configSource)
-  if ([...clean.matchAll(GENERATED_TYPES_OUTPUT_ALL)].length !== 1) return false
-  const match = clean.match(GENERATED_TYPES_OUTPUT)
-  if (!match) return false
-  // La riga finisce con la virgola dell'oggetto: si toglie prima di confrontare.
-  return GENERATED_TYPES_OUTPUT_CANONICAL.test(match[1].trim().replace(/,$/, '').trim())
-}
+/** La riga che il gate scrive nel file canonico per vedere se il generatore lo riscrive. */
+export const GENERATED_TYPES_SENTINEL = '// gate-sentinel: se resta, l output dei tipi non e questo file'
 
 /** Un file da cui Payload genera i tipi. */
 export function isSchemaFile(rel) {
@@ -251,7 +224,12 @@ export function isSchemaFile(rel) {
  * risponde di una cosa sola - "i tipi corrispondono allo schema" - e quella cosa la
  * verifica per intero.
  */
-export function evaluateGeneratedTypes({ generated, before, after, changed, dirty }) {
+export function evaluateGeneratedTypes({ generated, before, after, changed, dirty, wroteCanonical }) {
+  // Empirico: il file canonico E' l'output del generatore? Nessun parsing della config puo'
+  // dirlo meglio (chiavi calcolate, spread, commenti-esca non lo ingannano).
+  if (wroteCanonical === false) {
+    return `${GENERATED_TYPES_REL} non e' il file che il generatore riscrive: l'output dei tipi e' dichiarato altrove. Il confronto qui sotto guarderebbe un file fermo`
+  }
   if (dirty) {
     const detail = typeof dirty === 'string' ? ` (${dirty})` : ''
     return `qualcosa e' cambiato nell'albero intorno alla rigenerazione${detail}: il percorso di output si legge dallo schema, quindi il confronto non e' affidabile. Se il file non e' tuo, e' una scrittura concorrente: rilancia il gate`
@@ -306,9 +284,12 @@ function runCheck(name, fn) {
   }
 }
 
-/** Stato git dell'albero: serve ad accorgersi di cio' che la rigenerazione tocca davvero. */
+/**
+ * Stato git dell'albero: serve ad accorgersi di cio' che la rigenerazione tocca davvero.
+ * `null` se git non risponde: un albero non osservabile non e' un albero pulito.
+ */
 function repositoryStatus() {
-  return git(['status', '--porcelain=v1', '--untracked-files=all']) ?? ''
+  return git(['status', '--porcelain=v1', '--untracked-files=all'])
 }
 
 function checkRequiredFiles() {
@@ -356,11 +337,9 @@ function checkMoneyMetadataContract() {
 }
 
 /**
- * Rigenera i tipi dallo schema e legge il risultato. `payload-types.ts` viene rimesso
- * com'era (anche se il generatore esce in errore dopo aver scritto), e si controlla che
- * la rigenerazione non abbia toccato altro sotto `cms/`: il percorso di output lo decide
- * lo schema, quindi il file da confrontare non e' un percorso scritto qui a mano. Il gate
- * non lascia mutazioni nel repository.
+ * Rigenera i tipi dallo schema e verifica empiricamente due cose: che il file canonico sia
+ * davvero l'output del generatore (sentinella) e che il contenuto sia in sincrono. Il file
+ * viene rimesso com'era in ogni percorso, errore compreso: il gate non lascia mutazioni.
  */
 function regenerateTypes() {
   const cmsDir = path.join(repoRoot, 'cms')
@@ -370,12 +349,36 @@ function regenerateTypes() {
 
   const before = fs.readFileSync(typesPath, 'utf8')
   const statusBefore = repositoryStatus()
-  const res = spawnSync(bin, ['generate:types'], { cwd: cmsDir, encoding: 'utf8' })
-  const after = fs.existsSync(typesPath) ? fs.readFileSync(typesPath, 'utf8') : ''
-  if (after !== before) fs.writeFileSync(typesPath, before)
+  // La sentinella rende il file diverso da quello che il generatore produce: se il file
+  // canonico e' il suo output, la rigenerazione lo riscrive e la sentinella sparisce; se
+  // resta, l'output e' stato dichiarato altrove (nessuna lettura della config lo direbbe
+  // meglio, e nessuna grafia della chiave puo' ingannarlo).
+  //
+  // Il contenuto si legge DENTRO il try, prima del ripristino: leggerlo dopo renderebbe il
+  // controllo inerte, perche' vedrebbe sempre il file rimesso com'era.
+  let res
+  let generatedContent
+  try {
+    fs.writeFileSync(typesPath, `${before}${before.endsWith('\n') ? '' : '\n'}${GENERATED_TYPES_SENTINEL}\n`)
+    res = spawnSync(bin, ['generate:types'], { cwd: cmsDir, encoding: 'utf8' })
+    generatedContent = fs.existsSync(typesPath) ? fs.readFileSync(typesPath, 'utf8') : ''
+  } finally {
+    if (fs.existsSync(typesPath)) fs.writeFileSync(typesPath, before)
+  }
+
+  const wroteCanonical = !generatedContent.includes(GENERATED_TYPES_SENTINEL)
+  // `after` e' quello che lo schema produce (sentinella tolta dal generatore): se differisce
+  // dal file committato, i tipi sono fermi.
+  const after = generatedContent
   const statusAfter = repositoryStatus()
-  const dirty = statusAfter === statusBefore ? false : changedLines(statusBefore, statusAfter)
-  return { generated: res.status === 0 ? 'done' : 'failed', before, after, dirty }
+  // Stato git non leggibile = albero non osservabile: si segnala, non si finge pulito.
+  const dirty =
+    statusAfter === null || statusBefore === null
+      ? 'stato git non leggibile'
+      : statusAfter === statusBefore
+        ? false
+        : changedLines(statusBefore, statusAfter) || 'cambiamento non dettagliabile'
+  return { generated: res.status === 0 ? 'done' : 'failed', before, after, dirty, wroteCanonical }
 }
 
 /** Le righe di stato comparse o sparite fra i due rilievi (per una diagnosi leggibile). */
@@ -388,9 +391,6 @@ function changedLines(before, after) {
 }
 
 function checkGeneratedTypes() {
-  if (!generatedTypesOutputIsCanonical(read('cms/src/payload.config.ts'))) {
-    return `\`typescript.outputFile\` in cms/src/payload.config.ts non e' nella forma attesa (\`path.resolve(dirname, 'payload-types.ts')\`) o non e' dichiarato una volta sola: il confronto dei tipi non saprebbe quale file guardare. Se l'hai cambiato di proposito, aggiorna questo controllo e il suo test`
-  }
   const run = regenerateTypes()
   const changed = run.generated === 'unavailable' ? changedFiles() : []
   return evaluateGeneratedTypes({ ...run, changed })
