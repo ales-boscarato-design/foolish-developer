@@ -200,55 +200,38 @@ export function compareMetadataContract(written, readsByFile) {
   return problems
 }
 
-// Chiavi che il generatore legge per costruire `cms/src/payload-types.ts`. `validate`,
-// `admin`, `hooks`, `access`, `endpoints`, `unique`, `index` e i commenti non cambiano
-// i tipi: pretenderne la rigenerazione bocciava un controllo di sola validazione.
-const SCHEMA_TYPE_RELEVANT_KEYS = new Set([
-  'name',
-  'type',
-  'required',
-  'localized',
-  'hasMany',
-  'fields',
-  'blocks',
-  'relationTo',
-  'minRows',
-  'maxRows',
-  'slug',
-  'collections',
-])
+export const SCHEMA_FILES_RE = /^cms\/src\/(?:collections|fields)\/.*\.ts$/
+export const GENERATED_TYPES_REL = 'cms/src/payload-types.ts'
 
-/**
- * La superficie tipata di una collezione/campo: le coppie `chiave: valore` che il
- * generatore legge per costruire `payload-types.ts`. I commenti sono rimossi, cosi'
- * un cambio di prosa non conta; il confronto e' per chiave normalizzata, quindi
- * anche uno spostamento di righe non conta. In caso di dubbio si segnala (direzione
- * conservativa: al massimo si chiede una rigenerazione che non cambia nulla).
- */
-export function typeRelevantSurface(source) {
-  const withoutComments = String(source)
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .replace(/^[ \t]*\/\/.*$/gm, ' ')
-  const surface = []
-  for (const match of withoutComments.matchAll(/([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([^,\n]*)/g)) {
-    if (!SCHEMA_TYPE_RELEVANT_KEYS.has(match[1])) continue
-    surface.push(`${match[1]}: ${match[2].replace(/\s+/g, ' ').trim().slice(0, 80)}`)
-  }
-  return surface.sort()
+/** Un file da cui Payload genera i tipi. */
+export function isSchemaFile(rel) {
+  return rel === 'cms/src/payload.config.ts' || SCHEMA_FILES_RE.test(rel)
 }
 
 /**
- * File di schema la cui superficie tipata e' cambiata rispetto alla base.
- * Vuoto = la modifica non puo' aver cambiato `payload-types.ts`.
+ * Esito del controllo sui tipi generati, senza toccare il disco: cosi' si prova con
+ * casi sintetici invece che solo sul repository.
+ *
+ * La verifica buona e' rigenerare `payload-types.ts` dallo schema e confrontarlo: un
+ * elenco di chiavi "che cambiano i tipi" non puo' essere completo (una `option` in piu'
+ * su un `select` cambia l'unione dei literal senza toccare `name`/`type`), quindi il
+ * controllo statico si userebbe solo dove il generatore non e' installato.
  */
-export function compareSchemaTypeSurface(files) {
-  const touched = []
-  for (const { path: rel, baseSource, headSource } of files) {
-    const before = JSON.stringify(typeRelevantSurface(baseSource))
-    const after = JSON.stringify(typeRelevantSurface(headSource))
-    if (before !== after) touched.push(rel)
+export function evaluateGeneratedTypes({ generated, before, after, changed }) {
+  if (generated === 'unavailable') {
+    if (changed == null) return null // nessun riferimento di diff: il controllo si salta, non si finge verde
+    const schemaTouched = changed.some(isSchemaFile)
+    if (!schemaTouched) return true
+    return changed.includes(GENERATED_TYPES_REL)
+      ? true
+      : `${GENERATED_TYPES_REL} non nel diff mentre lo schema CMS cambia (generatore non installato: qui il controllo e' quello conservativo sul diff)`
   }
-  return touched
+  if (generated === 'failed') {
+    return `non e' stato possibile rigenerare ${GENERATED_TYPES_REL} dallo schema`
+  }
+  return before === after
+    ? true
+    : `${GENERATED_TYPES_REL} non corrisponde allo schema: rigenera con \`cd cms && npx payload generate:types\` e committa il file`
 }
 
 // ---------------------------------------------------------------- esecuzione
@@ -326,28 +309,27 @@ function checkMoneyMetadataContract() {
   return problems.length === 0 ? true : `metadata scritti dal checkout assenti: ${problems.join(', ')}`
 }
 
-function checkGeneratedTypes() {
-  const changed = changedFiles()
-  if (changed === null) return null
-  const schemaFiles = changed.filter(
-    (file) =>
-      file === 'cms/src/payload.config.ts' ||
-      (file.startsWith('cms/src/collections/') && file.endsWith('.ts')) ||
-      (file.startsWith('cms/src/fields/') && file.endsWith('.ts')),
-  )
-  if (schemaFiles.length === 0) return true
+/**
+ * Rigenera `payload-types.ts` dallo schema e legge il risultato. Il file su disco
+ * viene ripristinato subito: il gate non lascia mutazioni nel repository.
+ */
+function regenerateTypes() {
+  const cmsDir = path.join(repoRoot, 'cms')
+  const bin = path.join(cmsDir, 'node_modules', '.bin', 'payload')
+  const typesPath = path.join(repoRoot, GENERATED_TYPES_REL)
+  if (!fs.existsSync(bin) || !fs.existsSync(typesPath)) return { generated: 'unavailable' }
+  const before = fs.readFileSync(typesPath, 'utf8')
+  const res = spawnSync(bin, ['generate:types'], { cwd: cmsDir, encoding: 'utf8' })
+  if (res.status !== 0) return { generated: 'failed' }
+  const after = fs.readFileSync(typesPath, 'utf8')
+  if (after !== before) fs.writeFileSync(typesPath, before)
+  return { generated: 'done', before, after }
+}
 
-  const mergeBase = git(['merge-base', baseRef, 'HEAD'])
-  const surface = schemaFiles.map((rel) => ({
-    path: rel,
-    baseSource: (mergeBase && git(['show', `${mergeBase}:${rel}`])) || '',
-    headSource: fs.existsSync(path.join(repoRoot, rel)) ? read(rel) : '',
-  }))
-  const typedChanges = compareSchemaTypeSurface(surface)
-  if (typedChanges.length === 0) return true
-  return changed.includes('cms/src/payload-types.ts')
-    ? true
-    : `schema CMS modificato senza rigenerare cms/src/payload-types.ts (npx payload generate:types): ${typedChanges.join(', ')}`
+function checkGeneratedTypes() {
+  const run = regenerateTypes()
+  const changed = run.generated === 'unavailable' ? changedFiles() : []
+  return evaluateGeneratedTypes({ ...run, changed })
 }
 
 function checkNoDeployInWorkflows() {

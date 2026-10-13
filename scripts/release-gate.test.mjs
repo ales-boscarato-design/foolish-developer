@@ -7,6 +7,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
+import { spawnSync } from 'node:child_process'
 
 import {
   repoRoot,
@@ -15,6 +16,7 @@ import {
   MONEY_PATH_WRITER,
   CHECKOUT_ROUTE,
   SUBSCRIPTION_METADATA_KEYS,
+  GENERATED_TYPES_REL,
   extractMigrationNames,
   extractRegisteredMigrations,
   extractCheckoutBaseMetadataKeys,
@@ -26,47 +28,51 @@ import {
   compareMigrationRegistration,
   compareLeafKeySets,
   compareMetadataContract,
-  compareSchemaTypeSurface,
+  evaluateGeneratedTypes,
+  isSchemaFile,
   read,
 } from './release-gate.mjs'
 
-// ------------------------------------------------- tipi CMS rigenerati (superficie)
+// ------------------------------------------------- tipi CMS rigenerati
 
-test('aggiungere una validate non richiede la rigenerazione dei tipi', () => {
-  // Caso reale: la validate sullo slug prodotto (cms/src/collections/Products.ts).
-  const before = `    {\n      name: 'slug',\n      type: 'text',\n      required: true,\n      unique: true,\n      label: 'Slug (URL)',\n      admin: { description: 'Es. foglio-pelle-tattoo' },\n    },`
-  const after = `    {\n      name: 'slug',\n      type: 'text',\n      required: true,\n      unique: true,\n      label: 'Slug (URL)',\n      admin: { description: 'Es. foglio-pelle-tattoo' },\n      validate: (value: unknown) => {\n        if (typeof value !== 'string') return 'solo minuscole, numeri e trattini: x.y'\n        return true\n      },\n    },`
-  assert.deepEqual(
-    compareSchemaTypeSurface([{ path: 'cms/src/collections/Products.ts', baseSource: before, headSource: after }]),
-    [],
-  )
+test('tipi rigenerati identici: nessun problema', () => {
+  assert.equal(evaluateGeneratedTypes({ generated: 'done', before: 'x', after: 'x', changed: [] }), true)
 })
 
-test('un campo nuovo richiede la rigenerazione dei tipi', () => {
-  const before = `      fields: [\n        { name: 'slug', type: 'text', required: true },\n      ],`
-  const after = `      fields: [\n        { name: 'slug', type: 'text', required: true },\n        { name: 'nuovo', type: 'text', required: false },\n      ],`
-  assert.deepEqual(
-    compareSchemaTypeSurface([{ path: 'cms/src/collections/Products.ts', baseSource: before, headSource: after }]),
-    ['cms/src/collections/Products.ts'],
-  )
+test('un cambio che sposta i tipi generati viene segnalato', () => {
+  // Una `option` in piu` su un select cambia l'unione dei literal: e` il caso che un
+  // elenco di chiavi scritto a mano non vede (successo davvero in review).
+  const detail = evaluateGeneratedTypes({ generated: 'done', before: 'x', after: 'y', changed: [] })
+  assert.equal(typeof detail, 'string')
+  assert.match(detail, /non corrisponde allo schema/)
 })
 
-test('rendere obbligatorio un campo richiede la rigenerazione dei tipi', () => {
-  const before = `        { name: 'nota', type: 'text', required: false },`
-  const after = `        { name: 'nota', type: 'text', required: true },`
-  assert.deepEqual(
-    compareSchemaTypeSurface([{ path: 'cms/src/fields/nota.ts', baseSource: before, headSource: after }]),
-    ['cms/src/fields/nota.ts'],
-  )
+test('se il generatore non e` installato si torna al controllo conservativo sul diff', () => {
+  const missing = evaluateGeneratedTypes({
+    generated: 'unavailable',
+    changed: ['cms/src/collections/Products.ts'],
+  })
+  assert.equal(typeof missing, 'string')
+  const covered = evaluateGeneratedTypes({
+    generated: 'unavailable',
+    changed: ['cms/src/collections/Products.ts', GENERATED_TYPES_REL],
+  })
+  assert.equal(covered, true)
+  assert.equal(evaluateGeneratedTypes({ generated: 'unavailable', changed: ['README.md'] }), true)
+  assert.equal(evaluateGeneratedTypes({ generated: 'unavailable', changed: null }), null)
 })
 
-test('cambiare un descrittore di amministrazione non richiede la rigenerazione', () => {
-  const before = `      admin: { description: 'vecchia descrizione' },`
-  const after = `      admin: { description: 'descrizione nuova', position: 'sidebar' },`
-  assert.deepEqual(
-    compareSchemaTypeSurface([{ path: 'cms/src/collections/Products.ts', baseSource: before, headSource: after }]),
-    [],
-  )
+test('un generatore che fallisce non vale come controllo verde', () => {
+  assert.equal(typeof evaluateGeneratedTypes({ generated: 'failed', changed: [] }), 'string')
+})
+
+test('i file di schema sono quelli da cui Payload genera i tipi', () => {
+  assert.equal(isSchemaFile('cms/src/collections/Products.ts'), true)
+  assert.equal(isSchemaFile('cms/src/fields/slug.ts'), true)
+  assert.equal(isSchemaFile('cms/src/payload.config.ts'), true)
+  assert.equal(isSchemaFile('cms/src/collections/Orders.test.ts'), true)
+  assert.equal(isSchemaFile('storefront/src/lib/legacy-slugs.ts'), false)
+  assert.equal(isSchemaFile('cms/src/migrations/index.ts'), false)
 })
 
 // ------------------------------------------------------------------ casi negativi
@@ -268,6 +274,20 @@ test('il numero di migration registrate coincide con i file su disco', () => {
   const registered = extractRegisteredMigrations(read('cms/src/migrations/index.ts'))
   assert.ok(onDisk.length > 0, 'nessuna migration trovata su disco')
   assert.equal(registered.length, onDisk.length)
+})
+
+test('payload-types.ts corrisponde allo schema (rigenerazione vera)', () => {
+  // Il controllo del gate gira sullo stesso generatore: qui si prova l'invariante
+  // reale, che nessun elenco di chiavi scritto a mano puo` sostituire.
+  const bin = path.join(repoRoot, 'cms', 'node_modules', '.bin', 'payload')
+  if (!fs.existsSync(bin)) return // generatore non installato: resta il controllo del gate
+  const typesPath = path.join(repoRoot, GENERATED_TYPES_REL)
+  const before = fs.readFileSync(typesPath, 'utf8')
+  const res = spawnSync(bin, ['generate:types'], { cwd: path.join(repoRoot, 'cms'), encoding: 'utf8' })
+  const after = fs.readFileSync(typesPath, 'utf8')
+  if (after !== before) fs.writeFileSync(typesPath, before)
+  assert.equal(res.status, 0, 'payload generate:types e` fallito')
+  assert.equal(after, before, `${GENERATED_TYPES_REL} fuori sincrono con lo schema`)
 })
 
 test('il checkout scrive tutte le chiavi di metadata che i percorsi soldi leggono', () => {
