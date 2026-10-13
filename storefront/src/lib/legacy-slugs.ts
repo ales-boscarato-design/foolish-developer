@@ -92,8 +92,9 @@ export interface LegacyRedirectInput {
   /** URL della richiesta: dietro un proxy puo' portare l'indirizzo interno del container. */
   requestUrl: URL
   /**
-   * Header di host grezzi in ordine di preferenza (`x-forwarded-host`, poi `host`):
-   * possono essere liste, avere la porta, o essere inutilizzabili.
+   * Header di host grezzi in ordine di preferenza (`host`, poi `x-forwarded-host`): il
+   * primo utilizzabile vince, quindi un `x-forwarded-host` scritto dal client decide solo
+   * se l'host della richiesta non e' utilizzabile. Possono essere liste e avere la porta.
    */
   hosts?: (string | null | undefined)[]
   /** Header `X-Forwarded-Proto` grezzo: puo' essere una lista (`https, http`). */
@@ -117,6 +118,9 @@ function usableHost(raw: string | null | undefined): string | null {
   if (segments.length > 2) return null
   const [name, port] = segments
   if (!name || name.includes('..') || !HOST_NAME.test(name)) return null
+  // Una sola etichetta (`metadata`, `internal`, ...) non e' un host di questo sito: nessun
+  // dominio servito qui e' un nome nudo.
+  if (!name.includes('.')) return null
   if (port !== undefined && !/^\d{1,5}$/.test(port)) return null
   if (isInternalHost(name)) return null
 

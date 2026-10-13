@@ -72,12 +72,24 @@ test('una rigenerazione che tocca file inattesi sotto cms/ e` un errore', () => 
   // il confronto sul percorso fisso resterebbe verde.
   const detail = evaluateGeneratedTypes({ generated: 'done', before: 'x', after: 'x', changed: [], dirty: true })
   assert.equal(typeof detail, 'string')
-  assert.match(detail, /file inattesi sotto cms/)
+  assert.match(detail, /qualcosa e' cambiato nell'albero/)
+  // Con il dettaglio di cosa e' comparso: serve a distinguere un output spostato da una
+  // scrittura concorrente senza doverlo indovinare.
+  assert.match(
+    String(evaluateGeneratedTypes({ generated: 'done', before: 'x', after: 'x', changed: [], dirty: '?? probe.ts' })),
+    /\?\? probe\.ts/,
+  )
 })
 
 test('il percorso dei tipi generati deve essere quello canonico', () => {
   assert.equal(
     generatedTypesOutputIsCanonical("  typescript: {\n    outputFile: path.resolve(dirname, 'payload-types.ts'),\n  },"),
+    true,
+  )
+  // Forme equivalenti innocue: virgolette diverse, commento inline, virgola assente.
+  assert.equal(generatedTypesOutputIsCanonical(`outputFile: path.resolve(dirname, "payload-types.ts")`), true)
+  assert.equal(
+    generatedTypesOutputIsCanonical(`  outputFile: path.resolve(dirname, 'payload-types.ts'), // percorso canonico\n`),
     true,
   )
   // Spostarlo (anche fuori da cms/, dove lo stato git non lo vede) deve essere un errore.
@@ -90,6 +102,20 @@ test('il percorso dei tipi generati deve essere quello canonico', () => {
     false,
   )
   assert.equal(generatedTypesOutputIsCanonical('  typescript: {},'), false)
+  // Un commento con la forma canonica NON deve decidere quale file si confronta...
+  assert.equal(
+    generatedTypesOutputIsCanonical(
+      "  // outputFile: path.resolve(dirname, 'payload-types.ts'),\n  typescript: {\n    outputFile: path.resolve(dirname, '../../storefront/.next/payload-types.ts'),\n  },",
+    ),
+    false,
+  )
+  // ...e due dichiarazioni non devono poter passare per una sola.
+  assert.equal(
+    generatedTypesOutputIsCanonical(
+      "outputFile: path.resolve(dirname, 'payload-types.ts'),\noutputFile: path.resolve(dirname, '../../storefront/.next/payload-types.ts'),",
+    ),
+    false,
+  )
 })
 
 test('un generatore che fallisce non vale come controllo verde', () => {

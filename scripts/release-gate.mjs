@@ -202,16 +202,31 @@ export function compareMetadataContract(written, readsByFile) {
 
 export const SCHEMA_FILES_RE = /^cms\/src\/(?:collections|fields)\/.*\.ts$/
 export const GENERATED_TYPES_REL = 'cms/src/payload-types.ts'
-const GENERATED_TYPES_OUTPUT = /outputFile:\s*([^\n]+)/
-const GENERATED_TYPES_OUTPUT_CANONICAL = /^path\.resolve\(\s*dirname\s*,\s*'payload-types\.ts'\s*\)$/
+const GENERATED_TYPES_OUTPUT = /outputFile\s*:\s*([^\n]+)/
+const GENERATED_TYPES_OUTPUT_ALL = /outputFile\s*:/g
+const GENERATED_TYPES_OUTPUT_CANONICAL = /^path\.resolve\(\s*dirname\s*,\s*['"]payload-types\.ts['"]\s*\)$/
+
+/** Via i commenti: una riga-commento non deve poter far passare la forma attesa. */
+function stripComments(source) {
+  return String(source)
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|\s)\/\/[^\n]*/g, ' ')
+}
 
 /**
- * Il percorso dei tipi generati lo decide la config, non questo file: va dichiarato
- * canonico, altrimenti il confronto qui sotto guarderebbe un file che il generatore non
- * scrive piu' (e resterebbe verde con i tipi fermi).
+ * Il percorso dei tipi generati lo decide la config, non questo file: va dichiarato nella
+ * forma canonica, altrimenti il confronto qui sotto guarderebbe un file che il generatore
+ * non scrive piu' (e resterebbe verde con i tipi fermi).
+ *
+ * Volutamente rigido e su UNA sola dichiarazione: un commento con la forma canonica o una
+ * seconda dichiarazione piu' sotto non devono poter decidere quale file si confronta. Se
+ * la forma della config cambia di proposito, si aggiorna questo controllo e il suo test:
+ * il messaggio lo dice.
  */
 export function generatedTypesOutputIsCanonical(configSource) {
-  const match = String(configSource).match(GENERATED_TYPES_OUTPUT)
+  const clean = stripComments(configSource)
+  if ([...clean.matchAll(GENERATED_TYPES_OUTPUT_ALL)].length !== 1) return false
+  const match = clean.match(GENERATED_TYPES_OUTPUT)
   if (!match) return false
   // La riga finisce con la virgola dell'oggetto: si toglie prima di confrontare.
   return GENERATED_TYPES_OUTPUT_CANONICAL.test(match[1].trim().replace(/,$/, '').trim())
@@ -238,7 +253,8 @@ export function isSchemaFile(rel) {
  */
 export function evaluateGeneratedTypes({ generated, before, after, changed, dirty }) {
   if (dirty) {
-    return 'la rigenerazione tocca file inattesi sotto cms/: il percorso di output si legge dallo schema, quindi un cambio di `typescript.outputFile` non puo` passare inosservato'
+    const detail = typeof dirty === 'string' ? ` (${dirty})` : ''
+    return `qualcosa e' cambiato nell'albero intorno alla rigenerazione${detail}: il percorso di output si legge dallo schema, quindi il confronto non e' affidabile. Se il file non e' tuo, e' una scrittura concorrente: rilancia il gate`
   }
   if (generated === 'unavailable') {
     if (changed == null) return { skip: 'generatore non installato e nessun riferimento di diff' }
@@ -357,13 +373,23 @@ function regenerateTypes() {
   const res = spawnSync(bin, ['generate:types'], { cwd: cmsDir, encoding: 'utf8' })
   const after = fs.existsSync(typesPath) ? fs.readFileSync(typesPath, 'utf8') : ''
   if (after !== before) fs.writeFileSync(typesPath, before)
-  const dirty = repositoryStatus() !== statusBefore
+  const statusAfter = repositoryStatus()
+  const dirty = statusAfter === statusBefore ? false : changedLines(statusBefore, statusAfter)
   return { generated: res.status === 0 ? 'done' : 'failed', before, after, dirty }
+}
+
+/** Le righe di stato comparse o sparite fra i due rilievi (per una diagnosi leggibile). */
+function changedLines(before, after) {
+  const beforeLines = new Set(before.split('\n').filter(Boolean))
+  const afterLines = new Set(after.split('\n').filter(Boolean))
+  const appeared = [...afterLines].filter((line) => !beforeLines.has(line))
+  const vanished = [...beforeLines].filter((line) => !afterLines.has(line))
+  return [...appeared, ...vanished.map((line) => `-${line}`)].slice(0, 3).join(' | ')
 }
 
 function checkGeneratedTypes() {
   if (!generatedTypesOutputIsCanonical(read('cms/src/payload.config.ts'))) {
-    return `\`typescript.outputFile\` in cms/src/payload.config.ts non e' piu' ${GENERATED_TYPES_REL}: il confronto dei tipi va rifatto sul percorso dichiarato dallo schema`
+    return `\`typescript.outputFile\` in cms/src/payload.config.ts non e' nella forma attesa (\`path.resolve(dirname, 'payload-types.ts')\`) o non e' dichiarato una volta sola: il confronto dei tipi non saprebbe quale file guardare. Se l'hai cambiato di proposito, aggiorna questo controllo e il suo test`
   }
   const run = regenerateTypes()
   const changed = run.generated === 'unavailable' ? changedFiles() : []

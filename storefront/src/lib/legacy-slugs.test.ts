@@ -133,6 +133,17 @@ test('un IPv6 senza parentesi o un doppio punto e virgola non finiscono nel Loca
   }
 })
 
+test('un host senza dominio (una sola etichetta) non diventa un Location', () => {
+  const target = (host: string) =>
+    legacyRedirectUrl(PROD_REQUEST.pathname, { requestUrl: PROD_REQUEST, hosts: [host], forwardedProto: 'https' })
+  // Nessun dominio servito qui e' un nome nudo: `metadata`, `internal`, `app` non sono host.
+  for (const host of ['metadata', 'internal', 'app', 'internal:8080']) {
+    assert.equal(target(host), null, `${host} non e' un host di questo sito`)
+  }
+  // Un sottodominio (due etichette) resta valido.
+  assert.equal(target('shop.thefoolishbutcher.com'), 'https://shop.thefoolishbutcher.com/es/prodotto/t-sheet-dbl-abbonamento')
+})
+
 test('un host che porta percorso o credenziali non diventa un Location', () => {
   const target = (host: string) => legacyRedirectUrl(PROD_REQUEST.pathname, { requestUrl: PROD_REQUEST, hosts: [host] })
   assert.equal(target('evil.example/path'), null)

@@ -51,8 +51,8 @@ export default function proxy(request: NextRequest) {
   // possono provare: qui resta la sola chiamata.
   const legacyTarget = legacyRedirectUrl(url.pathname, {
     requestUrl: url,
-    // Prima l'host che il browser ha chiamato, poi quello dichiarato dal proxy: cosi' un
-    // `X-Forwarded-Host` iniettato dal client non decide da solo dove dirottare.
+    // Il primo candidato utilizzabile vince: un `X-Forwarded-Host` scritto dal client
+    // decide solo se l'host della richiesta non e' utilizzabile.
     hosts: [hostHeader, forwardedHostHeader],
     forwardedProto: headers.get('x-forwarded-proto'),
   })
