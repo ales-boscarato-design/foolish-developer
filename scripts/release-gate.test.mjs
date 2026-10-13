@@ -26,8 +26,48 @@ import {
   compareMigrationRegistration,
   compareLeafKeySets,
   compareMetadataContract,
+  compareSchemaTypeSurface,
   read,
 } from './release-gate.mjs'
+
+// ------------------------------------------------- tipi CMS rigenerati (superficie)
+
+test('aggiungere una validate non richiede la rigenerazione dei tipi', () => {
+  // Caso reale: la validate sullo slug prodotto (cms/src/collections/Products.ts).
+  const before = `    {\n      name: 'slug',\n      type: 'text',\n      required: true,\n      unique: true,\n      label: 'Slug (URL)',\n      admin: { description: 'Es. foglio-pelle-tattoo' },\n    },`
+  const after = `    {\n      name: 'slug',\n      type: 'text',\n      required: true,\n      unique: true,\n      label: 'Slug (URL)',\n      admin: { description: 'Es. foglio-pelle-tattoo' },\n      validate: (value: unknown) => {\n        if (typeof value !== 'string') return 'solo minuscole, numeri e trattini: x.y'\n        return true\n      },\n    },`
+  assert.deepEqual(
+    compareSchemaTypeSurface([{ path: 'cms/src/collections/Products.ts', baseSource: before, headSource: after }]),
+    [],
+  )
+})
+
+test('un campo nuovo richiede la rigenerazione dei tipi', () => {
+  const before = `      fields: [\n        { name: 'slug', type: 'text', required: true },\n      ],`
+  const after = `      fields: [\n        { name: 'slug', type: 'text', required: true },\n        { name: 'nuovo', type: 'text', required: false },\n      ],`
+  assert.deepEqual(
+    compareSchemaTypeSurface([{ path: 'cms/src/collections/Products.ts', baseSource: before, headSource: after }]),
+    ['cms/src/collections/Products.ts'],
+  )
+})
+
+test('rendere obbligatorio un campo richiede la rigenerazione dei tipi', () => {
+  const before = `        { name: 'nota', type: 'text', required: false },`
+  const after = `        { name: 'nota', type: 'text', required: true },`
+  assert.deepEqual(
+    compareSchemaTypeSurface([{ path: 'cms/src/fields/nota.ts', baseSource: before, headSource: after }]),
+    ['cms/src/fields/nota.ts'],
+  )
+})
+
+test('cambiare un descrittore di amministrazione non richiede la rigenerazione', () => {
+  const before = `      admin: { description: 'vecchia descrizione' },`
+  const after = `      admin: { description: 'descrizione nuova', position: 'sidebar' },`
+  assert.deepEqual(
+    compareSchemaTypeSurface([{ path: 'cms/src/collections/Products.ts', baseSource: before, headSource: after }]),
+    [],
+  )
+})
 
 // ------------------------------------------------------------------ casi negativi
 

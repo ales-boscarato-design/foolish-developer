@@ -200,6 +200,57 @@ export function compareMetadataContract(written, readsByFile) {
   return problems
 }
 
+// Chiavi che il generatore legge per costruire `cms/src/payload-types.ts`. `validate`,
+// `admin`, `hooks`, `access`, `endpoints`, `unique`, `index` e i commenti non cambiano
+// i tipi: pretenderne la rigenerazione bocciava un controllo di sola validazione.
+const SCHEMA_TYPE_RELEVANT_KEYS = new Set([
+  'name',
+  'type',
+  'required',
+  'localized',
+  'hasMany',
+  'fields',
+  'blocks',
+  'relationTo',
+  'minRows',
+  'maxRows',
+  'slug',
+  'collections',
+])
+
+/**
+ * La superficie tipata di una collezione/campo: le coppie `chiave: valore` che il
+ * generatore legge per costruire `payload-types.ts`. I commenti sono rimossi, cosi'
+ * un cambio di prosa non conta; il confronto e' per chiave normalizzata, quindi
+ * anche uno spostamento di righe non conta. In caso di dubbio si segnala (direzione
+ * conservativa: al massimo si chiede una rigenerazione che non cambia nulla).
+ */
+export function typeRelevantSurface(source) {
+  const withoutComments = String(source)
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/^[ \t]*\/\/.*$/gm, ' ')
+  const surface = []
+  for (const match of withoutComments.matchAll(/([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([^,\n]*)/g)) {
+    if (!SCHEMA_TYPE_RELEVANT_KEYS.has(match[1])) continue
+    surface.push(`${match[1]}: ${match[2].replace(/\s+/g, ' ').trim().slice(0, 80)}`)
+  }
+  return surface.sort()
+}
+
+/**
+ * File di schema la cui superficie tipata e' cambiata rispetto alla base.
+ * Vuoto = la modifica non puo' aver cambiato `payload-types.ts`.
+ */
+export function compareSchemaTypeSurface(files) {
+  const touched = []
+  for (const { path: rel, baseSource, headSource } of files) {
+    const before = JSON.stringify(typeRelevantSurface(baseSource))
+    const after = JSON.stringify(typeRelevantSurface(headSource))
+    if (before !== after) touched.push(rel)
+  }
+  return touched
+}
+
 // ---------------------------------------------------------------- esecuzione
 
 const args = process.argv.slice(2)
@@ -278,16 +329,25 @@ function checkMoneyMetadataContract() {
 function checkGeneratedTypes() {
   const changed = changedFiles()
   if (changed === null) return null
-  const touchedSchema = changed.some(
+  const schemaFiles = changed.filter(
     (file) =>
       file === 'cms/src/payload.config.ts' ||
       (file.startsWith('cms/src/collections/') && file.endsWith('.ts')) ||
       (file.startsWith('cms/src/fields/') && file.endsWith('.ts')),
   )
-  if (!touchedSchema) return true
+  if (schemaFiles.length === 0) return true
+
+  const mergeBase = git(['merge-base', baseRef, 'HEAD'])
+  const surface = schemaFiles.map((rel) => ({
+    path: rel,
+    baseSource: (mergeBase && git(['show', `${mergeBase}:${rel}`])) || '',
+    headSource: fs.existsSync(path.join(repoRoot, rel)) ? read(rel) : '',
+  }))
+  const typedChanges = compareSchemaTypeSurface(surface)
+  if (typedChanges.length === 0) return true
   return changed.includes('cms/src/payload-types.ts')
     ? true
-    : 'schema CMS modificato senza rigenerare cms/src/payload-types.ts (npx payload generate:types)'
+    : `schema CMS modificato senza rigenerare cms/src/payload-types.ts (npx payload generate:types): ${typedChanges.join(', ')}`
 }
 
 function checkNoDeployInWorkflows() {
