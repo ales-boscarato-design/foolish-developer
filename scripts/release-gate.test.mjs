@@ -59,7 +59,19 @@ test('se il generatore non e` installato si torna al controllo conservativo sul 
   })
   assert.equal(covered, true)
   assert.equal(evaluateGeneratedTypes({ generated: 'unavailable', changed: ['README.md'] }), true)
-  assert.equal(evaluateGeneratedTypes({ generated: 'unavailable', changed: null }), null)
+  // Senza riferimento di diff il controllo si salta, ma dichiarandolo (non fingendo verde).
+  assert.equal(
+    evaluateGeneratedTypes({ generated: 'unavailable', changed: null }).skip,
+    'generatore non installato e nessun riferimento di diff',
+  )
+})
+
+test('una rigenerazione che tocca file inattesi sotto cms/ e` un errore', () => {
+  // Caso vero: spostare `typescript.outputFile` nella config farebbe generare altrove e
+  // il confronto sul percorso fisso resterebbe verde.
+  const detail = evaluateGeneratedTypes({ generated: 'done', before: 'x', after: 'x', changed: [], dirty: true })
+  assert.equal(typeof detail, 'string')
+  assert.match(detail, /file inattesi sotto cms/)
 })
 
 test('un generatore che fallisce non vale come controllo verde', () => {

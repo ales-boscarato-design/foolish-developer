@@ -11,6 +11,11 @@ const intlMiddleware = createNextIntlMiddleware({
 export default function proxy(request: NextRequest) {
   const headers = new Headers(request.headers)
 
+  // Gli host come sono arrivati: la normalizzazione qui sotto toglie la porta dagli
+  // header, e il dirottamento degli URL storici deve invece vedere i valori originali.
+  const forwardedHostHeader = headers.get('x-forwarded-host')
+  const hostHeader = headers.get('host')
+
   // Redirect www → apex domain (canonical URL)
   const rawHost = headers.get('host') || headers.get('x-forwarded-host') || ''
   const cleanHost = rawHost.split(':')[0]
@@ -46,11 +51,13 @@ export default function proxy(request: NextRequest) {
   // possono provare: qui resta la sola chiamata.
   const legacyTarget = legacyRedirectUrl(url.pathname, {
     requestUrl: url,
-    host: headers.get('x-forwarded-host') ?? headers.get('host'),
+    hosts: [forwardedHostHeader, hostHeader],
     forwardedProto: headers.get('x-forwarded-proto'),
   })
   if (legacyTarget) {
-    return NextResponse.redirect(legacyTarget, { status: 301 })
+    // `no-store`: il `Location` dipende da un header della richiesta, e un 301 e'
+    // cacheabile anche senza indicazioni esplicite (RFC 9111 §4.2.2).
+    return NextResponse.redirect(legacyTarget, { status: 301, headers: { 'Cache-Control': 'no-store' } })
   }
 
   const cleanReq = new NextRequest(url.toString(), {

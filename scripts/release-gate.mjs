@@ -215,11 +215,19 @@ export function isSchemaFile(rel) {
  * La verifica buona e' rigenerare `payload-types.ts` dallo schema e confrontarlo: un
  * elenco di chiavi "che cambiano i tipi" non puo' essere completo (una `option` in piu'
  * su un `select` cambia l'unione dei literal senza toccare `name`/`type`), quindi il
- * controllo statico si userebbe solo dove il generatore non e' installato.
+ * controllo statico si usa solo dove il generatore non e' installato.
+ *
+ * Limite noto, non un buco di questo controllo: un cambio che non sposta i tipi (per
+ * esempio `localized: true -> false`) lascia il file identico e passa. Il controllo
+ * risponde di una cosa sola - "i tipi corrispondono allo schema" - e quella cosa la
+ * verifica per intero.
  */
-export function evaluateGeneratedTypes({ generated, before, after, changed }) {
+export function evaluateGeneratedTypes({ generated, before, after, changed, dirty }) {
+  if (dirty) {
+    return 'la rigenerazione tocca file inattesi sotto cms/: il percorso di output si legge dallo schema, quindi un cambio di `typescript.outputFile` non puo` passare inosservato'
+  }
   if (generated === 'unavailable') {
-    if (changed == null) return null // nessun riferimento di diff: il controllo si salta, non si finge verde
+    if (changed == null) return { skip: 'generatore non installato e nessun riferimento di diff' }
     const schemaTouched = changed.some(isSchemaFile)
     if (!schemaTouched) return true
     return changed.includes(GENERATED_TYPES_REL)
@@ -258,11 +266,19 @@ function runCheck(name, fn) {
   try {
     const result = fn()
     if (result === true || result === undefined) return { name, ok: true, detail: 'ok' }
-    if (result === null) return { name, ok: true, detail: 'saltato (nessun riferimento di diff)' , skipped: true }
+    if (result === null) return { name, ok: true, detail: 'saltato', skipped: true, skip: 'non applicabile in questo contesto' }
+    if (typeof result === 'object' && typeof result.skip === 'string') {
+      return { name, ok: true, detail: `saltato: ${result.skip}`, skipped: true, skip: result.skip }
+    }
     return { name, ok: false, detail: Array.isArray(result) ? result.join(' | ') : String(result) }
   } catch (error) {
     return { name, ok: false, detail: `errore nel controllo: ${error.message}` }
   }
+}
+
+/** Stato git dei file sotto `cms/`: serve ad accorgersi di cio' che la rigenerazione tocca. */
+function cmsStatus() {
+  return git(['status', '--porcelain=v1', '--untracked-files=all', '--', 'cms']) ?? ''
 }
 
 function checkRequiredFiles() {
@@ -310,20 +326,25 @@ function checkMoneyMetadataContract() {
 }
 
 /**
- * Rigenera `payload-types.ts` dallo schema e legge il risultato. Il file su disco
- * viene ripristinato subito: il gate non lascia mutazioni nel repository.
+ * Rigenera i tipi dallo schema e legge il risultato. `payload-types.ts` viene rimesso
+ * com'era (anche se il generatore esce in errore dopo aver scritto), e si controlla che
+ * la rigenerazione non abbia toccato altro sotto `cms/`: il percorso di output lo decide
+ * lo schema, quindi il file da confrontare non e' un percorso scritto qui a mano. Il gate
+ * non lascia mutazioni nel repository.
  */
 function regenerateTypes() {
   const cmsDir = path.join(repoRoot, 'cms')
   const bin = path.join(cmsDir, 'node_modules', '.bin', 'payload')
   const typesPath = path.join(repoRoot, GENERATED_TYPES_REL)
   if (!fs.existsSync(bin) || !fs.existsSync(typesPath)) return { generated: 'unavailable' }
+
   const before = fs.readFileSync(typesPath, 'utf8')
+  const statusBefore = cmsStatus()
   const res = spawnSync(bin, ['generate:types'], { cwd: cmsDir, encoding: 'utf8' })
-  if (res.status !== 0) return { generated: 'failed' }
-  const after = fs.readFileSync(typesPath, 'utf8')
+  const after = fs.existsSync(typesPath) ? fs.readFileSync(typesPath, 'utf8') : ''
   if (after !== before) fs.writeFileSync(typesPath, before)
-  return { generated: 'done', before, after }
+  const dirty = cmsStatus() !== statusBefore
+  return { generated: res.status === 0 ? 'done' : 'failed', before, after, dirty }
 }
 
 function checkGeneratedTypes() {
@@ -362,7 +383,7 @@ function checkNoSecrets() {
 }
 
 function checkLockfiles() {
-  if (inCi) return null
+  if (inCi) return { skip: 'in CI i lockfile li prova `npm ci --ignore-scripts`' }
   const problems = []
   for (const pkg of ['storefront', 'cms', 'b2b']) {
     const dir = path.join(repoRoot, pkg)
@@ -404,7 +425,9 @@ function main() {
       const mark = check.skipped ? '-' : check.ok ? '✓' : '✗'
       console.log(`  ${mark} ${check.name}${check.ok ? '' : `\n      ${check.detail}`}`)
     }
-    if (skipped.length) console.log(`  (${skipped.length} controlli saltati: manca il riferimento di diff)`)
+    if (skipped.length) {
+      console.log(`  (${skipped.length} controlli saltati: ${skipped.map((c) => `${c.name} - ${c.skip}`).join('; ')})`)
+    }
     console.log(
       failures.length === 0
         ? `  ${checks.length - skipped.length} controlli superati`

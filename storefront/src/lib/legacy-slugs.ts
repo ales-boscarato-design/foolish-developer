@@ -25,15 +25,31 @@ const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
 const PRODUCT_PATH = /^\/(?:([a-z]{2})\/)?prodotto\/(.+)$/
 const HOST_NAME = /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/i
 
-/** Indirizzi del container: non devono mai finire in un `Location`. */
-function isInternalHost(name: string): boolean {
+/** Un IPv4 che non puo' essere un indirizzo pubblico (RFC1918, loopback, link-local, multicast). */
+function isPrivateIpv4(name: string): boolean {
+  const parts = name.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
+  if (!parts) return false
+  const [a, b] = [Number(parts[1]), Number(parts[2])]
   return (
-    name === '0.0.0.0' ||
-    name === 'localhost' ||
-    name === '::1' ||
-    name === '[::1]' ||
-    name.startsWith('127.') ||
-    name.endsWith('.internal')
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    a >= 224
+  )
+}
+
+/** Indirizzi del container o della rete interna: non devono mai finire in un `Location`. */
+function isInternalHost(name: string): boolean {
+  const host = name.toLowerCase()
+  return (
+    host === 'localhost' ||
+    host.endsWith('.internal') ||
+    host.endsWith('.local') ||
+    isPrivateIpv4(host) ||
+    (host.includes(':') && /^(?:\[?::1\]?|\[?::\]?|fc|fd|fe80)/.test(host))
   )
 }
 
@@ -73,8 +89,11 @@ export function canonicalLegacyPath(pathname: string): string | null {
 export interface LegacyRedirectInput {
   /** URL della richiesta: dietro un proxy puo' portare l'indirizzo interno del container. */
   requestUrl: URL
-  /** Header `Host`/`X-Forwarded-Host` grezzo: puo' essere una lista e puo' avere la porta. */
-  host?: string | null
+  /**
+   * Header di host grezzi in ordine di preferenza (`x-forwarded-host`, poi `host`):
+   * possono essere liste, avere la porta, o essere inutilizzabili.
+   */
+  hosts?: (string | null | undefined)[]
   /** Header `X-Forwarded-Proto` grezzo: puo' essere una lista (`https, http`). */
   forwardedProto?: string | null
 }
@@ -122,11 +141,16 @@ export function legacyRedirectUrl(pathname: string, input: LegacyRedirectInput):
       ? forwardedProto
       : input.requestUrl.protocol.replace(':', '')
 
-  const host = usableHost(input.host) ?? usableHost(input.requestUrl.host)
+  let host: string | null = null
+  for (const candidate of [...(input.hosts ?? []), input.requestUrl.host]) {
+    host = usableHost(candidate)
+    if (host) break
+  }
   if (!host) return null
 
   try {
-    return new URL(target, `${protocol}://${host}`).toString()
+    // La query string resta: un link storico puo' portare parametri di tracciamento.
+    return new URL(`${target}${input.requestUrl.search}`, `${protocol}://${host}`).toString()
   } catch {
     return null
   }
