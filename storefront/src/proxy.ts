@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import createNextIntlMiddleware from 'next-intl/middleware'
 import { routing } from './i18n/routing'
+import { canonicalLegacyPath } from './lib/legacy-slugs'
 
 const intlMiddleware = createNextIntlMiddleware({
   ...routing,
@@ -34,6 +35,22 @@ export default function proxy(request: NextRequest) {
   const url = new URL(request.url)
   if (url.port === '8080') {
     url.port = ''
+  }
+
+  // Uno slug di prodotto malformato (contiene spazi) non e' recuperabile: la
+  // richiesta arriva codificata e il CMS non trova mai la stringa, quindi la
+  // pagina risponde 404. Si dirotta sul percorso canonico invece di lasciare un
+  // 404 a chi stava comprando.
+  //
+  // Il runtime del middleware pretende un `Location` assoluto, quindi l'origine si
+  // costruisce sull'host pubblico gia' normalizzato qui sopra: derivarla dall'URL
+  // interno della richiesta farebbe uscire l'indirizzo del container dietro il
+  // proxy di Railway.
+  const legacyPath = canonicalLegacyPath(url.pathname)
+  if (legacyPath) {
+    const protocol = headers.get('x-forwarded-proto') ?? url.protocol.replace(':', '')
+    const origin = `${protocol}://${cleanHost || url.host}`
+    return NextResponse.redirect(new URL(legacyPath, origin), { status: 301 })
   }
 
   const cleanReq = new NextRequest(url.toString(), {
