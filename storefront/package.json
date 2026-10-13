@@ -10,6 +10,7 @@
     "test:orders": "tsx --test src/lib/stripe-orders.test.ts",
     "test:emails": "tsx --test src/emails/copy.test.ts",
     "test:catalog": "tsx --test src/lib/catalog.test.ts",
+    "test:legacy-slugs": "tsx --test src/lib/legacy-slugs.test.ts",
     "test:promo": "tsx --test src/lib/promo.test.ts",
     "test:shipping": "tsx --test src/lib/shipping.test.ts",
     "test:subscription": "tsx --test src/lib/subscription-plans.test.ts",

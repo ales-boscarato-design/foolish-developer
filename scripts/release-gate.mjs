@@ -10,6 +10,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { randomUUID } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
@@ -200,6 +201,72 @@ export function compareMetadataContract(written, readsByFile) {
   return problems
 }
 
+export const SCHEMA_FILES_RE = /^cms\/src\/(?:collections|fields)\/.*\.ts$/
+export const GENERATED_TYPES_REL = 'cms/src/payload-types.ts'
+/**
+ * Marcatore scritto nel file canonico per vedere se il generatore lo riscrive. La parte
+ * casuale non puo' comparire nei tipi generati (nemmeno da una `admin.description`), cosi'
+ * il criterio non produce falsi positivi.
+ *
+ * Limite dichiarato del controllo: `payload.config.ts` e' codice, non dati. Un IIFE o un
+ * `typescript.postProcess` scritto apposta puo' fabbricare l'evidenza (riscrivere il file
+ * canonico o restituire il contenuto committato). Nessun controllo che esegue la config nel
+ * proprio processo se ne difende; si vedrebbe comunque nel diff della PR.
+ */
+export const GENERATED_TYPES_SENTINEL_PREFIX = '// gate-sentinel '
+const SENTINEL_LINE = /^\s*\/\/ gate-sentinel [0-9a-f-]{8,}\s*$/gm
+
+/** Un file da cui Payload genera i tipi. */
+export function isSchemaFile(rel) {
+  return rel === 'cms/src/payload.config.ts' || SCHEMA_FILES_RE.test(rel)
+}
+
+/**
+ * Esito del controllo sui tipi generati, senza toccare il disco: cosi' si prova con
+ * casi sintetici invece che solo sul repository.
+ *
+ * La verifica buona e' rigenerare `payload-types.ts` dallo schema e confrontarlo: un
+ * elenco di chiavi "che cambiano i tipi" non puo' essere completo (una `option` in piu'
+ * su un `select` cambia l'unione dei literal senza toccare `name`/`type`), quindi il
+ * controllo statico si usa solo dove il generatore non e' installato.
+ *
+ * Limite noto, non un buco di questo controllo: un cambio che non sposta i tipi (per
+ * esempio `localized: true -> false`) lascia il file identico e passa. Il controllo
+ * risponde di una cosa sola - "i tipi corrispondono allo schema" - e quella cosa la
+ * verifica per intero.
+ */
+export function evaluateGeneratedTypes({ generated, before, after, changed, dirty, wroteCanonical, spawnFailed }) {
+  // Prima le cause che manderebbero a cercare nel posto sbagliato: se il generatore non e'
+  // partito, non e' la config a essere sbagliata.
+  if (spawnFailed || generated === 'failed') {
+    const env = process.env.PAYLOAD_TS_OUTPUT_PATH ? '; PAYLOAD_TS_OUTPUT_PATH e\' impostata e vince sulla config' : ''
+    return `non e' stato possibile rigenerare ${GENERATED_TYPES_REL} dallo schema (generatore assente o in errore${env})`
+  }
+  if (process.env.PAYLOAD_TS_OUTPUT_PATH) {
+    return `PAYLOAD_TS_OUTPUT_PATH e' impostata nell'ambiente: payload scrive la' i tipi e vince sulla config, quindi ${GENERATED_TYPES_REL} non e' il file da confrontare`
+  }
+  // Empirico: il file canonico E' l'output del generatore? Nessun parsing della config puo'
+  // dirlo meglio (chiavi calcolate, spread, commenti-esca non lo ingannano).
+  if (wroteCanonical === false) {
+    return `${GENERATED_TYPES_REL} non e' il file che il generatore riscrive: l'output dei tipi e' dichiarato altrove. Il confronto qui sotto guarderebbe un file fermo`
+  }
+  if (dirty) {
+    const detail = typeof dirty === 'string' ? ` (${dirty})` : ''
+    return `qualcosa e' cambiato nell'albero intorno alla rigenerazione${detail}: il percorso di output si legge dallo schema, quindi il confronto non e' affidabile. Se il file non e' tuo, e' una scrittura concorrente: rilancia il gate`
+  }
+  if (generated === 'unavailable') {
+    if (changed == null) return { skip: 'generatore non installato e nessun riferimento di diff' }
+    const schemaTouched = changed.some(isSchemaFile)
+    if (!schemaTouched) return true
+    return changed.includes(GENERATED_TYPES_REL)
+      ? true
+      : `${GENERATED_TYPES_REL} non nel diff mentre lo schema CMS cambia (generatore non installato: qui il controllo e' quello conservativo sul diff)`
+  }
+  return before === after
+    ? true
+    : `${GENERATED_TYPES_REL} non corrisponde allo schema: rigenera con \`cd cms && npx payload generate:types\` e committa il file`
+}
+
 // ---------------------------------------------------------------- esecuzione
 
 const args = process.argv.slice(2)
@@ -224,11 +291,22 @@ function runCheck(name, fn) {
   try {
     const result = fn()
     if (result === true || result === undefined) return { name, ok: true, detail: 'ok' }
-    if (result === null) return { name, ok: true, detail: 'saltato (nessun riferimento di diff)' , skipped: true }
+    if (result === null) return { name, ok: true, detail: 'saltato', skipped: true, skip: 'non applicabile in questo contesto' }
+    if (typeof result === 'object' && typeof result.skip === 'string') {
+      return { name, ok: true, detail: `saltato: ${result.skip}`, skipped: true, skip: result.skip }
+    }
     return { name, ok: false, detail: Array.isArray(result) ? result.join(' | ') : String(result) }
   } catch (error) {
     return { name, ok: false, detail: `errore nel controllo: ${error.message}` }
   }
+}
+
+/**
+ * Stato git dell'albero: serve ad accorgersi di cio' che la rigenerazione tocca davvero.
+ * `null` se git non risponde: un albero non osservabile non e' un albero pulito.
+ */
+function repositoryStatus() {
+  return git(['status', '--porcelain=v1', '--untracked-files=all'])
 }
 
 function checkRequiredFiles() {
@@ -275,19 +353,88 @@ function checkMoneyMetadataContract() {
   return problems.length === 0 ? true : `metadata scritti dal checkout assenti: ${problems.join(', ')}`
 }
 
+/**
+ * Rigenera i tipi dallo schema e verifica empiricamente due cose: che il file canonico sia
+ * davvero l'output del generatore (sentinella) e che il contenuto sia in sincrono.
+ *
+ * Il file viene rimesso com'era in ogni percorso: errore, generatore che lo cancella, e
+ * segnali (`try/finally` non li intercetta). Una sentinella rimasta da un'esecuzione
+ * interrotta viene tolta all'inizio, cosi' un Ctrl-C non lascia righe estranee nel file
+ * tracciato.
+ */
+function regenerateTypes() {
+  const cmsDir = path.join(repoRoot, 'cms')
+  const bin = path.join(cmsDir, 'node_modules', '.bin', 'payload')
+  const typesPath = path.join(repoRoot, GENERATED_TYPES_REL)
+  if (!fs.existsSync(bin) || !fs.existsSync(typesPath)) return { generated: 'unavailable' }
+
+  const committed = fs.readFileSync(typesPath, 'utf8')
+  const before = committed.replace(SENTINEL_LINE, '')
+  const statusBefore = repositoryStatus()
+  const sentinel = `${GENERATED_TYPES_SENTINEL_PREFIX}${randomUUID()}`
+
+  const restore = () => {
+    try {
+      // Sempre, anche se il file non c'e' piu': `existsSync` lascerebbe una cancellazione.
+      fs.writeFileSync(typesPath, before)
+    } catch {
+      // Il ripristino non deve mascherare l'esito del controllo.
+    }
+  }
+  const onSignal = () => {
+    restore()
+    process.exit(130)
+  }
+  process.once('SIGINT', onSignal)
+  process.once('SIGTERM', onSignal)
+
+  let res
+  let generatedContent
+  try {
+    fs.writeFileSync(typesPath, `${before}${before.endsWith('\n') ? '' : '\n'}${sentinel}\n`)
+    res = spawnSync(bin, ['generate:types'], { cwd: cmsDir, encoding: 'utf8' })
+    generatedContent = fs.existsSync(typesPath) ? fs.readFileSync(typesPath, 'utf8') : ''
+  } finally {
+    process.removeListener('SIGINT', onSignal)
+    process.removeListener('SIGTERM', onSignal)
+    restore()
+  }
+
+  const wroteCanonical = !generatedContent.includes(sentinel)
+  // `after` e' quello che lo schema produce (sentinella tolta dal generatore): se differisce
+  // dal file committato, i tipi sono fermi.
+  const after = generatedContent
+  const statusAfter = repositoryStatus()
+  // Stato git non leggibile = albero non osservabile: si segnala, non si finge pulito.
+  const dirty =
+    statusAfter === null || statusBefore === null
+      ? 'stato git non leggibile'
+      : statusAfter === statusBefore
+        ? false
+        : changedLines(statusBefore, statusAfter) || 'cambiamento non dettagliabile'
+  return {
+    generated: res.status === 0 ? 'done' : 'failed',
+    before,
+    after,
+    dirty,
+    wroteCanonical,
+    spawnFailed: res.error != null,
+  }
+}
+
+/** Le righe di stato comparse o sparite fra i due rilievi (per una diagnosi leggibile). */
+function changedLines(before, after) {
+  const beforeLines = new Set(before.split('\n').filter(Boolean))
+  const afterLines = new Set(after.split('\n').filter(Boolean))
+  const appeared = [...afterLines].filter((line) => !beforeLines.has(line))
+  const vanished = [...beforeLines].filter((line) => !afterLines.has(line))
+  return [...appeared, ...vanished.map((line) => `-${line}`)].slice(0, 3).join(' | ')
+}
+
 function checkGeneratedTypes() {
-  const changed = changedFiles()
-  if (changed === null) return null
-  const touchedSchema = changed.some(
-    (file) =>
-      file === 'cms/src/payload.config.ts' ||
-      (file.startsWith('cms/src/collections/') && file.endsWith('.ts')) ||
-      (file.startsWith('cms/src/fields/') && file.endsWith('.ts')),
-  )
-  if (!touchedSchema) return true
-  return changed.includes('cms/src/payload-types.ts')
-    ? true
-    : 'schema CMS modificato senza rigenerare cms/src/payload-types.ts (npx payload generate:types)'
+  const run = regenerateTypes()
+  const changed = run.generated === 'unavailable' ? changedFiles() : []
+  return evaluateGeneratedTypes({ ...run, changed })
 }
 
 function checkNoDeployInWorkflows() {
@@ -311,7 +458,15 @@ function checkNoSecrets() {
       : changed
   if (!relPaths) return null
   const files = relPaths
-    .filter((rel) => fs.existsSync(path.join(repoRoot, rel)))
+    .filter((rel) => {
+      // `git ls-files` elenca anche i symlink: uno che punta a una directory farebbe
+      // esplodere la lettura con EISDIR (falso rosso su una base di diff non risolvibile).
+      try {
+        return fs.statSync(path.join(repoRoot, rel)).isFile()
+      } catch {
+        return false
+      }
+    })
     .filter((rel) => !/\.(png|jpg|jpeg|webp|gif|ico|woff2?|ttf|otf|pdf)$/i.test(rel))
     .filter((rel) => !/package-lock\.json$/.test(rel))
     .map((rel) => ({ path: rel, content: read(rel) }))
@@ -320,7 +475,7 @@ function checkNoSecrets() {
 }
 
 function checkLockfiles() {
-  if (inCi) return null
+  if (inCi) return { skip: 'in CI i lockfile li prova `npm ci --ignore-scripts`' }
   const problems = []
   for (const pkg of ['storefront', 'cms', 'b2b']) {
     const dir = path.join(repoRoot, pkg)
@@ -362,7 +517,9 @@ function main() {
       const mark = check.skipped ? '-' : check.ok ? '✓' : '✗'
       console.log(`  ${mark} ${check.name}${check.ok ? '' : `\n      ${check.detail}`}`)
     }
-    if (skipped.length) console.log(`  (${skipped.length} controlli saltati: manca il riferimento di diff)`)
+    if (skipped.length) {
+      console.log(`  (${skipped.length} controlli saltati: ${skipped.map((c) => `${c.name} - ${c.skip}`).join('; ')})`)
+    }
     console.log(
       failures.length === 0
         ? `  ${checks.length - skipped.length} controlli superati`

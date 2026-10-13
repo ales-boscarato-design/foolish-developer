@@ -7,6 +7,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
+import { spawnSync } from 'node:child_process'
 
 import {
   repoRoot,
@@ -15,6 +16,7 @@ import {
   MONEY_PATH_WRITER,
   CHECKOUT_ROUTE,
   SUBSCRIPTION_METADATA_KEYS,
+  GENERATED_TYPES_REL,
   extractMigrationNames,
   extractRegisteredMigrations,
   extractCheckoutBaseMetadataKeys,
@@ -26,8 +28,114 @@ import {
   compareMigrationRegistration,
   compareLeafKeySets,
   compareMetadataContract,
+  evaluateGeneratedTypes,
+  isSchemaFile,
   read,
 } from './release-gate.mjs'
+
+// ------------------------------------------------- tipi CMS rigenerati
+
+test('tipi rigenerati identici: nessun problema', () => {
+  assert.equal(evaluateGeneratedTypes({ generated: 'done', before: 'x', after: 'x', changed: [] }), true)
+})
+
+test('un cambio che sposta i tipi generati viene segnalato', () => {
+  // Una `option` in piu` su un select cambia l'unione dei literal: e` il caso che un
+  // elenco di chiavi scritto a mano non vede (successo davvero in review).
+  const detail = evaluateGeneratedTypes({ generated: 'done', before: 'x', after: 'y', changed: [] })
+  assert.equal(typeof detail, 'string')
+  assert.match(detail, /non corrisponde allo schema/)
+})
+
+test('se il generatore non e` installato si torna al controllo conservativo sul diff', () => {
+  const missing = evaluateGeneratedTypes({
+    generated: 'unavailable',
+    changed: ['cms/src/collections/Products.ts'],
+  })
+  assert.equal(typeof missing, 'string')
+  const covered = evaluateGeneratedTypes({
+    generated: 'unavailable',
+    changed: ['cms/src/collections/Products.ts', GENERATED_TYPES_REL],
+  })
+  assert.equal(covered, true)
+  assert.equal(evaluateGeneratedTypes({ generated: 'unavailable', changed: ['README.md'] }), true)
+  // Senza riferimento di diff il controllo si salta, ma dichiarandolo (non fingendo verde).
+  assert.equal(
+    evaluateGeneratedTypes({ generated: 'unavailable', changed: null }).skip,
+    'generatore non installato e nessun riferimento di diff',
+  )
+})
+
+test('una rigenerazione che tocca file inattesi sotto cms/ e` un errore', () => {
+  // Caso vero: spostare `typescript.outputFile` nella config farebbe generare altrove e
+  // il confronto sul percorso fisso resterebbe verde.
+  const detail = evaluateGeneratedTypes({ generated: 'done', before: 'x', after: 'x', changed: [], dirty: true })
+  assert.equal(typeof detail, 'string')
+  assert.match(detail, /qualcosa e' cambiato nell'albero/)
+  // Con il dettaglio di cosa e' comparso: serve a distinguere un output spostato da una
+  // scrittura concorrente senza doverlo indovinare.
+  assert.match(
+    String(evaluateGeneratedTypes({ generated: 'done', before: 'x', after: 'x', changed: [], dirty: '?? probe.ts' })),
+    /\?\? probe\.ts/,
+  )
+})
+
+test('se il generatore non riscrive il file canonico il controllo e` rosso', () => {
+  // Verificato con la sentinella: nessuna grafia della chiave `outputFile` puo` ingannare
+  // il controllo, perche` non si legge la config: si guarda quale file viene riscritto.
+  const detail = evaluateGeneratedTypes({
+    generated: 'done',
+    before: 'x',
+    after: 'x',
+    changed: [],
+    dirty: false,
+    wroteCanonical: false,
+  })
+  assert.equal(typeof detail, 'string')
+  assert.match(detail, /non e' il file che il generatore riscrive/)
+})
+
+test('con il file canonico riscritto e contenuto in sincrono il controllo e` verde', () => {
+  assert.equal(
+    evaluateGeneratedTypes({
+      generated: 'done',
+      before: 'x',
+      after: 'x',
+      changed: [],
+      dirty: false,
+      wroteCanonical: true,
+    }),
+    true,
+  )
+})
+
+test('un generatore che fallisce non vale come controllo verde', () => {
+  assert.equal(typeof evaluateGeneratedTypes({ generated: 'failed', changed: [] }), 'string')
+  // Un binario che non parte non e' una config sbagliata: il messaggio non deve mandare a
+  // cercare la' dove non c'e' niente.
+  const detail = evaluateGeneratedTypes({ generated: 'done', changed: [], spawnFailed: true })
+  assert.match(String(detail), /generatore assente o in errore/)
+})
+
+test('PAYLOAD_TS_OUTPUT_PATH viene segnalata invece di essere ignorata', () => {
+  process.env.PAYLOAD_TS_OUTPUT_PATH = './altrove/payload-types.ts'
+  try {
+    const detail = evaluateGeneratedTypes({ generated: 'done', before: 'x', after: 'x', changed: [], dirty: false, wroteCanonical: true })
+    assert.equal(typeof detail, 'string')
+    assert.match(detail, /PAYLOAD_TS_OUTPUT_PATH/)
+  } finally {
+    delete process.env.PAYLOAD_TS_OUTPUT_PATH
+  }
+})
+
+test('i file di schema sono quelli da cui Payload genera i tipi', () => {
+  assert.equal(isSchemaFile('cms/src/collections/Products.ts'), true)
+  assert.equal(isSchemaFile('cms/src/fields/slug.ts'), true)
+  assert.equal(isSchemaFile('cms/src/payload.config.ts'), true)
+  assert.equal(isSchemaFile('cms/src/collections/Orders.test.ts'), true)
+  assert.equal(isSchemaFile('storefront/src/lib/legacy-slugs.ts'), false)
+  assert.equal(isSchemaFile('cms/src/migrations/index.ts'), false)
+})
 
 // ------------------------------------------------------------------ casi negativi
 
@@ -228,6 +336,20 @@ test('il numero di migration registrate coincide con i file su disco', () => {
   const registered = extractRegisteredMigrations(read('cms/src/migrations/index.ts'))
   assert.ok(onDisk.length > 0, 'nessuna migration trovata su disco')
   assert.equal(registered.length, onDisk.length)
+})
+
+test('payload-types.ts corrisponde allo schema (rigenerazione vera)', () => {
+  // Il controllo del gate gira sullo stesso generatore: qui si prova l'invariante
+  // reale, che nessun elenco di chiavi scritto a mano puo` sostituire.
+  const bin = path.join(repoRoot, 'cms', 'node_modules', '.bin', 'payload')
+  if (!fs.existsSync(bin)) return // generatore non installato: resta il controllo del gate
+  const typesPath = path.join(repoRoot, GENERATED_TYPES_REL)
+  const before = fs.readFileSync(typesPath, 'utf8')
+  const res = spawnSync(bin, ['generate:types'], { cwd: path.join(repoRoot, 'cms'), encoding: 'utf8' })
+  const after = fs.readFileSync(typesPath, 'utf8')
+  if (after !== before) fs.writeFileSync(typesPath, before)
+  assert.equal(res.status, 0, 'payload generate:types e` fallito')
+  assert.equal(after, before, `${GENERATED_TYPES_REL} fuori sincrono con lo schema`)
 })
 
 test('il checkout scrive tutte le chiavi di metadata che i percorsi soldi leggono', () => {

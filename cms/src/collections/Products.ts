@@ -6,6 +6,16 @@ function hasStorefrontSecret(req: PayloadRequest): boolean {
   return !!secret && secret === process.env.PAYLOAD_API_SECRET
 }
 
+/**
+ * Lo slug finisce grezzo nell'URL della scheda prodotto. Uno slug con spazi
+ * (es. `t-sheet-dbl - abbonamento`) produce un URL che la storefront non sa
+ * risolvere — la richiesta arriva codificata e `where[slug][equals]` non trova
+ * mai la stringa — quindi la pagina risponde 404 in tutte le lingue, pur
+ * restando il prodotto attivo, in griglia e nella sitemap. Qui si rifiuta a
+ * monte invece di scoprirlo dal cliente.
+ */
+const PRODUCT_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
 export const Products: CollectionConfig = {
   slug: 'products',
   endpoints: [
@@ -56,6 +66,12 @@ export const Products: CollectionConfig = {
       unique: true,
       label: 'Slug (URL)',
       admin: { description: 'Es. foglio-pelle-tattoo — solo minuscole e trattini' },
+      validate: (value: unknown) => {
+        if (typeof value !== 'string' || !PRODUCT_SLUG_RE.test(value)) {
+          return 'Lo slug puo contenere solo minuscole, numeri e trattini singoli (es. t-sheet-dbl-abbonamento): con spazi o maiuscole l\'URL del prodotto risponde 404.'
+        }
+        return true
+      },
     },
     {
       name: 'printfulSyncProductId',
