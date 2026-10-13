@@ -97,12 +97,40 @@ test('senza host utilizzabile non si emette alcun Location (resta il 404 di prim
 test('gli indirizzi di rete privata non diventano un Location', () => {
   const target = (host: string) =>
     legacyRedirectUrl(PROD_REQUEST.pathname, { requestUrl: PROD_REQUEST, hosts: [host], forwardedProto: 'https' })
-  for (const host of ['10.0.0.5:8080', '172.16.0.9', '172.31.255.1', '192.168.1.7:3131', '169.254.1.1', '0.1.2.3', '224.0.0.1']) {
+  for (const host of [
+    '10.0.0.5:8080',
+    '172.16.0.9',
+    '172.31.255.1',
+    '192.168.1.7:3131',
+    '169.254.1.1',
+    '0.1.2.3',
+    '100.64.0.1',
+    '198.18.0.1',
+    '224.0.0.1',
+  ]) {
     assert.equal(target(host), null, `${host} non deve finire in un Location`)
   }
   // Il resto della rete privata non e` privato: 172.15 e 172.32 sono pubblici.
   assert.equal(target('172.15.0.1'), 'https://172.15.0.1/es/prodotto/t-sheet-dbl-abbonamento')
   assert.equal(target('172.32.0.1'), 'https://172.32.0.1/es/prodotto/t-sheet-dbl-abbonamento')
+})
+
+test('le notazioni IPv4 alternative non aggirano il blocco (il parser le normalizza)', () => {
+  const target = (host: string) =>
+    legacyRedirectUrl(PROD_REQUEST.pathname, { requestUrl: PROD_REQUEST, hosts: [host], forwardedProto: 'https' })
+  // Tutte queste il parser URL le riscrive su 0.0.0.0 / 127.0.0.1 / 10.0.0.1: il controllo
+  // deve vedere l'host come lo vedra` il browser, non la stringa scritta a mano.
+  for (const host of ['0', '127.1', '2130706433', '0x7f000001', '0177.0.0.1', '10.1', '169.254.169.254']) {
+    assert.equal(target(host), null, `${host} non deve diventare un Location interno`)
+  }
+})
+
+test('un IPv6 senza parentesi o un doppio punto e virgola non finiscono nel Location', () => {
+  const target = (host: string) =>
+    legacyRedirectUrl(PROD_REQUEST.pathname, { requestUrl: PROD_REQUEST, hosts: [host], forwardedProto: 'https' })
+  for (const host of ['fdaa:0:1::1', '[::1]', '[2001:4860:4860::8888]', 'evil.example:80:90']) {
+    assert.equal(target(host), null, `${host} non e' un host di questo sito`)
+  }
 })
 
 test('un host che porta percorso o credenziali non diventa un Location', () => {

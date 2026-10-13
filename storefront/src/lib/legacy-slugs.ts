@@ -25,7 +25,7 @@ const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
 const PRODUCT_PATH = /^\/(?:([a-z]{2})\/)?prodotto\/(.+)$/
 const HOST_NAME = /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/i
 
-/** Un IPv4 che non puo' essere un indirizzo pubblico (RFC1918, loopback, link-local, multicast). */
+/** Un IPv4 che non puo' essere un indirizzo pubblico (RFC1918, loopback, link-local, CGNAT, multicast). */
 function isPrivateIpv4(name: string): boolean {
   const parts = name.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
   if (!parts) return false
@@ -33,10 +33,12 @@ function isPrivateIpv4(name: string): boolean {
   return (
     a === 0 ||
     a === 10 ||
+    (a === 100 && b >= 64 && b <= 127) ||
     a === 127 ||
     (a === 169 && b === 254) ||
     (a === 172 && b >= 16 && b <= 31) ||
     (a === 192 && b === 168) ||
+    (a === 198 && (b === 18 || b === 19)) ||
     a >= 224
   )
 }
@@ -110,7 +112,10 @@ function usableHost(raw: string | null | undefined): string | null {
     .replace(/\.$/, '')
   if (!value) return null
 
-  const [name, port] = value.split(':')
+  const segments = value.split(':')
+  // Piu' di un ':' significa IPv6 senza parentesi (o due porte): non e' un host valido qui.
+  if (segments.length > 2) return null
+  const [name, port] = segments
   if (!name || name.includes('..') || !HOST_NAME.test(name)) return null
   if (port !== undefined && !/^\d{1,5}$/.test(port)) return null
   if (isInternalHost(name)) return null
@@ -150,7 +155,12 @@ export function legacyRedirectUrl(pathname: string, input: LegacyRedirectInput):
 
   try {
     // La query string resta: un link storico puo' portare parametri di tracciamento.
-    return new URL(`${target}${input.requestUrl.search}`, `${protocol}://${host}`).toString()
+    const redirected = new URL(`${target}${input.requestUrl.search}`, `${protocol}://${host}`)
+    // La validazione testuale non basta: il parser normalizza le notazioni alternative
+    // (`127.1`, `0`, `2130706433`, `0x7f000001`, `10.1`) proprio su indirizzi interni,
+    // quindi si ricontrolla l'host come lo vede il browser.
+    if (isInternalHost(redirected.hostname)) return null
+    return redirected.toString()
   } catch {
     return null
   }

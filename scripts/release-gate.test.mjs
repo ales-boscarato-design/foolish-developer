@@ -29,6 +29,7 @@ import {
   compareLeafKeySets,
   compareMetadataContract,
   evaluateGeneratedTypes,
+  generatedTypesOutputIsCanonical,
   isSchemaFile,
   read,
 } from './release-gate.mjs'
@@ -72,6 +73,23 @@ test('una rigenerazione che tocca file inattesi sotto cms/ e` un errore', () => 
   const detail = evaluateGeneratedTypes({ generated: 'done', before: 'x', after: 'x', changed: [], dirty: true })
   assert.equal(typeof detail, 'string')
   assert.match(detail, /file inattesi sotto cms/)
+})
+
+test('il percorso dei tipi generati deve essere quello canonico', () => {
+  assert.equal(
+    generatedTypesOutputIsCanonical("  typescript: {\n    outputFile: path.resolve(dirname, 'payload-types.ts'),\n  },"),
+    true,
+  )
+  // Spostarlo (anche fuori da cms/, dove lo stato git non lo vede) deve essere un errore.
+  assert.equal(
+    generatedTypesOutputIsCanonical("    outputFile: path.resolve(dirname, 'zz-probe-types.ts'),"),
+    false,
+  )
+  assert.equal(
+    generatedTypesOutputIsCanonical("    outputFile: path.resolve(dirname, '../../storefront/src/payload-types.ts'),"),
+    false,
+  )
+  assert.equal(generatedTypesOutputIsCanonical('  typescript: {},'), false)
 })
 
 test('un generatore che fallisce non vale come controllo verde', () => {

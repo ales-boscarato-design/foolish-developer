@@ -202,6 +202,20 @@ export function compareMetadataContract(written, readsByFile) {
 
 export const SCHEMA_FILES_RE = /^cms\/src\/(?:collections|fields)\/.*\.ts$/
 export const GENERATED_TYPES_REL = 'cms/src/payload-types.ts'
+const GENERATED_TYPES_OUTPUT = /outputFile:\s*([^\n]+)/
+const GENERATED_TYPES_OUTPUT_CANONICAL = /^path\.resolve\(\s*dirname\s*,\s*'payload-types\.ts'\s*\)$/
+
+/**
+ * Il percorso dei tipi generati lo decide la config, non questo file: va dichiarato
+ * canonico, altrimenti il confronto qui sotto guarderebbe un file che il generatore non
+ * scrive piu' (e resterebbe verde con i tipi fermi).
+ */
+export function generatedTypesOutputIsCanonical(configSource) {
+  const match = String(configSource).match(GENERATED_TYPES_OUTPUT)
+  if (!match) return false
+  // La riga finisce con la virgola dell'oggetto: si toglie prima di confrontare.
+  return GENERATED_TYPES_OUTPUT_CANONICAL.test(match[1].trim().replace(/,$/, '').trim())
+}
 
 /** Un file da cui Payload genera i tipi. */
 export function isSchemaFile(rel) {
@@ -276,9 +290,9 @@ function runCheck(name, fn) {
   }
 }
 
-/** Stato git dei file sotto `cms/`: serve ad accorgersi di cio' che la rigenerazione tocca. */
-function cmsStatus() {
-  return git(['status', '--porcelain=v1', '--untracked-files=all', '--', 'cms']) ?? ''
+/** Stato git dell'albero: serve ad accorgersi di cio' che la rigenerazione tocca davvero. */
+function repositoryStatus() {
+  return git(['status', '--porcelain=v1', '--untracked-files=all']) ?? ''
 }
 
 function checkRequiredFiles() {
@@ -339,15 +353,18 @@ function regenerateTypes() {
   if (!fs.existsSync(bin) || !fs.existsSync(typesPath)) return { generated: 'unavailable' }
 
   const before = fs.readFileSync(typesPath, 'utf8')
-  const statusBefore = cmsStatus()
+  const statusBefore = repositoryStatus()
   const res = spawnSync(bin, ['generate:types'], { cwd: cmsDir, encoding: 'utf8' })
   const after = fs.existsSync(typesPath) ? fs.readFileSync(typesPath, 'utf8') : ''
   if (after !== before) fs.writeFileSync(typesPath, before)
-  const dirty = cmsStatus() !== statusBefore
+  const dirty = repositoryStatus() !== statusBefore
   return { generated: res.status === 0 ? 'done' : 'failed', before, after, dirty }
 }
 
 function checkGeneratedTypes() {
+  if (!generatedTypesOutputIsCanonical(read('cms/src/payload.config.ts'))) {
+    return `\`typescript.outputFile\` in cms/src/payload.config.ts non e' piu' ${GENERATED_TYPES_REL}: il confronto dei tipi va rifatto sul percorso dichiarato dallo schema`
+  }
   const run = regenerateTypes()
   const changed = run.generated === 'unavailable' ? changedFiles() : []
   return evaluateGeneratedTypes({ ...run, changed })
@@ -374,7 +391,15 @@ function checkNoSecrets() {
       : changed
   if (!relPaths) return null
   const files = relPaths
-    .filter((rel) => fs.existsSync(path.join(repoRoot, rel)))
+    .filter((rel) => {
+      // `git ls-files` elenca anche i symlink: uno che punta a una directory farebbe
+      // esplodere la lettura con EISDIR (falso rosso su una base di diff non risolvibile).
+      try {
+        return fs.statSync(path.join(repoRoot, rel)).isFile()
+      } catch {
+        return false
+      }
+    })
     .filter((rel) => !/\.(png|jpg|jpeg|webp|gif|ico|woff2?|ttf|otf|pdf)$/i.test(rel))
     .filter((rel) => !/package-lock\.json$/.test(rel))
     .map((rel) => ({ path: rel, content: read(rel) }))
