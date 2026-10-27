@@ -316,15 +316,17 @@ export function calculatePromoDiscount(
     const minimum = record.minSubtotalCents
     const secondTier = record.tier2SubtotalCents
     const secondPercent = finitePositiveNumber(record.tier2DiscountPercent)
+    const firstPercent = discountPercent
     if (
       !Number.isSafeInteger(minimum) || (minimum as number) <= 0
       || !Number.isSafeInteger(secondTier) || (secondTier as number) <= (minimum as number)
-      || discountPercent === null || discountPercent > 100
+      || firstPercent === null || firstPercent > 100
       || secondPercent === null || secondPercent > 100
-      || discountPercent === secondPercent
+      // Progressivo: il secondo livello deve essere strettamente maggiore del primo.
+      || secondPercent <= firstPercent
       || cartSubtotalCents < (minimum as number)
     ) return null
-    discountPercent = cartSubtotalCents > (secondTier as number) ? secondPercent : discountPercent
+    discountPercent = cartSubtotalCents > (secondTier as number) ? secondPercent : firstPercent
   }
 
   if (type === 'percent_pro' || type === 'percent' || type === 'percent_tiered') {

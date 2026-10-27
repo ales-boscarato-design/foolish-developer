@@ -43,8 +43,13 @@ test('tiered reseller promo applies exact inclusive thresholds and rejects below
     { ...promo, tier2SubtotalCents: 20_000 },
     { ...promo, discountPercent: 0 },
     { ...promo, tier2DiscountPercent: 101 },
+    // Non progressivo: secondo livello uguale o piu' basso del primo non deve mai passare.
+    { ...promo, tier2DiscountPercent: 30 },
+    { ...promo, discountPercent: 40 },
     { ...promo, minSubtotalCents: undefined },
+    { ...promo, minSubtotalCents: null },
     { ...promo, tier2DiscountPercent: undefined },
+    { ...promo, tier2DiscountPercent: null },
   ]) {
     assert.equal(calculateCheckoutPromo({ promoCode: 'DAVID30', items, record: malformed, now }).status, 'invalid')
   }

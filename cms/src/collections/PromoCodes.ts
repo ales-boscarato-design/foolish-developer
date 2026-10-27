@@ -21,16 +21,23 @@ export const PromoCodes: CollectionConfig = {
         }
         const type = data.type ?? originalDoc?.type
         if (type === 'percent_tiered') {
-          const min = data.minSubtotalCents ?? originalDoc?.minSubtotalCents
-          const tier2 = data.tier2SubtotalCents ?? originalDoc?.tier2SubtotalCents
-          const percent1 = data.discountPercent ?? originalDoc?.discountPercent
-          const percent2 = data.tier2DiscountPercent ?? originalDoc?.tier2DiscountPercent
+          // `?? ` tratterebbe un null esplicito come "campo assente": un update che
+          // azzera una soglia passerebbe la validazione salvando NULL. Qui conta la
+          // presenza della chiave, non la verita' del valore.
+          const pick = (key: 'minSubtotalCents' | 'tier2SubtotalCents' | 'discountPercent' | 'tier2DiscountPercent') =>
+            key in data ? data[key] : originalDoc?.[key]
+          const min = pick('minSubtotalCents')
+          const tier2 = pick('tier2SubtotalCents')
+          const percent1 = pick('discountPercent')
+          const percent2 = pick('tier2DiscountPercent')
           if (
             !Number.isSafeInteger(min) || (min as number) <= 0
             || !Number.isSafeInteger(tier2) || (tier2 as number) <= (min as number)
             || typeof percent1 !== 'number' || !Number.isFinite(percent1) || percent1 <= 0 || percent1 > 100
             || typeof percent2 !== 'number' || !Number.isFinite(percent2) || percent2 <= 0 || percent2 > 100
-            || percent1 === percent2
+            // Sconto progressivo: il secondo livello deve essere MAGGIORE del primo,
+            // altrimenti un errore di configurazione darebbe meno sconto a chi compra di piu'.
+            || percent2 <= percent1
           ) throw new Error('Configurazione sconto progressivo non valida')
         }
         return data
