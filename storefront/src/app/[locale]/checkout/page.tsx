@@ -67,6 +67,8 @@ export default function CheckoutPage() {
   const [promoStatus, setPromoStatus] = useState<'idle' | 'loading' | 'valid' | 'invalid'>('idle')
   const [promoType, setPromoType] = useState<string | null>(null)
   const [promoData, setPromoData] = useState<{ discountPercent?: number; discountAmount?: number } | null>(null)
+  const [promoValidatedCartKey, setPromoValidatedCartKey] = useState<string | null>(null)
+  const [promoValidatedCode, setPromoValidatedCode] = useState<string | null>(null)
 
   // Validation state
   const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle')
@@ -116,13 +118,14 @@ export default function CheckoutPage() {
   // Extra-UE: la promo "spedizione gratuita" non si applica. Azzererebbe anche
   // dazi, IVA all'importazione e fee DDP, cioe' esattamente le voci che la
   // tariffa piatta non copriva.
-  const freeShippingByPromo = promoType === 'free_shipping' && baseShipping.freeShippingPromoAllowed
+  const cartLinesKey = JSON.stringify(items.map((item) => [item.sku, item.quantity, item.price]))
+  const promoIsValidForCart = promoStatus === 'valid' && promoValidatedCartKey === cartLinesKey && promoValidatedCode === promoCode
+  const freeShippingByPromo = promoIsValidForCart && promoType === 'free_shipping' && baseShipping.freeShippingPromoAllowed
   const shipping = freeShippingByPromo ? { ...baseShipping, cost: 0, isFree: true } : baseShipping
-  const proDiscount = (promoType === 'percent_pro' || promoType === 'percent' || promoType === 'amount')
+  const proDiscount = (promoIsValidForCart && (promoType === 'percent_pro' || promoType === 'percent' || promoType === 'percent_tiered' || promoType === 'amount'))
   ? (promoData?.discountAmount ?? 0)
   : 0
   const isExtraEuDestination = baseShipping.zone === 'EXTRA_EU'
-  const cartLinesKey = items.map((item) => `${item.sku}:${item.quantity}`).join('|')
   // Quello che il cliente vede e' quello che paga. Sulle destinazioni extra-UE
   // il prezzo lo decide il negozio: se il server ha risposto si mostra QUEL
   // prezzo (e' lo stesso che il gettone firmato fa incassare); se la risposta
@@ -208,6 +211,8 @@ export default function CheckoutPage() {
   // ---- Promo ----
   const applyPromo = async () => {
     if (!promoCode.trim()) return
+    const submittedCartKey = cartLinesKey
+    const submittedPromoCode = promoCode
     setPromoStatus('loading')
     try {
       const res = await fetch('/api/promo/validate', {
@@ -219,7 +224,9 @@ export default function CheckoutPage() {
       if (data.valid) {
         setPromoType(data.type)
         setPromoStatus('valid')
-        setPromoData(data.type === 'percent_pro' || data.type === 'percent'
+        setPromoValidatedCartKey(submittedCartKey)
+        setPromoValidatedCode(submittedPromoCode)
+        setPromoData(data.type === 'percent_pro' || data.type === 'percent' || data.type === 'percent_tiered'
           ? { discountPercent: data.discountPercent, discountAmount: data.discountAmount }
           : data.type === 'amount'
           ? { discountAmount: data.discountAmount }
@@ -227,10 +234,14 @@ export default function CheckoutPage() {
       } else {
         setPromoStatus('invalid')
         setPromoData(null)
+        setPromoValidatedCartKey(null)
+        setPromoValidatedCode(null)
       }
     } catch {
       setPromoStatus('invalid')
       setPromoData(null)
+      setPromoValidatedCartKey(null)
+      setPromoValidatedCode(null)
     }
   }
 
@@ -239,6 +250,8 @@ export default function CheckoutPage() {
     setPromoType(null)
     setPromoStatus('idle')
     setPromoData(null)
+    setPromoValidatedCartKey(null)
+    setPromoValidatedCode(null)
   }
 
   // ---- Email format validation ----
@@ -296,7 +309,7 @@ export default function CheckoutPage() {
           customer: { ...form, country },
           fiscalCode: fiscalCode || undefined,
           billingAddress: billingDifferent ? billing : undefined,
-          promoCode: promoStatus === 'valid' ? promoCode : undefined,
+          promoCode: promoIsValidForCart ? promoCode : undefined,
           // Extra-UE: il gettone firmato dal server con il prezzo mostrato qui.
           // Il checkout non si fida di un prezzo mandato dal browser: o
           // riconosce il gettone di QUEL carrello, o risolve da capo.
@@ -804,11 +817,11 @@ export default function CheckoutPage() {
                   onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                   onFocus={() => setFocusedField('promo')}
                   onBlur={() => setFocusedField(null)}
-                  disabled={promoStatus === 'valid'}
+                  disabled={promoIsValidForCart}
                 />
                 <button
                   onClick={applyPromo}
-                  disabled={promoStatus === 'loading' || promoStatus === 'valid' || !promoCode.trim()}
+                  disabled={promoStatus === 'loading' || promoIsValidForCart || !promoCode.trim()}
                   className="text-label px-4 rounded-lg border flex-shrink-0 transition-[border-color,background-color] disabled:opacity-40"
                   style={{
                     borderColor: 'rgba(200,169,126,0.2)',
@@ -819,7 +832,7 @@ export default function CheckoutPage() {
                   {promoStatus === 'loading' ? <Loader2 size={14} className="animate-spin" /> : 'Applica'}
                 </button>
               </div>
-              {promoStatus === 'valid' && (
+              {promoIsValidForCart && (
                 <div
                   className="flex items-center justify-between p-3 rounded-lg border text-sm"
                   style={{
