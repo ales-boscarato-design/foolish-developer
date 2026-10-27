@@ -151,16 +151,6 @@ export default function CheckoutPage() {
   const grandTotal = cartTotal + displayShippingCost - proDiscount
   const remaining = freeShippingByPromo ? 0 : freeShippingRemaining(cartTotal, country)
 
-  useEffect(() => {
-    if (promoStatus === 'valid' && (promoValidatedCartKey !== cartLinesKey || promoValidatedCode !== promoCode)) {
-      setPromoStatus('idle')
-      setPromoType(null)
-      setPromoData(null)
-      setPromoValidatedCartKey(null)
-      setPromoValidatedCode(null)
-    }
-  }, [cartLinesKey, promoCode, promoStatus, promoValidatedCartKey, promoValidatedCode])
-
   // Chiede al negozio il prezzo extra-UE della destinazione: la risposta e' la
   // stessa che il checkout ricalcola (o il gettone firmato di quel prezzo).
   useEffect(() => {
@@ -827,11 +817,11 @@ export default function CheckoutPage() {
                   onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                   onFocus={() => setFocusedField('promo')}
                   onBlur={() => setFocusedField(null)}
-                  disabled={promoStatus === 'valid'}
+                  disabled={promoIsValidForCart}
                 />
                 <button
                   onClick={applyPromo}
-                  disabled={promoStatus === 'loading' || promoStatus === 'valid' || !promoCode.trim()}
+                  disabled={promoStatus === 'loading' || promoIsValidForCart || !promoCode.trim()}
                   className="text-label px-4 rounded-lg border flex-shrink-0 transition-[border-color,background-color] disabled:opacity-40"
                   style={{
                     borderColor: 'rgba(200,169,126,0.2)',
