@@ -5,6 +5,7 @@ import {
   buildCheckoutMetadata,
   calculateCheckoutPromo,
   calculateServerShippingCostCents,
+  cartSubtotalCents,
   normalizeCheckoutCustomer,
   normalizeCheckoutItems,
   parsePromoCodes,
@@ -49,7 +50,59 @@ test('tiered reseller promo applies exact inclusive thresholds and rejects below
   }
 })
 
- test('calculates a percent promo from the server record and cart subtotal', () => {
+// SKU e prezzi reali: catalogo del CMS di produzione, lettura read-only del
+// 2026-10-27 (`GET /api/products?limit=100&depth=0`). Il catalogo server-side fa
+// pagare `variants[].price`; i `priceTiers` prodotto del CMS non sono consumati
+// dallo storefront, quindi lo sconto si applica al listino della variante e non
+// si cumula con sconti quantità.
+interface RealCatalogCase {
+  sku: string
+  variantLabel: string
+  productName: string
+  price: number
+  quantity: number
+  subtotal: number
+  status: 'valid' | 'invalid'
+  discountPercent: number | null
+  discountAmountCents: number
+}
+
+const realCatalogCases: RealCatalogCase[] = [
+  { sku: 'TS-A5', variantLabel: 'A5', productName: 'T-Sheet Skin -DBL-', price: 12.5, quantity: 5, subtotal: 62.5, status: 'invalid', discountPercent: null, discountAmountCents: 0 },
+  { sku: 'TS-A4', variantLabel: 'A4', productName: 'T-Sheet Skin -DBL-', price: 23.9, quantity: 8, subtotal: 191.2, status: 'invalid', discountPercent: null, discountAmountCents: 0 },
+  { sku: 'TS-A5', variantLabel: 'A5', productName: 'T-Sheet Skin -DBL-', price: 12.5, quantity: 16, subtotal: 200, status: 'valid', discountPercent: 30, discountAmountCents: 6_000 },
+  { sku: 'TS-A4', variantLabel: 'A4', productName: 'T-Sheet Skin -DBL-', price: 23.9, quantity: 9, subtotal: 215.1, status: 'valid', discountPercent: 30, discountAmountCents: 6_453 },
+  { sku: 'TS-A5', variantLabel: 'A5', productName: 'T-Sheet Skin -DBL-', price: 12.5, quantity: 40, subtotal: 500, status: 'valid', discountPercent: 30, discountAmountCents: 15_000 },
+  { sku: 'DS-A3', variantLabel: 'A3', productName: 'T-Sheet -Duoskin-', price: 97.2, quantity: 6, subtotal: 583.2, status: 'valid', discountPercent: 35, discountAmountCents: 20_412 },
+  { sku: 'TS-VB', variantLabel: 'Very Big', productName: 'T-Sheet Skin -DBL-', price: 135, quantity: 4, subtotal: 540, status: 'valid', discountPercent: 35, discountAmountCents: 18_900 },
+  { sku: 'TR-ROLL', variantLabel: 'Rotolo', productName: 'T-Sheet DBL In rotolo', price: 203.95, quantity: 3, subtotal: 611.85, status: 'valid', discountPercent: 35, discountAmountCents: 21_415 },
+]
+
+test('tiered reseller promo on real catalog SKUs and variant prices', () => {
+  const promo = {
+    code: 'DAVID30', type: 'percent_tiered', active: true,
+    minSubtotalCents: 20_000, tier2SubtotalCents: 50_000,
+    discountPercent: 30, tier2DiscountPercent: 35,
+  }
+  for (const catalogCase of realCatalogCases) {
+    const label = `${catalogCase.sku} x${catalogCase.quantity} = ${catalogCase.subtotal} EUR`
+    const cart = [{
+      productName: catalogCase.productName,
+      variantLabel: catalogCase.variantLabel,
+      sku: catalogCase.sku,
+      price: catalogCase.price,
+      quantity: catalogCase.quantity,
+    }]
+    assert.equal(cartSubtotalCents(cart), Math.round(catalogCase.subtotal * 100), `${label} subtotale`)
+    const result = calculateCheckoutPromo({ promoCode: 'DAVID30', items: cart, record: promo, now })
+    assert.equal(result.status, catalogCase.status, label)
+    if (result.status !== 'valid') continue
+    assert.equal(result.promo.discountPercent, catalogCase.discountPercent, label)
+    assert.equal(result.promo.discountAmountCents, catalogCase.discountAmountCents, label)
+  }
+})
+
+test('calculates a percent promo from the server record and cart subtotal', () => {
   const result = calculateCheckoutPromo({
     promoCode: 'SAVE15',
     items,
