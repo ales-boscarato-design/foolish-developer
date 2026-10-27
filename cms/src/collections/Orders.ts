@@ -2,6 +2,10 @@ import { APIError } from 'payload'
 import type { CollectionConfig, CollectionAfterChangeHook, CollectionBeforeChangeHook, PayloadRequest } from 'payload'
 import crypto from 'crypto'
 import type { Order } from '../payload-types'
+import { PROMO_TYPES, PROMO_TYPE_LABELS, isPromoType } from './promoTypes'
+
+/** Formato di un codice promo: stessa regex di `PromoCodes.code`, normalizzato in uppercase. */
+const PROMO_CODE_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
 
 function hasStorefrontSecret(req: PayloadRequest): boolean {
   const secret = req.headers?.get?.('x-storefront-secret') ?? (req.headers as unknown as Record<string, string>)?.['x-storefront-secret']
@@ -78,6 +82,22 @@ function parseAlfredOrderUpdate(body: unknown): AlfredOrderUpdate {
   }
 
   return update
+}
+
+/**
+ * `promoCode` è uno snapshot: il filtro e la ricerca della lista Orders usano la forma
+ * canonica uppercase (come `PromoCodes.code`), quindi una scrittura manuale in minuscolo
+ * diventerebbe introvabile. Qui si normalizza; stringa vuota => nessun codice.
+ */
+const normalizePromoCodeField: CollectionBeforeChangeHook = ({ data }) => {
+  if (!data || typeof data !== 'object' || !('promoCode' in data)) return data
+
+  const raw = (data as Record<string, unknown>).promoCode
+  if (raw === null || raw === undefined) return { ...data, promoCode: null }
+  if (typeof raw !== 'string') throw new APIError('promoCode must be a string', 400)
+
+  const value = raw.trim().toUpperCase()
+  return { ...data, promoCode: value || null }
 }
 
 /**
@@ -674,13 +694,13 @@ export const Orders: CollectionConfig = {
     },
   ],
   hooks: {
-    beforeChange: [normalizeCustomerTelegramId, refuseTelegramLinkTakeover, generatePageToken],
+    beforeChange: [normalizePromoCodeField, normalizeCustomerTelegramId, refuseTelegramLinkTakeover, generatePageToken],
     afterChange: [sendOrderConfirmation, notifyAlfred, notifyAlessandroByEmail, syncCustomer, sendTrackingEmail],
   },
   admin: {
     useAsTitle: 'orderNumber',
-    defaultColumns: ['orderNumber', 'customerEmail', 'pipelineState', 'total', 'createdAt'],
-    listSearchableFields: ['orderNumber', 'customerEmail', 'customerName'],
+    defaultColumns: ['orderNumber', 'customerEmail', 'pipelineState', 'promoCode', 'total', 'createdAt'],
+    listSearchableFields: ['orderNumber', 'customerEmail', 'customerName', 'promoCode'],
     group: 'Ordini',
     preview: (doc) => {
       const token = (doc as Record<string, unknown>).pageToken as string | undefined
@@ -799,6 +819,46 @@ export const Orders: CollectionConfig = {
           unique: true,
           label: 'Stripe PaymentIntent ID',
           admin: { width: '34%', readOnly: true },
+        },
+      ],
+    },
+
+    // ── Promo ─────────────────────────────────────────────────────
+    // Snapshot del codice applicato al momento dell'ordine: sono valori storici, non
+    // un riferimento vivo a `promo-codes` (il codice puo' essere disattivato o cambiare).
+    // Tutti e tre nullable: gli ordini senza promo restano validi.
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'promoCode',
+          type: 'text',
+          maxLength: 64,
+          index: true,
+          label: 'Codice promo',
+          admin: { width: '40%', description: 'Salvato in uppercase, come su PromoCodes' },
+          validate: (value: unknown) =>
+            value == null
+            || (typeof value === 'string' && PROMO_CODE_RE.test(value))
+            || 'Il codice promo deve contenere solo lettere, numeri, _ o - (1–64 caratteri)',
+        },
+        {
+          name: 'promoType',
+          type: 'select',
+          label: 'Tipo promo',
+          admin: { width: '30%' },
+          options: PROMO_TYPES.map((value) => ({ label: PROMO_TYPE_LABELS[value], value })),
+          validate: (value: unknown) => value == null || isPromoType(value) || 'Tipo promo non supportato',
+        },
+        {
+          name: 'promoDiscountCents',
+          type: 'number',
+          label: 'Sconto promo (centesimi)',
+          admin: { width: '30%' },
+          validate: (value: unknown) =>
+            value == null
+            || (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0)
+            || 'Lo sconto promo deve essere un intero positivo in centesimi',
         },
       ],
     },

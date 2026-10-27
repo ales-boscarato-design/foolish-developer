@@ -1,10 +1,11 @@
 import type { CollectionConfig } from 'payload'
+import { PROMO_TYPES, PROMO_TYPE_LABELS } from './promoTypes'
 
 export const PromoCodes: CollectionConfig = {
   slug: 'promo-codes',
   admin: {
     useAsTitle: 'code',
-    defaultColumns: ['code', 'type', 'active', 'expiresAt', 'usageCount'],
+    defaultColumns: ['code', 'type', 'active', 'expiresAt'],
     group: 'Foolish Pro',
   },
   access: {
@@ -63,13 +64,7 @@ export const PromoCodes: CollectionConfig = {
       type: 'select',
       required: true,
       label: 'Tipo',
-      options: [
-        { label: 'Spedizione gratuita', value: 'free_shipping' },
-        { label: 'Sconto % Pro',        value: 'percent_pro' },
-        { label: 'Sconto %',            value: 'percent' },
-        { label: 'Sconto importo fisso (€)', value: 'amount' },
-        { label: 'Sconto percentuale progressivo', value: 'percent_tiered' },
-      ],
+      options: PROMO_TYPES.map((value) => ({ label: PROMO_TYPE_LABELS[value], value })),
     },
     {
       name: 'discountPercent',
@@ -124,7 +119,22 @@ export const PromoCodes: CollectionConfig = {
       required: false,
       label: 'Membro Pro',
     },
-    { name: 'usageCount', type: 'number', defaultValue: 0, label: 'Utilizzi', admin: { readOnly: true } },
+    {
+      // Campo storico: nessun codice lo incrementa (il checkout non scrive su PromoCodes).
+      // Resta per compatibilita' con i documenti e gli export esistenti: il valore non e'
+      // affidabile e non va usato come conteggio. L'utilizzo reale si calcola contando gli
+      // ordini che hanno questo codice in `orders.promoCode`.
+      name: 'usageCount',
+      type: 'number',
+      defaultValue: 0,
+      label: 'Utilizzi (storico, non aggiornato)',
+      admin: {
+        readOnly: true,
+        description:
+          'Campo storico: nessun codice lo incrementa, quindi il valore può non riflettere la realtà. '
+          + 'Per l’utilizzo reale conta gli ordini in Ordini con questo codice nel campo "Codice promo".',
+      },
+    },
   ],
   timestamps: true,
 }
