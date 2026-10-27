@@ -54,6 +54,48 @@ const cmsHeaders = () => ({
   'x-storefront-secret': process.env.PAYLOAD_API_SECRET || '',
 })
 
+/** Formato di un codice promo: identico al vincolo di `PromoCodes.code` (uppercase). */
+const PROMO_CODE_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
+
+/** Tipi promo realmente supportati: allineati a `cms/src/collections/promoTypes.ts`. */
+const PROMO_TYPES = new Set(['free_shipping', 'percent_pro', 'percent', 'amount', 'percent_tiered'])
+
+export interface PromoSnapshot {
+  promoCode?: string
+  promoType?: string
+  promoDiscountCents?: number
+}
+
+/**
+ * Snapshot promo dai metadata Stripe scritti al checkout (`buildCheckoutMetadata`).
+ *
+ * Regola: un codice conforme e' la traccia che conta, quindi viene conservato anche
+ * quando l'importo manca o e' illeggibile (in quel caso lo sconto resta nullo, non si
+ * inventa). Senza un codice conforme nessun campo viene salvato, nemmeno se un importo
+ * e' presente: senza codice non c'e' attribuzione. Non solleva mai: un metadata sporco
+ * non deve impedire la creazione di un ordine pagato.
+ */
+export function parsePromoSnapshot(meta: Stripe.Metadata | null | undefined): PromoSnapshot {
+  const rawCode = meta?.promo_code
+  const code = typeof rawCode === 'string' ? rawCode.trim().toUpperCase() : ''
+  if (!PROMO_CODE_RE.test(code)) return {}
+
+  const snapshot: PromoSnapshot = { promoCode: code }
+
+  const rawType = meta?.promo_type
+  if (typeof rawType === 'string' && PROMO_TYPES.has(rawType)) snapshot.promoType = rawType
+
+  // I metadata Stripe sono stringhe: accettiamo solo cifre (intero non negativo in
+  // centesimi). "12.5", "-1", "1e3" e "" restano fuori e producono `null`.
+  const rawDiscount = meta?.promo_discount_amount_cents
+  if (typeof rawDiscount === 'string' && /^\d+$/.test(rawDiscount)) {
+    const cents = Number(rawDiscount)
+    if (Number.isSafeInteger(cents) && cents >= 0) snapshot.promoDiscountCents = cents
+  }
+
+  return snapshot
+}
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -101,6 +143,10 @@ export async function createOrderInCMS(session: Stripe.Checkout.Session): Promis
   const itemsTotal = parsedItems.reduce((sum, item) => sum + item.price * item.qty, 0)
   const shippingCost = Math.max(0, Number((total - itemsTotal).toFixed(2)))
 
+  // Snapshot del promo: e' la traccia che il vecchio flusso perdeva (lo sconto viveva
+  // solo come prezzo netto per riga). Assente o illeggibile => campi omessi, ordine creato.
+  const promoSnapshot = parsePromoSnapshot(meta)
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const legacyShipping = (session as any).shipping_details as {
     address?: { line1?: string; line2?: string; city?: string; postal_code?: string; country?: string }
@@ -145,6 +191,7 @@ export async function createOrderInCMS(session: Stripe.Checkout.Session): Promis
       })),
       total,
       shippingCost,
+      ...promoSnapshot,
       shippingAddress,
       customerLocale: countryToLocale(shippingAddress.country),
       pipelineState: 'received',

@@ -265,3 +265,110 @@ test('reconciliation invokes attribution for a paid session whose order already 
     globalThis.fetch = originalFetch
   }
 })
+
+// ─── Snapshot del codice promo sull'ordine ───────────────────────────────────
+// Lo sconto vive solo come prezzo netto per riga: senza questi campi l'ordine non
+// dice quale codice e' stato usato ne' quanto e' stato scontato.
+
+async function captureOrderBody(session: Stripe.Checkout.Session): Promise<Record<string, unknown>> {
+  const originalFetch = globalThis.fetch
+  let captured: Record<string, unknown> | null = null
+  globalThis.fetch = async (_input, init) => {
+    if (init?.method === 'POST') {
+      captured = JSON.parse(String(init.body)) as Record<string, unknown>
+      return jsonResponse({ id: 909, orderNumber: 'FOOLISH-ORDER-TEST' }, 201)
+    }
+    return jsonResponse({ docs: [] })
+  }
+
+  try {
+    await createOrderInCMS(session)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+
+  assert.ok(captured, 'CMS create payload was not captured')
+  return captured as Record<string, unknown>
+}
+
+function sessionWithPromo(promo: Record<string, string>): Stripe.Checkout.Session {
+  return checkoutSession({
+    // 16 x 8,75 € = 140,00 € di merce netta (già scontata) + 10,00 € di spedizione
+    amount_total: 15_000,
+    metadata: {
+      order_ref: 'FOOLISH-PROMO-TEST',
+      customer_name: 'Promo Test',
+      customer_country: 'IT',
+      customer_address: 'Via Test 1|Torino|10100',
+      items_json: JSON.stringify([
+        { sku: 'TS-A5', qty: 16, name: 'T-Sheet Skin -DBL-', variantLabel: 'A5', price: 8.75 },
+      ]),
+      ...promo,
+    },
+  })
+}
+
+test('persists the promo snapshot when code and discount are valid', async () => {
+  const body = await captureOrderBody(sessionWithPromo({
+    promo_code: 'davidsalas',
+    promo_type: 'percent_tiered',
+    promo_discount_amount_cents: '6000',
+  }))
+
+  assert.equal(body.promoCode, 'DAVIDSALAS', 'il codice va salvato normalizzato in uppercase')
+  assert.equal(body.promoType, 'percent_tiered')
+  assert.equal(body.promoDiscountCents, 6_000)
+  // il resto dell'ordine non cambia
+  assert.equal(body.total, 150)
+  assert.equal(body.shippingCost, 10)
+})
+
+test('keeps the promo code but never invents the discount when the amount is unreadable', async () => {
+  for (const unreadable of ['12.5', '-1', '1e3', '', 'abc']) {
+    const body = await captureOrderBody(sessionWithPromo({
+      promo_code: 'DAVIDSALAS',
+      promo_type: 'percent_tiered',
+      promo_discount_amount_cents: unreadable,
+    }))
+
+    assert.equal(body.promoCode, 'DAVIDSALAS', `code kept for ${JSON.stringify(unreadable)}`)
+    assert.equal(body.promoType, 'percent_tiered', `type kept for ${JSON.stringify(unreadable)}`)
+    assert.equal('promoDiscountCents' in body, false, `no invented discount for ${JSON.stringify(unreadable)}`)
+    assert.equal(body.total, 150)
+  }
+})
+
+test('drops every promo field when the code is malformed, even with an amount present', async () => {
+  for (const malformed of ['', '  ', 'has space', 'a'.repeat(65), '-LEADING']) {
+    const body = await captureOrderBody(sessionWithPromo({
+      promo_code: malformed,
+      promo_type: 'percent',
+      promo_discount_amount_cents: '500',
+    }))
+
+    assert.equal('promoCode' in body, false, `no code for ${JSON.stringify(malformed)}`)
+    assert.equal('promoType' in body, false, `no type for ${JSON.stringify(malformed)}`)
+    assert.equal('promoDiscountCents' in body, false, `no discount for ${JSON.stringify(malformed)}`)
+    assert.equal(body.total, 150, 'ordine comunque creato')
+  }
+})
+
+test('an order without promo metadata sends no promo fields', async () => {
+  const body = await captureOrderBody(checkoutSession())
+  assert.equal('promoCode' in body, false)
+  assert.equal('promoType' in body, false)
+  assert.equal('promoDiscountCents' in body, false)
+  assert.equal(body.paymentStatus, 'paid')
+})
+
+test('an unsupported promo type is dropped while the code and discount survive', async () => {
+  const body = await captureOrderBody(sessionWithPromo({
+    promo_code: 'DAVIDSALAS',
+    promo_type: 'percent_tiered_v2',
+    promo_discount_amount_cents: '6000',
+  }))
+
+  assert.equal(body.promoCode, 'DAVIDSALAS')
+  assert.equal('promoType' in body, false)
+  assert.equal(body.promoDiscountCents, 6_000)
+})
