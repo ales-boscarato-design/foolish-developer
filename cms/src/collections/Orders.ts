@@ -80,6 +80,43 @@ function parseAlfredOrderUpdate(body: unknown): AlfredOrderUpdate {
   return update
 }
 
+/**
+ * `customerTelegramId` è testo libero: `''`, spazi o un valore non numerico rompono in silenzio il
+ * match `where[customerTelegramId][equals]` su cui vive la scheda caso, che resta muta senza dire
+ * perché. Qui si normalizza (trim, vuoto → null) e si rifiuta ciò che non è una chat id.
+ */
+const normalizeCustomerTelegramId: CollectionBeforeChangeHook = ({ data }) => {
+  if (!data || typeof data !== 'object' || !('customerTelegramId' in data)) return data
+
+  const raw = data.customerTelegramId
+  if (raw === null || raw === undefined) return { ...data, customerTelegramId: null }
+  if (typeof raw !== 'string') throw new APIError('customerTelegramId must be a string', 400)
+
+  const value = raw.trim()
+  if (!value) return { ...data, customerTelegramId: null }
+  if (!/^\d{3,20}$/.test(value)) {
+    throw new APIError('customerTelegramId must contain digits only', 400)
+  }
+  return { ...data, customerTelegramId: value }
+}
+
+/**
+ * Un ordine appartiene a una chat sola. La macchina (secret Alfred) non può portarne via uno già
+ * collegato a un altro cliente: quello lo decide una persona dal CMS. Svuotare il campo resta
+ * possibile con lo stesso secret, perché serve alla manutenzione (`unlink_customer`).
+ */
+const refuseTelegramLinkTakeover: CollectionBeforeChangeHook = ({ data, originalDoc, req }) => {
+  if (!data || typeof data !== 'object' || !('customerTelegramId' in data)) return data
+
+  const previous = typeof originalDoc?.customerTelegramId === 'string'
+    ? originalDoc.customerTelegramId.trim()
+    : ''
+  const next = typeof data.customerTelegramId === 'string' ? data.customerTelegramId.trim() : ''
+
+  if (!previous || !next || previous === next || req?.user) return data
+  throw new APIError('order already linked to another Telegram chat', 409)
+}
+
 const syncCustomer: CollectionAfterChangeHook = async ({ doc, operation, req }) => {
   if (!doc.customerEmail) return
 
@@ -497,7 +534,7 @@ const notifyAlessandroByEmail: CollectionAfterChangeHook = async ({ doc, operati
 
 const TRACKING_STRINGS: Record<string, {
   subject: string; heading: string; body: string;
-  trackLabel: string; carrierLabel: string; footer: string;
+  trackLabel: string; carrierLabel: string; telegramLabel: string; footer: string;
 }> = {
   it: {
     subject: 'Il tuo ordine è in viaggio',
@@ -505,6 +542,7 @@ const TRACKING_STRINGS: Record<string, {
     body: 'Il tuo ordine è stato spedito. Puoi tracciarlo usando le informazioni qui sotto.',
     trackLabel: 'Traccia il tuo ordine →',
     carrierLabel: 'Corriere',
+    telegramLabel: 'Aggiornamenti su Telegram',
     footer: 'The Foolish Butcher · Chieri (TO), Italia · Made in Italy',
   },
   en: {
@@ -513,6 +551,7 @@ const TRACKING_STRINGS: Record<string, {
     body: 'Your order has been shipped. You can track it using the information below.',
     trackLabel: 'Track your order →',
     carrierLabel: 'Carrier',
+    telegramLabel: 'Updates on Telegram',
     footer: 'The Foolish Butcher · Chieri (TO), Italy · Made in Italy',
   },
   de: {
@@ -521,6 +560,7 @@ const TRACKING_STRINGS: Record<string, {
     body: 'Ihre Bestellung wurde versendet. Sie können sie mit den folgenden Informationen verfolgen.',
     trackLabel: 'Bestellung verfolgen →',
     carrierLabel: 'Transportunternehmen',
+    telegramLabel: 'Updates auf Telegram',
     footer: 'The Foolish Butcher · Chieri (TO), Italien · Made in Italy',
   },
   fr: {
@@ -529,6 +569,7 @@ const TRACKING_STRINGS: Record<string, {
     body: 'Votre commande a été expédiée. Vous pouvez la suivre avec les informations ci-dessous.',
     trackLabel: 'Suivre ma commande →',
     carrierLabel: 'Transporteur',
+    telegramLabel: 'Mises à jour sur Telegram',
     footer: 'The Foolish Butcher · Chieri (TO), Italie · Made in Italy',
   },
   es: {
@@ -537,6 +578,7 @@ const TRACKING_STRINGS: Record<string, {
     body: 'Tu pedido ha sido enviado. Puedes rastrearlo con la información a continuación.',
     trackLabel: 'Rastrear mi pedido →',
     carrierLabel: 'Transportista',
+    telegramLabel: 'Novedades en Telegram',
     footer: 'The Foolish Butcher · Chieri (TO), Italia · Made in Italy',
   },
 }
@@ -556,6 +598,9 @@ const sendTrackingEmail: CollectionAfterChangeHook = async ({ doc, previousDoc, 
 
   const storeFrontUrl = process.env.STOREFRONT_URL ?? 'https://thefoolishbutcher.com'
   const trackingUrl = `${storeFrontUrl}/ordine/${doc.pageToken}`
+  const telegramUrl = doc.orderNumber
+    ? `https://t.me/the_foolish_butcher_bot?start=order_${doc.orderNumber}`
+    : 'https://t.me/the_foolish_butcher_bot'
 
   const html = `
     <div style="font-family:monospace;max-width:480px;margin:0 auto;background:#0d0d0d;color:#fff;padding:32px;">
@@ -567,6 +612,8 @@ const sendTrackingEmail: CollectionAfterChangeHook = async ({ doc, previousDoc, 
         <div style="color:#fff;font-size:14px;font-family:monospace;">${doc.trackingCarrier ?? ''} · ${doc.trackingNumber}</div>
       </div>
       <a href="${trackingUrl}" style="display:inline-block;background:#c9a96e;color:#000;padding:12px 24px;text-decoration:none;font-weight:bold;font-size:13px;border-radius:4px;">${t.trackLabel}</a>
+      <p style="color:#aaa;margin:24px 0 10px;">${t.telegramLabel}</p>
+      <a href="${telegramUrl}" style="display:inline-block;background:#229ED9;color:#fff;padding:12px 24px;text-decoration:none;font-weight:bold;font-size:13px;border-radius:4px;">${t.telegramLabel} →</a>
       <p style="color:#444;font-size:11px;margin-top:32px;">${t.footer}</p>
     </div>
   `
@@ -627,7 +674,7 @@ export const Orders: CollectionConfig = {
     },
   ],
   hooks: {
-    beforeChange: [generatePageToken],
+    beforeChange: [normalizeCustomerTelegramId, refuseTelegramLinkTakeover, generatePageToken],
     afterChange: [sendOrderConfirmation, notifyAlfred, notifyAlessandroByEmail, syncCustomer, sendTrackingEmail],
   },
   admin: {
