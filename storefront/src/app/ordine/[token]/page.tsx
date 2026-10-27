@@ -50,6 +50,7 @@ interface PageStrings {
   blockLabels: Record<ContentBlock['type'], string>
   orderSummary: string
   notFound: string
+  telegramCta: string
   metaTitle: (orderNumber: string) => string
 }
 
@@ -71,6 +72,7 @@ const STRINGS: Record<Locale, PageStrings> = {
     blockLabels: { guide: 'Guida', announcement: 'Aggiornamento', offer: 'Offerta', tip: 'Suggerimento' },
     orderSummary: 'Riepilogo ordine',
     notFound: 'Ordine non trovato',
+    telegramCta: 'Aggiornamenti e assistenza su Telegram',
     metaTitle: (n) => `Ordine #${n} — The Foolish Butcher`,
   },
   en: {
@@ -90,6 +92,7 @@ const STRINGS: Record<Locale, PageStrings> = {
     blockLabels: { guide: 'Guide', announcement: 'Update', offer: 'Offer', tip: 'Tip' },
     orderSummary: 'Order summary',
     notFound: 'Order not found',
+    telegramCta: 'Updates and support on Telegram',
     metaTitle: (n) => `Order #${n} — The Foolish Butcher`,
   },
   de: {
@@ -109,6 +112,7 @@ const STRINGS: Record<Locale, PageStrings> = {
     blockLabels: { guide: 'Anleitung', announcement: 'Update', offer: 'Angebot', tip: 'Tipp' },
     orderSummary: 'Bestellübersicht',
     notFound: 'Bestellung nicht gefunden',
+    telegramCta: 'Updates und Support auf Telegram',
     metaTitle: (n) => `Bestellung #${n} — The Foolish Butcher`,
   },
   fr: {
@@ -128,6 +132,7 @@ const STRINGS: Record<Locale, PageStrings> = {
     blockLabels: { guide: 'Guide', announcement: 'Mise à jour', offer: 'Offre', tip: 'Conseil' },
     orderSummary: 'Récapitulatif',
     notFound: 'Commande introuvable',
+    telegramCta: 'Mises à jour et assistance sur Telegram',
     metaTitle: (n) => `Commande #${n} — The Foolish Butcher`,
   },
   es: {
@@ -147,6 +152,7 @@ const STRINGS: Record<Locale, PageStrings> = {
     blockLabels: { guide: 'Guía', announcement: 'Actualización', offer: 'Oferta', tip: 'Consejo' },
     orderSummary: 'Resumen del pedido',
     notFound: 'Pedido no encontrado',
+    telegramCta: 'Novedades y asistencia en Telegram',
     metaTitle: (n) => `Pedido #${n} — The Foolish Butcher`,
   },
 }
@@ -302,6 +308,31 @@ export default async function OrderPage({
               )
             })}
           </div>
+        </section>
+
+        {/*
+          Il link con `start=order_…` è l'unico modo per collegare questa chat all'ordine: senza,
+          la scheda del caso resta senza ordine e senza tracking. Sta qui perché questa pagina è
+          quella che il cliente riceve per email e ha già il numero sotto gli occhi.
+        */}
+        <section style={{ marginBottom: '48px' }}>
+          <a
+            href={`https://t.me/the_foolish_butcher_bot?start=order_${order.orderNumber}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-block',
+              padding: '12px 22px',
+              background: '#229ED9',
+              color: '#fff',
+              fontSize: '13px',
+              fontWeight: 700,
+              textDecoration: 'none',
+              borderRadius: '4px',
+            }}
+          >
+            {t.telegramCta} →
+          </a>
         </section>
 
         {/* Sheet photos */}

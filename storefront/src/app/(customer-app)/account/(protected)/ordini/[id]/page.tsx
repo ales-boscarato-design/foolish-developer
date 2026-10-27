@@ -6,6 +6,19 @@ import { ReorderButton } from '../../_components/ReorderButton'
 
 const PIPELINE_STEPS = ['received','in_production','shipped','delivered']
 
+/**
+ * Il link `start=order_…` è l'unico modo per collegare la chat Telegram all'ordine: senza, la
+ * scheda del caso resta senza ordine e senza tracking. Qui l'ordine è già identificato e
+ * verificato per email, quindi è il punto giusto per offrirlo.
+ */
+const TELEGRAM_CTA: Record<string, string> = {
+  it: 'Aggiornamenti e assistenza su Telegram',
+  en: 'Updates and support on Telegram',
+  de: 'Updates und Support auf Telegram',
+  fr: 'Mises à jour et assistance sur Telegram',
+  es: 'Novedades y asistencia en Telegram',
+}
+
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const session = await getSession()
@@ -83,6 +96,25 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       )}
 
       {isDelivered && <ReorderButton orderId={order.orderNumber} label={t('reorder')} />}
+
+      <a
+        href={`https://t.me/the_foolish_butcher_bot?start=order_${order.orderNumber}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: 'inline-block',
+          marginTop: '12px',
+          padding: '10px 18px',
+          background: '#229ED9',
+          color: '#fff',
+          fontSize: '12px',
+          fontWeight: 700,
+          textDecoration: 'none',
+          borderRadius: '4px',
+        }}
+      >
+        {TELEGRAM_CTA[locale] ?? TELEGRAM_CTA.en} →
+      </a>
     </div>
   )
 }
