@@ -15,9 +15,23 @@ export const PromoCodes: CollectionConfig = {
   },
   hooks: {
     beforeChange: [
-      ({ data }) => {
+      ({ data, originalDoc }) => {
         if (data.code && typeof data.code === 'string') {
           data.code = data.code.toUpperCase().trim()
+        }
+        const type = data.type ?? originalDoc?.type
+        if (type === 'percent_tiered') {
+          const min = data.minSubtotalCents ?? originalDoc?.minSubtotalCents
+          const tier2 = data.tier2SubtotalCents ?? originalDoc?.tier2SubtotalCents
+          const percent1 = data.discountPercent ?? originalDoc?.discountPercent
+          const percent2 = data.tier2DiscountPercent ?? originalDoc?.tier2DiscountPercent
+          if (
+            !Number.isSafeInteger(min) || (min as number) <= 0
+            || !Number.isSafeInteger(tier2) || (tier2 as number) <= (min as number)
+            || typeof percent1 !== 'number' || !Number.isFinite(percent1) || percent1 <= 0 || percent1 > 100
+            || typeof percent2 !== 'number' || !Number.isFinite(percent2) || percent2 <= 0 || percent2 > 100
+            || percent1 === percent2
+          ) throw new Error('Configurazione sconto progressivo non valida')
         }
         return data
       },
@@ -47,6 +61,7 @@ export const PromoCodes: CollectionConfig = {
         { label: 'Sconto % Pro',        value: 'percent_pro' },
         { label: 'Sconto %',            value: 'percent' },
         { label: 'Sconto importo fisso (€)', value: 'amount' },
+        { label: 'Sconto percentuale progressivo', value: 'percent_tiered' },
       ],
     },
     {
@@ -54,7 +69,7 @@ export const PromoCodes: CollectionConfig = {
       type: 'number',
       label: 'Percentuale sconto (%)',
       admin: {
-        condition: (data) => data.type === 'percent',
+        condition: (data) => data.type === 'percent' || data.type === 'percent_tiered',
         description: 'Es. 20 per il 20% di sconto',
       },
     },
@@ -66,6 +81,24 @@ export const PromoCodes: CollectionConfig = {
         condition: (data) => data.type === 'amount',
         description: 'Es. 15 per €15 di sconto',
       },
+    },
+    {
+      name: 'minSubtotalCents',
+      type: 'number',
+      label: 'Subtotale minimo (centesimi)',
+      admin: { condition: (data) => data.type === 'percent_tiered' },
+    },
+    {
+      name: 'tier2SubtotalCents',
+      type: 'number',
+      label: 'Soglia secondo livello (centesimi)',
+      admin: { condition: (data) => data.type === 'percent_tiered' },
+    },
+    {
+      name: 'tier2DiscountPercent',
+      type: 'number',
+      label: 'Percentuale secondo livello (%)',
+      admin: { condition: (data) => data.type === 'percent_tiered' },
     },
     { name: 'active', type: 'checkbox', defaultValue: true, label: 'Attivo' },
     {

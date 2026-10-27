@@ -611,7 +611,7 @@ export interface ProMember {
 export interface PromoCode {
   id: number;
   code: string;
-  type: 'free_shipping' | 'percent_pro' | 'percent' | 'amount';
+  type: 'free_shipping' | 'percent_pro' | 'percent' | 'amount' | 'percent_tiered';
   /**
    * Es. 20 per il 20% di sconto
    */
@@ -620,6 +620,9 @@ export interface PromoCode {
    * Es. 15 per €15 di sconto
    */
   discountAmount?: number | null;
+  minSubtotalCents?: number | null;
+  tier2SubtotalCents?: number | null;
+  tier2DiscountPercent?: number | null;
   active?: boolean | null;
   /**
    * Lascia vuoto per codice senza scadenza
@@ -1319,6 +1322,9 @@ export interface PromoCodesSelect<T extends boolean = true> {
   type?: T;
   discountPercent?: T;
   discountAmount?: T;
+  minSubtotalCents?: T;
+  tier2SubtotalCents?: T;
+  tier2DiscountPercent?: T;
   active?: T;
   expiresAt?: T;
   proMember?: T;

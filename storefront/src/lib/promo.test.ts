@@ -13,7 +13,43 @@ import {
 const items = [{ price: 100, quantity: 1, productName: 'Test', variantLabel: 'A', sku: 'TEST' }]
 const now = new Date('2026-09-11T12:00:00.000Z')
 
-test('calculates a percent promo from the server record and cart subtotal', () => {
+test('tiered reseller promo applies exact inclusive thresholds and rejects below minimum or malformed tiers', () => {
+  const promo = {
+    code: 'DAVID30', type: 'percent_tiered', active: true,
+    minSubtotalCents: 20_000, tier2SubtotalCents: 50_000,
+    discountPercent: 30, tier2DiscountPercent: 35,
+  }
+  const cases = [
+    [199.99, 'invalid', null],
+    [200, 'valid', 30],
+    [350, 'valid', 30],
+    [500, 'valid', 30],
+    [500.01, 'valid', 35],
+    [1_200, 'valid', 35],
+  ] as const
+  for (const [price, status, discountPercent] of cases) {
+    const result = calculateCheckoutPromo({
+      promoCode: 'DAVID30', items: [{ price, quantity: 1, productName: 'Catalog item', variantLabel: 'Standard', sku: 'SKU-1' }], record: promo, now,
+    })
+    assert.equal(result.status, status, `${price} EUR`)
+    if (result.status === 'valid') {
+      assert.equal(result.promo.discountPercent, discountPercent, `${price} EUR percent`)
+      assert.equal(result.promo.discountAmountCents, Math.round(price * 100 * discountPercent! / 100))
+    }
+  }
+  for (const malformed of [
+    { ...promo, tier2SubtotalCents: 19_999 },
+    { ...promo, tier2SubtotalCents: 20_000 },
+    { ...promo, discountPercent: 0 },
+    { ...promo, tier2DiscountPercent: 101 },
+    { ...promo, minSubtotalCents: undefined },
+    { ...promo, tier2DiscountPercent: undefined },
+  ]) {
+    assert.equal(calculateCheckoutPromo({ promoCode: 'DAVID30', items, record: malformed, now }).status, 'invalid')
+  }
+})
+
+ test('calculates a percent promo from the server record and cart subtotal', () => {
   const result = calculateCheckoutPromo({
     promoCode: 'SAVE15',
     items,

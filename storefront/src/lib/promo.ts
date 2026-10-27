@@ -4,7 +4,7 @@ import {
   type AllowedShippingCountry,
 } from './shipping'
 
-export type PromoType = 'free_shipping' | 'percent_pro' | 'percent' | 'amount'
+export type PromoType = 'free_shipping' | 'percent_pro' | 'percent' | 'amount' | 'percent_tiered'
 
 export interface PromoRecord {
   id?: unknown
@@ -13,6 +13,9 @@ export interface PromoRecord {
   active?: unknown
   discountPercent?: unknown
   discountAmount?: unknown
+  minSubtotalCents?: unknown
+  tier2SubtotalCents?: unknown
+  tier2DiscountPercent?: unknown
   expiresAt?: unknown
 }
 
@@ -273,6 +276,7 @@ function makeLabel(type: PromoType, discountPercent?: number): string {
   if (type === 'free_shipping') return 'Spedizione gratuita'
   if (type === 'percent_pro') return `Sconto Foolish Pro ${discountPercent}%`
   if (type === 'percent') return `Sconto ${discountPercent}%`
+  if (type === 'percent_tiered') return `Sconto progressivo ${discountPercent}%`
   return 'Sconto promozionale'
 }
 
@@ -290,7 +294,7 @@ export function calculatePromoDiscount(
   if (isExpired(record.expiresAt, now)) return null
 
   const type = record.type
-  if (type !== 'free_shipping' && type !== 'percent_pro' && type !== 'percent' && type !== 'amount') {
+  if (type !== 'free_shipping' && type !== 'percent_pro' && type !== 'percent' && type !== 'amount' && type !== 'percent_tiered') {
     return null
   }
 
@@ -304,11 +308,26 @@ export function calculatePromoDiscount(
     }
   }
 
-  const discountPercent = type === 'percent_pro'
+  let discountPercent = type === 'percent_pro'
     ? (cartSubtotalCents >= 40_000 ? 20 : 15)
     : finitePositiveNumber(record.discountPercent)
 
-  if (type === 'percent_pro' || type === 'percent') {
+  if (type === 'percent_tiered') {
+    const minimum = record.minSubtotalCents
+    const secondTier = record.tier2SubtotalCents
+    const secondPercent = finitePositiveNumber(record.tier2DiscountPercent)
+    if (
+      !Number.isSafeInteger(minimum) || (minimum as number) <= 0
+      || !Number.isSafeInteger(secondTier) || (secondTier as number) <= (minimum as number)
+      || discountPercent === null || discountPercent > 100
+      || secondPercent === null || secondPercent > 100
+      || discountPercent === secondPercent
+      || cartSubtotalCents < (minimum as number)
+    ) return null
+    discountPercent = cartSubtotalCents > (secondTier as number) ? secondPercent : discountPercent
+  }
+
+  if (type === 'percent_pro' || type === 'percent' || type === 'percent_tiered') {
     if (discountPercent === null || discountPercent > 100 || cartSubtotalCents <= 0) return null
     const discountAmountCents = Math.round((cartSubtotalCents * discountPercent) / 100)
     if (discountAmountCents < 0 || discountAmountCents > cartSubtotalCents) return null
