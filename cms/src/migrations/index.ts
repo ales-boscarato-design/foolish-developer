@@ -38,6 +38,7 @@ import * as migration_20260805_100000_add_products_seo_fields from './20260805_1
 import * as migration_20260824_100000_add_order_payment_fields from './20260824_100000_add_order_payment_fields';
 import * as migration_20260912_120000_add_affiliate_attribution from './20260912_120000_add_affiliate_attribution';
 import * as migration_20261027_120000_add_tiered_promo_fields from './20261027_120000_add_tiered_promo_fields';
+import * as migration_20261027_180000_add_order_promo_fields from './20261027_180000_add_order_promo_fields';
 
 export const migrations = [
   {
@@ -239,5 +240,10 @@ export const migrations = [
     up: migration_20261027_120000_add_tiered_promo_fields.up,
     down: migration_20261027_120000_add_tiered_promo_fields.down,
     name: '20261027_120000_add_tiered_promo_fields',
+  },
+  {
+    up: migration_20261027_180000_add_order_promo_fields.up,
+    down: migration_20261027_180000_add_order_promo_fields.down,
+    name: '20261027_180000_add_order_promo_fields',
   },
 ];

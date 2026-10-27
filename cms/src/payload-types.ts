@@ -486,6 +486,12 @@ export interface Order {
   paymentStatus?: ('pending' | 'paid' | 'failed' | 'refunded' | 'cancelled') | null;
   paymentMethod?: ('bonifico' | 'stripe' | 'manual') | null;
   stripePaymentIntentId?: string | null;
+  /**
+   * Salvato in uppercase, come su PromoCodes
+   */
+  promoCode?: string | null;
+  promoType?: ('free_shipping' | 'percent_pro' | 'percent' | 'amount' | 'percent_tiered') | null;
+  promoDiscountCents?: number | null;
   lineItems:
     | {
         [k: string]: unknown;
@@ -629,6 +635,9 @@ export interface PromoCode {
    */
   expiresAt?: string | null;
   proMember?: (number | null) | ProMember;
+  /**
+   * Campo storico: nessun codice lo incrementa, quindi il valore può non riflettere la realtà. Per l’utilizzo reale conta gli ordini in Ordini con questo codice nel campo "Codice promo".
+   */
   usageCount?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -1164,6 +1173,9 @@ export interface OrdersSelect<T extends boolean = true> {
   paymentStatus?: T;
   paymentMethod?: T;
   stripePaymentIntentId?: T;
+  promoCode?: T;
+  promoType?: T;
+  promoDiscountCents?: T;
   lineItems?: T;
   trackingNumber?: T;
   trackingCarrier?: T;
