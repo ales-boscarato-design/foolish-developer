@@ -14,9 +14,15 @@ creato dallo storefront porta lo snapshot del promo applicato al checkout:
 Sono valori **storici** (snapshot), non riferimenti vivi: se domani il codice viene
 disattivato o cambia, l'ordine continua a dire cosa era stato applicato.
 
-`PromoCodes.usageCount` **non è mantenuto**: nessun percorso lo incrementa e resta a 0.
-Il campo è conservato solo per compatibilità dello schema ed è stato tolto dalle colonne
-predefinite dell'admin. Non usarlo come contatore né come limite d'uso.
+Il codice è normalizzato in **uppercase sia in scrittura sia nel CMS** (hook
+`normalizePromoCodeField` su `Orders`), quindi una scrittura manuale in minuscolo non crea
+un ordine introvabile: viene convertita prima di salvare.
+
+`PromoCodes.usageCount` **non è affidabile come contatore**: nessun percorso lo incrementa
+(l'unica scrittura è l'inizializzazione a 0 alla registrazione Pro), ma i valori storici non
+vengono azzerati. Il campo resta per compatibilità dello schema ed è stato tolto dalle
+colonne predefinite dell'admin. Non usarlo come contatore né come limite d'uso: l'uso si
+conta dagli ordini, come qui sotto.
 
 ## Perché non un contatore
 
@@ -43,11 +49,22 @@ Per un periodo specifico aggiungere `where[createdAt][greater_than_equal]=2026-1
 Se il numero di ordini supera `limit`, paginare con `page=2,3,...` (`totalDocs` è il
 totale reale, non il numero di righe restituite).
 
-## Esempio verificato
+## Esempio
 
-`DAVIDSALAS` (accordo rivenditore attivo dal 27/10/2026: −30% da 200,00 € a 500,00 €
-inclusi, −35% oltre 500,00 €): gli ordini che lo usano compaiono con `promoCode =
-DAVIDSALAS` e lo sconto in `promoDiscountCents`.
+`DAVIDSALAS` è il codice dell'accordo rivenditore configurato **in produzione** il
+27/10/2026 (−30% da 200,00 € a 500,00 € inclusi, −35% oltre 500,00 €): quei parametri non
+stanno nel repository e qui non sono verificabili, la fonte è il registro del caso (scheda
+cliente e card kanban). Dal deploy di questa funzione in poi, gli ordini che usano quel
+codice compaiono con `promoCode = DAVIDSALAS` e lo sconto in `promoDiscountCents`; gli
+ordini precedenti non hanno i campi.
+
+## Ordine di deploy
+
+Le colonne `promo_*` le crea la migration, che il servizio CMS applica **al proprio avvio**
+dopo il merge. Se lo storefront girasse prima che il CMS abbia applicato la migration, il
+`POST /api/orders` con i campi promo verrebbe rifiutato: verificare dopo il deploy che la
+migration risulti applicata (i campi compaiono nella risposta dell'API ordini) prima di
+considerare attiva la tracciatura.
 
 ## Limiti noti
 

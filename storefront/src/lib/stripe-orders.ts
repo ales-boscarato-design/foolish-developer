@@ -57,8 +57,14 @@ const cmsHeaders = () => ({
 /** Formato di un codice promo: identico al vincolo di `PromoCodes.code` (uppercase). */
 const PROMO_CODE_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
 
-/** Tipi promo realmente supportati: allineati a `cms/src/collections/promoTypes.ts`. */
-const PROMO_TYPES = new Set(['free_shipping', 'percent_pro', 'percent', 'amount', 'percent_tiered'])
+/**
+ * Tipi promo realmente supportati: copia della lista canonica in
+ * `cms/src/collections/promoTypes.ts` (lo storefront e il CMS sono due pacchetti
+ * separati e non si importano a vicenda). La deriva e' intercettata da
+ * `promo-types-parity.test.ts`: aggiungere un tipo solo qui perde il `promoType`
+ * sugli ordini in silenzio.
+ */
+export const PROMO_TYPES = new Set(['free_shipping', 'percent_pro', 'percent', 'amount', 'percent_tiered'])
 
 export interface PromoSnapshot {
   promoCode?: string

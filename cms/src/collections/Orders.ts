@@ -85,6 +85,22 @@ function parseAlfredOrderUpdate(body: unknown): AlfredOrderUpdate {
 }
 
 /**
+ * `promoCode` è uno snapshot: il filtro e la ricerca della lista Orders usano la forma
+ * canonica uppercase (come `PromoCodes.code`), quindi una scrittura manuale in minuscolo
+ * diventerebbe introvabile. Qui si normalizza; stringa vuota => nessun codice.
+ */
+const normalizePromoCodeField: CollectionBeforeChangeHook = ({ data }) => {
+  if (!data || typeof data !== 'object' || !('promoCode' in data)) return data
+
+  const raw = (data as Record<string, unknown>).promoCode
+  if (raw === null || raw === undefined) return { ...data, promoCode: null }
+  if (typeof raw !== 'string') throw new APIError('promoCode must be a string', 400)
+
+  const value = raw.trim().toUpperCase()
+  return { ...data, promoCode: value || null }
+}
+
+/**
  * `customerTelegramId` è testo libero: `''`, spazi o un valore non numerico rompono in silenzio il
  * match `where[customerTelegramId][equals]` su cui vive la scheda caso, che resta muta senza dire
  * perché. Qui si normalizza (trim, vuoto → null) e si rifiuta ciò che non è una chat id.
@@ -678,7 +694,7 @@ export const Orders: CollectionConfig = {
     },
   ],
   hooks: {
-    beforeChange: [normalizeCustomerTelegramId, refuseTelegramLinkTakeover, generatePageToken],
+    beforeChange: [normalizePromoCodeField, normalizeCustomerTelegramId, refuseTelegramLinkTakeover, generatePageToken],
     afterChange: [sendOrderConfirmation, notifyAlfred, notifyAlessandroByEmail, syncCustomer, sendTrackingEmail],
   },
   admin: {
@@ -818,6 +834,7 @@ export const Orders: CollectionConfig = {
           name: 'promoCode',
           type: 'text',
           maxLength: 64,
+          index: true,
           label: 'Codice promo',
           admin: { width: '40%', description: 'Salvato in uppercase, come su PromoCodes' },
           validate: (value: unknown) =>

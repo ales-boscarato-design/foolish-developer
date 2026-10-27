@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import type Stripe from 'stripe'
 import {
   createOrderInCMS,
   createOrderInCMSWithRetry,
   reconcilePaidStripeOrders,
+  PROMO_TYPES,
   type OrderPersistenceResult,
 } from './stripe-orders'
 
@@ -371,4 +374,19 @@ test('an unsupported promo type is dropped while the code and discount survive',
   assert.equal(body.promoCode, 'DAVIDSALAS')
   assert.equal('promoType' in body, false)
   assert.equal(body.promoDiscountCents, 6_000)
+})
+
+// Storefront e CMS sono due pacchetti separati e non si importano a vicenda: la lista dei
+// tipi promo esiste in due copie. Questa guardia legge la copia canonica dal CMS e
+// confronta, cosi' aggiungere un tipo in un solo posto diventa rosso invece di far perdere
+// il `promoType` sugli ordini in silenzio. Gira qui (e quindi in CI) perche' e' il test
+// storefront gia' eseguito dal workflow.
+test('the storefront promo type list matches the canonical CMS list', () => {
+  const cmsPath = fileURLToPath(new URL('../../../cms/src/collections/promoTypes.ts', import.meta.url))
+  const source = readFileSync(cmsPath, 'utf8')
+  const match = source.match(/PROMO_TYPES\s*=\s*\[([^\]]*)\]/)
+  assert.ok(match, 'PROMO_TYPES non trovato in cms/src/collections/promoTypes.ts')
+  const cmsTypes = [...match[1].matchAll(/'([^']+)'/g)].map((entry) => entry[1])
+
+  assert.deepEqual([...PROMO_TYPES].sort(), [...cmsTypes].sort())
 })

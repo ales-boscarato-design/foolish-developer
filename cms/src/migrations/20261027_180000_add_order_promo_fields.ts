@@ -35,9 +35,13 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
     EXCEPTION WHEN duplicate_object THEN NULL;
     END $$;
   `)
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS "orders_promo_code_idx" ON "orders" USING btree ("promo_code");
+  `)
 }
 
 export async function down({ db }: MigrateDownArgs): Promise<void> {
+  await db.execute(sql`DROP INDEX IF EXISTS "orders_promo_code_idx"`)
   await db.execute(sql`
     ALTER TABLE "orders"
       DROP CONSTRAINT IF EXISTS "orders_promo_discount_cents_check",
