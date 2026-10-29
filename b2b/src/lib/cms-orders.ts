@@ -167,6 +167,45 @@ export async function createB2BOrder(
   return { orderNumber: input.orderNumber, created: true, orderId: created.id, existingOrder: null }
 }
 
+/**
+ * Collega una PaymentIntent all'ordine PRIMA di consegnarne il segreto.
+ *
+ * L'id persistito e' cio' che rende il riuso indipendente dalla memoria di
+ * idempotenza di Stripe (24h). Regole:
+ *  - stesso id -> nessuna PATCH (idempotente);
+ *  - un altro id -> errore: due intent sullo stesso ordine sono proprio il
+ *    segnale che l'invariante e' stata violata, non si sovrascrive.
+ *    L'unica eccezione e' `replaceIntentId`: il chiamante dichiara che
+ *    quell'id (e solo quello) e' un'intent annullata senza addebito, quindi
+ *    la nuova generazione puo' prenderne il posto;
+ *  - ordine assente -> errore.
+ */
+export async function linkB2BPaymentIntent(
+  params: { orderNumber: string; paymentIntentId: string; replaceIntentId?: string },
+  fetchImpl: typeof fetch = fetch,
+): Promise<CmsOrder> {
+  const existing = await findB2BOrder(params.orderNumber, fetchImpl)
+  if (!existing) {
+    throw new Error(`CMS order ${params.orderNumber} not found for PaymentIntent ${params.paymentIntentId}`)
+  }
+
+  const linked = existing.stripePaymentIntentId
+  if (linked === params.paymentIntentId) return existing
+  if (linked && linked !== params.replaceIntentId) {
+    throw new Error(`CMS order ${params.orderNumber} is already linked to another PaymentIntent`)
+  }
+
+  const response = await fetchImpl(`${cmsUrl()}/api/orders/${encodeURIComponent(String(existing.id))}`, {
+    method: 'PATCH',
+    headers: cmsHeaders(),
+    body: JSON.stringify({ stripePaymentIntentId: params.paymentIntentId }),
+  })
+  if (!response.ok) {
+    throw new Error(`CMS PaymentIntent link failed ${response.status}: ${await response.text()}`)
+  }
+  return await response.json() as CmsOrder
+}
+
 export async function updateB2BPayment(
   params: { orderNumber: string; paymentIntentId: string },
   fetchImpl: typeof fetch = fetch,

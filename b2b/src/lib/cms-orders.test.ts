@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import {
   createB2BOrder,
+  linkB2BPaymentIntent,
   toPayloadOrder,
   updateB2BPayment,
   type B2BOrderInput,
@@ -127,6 +128,109 @@ test('Stripe retry updates the existing Payload order through PATCH and stores s
     paymentStatus: 'paid',
     stripePaymentIntentId: 'pi_123',
   })
+})
+
+// --- link della PaymentIntent prima di consegnare il segreto ----------------
+
+test('link: ordine senza id -> PATCH del solo stripePaymentIntentId con header segreto', async () => {
+  const calls: Array<{ url: string; method: string; body?: string; headers?: unknown }> = []
+  const fetchImpl: typeof fetch = async (url, init) => {
+    calls.push({
+      url: String(url),
+      method: init?.method ?? 'GET',
+      body: init?.body?.toString(),
+      headers: init?.headers,
+    })
+    if (!init?.method) return response({ docs: [{ id: 44, orderNumber: input.orderNumber, stripePaymentIntentId: null }] })
+    return response({ id: 44, orderNumber: input.orderNumber, stripePaymentIntentId: 'pi_123' })
+  }
+
+  const linked = await linkB2BPaymentIntent({
+    orderNumber: input.orderNumber,
+    paymentIntentId: 'pi_123',
+  }, fetchImpl)
+
+  assert.equal(linked.stripePaymentIntentId, 'pi_123')
+  const patch = calls.find(call => call.method === 'PATCH')
+  assert.ok(patch)
+  assert.equal(patch.url, 'http://localhost:3001/api/orders/44')
+  assert.deepEqual(JSON.parse(patch.body ?? '{}'), { stripePaymentIntentId: 'pi_123' })
+  assert.deepEqual(patch.headers, {
+    'Content-Type': 'application/json',
+    'x-storefront-secret': '',
+  })
+})
+
+test('link: id gia uguale -> nessuna PATCH', async () => {
+  const calls: Array<{ method: string }> = []
+  const fetchImpl: typeof fetch = async (_url, init) => {
+    calls.push({ method: init?.method ?? 'GET' })
+    return response({ docs: [{ id: 44, orderNumber: input.orderNumber, stripePaymentIntentId: 'pi_123' }] })
+  }
+
+  const linked = await linkB2BPaymentIntent({
+    orderNumber: input.orderNumber,
+    paymentIntentId: 'pi_123',
+  }, fetchImpl)
+
+  assert.equal(linked.stripePaymentIntentId, 'pi_123')
+  assert.deepEqual(calls, [{ method: 'GET' }])
+})
+
+test('link: un altro id gia collegato -> errore, nessuna riscrittura', async () => {
+  const calls: Array<{ method: string }> = []
+  const fetchImpl: typeof fetch = async (_url, init) => {
+    calls.push({ method: init?.method ?? 'GET' })
+    return response({ docs: [{ id: 44, orderNumber: input.orderNumber, stripePaymentIntentId: 'pi_altro' }] })
+  }
+
+  await assert.rejects(
+    linkB2BPaymentIntent({ orderNumber: input.orderNumber, paymentIntentId: 'pi_123' }, fetchImpl),
+    /already linked to another PaymentIntent/,
+  )
+  assert.deepEqual(calls, [{ method: 'GET' }], 'non si sovrascrive un collegamento esistente')
+})
+
+test('link: replaceIntentId dichiarato sostituisce solo l id annullato noto', async () => {
+  const calls: Array<{ method: string; body?: string }> = []
+  const fetchImpl: typeof fetch = async (_url, init) => {
+    calls.push({ method: init?.method ?? 'GET', body: init?.body?.toString() })
+    if (!init?.method) {
+      return response({ docs: [{ id: 44, orderNumber: input.orderNumber, stripePaymentIntentId: 'pi_annullata' }] })
+    }
+    return response({ id: 44, orderNumber: input.orderNumber, stripePaymentIntentId: 'pi_nuova' })
+  }
+
+  const linked = await linkB2BPaymentIntent({
+    orderNumber: input.orderNumber,
+    paymentIntentId: 'pi_nuova',
+    replaceIntentId: 'pi_annullata',
+  }, fetchImpl)
+
+  assert.equal(linked.stripePaymentIntentId, 'pi_nuova')
+  const patch = calls.find(call => call.method === 'PATCH')
+  assert.ok(patch)
+  assert.deepEqual(JSON.parse(patch.body ?? '{}'), { stripePaymentIntentId: 'pi_nuova' })
+})
+
+test('link: ordine assente -> errore', async () => {
+  const fetchImpl: typeof fetch = async () => response({ docs: [] })
+  await assert.rejects(
+    linkB2BPaymentIntent({ orderNumber: input.orderNumber, paymentIntentId: 'pi_123' }, fetchImpl),
+    /not found for PaymentIntent/,
+  )
+})
+
+test('link: PATCH non ok -> errore', async () => {
+  const fetchImpl: typeof fetch = async (_url, init) => {
+    if (!init?.method) return response({ docs: [{ id: 44, orderNumber: input.orderNumber, stripePaymentIntentId: null }] })
+    return response({ error: 'cms giu' }, 500)
+  }
+
+  await assert.rejects(
+    linkB2BPaymentIntent({ orderNumber: input.orderNumber, paymentIntentId: 'pi_123' }, fetchImpl),
+    /CMS PaymentIntent link failed 500/,
+  )
 })
 
 

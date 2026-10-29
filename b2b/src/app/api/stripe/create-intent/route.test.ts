@@ -16,9 +16,11 @@ import test, { after, before, beforeEach } from 'node:test'
 import { NextRequest } from 'next/server'
 
 import {
+  advanceStripeClock,
   installFetchRouting,
   markOrderPaid,
   patchStoredOrder,
+  patchStripeIntent,
   resetStub,
   startStub,
   stopStub,
@@ -659,4 +661,231 @@ test('B1.6 Stripe: ordine pagato con campi diversi -> 409 ordine_gia_pagato', as
   assert.equal(stubState.ordersCreated, 1)
   assert.equal(stubState.orderPostAttempts, 1)
   assert.equal(stubState.stripeIntents.length, 1)
+})
+
+// --- R6: un solo addebito possibile per lo stesso ordine --------------------
+//
+// Ogni caso misura due cose: quante PaymentIntent il provider ha davvero
+// creato e quante restano pagabili (in uno stato attivo) sull'ordine. La
+// chiave di idempotenza di Stripe scade dopo 24h: il riuso non puo' dipendere
+// solo da quella.
+
+const PAYABLE_STATUSES = new Set([
+  'requires_payment_method',
+  'requires_confirmation',
+  'requires_action',
+])
+
+function payableIntents(): number {
+  return stubState.stripeIntentResponses
+    .filter((intent) => PAYABLE_STATUSES.has(String(intent.status)))
+    .length
+}
+
+function intentId(index: number): string {
+  return String(stubState.stripeIntentResponses[index].id)
+}
+
+test('R6.1 creazione: 1 intent, 1 pagabile, l ordine memorizza l id, 200 con clientSecret', async () => {
+  const body = { form: FORM, items: [line()], idempotencyKey: 'r6-creazione-0000001' }
+  const r = await call(body)
+
+  assert.equal(r.status, 200, diagnostic(r.status, r.body))
+  assert.equal(stubState.stripeIntents.length, 1, 'una sola PaymentIntent creata')
+  assert.equal(payableIntents(), 1, 'una sola PaymentIntent pagabile')
+  assert.equal(stubState.cmsOrders[0].stripePaymentIntentId, intentId(0), 'l ordine memorizza l id')
+  assert.equal(typeof r.body.clientSecret, 'string')
+  assert.equal(r.body.clientSecret, stubState.stripeIntentResponses[0].client_secret)
+})
+
+test('R6.2 retry immediato: stessa richiesta due volte, 1 intent, stesso secret, 0 nuove', async () => {
+  const body = { form: FORM, items: [line()], idempotencyKey: 'r6-retry-immediato-01' }
+  const first = await call(body)
+  const second = await call(body)
+
+  assert.equal(first.status, 200, diagnostic(first.status, first.body))
+  assert.equal(second.status, 200, diagnostic(second.status, second.body))
+  assert.equal(stubState.stripeIntents.length, 1, 'zero nuove PaymentIntent')
+  assert.equal(payableIntents(), 1, 'una sola PaymentIntent pagabile')
+  assert.equal(second.body.clientSecret, first.body.clientSecret, 'stesso client_secret')
+  assert.equal(stubState.cmsOrders[0].stripePaymentIntentId, intentId(0))
+  assert.equal(stubState.stripeIdempotencyKeys.length, 1, 'il retry riusa l id, non chiama create')
+})
+
+test('R6.3 retry dopo 25h: chiave Stripe scaduta, 1 sola intent, stesso secret, 0 nuove', async () => {
+  const body = { form: FORM, items: [line()], idempotencyKey: 'r6-retry-dopo-25h-001' }
+  const first = await call(body)
+  assert.equal(first.status, 200, diagnostic(first.status, first.body))
+
+  // Oltre la finestra di 24h: una create con la stessa chiave creerebbe una
+  // seconda PaymentIntent se l'ordine non ricordasse la prima.
+  advanceStripeClock(25 * 60 * 60 * 1000)
+
+  const second = await call(body)
+  assert.equal(second.status, 200, diagnostic(second.status, second.body))
+  assert.equal(stubState.stripeIntents.length, 1, 'zero nuove PaymentIntent')
+  assert.equal(payableIntents(), 1, 'una sola PaymentIntent pagabile')
+  assert.equal(second.body.clientSecret, first.body.clientSecret, 'stesso client_secret')
+  assert.equal(stubState.cmsOrders[0].stripePaymentIntentId, intentId(0))
+})
+
+test('R6.4 intent annullata: 2 intent in totale, 1 sola pagabile, ordine sul nuovo id', async () => {
+  const body = { form: FORM, items: [line()], idempotencyKey: 'r6-annullata-0000001' }
+  const first = await call(body)
+  assert.equal(first.status, 200, diagnostic(first.status, first.body))
+  const firstId = intentId(0)
+  patchStripeIntent(firstId, { status: 'canceled' })
+
+  const second = await call(body)
+  assert.equal(second.status, 200, diagnostic(second.status, second.body))
+  assert.equal(stubState.stripeIntents.length, 2, 'una nuova intent dopo l annullamento')
+  assert.equal(payableIntents(), 1, 'una sola PaymentIntent pagabile')
+  assert.notEqual(intentId(1), firstId)
+  assert.equal(stubState.cmsOrders[0].stripePaymentIntentId, intentId(1), 'l ordine memorizza il nuovo id')
+  assert.notEqual(second.body.clientSecret, first.body.clientSecret)
+  assert.equal(
+    stubState.stripeIdempotencyKeys[1],
+    `${second.body.orderNumber}:after:${firstId}`,
+    'chiave di idempotenza per generazione, non quella dell intent annullata',
+  )
+})
+
+test('R6.5 ordine pagato: 409 ordine_gia_pagato, 0 nuove intent', async () => {
+  const body = { form: FORM, items: [line()], idempotencyKey: 'r6-ordine-pagato-0001' }
+  const first = await call(body)
+  assert.equal(first.status, 200, diagnostic(first.status, first.body))
+  markOrderPaid(String(first.body.orderNumber))
+
+  const second = await call(body)
+  assert.equal(second.status, 409, diagnostic(second.status, second.body))
+  assert.equal(second.body.error, 'ordine_gia_pagato')
+  assert.equal(stubState.stripeIntents.length, 1, 'zero nuove PaymentIntent')
+  assert.equal(payableIntents(), 0, 'nessuna PaymentIntent ancora pagabile')
+})
+
+test('R6.6 due richieste concorrenti: 1 sola intent, 1 pagabile, nessun doppio addebito', async () => {
+  const body = { form: FORM, items: [line({ qty: 10 })], idempotencyKey: 'r6-concorrenti-000001' }
+  const [first, second] = await Promise.all([call(body), call(body)])
+
+  for (const r of [first, second]) {
+    assert.ok(
+      r.status === 200 || r.status === 502,
+      `ogni risposta e' 200 o 502, non ${r.status}: ${diagnostic(r.status, r.body)}`,
+    )
+    if (r.status === 502) assert.equal('clientSecret' in r.body, false, 'un 502 non consegna il segreto')
+  }
+  if (first.status === 200 && second.status === 200) {
+    assert.equal(first.body.clientSecret, second.body.clientSecret, 'stesso client_secret')
+  }
+  assert.equal(stubState.stripeIntents.length, 1, 'una sola PaymentIntent creata')
+  assert.equal(payableIntents(), 1, 'una sola PaymentIntent pagabile')
+})
+
+test('R6.7 caduta fra creazione e collegamento: 502 senza clientSecret, retry riusa la stessa intent', async () => {
+  const body = { form: FORM, items: [line()], idempotencyKey: 'r6-patch-fallita-0001' }
+  stubState.cmsPatchFailures = 1
+
+  const first = await call(body)
+  assert.equal(first.status, 502, diagnostic(first.status, first.body))
+  assert.equal('clientSecret' in first.body, false, 'il segreto non esce se l ordine non conosce l intent')
+  assert.equal(stubState.stripeIntents.length, 1, 'la intent esiste ma non e stata consegnata')
+  assert.equal(payableIntents(), 1)
+
+  const second = await call(body)
+  assert.equal(second.status, 200, diagnostic(second.status, second.body))
+  assert.equal(stubState.stripeIntents.length, 1, 'il retry riusa la stessa PaymentIntent')
+  assert.equal(payableIntents(), 1, 'una sola PaymentIntent pagabile')
+  assert.equal(second.body.clientSecret, stubState.stripeIntentResponses[0].client_secret)
+  assert.equal(stubState.cmsOrders[0].stripePaymentIntentId, intentId(0), 'il retry collega l id')
+
+  // Oltre le 24h la chiave del provider non basta piu': il riuso deve venire
+  // dall'id memorizzato sull'ordine, non dalla memoria di Stripe.
+  advanceStripeClock(25 * 60 * 60 * 1000)
+  const third = await call(body)
+  assert.equal(third.status, 200, diagnostic(third.status, third.body))
+  assert.equal(stubState.stripeIntents.length, 1, 'anche oltre 24h nessuna seconda PaymentIntent')
+  assert.equal(payableIntents(), 1, 'una sola PaymentIntent pagabile')
+  assert.equal(third.body.clientSecret, second.body.clientSecret)
+})
+
+test('R6.8 timeout ambiguo: 502 poi retry, 1 sola intent', async () => {
+  const body = { form: FORM, items: [line()], idempotencyKey: 'r6-timeout-ambiguo-001' }
+  stubState.stripeTimeoutAfterRegister = true
+
+  const first = await call(body)
+  assert.equal(first.status, 502, diagnostic(first.status, first.body))
+  assert.equal('clientSecret' in first.body, false)
+  assert.equal(stubState.stripeIntents.length, 1)
+
+  const second = await call(body)
+  assert.equal(second.status, 200, diagnostic(second.status, second.body))
+  assert.equal(stubState.stripeIntents.length, 1, 'il retry non crea una seconda PaymentIntent')
+  assert.equal(payableIntents(), 1, 'una sola PaymentIntent pagabile')
+})
+
+for (const status of ['processing', 'requires_capture', 'succeeded'] as const) {
+  test(`R6.9 stato ${status}: 409 ordine_gia_pagato, 0 nuove intent`, async () => {
+    const body = {
+      form: FORM,
+      items: [line()],
+      idempotencyKey: `r6-stato-${status}-0001`.slice(0, 128),
+    }
+    const first = await call(body)
+    assert.equal(first.status, 200, diagnostic(first.status, first.body))
+    patchStripeIntent(intentId(0), { status })
+
+    const second = await call(body)
+    assert.equal(second.status, 409, diagnostic(second.status, second.body))
+    assert.equal(second.body.error, 'ordine_gia_pagato')
+    assert.equal(stubState.stripeIntents.length, 1, 'zero nuove PaymentIntent')
+    assert.equal(payableIntents(), 0, 'nessuna PaymentIntent ancora pagabile')
+  })
+}
+
+test('R6.10 intent annullata ma con addebito riuscito: 409, 0 nuove intent', async () => {
+  const body = { form: FORM, items: [line()], idempotencyKey: 'r6-annullata-pagata-01' }
+  const first = await call(body)
+  assert.equal(first.status, 200, diagnostic(first.status, first.body))
+  patchStripeIntent(intentId(0), {
+    status: 'canceled',
+    latest_charge: { id: 'ch_test_succeeded', status: 'succeeded' },
+  })
+
+  const second = await call(body)
+  assert.equal(second.status, 409, diagnostic(second.status, second.body))
+  assert.equal(second.body.error, 'ordine_gia_pagato')
+  assert.equal(stubState.stripeIntents.length, 1, 'zero nuove PaymentIntent')
+  assert.equal(payableIntents(), 0, 'nessuna PaymentIntent pagabile')
+})
+
+// GAP NOTO tracciato in t_ae0061b1: un ordine creato dal codice pre-deploy non
+// ha l'id della PaymentIntent. Questo test di caratterizzazione non approva il
+// comportamento, lo rende visibile in CI: se diventa rosso il comportamento e'
+// cambiato (gap chiuso o peggiorato) e va aggiornato insieme al documento e
+// alla card t_ae0061b1, non "aggiustato" per farlo tornare verde.
+test('R7.1 GAP NOTO t_ae0061b1: ordine senza id persistito + retry oltre 24h -> 2 intent create, 2 pagabili', async () => {
+  const body = { form: FORM, items: [line()], idempotencyKey: 'r7-gap-noto-00000001' }
+  const first = await call(body)
+  assert.equal(first.status, 200, diagnostic(first.status, first.body))
+  assert.equal(stubState.stripeIntents.length, 1, 'la prima chiamata crea una sola PaymentIntent')
+  assert.equal(stubState.cmsOrders[0].stripePaymentIntentId, intentId(0), 'l id e persistito sull ordine')
+  const orderNumber = String(first.body.orderNumber)
+
+  // Stato lasciato dal codice pre-deploy: ordine pendente senza id memorizzato.
+  patchStoredOrder(orderNumber, { stripePaymentIntentId: null })
+  advanceStripeClock(25 * 60 * 60 * 1000)
+
+  const second = await call(body)
+  assert.equal(second.status, 200, diagnostic(second.status, second.body))
+  assert.equal(
+    stubState.stripeIntents.length,
+    2,
+    'GAP NOTO t_ae0061b1: il retry dopo 25h crea una SECONDA PaymentIntent',
+  )
+  assert.equal(
+    payableIntents(),
+    2,
+    'GAP NOTO t_ae0061b1: due PaymentIntent restano pagabili sullo stesso ordine',
+  )
+  assert.notEqual(second.body.clientSecret, first.body.clientSecret)
 })
