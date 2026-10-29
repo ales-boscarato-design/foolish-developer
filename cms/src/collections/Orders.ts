@@ -3,6 +3,7 @@ import type { CollectionConfig, CollectionAfterChangeHook, CollectionBeforeChang
 import crypto from 'crypto'
 import type { Order } from '../payload-types'
 import { PROMO_TYPES, PROMO_TYPE_LABELS, isPromoType } from './promoTypes'
+import { formatOrderLineTotal } from '../lib/order-line-amount'
 
 /** Formato di un codice promo: stessa regex di `PromoCodes.code`, normalizzato in uppercase. */
 const PROMO_CODE_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
@@ -301,7 +302,7 @@ const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation
         ${i.name}${i.variantLabel ? ` <span style="color:#6b5f4a">— ${i.variantLabel}</span>` : ''}
       </td>
       <td style="padding:10px 0;border-bottom:1px solid #1e1a14;text-align:center;color:#6b5f4a;font-size:14px">×${i.quantity}</td>
-      <td style="padding:10px 0;border-bottom:1px solid #1e1a14;text-align:right;color:#c9c0b0;font-size:14px">${(i.unitPrice * i.quantity).toFixed(2)}€</td>
+      <td style="padding:10px 0;border-bottom:1px solid #1e1a14;text-align:right;color:#c9c0b0;font-size:14px">${formatOrderLineTotal(i as unknown as Record<string, unknown>)}€</td>
     </tr>`).join('')
 
   const shippingRow = doc.shippingCost > 0
@@ -495,7 +496,7 @@ const notifyAlessandroByEmail: CollectionAfterChangeHook = async ({ doc, operati
     Array.isArray(doc.lineItems) ? doc.lineItems : []
 
   const itemsText = items
-    .map((i) => `• ${i.quantity}× ${i.name} ${i.variantLabel} — ${(i.unitPrice * i.quantity).toFixed(2)}€`)
+    .map((i) => `• ${i.quantity}× ${i.name} ${i.variantLabel} — ${formatOrderLineTotal(i as unknown as Record<string, unknown>)}€`)
     .join('\n')
 
   const addr = doc.shippingAddress as Record<string, string> | undefined

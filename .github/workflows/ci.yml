@@ -107,6 +107,10 @@ jobs:
         working-directory: b2b
         run: npx tsc --noEmit
 
+      - name: B2B — test
+        working-directory: b2b
+        run: npm run test:checkout --silent
+
       - name: B2B — build
         working-directory: b2b
         run: npm run build

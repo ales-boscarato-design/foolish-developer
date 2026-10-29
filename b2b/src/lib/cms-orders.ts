@@ -1,4 +1,5 @@
-import { calculateLineTotal } from './pricing'
+import { lineTotalCents } from './b2b-pricing'
+import { calculateUnitPrice } from './pricing'
 
 export type B2BPaymentMethod = 'bonifico' | 'stripe'
 
@@ -8,6 +9,8 @@ export interface B2BLineItemInput {
   variantLabel: string
   qty: number
   unitPrice: number
+  /** Totale riga in centesimi gia' calcolato dal resolver, se disponibile. */
+  lineTotalCents?: number
   priceTiers: { minQty: number; maxQty: number | null; discountPercent: number }[]
 }
 
@@ -37,6 +40,7 @@ export interface B2BOrderInput {
 export interface CmsOrder {
   id: string | number
   orderNumber: string
+  customerEmail?: string
   pipelineState?: string | null
   total?: number
   trackingNumber?: string | null
@@ -66,17 +70,20 @@ export function toPayloadOrder(input: B2BOrderInput): Record<string, unknown> {
     source: 'reseller',
     customerEmail: input.customerEmail,
     customerName: input.customerName,
-    lineItems: input.lineItems.map((item) => ({
-      sku: item.variantSku,
-      name: item.productName,
-      variantLabel: item.variantLabel,
-      quantity: item.qty,
-      // Store the effective B2B unit price so CMS emails and admin totals
-      // agree with the tiered price used to calculate the order total.
-      unitPrice: item.qty > 0
-        ? Math.round((calculateLineTotal(item.unitPrice, item.qty, item.priceTiers) / item.qty) * 100) / 100
-        : 0,
-    })),
+    lineItems: input.lineItems.map((item) => {
+      // Prezzo unitario ESATTO (es. 8.125), nessun arrotondamento: l'unica
+      // arrotondatura e' sul totale riga in centesimi, cosi' la riga CMS e
+      // l'ordine non possono divergere di un centesimo.
+      const unitPrice = calculateUnitPrice(item.unitPrice, item.qty, item.priceTiers)
+      return {
+        sku: item.variantSku,
+        name: item.productName,
+        variantLabel: item.variantLabel,
+        quantity: item.qty,
+        unitPrice,
+        lineTotalCents: item.lineTotalCents ?? lineTotalCents(item.unitPrice, item.qty, item.priceTiers),
+      }
+    }),
     total: input.total,
     shippingCost: input.shippingCost,
     shippingAddress: {
@@ -119,13 +126,25 @@ export async function findB2BOrder(
   return data.docs?.[0] ?? null
 }
 
+export interface CreateB2BOrderResult {
+  orderNumber: string
+  created: boolean
+  orderId: string | number
+  /**
+   * Il documento gia' esistente, quando il numero d'ordine e' gia' nel CMS
+   * (retry, corsa sul campo unico). Il chiamante lo usa per il controllo di
+   * coerenza prima di creare una PaymentIntent.
+   */
+  existingOrder: CmsOrder | null
+}
+
 export async function createB2BOrder(
   input: B2BOrderInput,
   fetchImpl: typeof fetch = fetch,
-): Promise<{ orderNumber: string; created: boolean; orderId: string | number }> {
+): Promise<CreateB2BOrderResult> {
   const existing = await findB2BOrder(input.orderNumber, fetchImpl)
   if (existing) {
-    return { orderNumber: input.orderNumber, created: false, orderId: existing.id }
+    return { orderNumber: input.orderNumber, created: false, orderId: existing.id, existingOrder: existing }
   }
 
   const response = await fetchImpl(`${cmsUrl()}/api/orders`, {
@@ -139,13 +158,13 @@ export async function createB2BOrder(
     // A retry must reuse the document that won the race, never create a second order.
     const racedOrder = await findB2BOrder(input.orderNumber, fetchImpl).catch(() => null)
     if (racedOrder) {
-      return { orderNumber: input.orderNumber, created: false, orderId: racedOrder.id }
+      return { orderNumber: input.orderNumber, created: false, orderId: racedOrder.id, existingOrder: racedOrder }
     }
     throw new Error(`CMS create order failed ${response.status}: ${await response.text()}`)
   }
 
   const created = await response.json() as CmsOrder
-  return { orderNumber: input.orderNumber, created: true, orderId: created.id }
+  return { orderNumber: input.orderNumber, created: true, orderId: created.id, existingOrder: null }
 }
 
 export async function updateB2BPayment(

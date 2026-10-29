@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { PriceTier } from './cms'
-import { calculateLineTotal } from './pricing'
+import { lineTotalCents } from './b2b-pricing'
 
 export interface CartItem {
   productId: number
@@ -19,6 +19,8 @@ interface CartStore {
   addItem: (item: CartItem) => void
   updateQty: (sku: string, qty: number) => void
   removeItem: (sku: string) => void
+  /** Sostituisce tutte le righe. Unico modo per applicare prezzi riconciliati. */
+  replaceItems: (items: CartItem[]) => void
   clear: () => void
   total: () => number
   itemCount: () => number
@@ -53,12 +55,14 @@ export const useCart = create<CartStore>()(
         items: state.items.filter(i => i.variantSku !== sku),
       })),
 
+      replaceItems: (items) => set({ items: [...items] }),
+
       clear: () => set({ items: [] }),
 
       total: () => get().items.reduce(
-        (sum, item) => sum + calculateLineTotal(item.unitPrice, item.qty, item.priceTiers),
+        (sum, item) => sum + lineTotalCents(item.unitPrice, item.qty, item.priceTiers),
         0
-      ),
+      ) / 100,
 
       itemCount: () => get().items.reduce((sum, item) => sum + item.qty, 0),
     }),
