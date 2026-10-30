@@ -3,6 +3,7 @@ import {
   sqlEndpointOwnership,
   subscriptionEndpoint,
   takeEndpointOwnership,
+  type EndpointOwnership,
   type SqlTag,
 } from './push-endpoint'
 
@@ -115,6 +116,20 @@ export async function getSubscribersForSequence(): Promise<Array<{
       AND push_subscribed_at IS NOT NULL
       AND status = 'active'
   `
+}
+
+/**
+ * D3: all'apertura della sessione, l'endpoint presente nel browser non appartiene
+ * piu' ad altre email. Non scrive l'iscrizione di `email`: nessuno viene iscritto
+ * senza consenso. `ownership` esiste per i test; in produzione e' l'adattatore SQL.
+ */
+export async function claimBrowserEndpoint(
+  email: string,
+  endpoint: string,
+  ownership?: EndpointOwnership
+): Promise<string[]> {
+  const o = ownership ?? sqlEndpointOwnership(sql as unknown as SqlTag)
+  return takeEndpointOwnership(o, email, subscriptionEndpoint({ endpoint }))
 }
 
 export async function getWishlist(email: string): Promise<WishlistItem[]> {
