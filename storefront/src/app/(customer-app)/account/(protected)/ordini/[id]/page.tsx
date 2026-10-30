@@ -95,7 +95,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         </div>
       )}
 
-      {isDelivered && <ReorderButton orderId={order.orderNumber} label={t('reorder')} />}
+      {isDelivered && <ReorderButton orderId={order.orderNumber} label={t('reorder')} locale={locale} />}
 
       <a
         href={`https://t.me/the_foolish_butcher_bot?start=order_${order.orderNumber}`}
