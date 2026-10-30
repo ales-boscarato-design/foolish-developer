@@ -9,7 +9,7 @@
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 
 import { handlePushClaim, type PushClaimDeps } from './push-claim'
 import { claimBrowserEndpoint } from './account-db'
@@ -329,6 +329,23 @@ function functionBlock(source: string, marker: string): string {
   return rest.slice(0, end + 2)
 }
 
+/** Blocco `{...}` che segue `marker`, con le graffe bilanciate. */
+function bracedBlock(source: string, marker: string): string {
+  const start = source.indexOf(marker)
+  assert.notEqual(start, -1, `blocco ${marker} non trovato`)
+  const open = source.indexOf('{', start)
+  assert.notEqual(open, -1, `apertura di ${marker} non trovata`)
+  let depth = 0
+  for (let i = open; i < source.length; i += 1) {
+    if (source[i] === '{') depth += 1
+    else if (source[i] === '}') {
+      depth -= 1
+      if (depth === 0) return source.slice(open, i + 1)
+    }
+  }
+  assert.fail(`chiusura di ${marker} non trovata`)
+}
+
 test('account-db: claimBrowserEndpoint usa takeEndpointOwnership e non scrive push_subscription', () => {
   const source = readFileSync(new URL('./account-db.ts', import.meta.url), 'utf8')
   const body = functionBlock(source, 'export async function claimBrowserEndpoint')
@@ -349,16 +366,113 @@ test('PushEndpointClaim invia il claim con endpoint esistente e senza iscrivere'
     ),
     'utf8',
   )
+  // Spazi e righe non contano: una riformattazione legittima non deve rompere il test.
+  const code = source.replace(/\s+/g, ' ')
 
-  assert.match(source, /'\/api\/account\/push-claim'/)
-  assert.match(source, /getRegistration/)
-  assert.match(source, /getSubscription/)
-  // Guardia anti-doppio-invio: la ref deve essere una `useRef`, non un oggetto qualunque.
-  assert.match(source, /const\s+claimed\s*=\s*useRef\(false\)/)
-  assert.match(source, /if\s*\(claimed\.current\)\s*return/)
-  assert.doesNotMatch(source, /pushManager\.subscribe\(/)
-  assert.doesNotMatch(source, /Notification\.requestPermission/)
-  assert.doesNotMatch(source, /requestPermission\(/)
+  // (a) POST verso l'endpoint del claim.
+  assert.match(code, /fetch\(\s*['"]\/api\/account\/push-claim['"]/)
+  assert.match(code, /method: ['"]POST['"]/)
+
+  // (b) legge registrazione e sottoscrizione esistenti.
+  assert.match(code, /getRegistration\(\)/)
+  assert.match(code, /getSubscription\(\)/)
+
+  // La guardia anti-doppio-invio deve essere una `useRef`: un oggetto qualunque
+  // non sopravvive ai render e non osserva la garanzia dichiarata.
+  assert.match(code, /const\s+claimed\s*=\s*useRef\(\s*false\s*\)/)
+
+  // (c) il claim e' riuscito solo dentro il ramo 2xx, non prima del POST.
+  assert.match(code, /if \(res\.ok\)/)
+  assert.match(
+    code,
+    /if \(res\.ok\) \{[^}]*claimed\.current = true/,
+    'claimed deve diventare true solo dopo res.ok',
+  )
+  assert.doesNotMatch(
+    code,
+    /claimed\.current = true[^}]*await fetch\(/,
+    'claimed non deve essere marcato prima del POST',
+  )
+
+  // (d) su !res.ok e su eccezione parte un solo nuovo tentativo.
+  assert.match(code, /const RETRY_DELAY_MS = 10_000/)
+  assert.match(code, /setTimeout\(/)
+  assert.match(code, /attempt >= MAX_ATTEMPTS/)
+  const retryCalls = code.match(/scheduleRetry\(attempt\)/g) ?? []
+  assert.ok(
+    retryCalls.length >= 2,
+    'sia !res.ok sia il catch devono schedulare il nuovo tentativo',
+  )
+
+  // (e) al cleanup il timer viene annullato.
+  assert.match(code, /return \(\) => \{[^}]*clearTimeout\(retryTimer\)/)
+
+  // (f) nessuna iscrizione e nessuna richiesta di permesso.
+  assert.doesNotMatch(code, /pushManager\s*\.\s*subscribe\s*\(/)
+  assert.doesNotMatch(code, /requestPermission\s*\(/)
+  // Nessuna traccia di endpoint o email nei log.
+  assert.doesNotMatch(code, /console\./)
+
+  // (g) la guardia `running` viene rilasciata: senza rilascio un claim fallito
+  // (o un early-return) la lascerebbe chiusa per tutta la vita del tab.
+  assert.match(code, /running\.current = false/, 'la guardia deve essere rilasciata')
+  assert.match(code, /function release\(\s*\)/)
+
+  // Un solo punto di rilascio: nessun altro posto tocca `running.current`.
+  assert.equal(
+    (code.match(/running\.current = false/g) ?? []).length,
+    1,
+    'il rilascio deve passare da un unico punto',
+  )
+
+  // Il ramo in cui si desiste dopo MAX_ATTEMPTS (o perche' `cancelled`)
+  // deve rilasciare la guardia.
+  const retryBlock = bracedBlock(source, 'function scheduleRetry').replace(/\s+/g, ' ')
+  assert.match(retryBlock, /attempt >= MAX_ATTEMPTS/)
+  assert.match(
+    retryBlock,
+    /attempt >= MAX_ATTEMPTS[^}]*release\(\)/,
+    'il ramo di resa deve rilasciare la guardia',
+  )
+  // Il timer deve richiamare davvero il claim: un timer che non fa nulla
+  // lascerebbe il retry dichiarato ma non osservato.
+  assert.match(retryBlock, /setTimeout\(/)
+  assert.match(retryBlock, /void\s+claim\(\s*attempt\s*\+\s*1\s*\)/)
+
+  // Ogni return del claim che non ha marcato `claimed` deve rilasciare.
+  const claimBlock = bracedBlock(source, 'async function claim')
+  const returns = [...claimBlock.matchAll(/\breturn\b/g)]
+  assert.ok(returns.length >= 7, 'early-return attesi nel claim')
+  for (const found of returns) {
+    const at = found.index ?? 0
+    const open = claimBlock.lastIndexOf('{', at)
+    const branch = claimBlock.slice(open + 1, at)
+    if (/claimed\.current\s*=\s*true/.test(branch)) continue
+    assert.match(
+      branch,
+      /release\(\)/,
+      'ogni return che non ha marcato claimed deve rilasciare la guardia',
+    )
+  }
+
+  // `!res.ok` e `catch` passano da scheduleRetry, che rilascia quando desiste.
+  const okBlock = bracedBlock(source, 'if (res.ok)')
+  assert.match(okBlock.replace(/\s+/g, ' '), /claimed\.current = true/)
+  const afterOk = claimBlock.slice(claimBlock.indexOf(okBlock) + okBlock.length)
+  assert.match(afterOk, /scheduleRetry\(attempt\)/, 'il ramo !res.ok deve ritentare')
+  const catchBlock = bracedBlock(source, '} catch')
+  assert.match(catchBlock, /scheduleRetry\(attempt\)/, 'il catch deve ritentare')
+
+  // (h) `claimed` e' marcato solo dopo il POST, mai prima.
+  assert.ok(
+    code.indexOf('claimed.current = true') > code.indexOf('await fetch('),
+    'claimed non deve essere marcato prima del POST',
+  )
+  assert.equal(
+    (code.match(/claimed\.current = true/g) ?? []).length,
+    1,
+    'claimed deve essere marcato in un solo punto',
+  )
 })
 
 test('layout account monta PushEndpointClaim', () => {
@@ -369,6 +483,28 @@ test('layout account monta PushEndpointClaim', () => {
 
   assert.match(source, /PushEndpointClaim/)
   assert.match(source, /<PushEndpointClaim \/>/)
+})
+
+test('il redirect post-login atterra sotto (protected) e quel layout monta PushEndpointClaim', () => {
+  const authRoute = readFileSync(
+    new URL('../app/(customer-app)/account/auth/route.ts', import.meta.url),
+    'utf8',
+  )
+
+  // Dopo il magic link si apre ${base}/account, cioe' una pagina del layout protetto.
+  assert.match(authRoute, /redirect\(\s*`\$\{base\}\/account`/)
+
+  const protectedLayoutUrl = new URL(
+    '../app/(customer-app)/account/(protected)/layout.tsx',
+    import.meta.url,
+  )
+  assert.ok(
+    existsSync(protectedLayoutUrl),
+    'il layout protetto che monta il claim deve esistere',
+  )
+
+  const protectedLayout = readFileSync(protectedLayoutUrl, 'utf8')
+  assert.match(protectedLayout, /<PushEndpointClaim\s*\/>/)
 })
 
 test('gate: script package.json e passo CI per il test push-claim', () => {
