@@ -113,7 +113,7 @@ export default async function AccountHome() {
               <div style={{ fontSize: '11px', color: '#666', marginBottom: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {lineItems.map(i => i.name).join(', ')}
               </div>
-              <ReorderButton orderId={lastDelivered.orderNumber as string} label={t('reorder')} />
+              <ReorderButton orderId={lastDelivered.orderNumber as string} label={t('reorder')} locale={locale} />
             </div>
           </div>
         )
