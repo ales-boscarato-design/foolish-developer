@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { PARADOX_IDS, STAFF_IDS, TELEGRAM_BOT_URL, buildStaffItems, practiceSkinHref } from './laboratorio'
@@ -22,6 +23,7 @@ const messages = (lang: Lang): Tree => readJson(new URL(`../../messages/${lang}.
 const laboratorio = (lang: Lang): Tree => messages(lang).laboratorio as Tree
 const pageSource = readFileSync(new URL('../app/[locale]/laboratorio/page.tsx', import.meta.url), 'utf8')
 const boardSource = readFileSync(new URL('../components/laboratorio/StaffBoard.tsx', import.meta.url), 'utf8')
+const libSource = readFileSync(new URL('./laboratorio.ts', import.meta.url), 'utf8')
 
 /** Percorsi delle chiavi foglia: e' la stessa regola del gate pre-deploy. */
 function leafKeys(value: unknown, prefix = ''): string[] {
@@ -36,7 +38,10 @@ function leafValues(value: unknown): string[] {
 
 // ── Testi approvati: parsing del documento di fixture ────────────────────────────────────
 
-const APPROVED = readFileSync(new URL('./__fixtures__/laboratorio-testi-approvati.md', import.meta.url), 'utf8')
+const APPROVED_BYTES = readFileSync(new URL('./__fixtures__/laboratorio-testi-approvati.md', import.meta.url))
+/** sha256 del documento approvato il 30/10/2026: la fixture non deve derivare. */
+const APPROVED_SHA256 = '76dcab5329ca4ee37b39d5a74d9a9b9e7961aa45be609ffc40bc12ff4ca51892'
+const APPROVED = APPROVED_BYTES.toString('utf8')
 
 function normalize(text: string): string {
   return text
@@ -133,6 +138,10 @@ function staffBlock(lang: Lang): string {
 }
 
 // ── Test ────────────────────────────────────────────────────────────────────────────────
+
+test('il documento di fixture e` byte per byte quello approvato', () => {
+  assert.equal(createHash('sha256').update(APPROVED_BYTES).digest('hex'), APPROVED_SHA256)
+})
 
 test('parita` delle chiavi i18n: il namespace laboratorio ha lo stesso set nelle 5 lingue', () => {
   const sets = Object.fromEntries(LANGS.map((l) => [l, new Set(leafKeys(laboratorio(l)))])) as Record<Lang, Set<string>>
@@ -249,7 +258,7 @@ test('nessuna parola vietata nei testi pubblici, salvo la negazione approvata su
 })
 
 test('la pagina non usa le immagini del vecchio Pellaio ne rimanda a un archivio SEBO', () => {
-  for (const source of [pageSource, boardSource]) {
+  for (const source of [pageSource, boardSource, libSource]) {
     assert.ok(!source.includes('/pellaio/'), 'nessun riferimento alle immagini del vecchio Pellaio')
     assert.ok(!/\/sebo\b/i.test(source), 'nessun link o riferimento a /sebo')
   }
@@ -267,3 +276,19 @@ test('la pagina non usa le immagini del vecchio Pellaio ne rimanda a un archivio
 function codeHasAlt(source: string): boolean {
   return /\balt=/.test(source)
 }
+
+test('ogni chiave approvata e` agganciata alla pagina: nessun testo orfano', () => {
+  const source = `${pageSource}\n${boardSource}\n${libSource}`
+  for (const key of leafKeys(laboratorio('it'))) {
+    if (key.startsWith('staff.items.')) {
+      const field = key.split('.').pop()
+      assert.ok(source.includes(`staff.items.\${id}.${field}`), `la pagina non legge ${key}`)
+      continue
+    }
+    if ((PARADOX_IDS as readonly string[]).includes(key.split('.').pop() ?? '')) {
+      assert.ok(source.includes('PARADOX_IDS.map') && source.includes('paradox.\${id}'), `la pagina non legge ${key}`)
+      continue
+    }
+    assert.ok(source.includes(`'${key}'`), `la pagina non legge la chiave approvata ${key}`)
+  }
+})
