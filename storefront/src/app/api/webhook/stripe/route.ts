@@ -4,7 +4,7 @@ import { upsertSubscriber, markCartSessionRecovered, logEmail, upsertCmsCustomer
 import { createCustomerOffer } from '@/lib/account-db'
 import { sendWelcomeEmail, countryToLocale } from '@/lib/resend'
 import { notifyNanobot } from '@/lib/nanobot'
-import { createOrderInCMSWithRetry } from '@/lib/stripe-orders'
+import { createOrderInCMSWithRetry, isValidStorefrontOrderRef } from '@/lib/stripe-orders'
 import {
   AffiliateAttributionError,
   attributePaidCheckout,
@@ -238,11 +238,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true })
     }
 
-    if (session.payment_status !== 'paid') {
+    if (session.mode !== 'payment' || session.payment_status !== 'paid') {
       return NextResponse.json({ received: true })
     }
 
-    const orderRef = session.metadata?.order_ref ?? `FOOLISH-${session.id}`
+    const orderRef = session.metadata?.order_ref
+    if (!isValidStorefrontOrderRef(orderRef)) {
+      const paymentIntentId = typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : session.payment_intent?.id ?? null
+      console.warn('[webhook] paid payment checkout quarantined', {
+        stripeSessionId: session.id,
+        paymentIntentId,
+      })
+      return NextResponse.json({ received: true })
+    }
+
     const customerEmail = session.customer_email ?? session.customer_details?.email ?? ''
     const total = ((session.amount_total ?? 0) / 100).toFixed(2)
     console.log(`[webhook] ORDER RECEIVED ${orderRef} | ${customerEmail} | €${total} | event=${event.id} session=${session.id}`)
