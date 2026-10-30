@@ -47,6 +47,17 @@ function sourceBetween(source: string, startMarker: string, endMarker: string): 
   return source.slice(start, end)
 }
 
+/** Ritaglia il corpo di una `export async function` fino al successivo export:
+ *  il criterio non dipende dall'ordine delle funzioni nel file. */
+function exportFunctionBody(source: string, name: string): string {
+  const startMarker = `export async function ${name}`
+  const start = source.indexOf(startMarker)
+  assert.notEqual(start, -1, `funzione non trovata: ${name}`)
+  const end = source.indexOf('\nexport ', start + startMarker.length)
+  assert.notEqual(end, -1, `export successivo non trovato dopo: ${name}`)
+  return source.slice(start, end)
+}
+
 test('due utenti sullo stesso dispositivo: il logout azzera browser e server', async () => {
   // Un solo slot per origine, come il browser: la sottoscrizione non e' per sessione.
   let slot: PushRecord | null = null
@@ -216,6 +227,43 @@ test('sessione illeggibile: cookie cancellato, errore riportato, nessuna email u
   assert.deepEqual(pushCalls, [])
 })
 
+test('se la cancellazione del cookie fallisce il push viene azzerato lo stesso e onError riporta', async () => {
+  const failure = new Error('cookie rotto')
+  const seen: unknown[] = []
+  const pushCalls: string[] = []
+
+  const result = await performLogout({
+    getSession: async () => ({ email: 'a' }),
+    clearPushSubscription: async (email) => { pushCalls.push(email) },
+    deleteSessionCookie: async () => { throw failure },
+    onError: (err) => { seen.push(err) },
+  })
+
+  // performLogout non rigetta e prosegue con l'azzeramento push.
+  assert.deepEqual(result, { ok: true, pushClearedFor: 'a', pushClearFailed: false })
+  assert.deepEqual(pushCalls, ['a'])
+  assert.equal(seen.length, 1)
+  assert.equal(seen[0], failure)
+})
+
+test('sessione con email vuota o di soli spazi: nessun azzeramento push e nessun errore', async () => {
+  const pushCalls: string[] = []
+  const seen: unknown[] = []
+
+  for (const email of ['', '   ']) {
+    const result = await performLogout({
+      getSession: async () => ({ email }),
+      clearPushSubscription: async (value) => { pushCalls.push(value) },
+      deleteSessionCookie: async () => {},
+      onError: (err) => { seen.push(err) },
+    })
+    assert.deepEqual(result, { ok: true, pushClearedFor: null, pushClearFailed: false })
+  }
+
+  assert.deepEqual(pushCalls, [])
+  assert.deepEqual(seen, [])
+})
+
 test('il cookie muore prima dell azzeramento push', async () => {
   const events: string[] = []
 
@@ -233,24 +281,16 @@ test('il cookie muore prima dell azzeramento push', async () => {
 })
 
 test("guardia sul contratto di account-db: iscrizione e azzeramento restano filtrati per email", () => {
-  const source = normalizeSource(readFileSync(new URL('./account-db.ts', import.meta.url), 'utf8'))
+  const source = readFileSync(new URL('./account-db.ts', import.meta.url), 'utf8')
 
-  const saveBody = sourceBetween(
-    source,
-    'export async function savePushSubscription',
-    'export async function clearPushSubscription',
-  )
+  const saveBody = normalizeSource(exportFunctionBody(source, 'savePushSubscription'))
   assert.match(
     saveBody,
-    /push_subscription = \$\{JSON\.stringify\(subscription\)\}::jsonb/,
+    /push_subscription\s*=\s*\$\{JSON\.stringify\(subscription\)\}\s*::jsonb/,
     'savePushSubscription deve continuare a scrivere la sottoscrizione JSON',
   )
 
-  const clearBody = sourceBetween(
-    source,
-    'export async function clearPushSubscription',
-    'export async function markPushSequenceStep',
-  )
+  const clearBody = normalizeSource(exportFunctionBody(source, 'clearPushSubscription'))
   assert.match(
     clearBody,
     /SET push_subscription = NULL/,
@@ -274,7 +314,9 @@ test("guardia sul contratto di sendPushToEmail: filtro per email e push_subscrip
 
 /**
  * R1 — la suite morde le librerie, queste asserzioni legano le librerie alle
- * entry point reali: senza, togliere la chiamata lascia tutto verde.
+ * entry point reali: senza, togliere la chiamata lascia tutto verde. Le guardie
+ * ignorano la formattazione (spazi, a capo, apici) ma non il comportamento:
+ * R1b in particolare non e' fail-open, il delete del cookie e' obbligatorio.
  */
 test('R1a: ProfileForm disiscrive il browser prima della POST di logout', () => {
   const source = normalizeSource(
@@ -287,8 +329,8 @@ test('R1a: ProfileForm disiscrive il browser prima della POST di logout', () => 
     ),
   )
   const logoutBody = sourceBetween(source, 'async function logout()', 'router.push')
-  const unsubscribeIndex = logoutBody.indexOf('unsubscribePushOnLogout()')
-  const fetchIndex = logoutBody.indexOf("fetch('/api/account/logout'")
+  const unsubscribeIndex = logoutBody.search(/unsubscribePushOnLogout\s*\(/)
+  const fetchIndex = logoutBody.search(/fetch\s*\(\s*['"]\/api\/account\/logout/)
 
   assert.notEqual(unsubscribeIndex, -1, 'logout() deve disiscrivere il browser')
   assert.notEqual(fetchIndex, -1, "logout() deve chiamare fetch('/api/account/logout')")
@@ -319,16 +361,17 @@ test('R1b: la route di logout passa da performLogout e azzera il push', () => {
     'performLogout deve ricevere deleteSessionCookie',
   )
 
-  // Il delete del cookie deve stare nella lambda passata a performLogout, non fuori.
-  const deleteIndex = postBody.indexOf('.delete(SESSION_COOKIE.name)')
-  if (deleteIndex !== -1) {
-    const deleteSessionCookieIndex = postBody.indexOf('deleteSessionCookie:')
-    const onErrorIndex = postBody.indexOf('onError:')
-    assert.notEqual(deleteSessionCookieIndex, -1, 'performLogout deve ricevere deleteSessionCookie')
-    assert.notEqual(onErrorIndex, -1, 'la POST deve passare onError a performLogout')
-    assert.ok(
-      deleteIndex > deleteSessionCookieIndex && deleteIndex < onErrorIndex,
-      'il delete del cookie deve stare nella lambda deleteSessionCookie passata a performLogout',
-    )
-  }
+  // Il delete del cookie e' obbligatorio e deve stare nella lambda passata a
+  // performLogout: senza questa asserzione `deleteSessionCookie: async () => {}`
+  // lascerebbe la suite verde (fail-open).
+  const deleteIndex = postBody.search(/\.delete\(\s*SESSION_COOKIE\.name\s*\)/)
+  assert.notEqual(deleteIndex, -1, 'la POST deve cancellare il cookie di sessione')
+  const deleteSessionCookieIndex = postBody.indexOf('deleteSessionCookie:')
+  const onErrorIndex = postBody.indexOf('onError:')
+  assert.notEqual(deleteSessionCookieIndex, -1, 'performLogout deve ricevere deleteSessionCookie')
+  assert.notEqual(onErrorIndex, -1, 'la POST deve passare onError a performLogout')
+  assert.ok(
+    deleteIndex > deleteSessionCookieIndex && deleteIndex < onErrorIndex,
+    'il delete del cookie deve stare nella lambda deleteSessionCookie passata a performLogout',
+  )
 })
