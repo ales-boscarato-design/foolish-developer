@@ -233,7 +233,7 @@
     "frank": {
       "eyebrow": "THE LABORATORY",
       "headline": "There's someone in the lab.",
-      "body": "Not Alessandro. But every sheet that comes out of here, he has already touched, smelled, judged. He calls cheap skins 'liars.'",
+      "body": "It's the Tanner. Every sheet that comes out of here, he has already touched, smelled, judged. Keeper of the skins since 2012. A skin that won't hold ink doesn't leave his bench.",
       "cta_short": "Meet Sebo"
     }
   },
@@ -416,7 +416,7 @@
       "line1": "Frank is not a character. He is a consequence.",
       "line2": "Since 2012, when the laboratory started producing, someone had to watch over things. Someone with the right glasses to see what others miss. With the wrong patience for everything else.",
       "line3": "Black hair with white streaks. Thick beard. Pointed ears. Leather apron full of unidentified objects. A coffee mug that never empties — he calls it Caffè Turbo.",
-      "line4": "He talks to the skins. Studies them like living beings. He calls cheap skins 'liars.' Not selling them here was his idea.",
+      "line4": "He talks to the skins. He studies them one by one: pores, thickness, layers. A skin that won't hold ink doesn't get in: it's his rule, not a campaign.",
       "quote": "If you have questions about your order — Frank answers. He's not nice. But he's precise."
     },
     "obsessions": {
@@ -432,23 +432,23 @@
     "backToShop": "← Back to shop",
     "eyebrow": "THE LABORATORY",
     "headline": "There's someone in the lab.",
-    "body": "Il Pellaio. Every sheet that comes out of here, he has already touched, smelled, judged. Guardian of living skins since 2012. He calls cheap skins 'liars.'",
+    "body": "Not Alessandro. But every sheet that comes out of here, he has already touched, smelled, judged. A skin that won't hold ink doesn't leave his bench.",
     "cta_short": "Enter the workshop"
   },
   "laboratorio": {
     "meta": {
-      "description": "The Tannery Keeper. Guardian of living skins. He feels them breathe, sweat, heal. He doesn't sleep: he watches over them."
+      "description": "The Tanner. Keeper of real practice skins. He knows them pore by pore, layer by layer. He doesn't sleep: he watches over them."
     },
     "hero": {
       "eyebrow": "THE WORKSHOP · CHIERI (TO)",
-      "sub": "The Tannery Keeper. He talks to the skins. Feels them breathe."
+      "sub": "The Tanner. He talks to the skins. He knows every pore, one by one."
     },
     "lore": {
       "eyebrow": "WHO IS IL PELLAIO",
       "p1": "Il Pellaio is not a character. He's a consequence.",
       "p2": "Since 2012, since the workshop started making its skins, someone had to stay and watch over them. Il Pellaio is that someone — the custodian every true artisan workshop carries within.",
-      "p3": "Twelve years of bench fumes, of catalysis, of skin breathed in too long. He no longer knows where the workshop ends and he begins. He makes them. He watches over them during the twelve hours of catalysis. He only lets them go when he's sure they're alive.",
-      "p4": "To Il Pellaio, skins are alive. They breathe through their pores, sweat out ink that doesn't deserve to stay, and heal — if you take care of them. Cheap skins he calls \"dead\", \"liars\": not selling them here was his battle. \"A corpse doesn't heal,\" he says. \"The wound stays open forever. My skin closes.\"",
+      "p3": "Twelve years of bench fumes, of catalysis, of flock that falls where it wants. He no longer knows where the workshop ends and he begins. He makes them. He watches over them during the twelve hours of catalysis. He only lets them go when he's sure they hold.",
+      "p4": "To the Tanner a skin isn't alive: it's made right. It has real pores — not drawn, not printed — so the transfer grips it and the excess ink leaves on its own. It doesn't heal and it doesn't regenerate: it holds and releases, which is what practice needs. \"Anyone telling you a skin heals is selling you a fairy tale,\" he says. \"Mine doesn't heal. Mine works.\"",
       "quote": "You don't tattoo it, he says. You revere it. Holy skin."
     },
     "obsessions": {
@@ -466,8 +466,8 @@
         "quote": "Twelve hours. The skin is born slowly and the flocks settle where they're meant to. Anyone in a hurry doesn't deserve the skin."
       },
       "pelleViva": {
-        "label": "LIVING SKIN",
-        "quote": "It breathes. It sweats out ink that doesn't deserve to stay. And it heals, if you care for it. Want to know if a skin is alive? Make it heal. A real one closes. A corpse stays as it is."
+        "label": "THE LAYERS",
+        "quote": "I don't spread colour: I layer it. Layer over layer, and every layer shows. That's why the washes read, and why you don't look through it — you look into it. Anyone who says «transparent» has never held a real skin."
       }
     },
     "cta": {
