@@ -1,8 +1,10 @@
 /**
- * Orchestrazione del logout. L'azzeramento della sottoscrizione push avviene
- * dentro la stessa mutazione autenticata che cancella il cookie: la sessione e'
- * letta dal server, non da dati inviati dal client. Se l'azzeramento fallisce il
- * cookie si cancella comunque, per non far regredire il logout.
+ * Orchestrazione del logout. La sessione e' letta dal server, non da dati inviati
+ * dal client, e l'email usata per azzerare la sottoscrizione push e' quella letta
+ * dal server. Il cookie viene cancellato subito dopo la lettura della sessione,
+ * prima dell'azzeramento push: cosi' un DB lento non tiene in vita la sessione.
+ * Se la lettura della sessione o l'azzeramento push falliscono, il cookie si
+ * cancella comunque e l'errore viene riportato a onError.
  */
 
 export interface LogoutDeps {
@@ -19,10 +21,20 @@ export interface LogoutResult {
 }
 
 export async function performLogout(deps: LogoutDeps): Promise<LogoutResult> {
-  const session = await deps.getSession()
+  let session: { email: string } | null = null
+
+  try {
+    session = await deps.getSession()
+  } catch (err) {
+    // Sessione illeggibile: si prosegue comunque con la cancellazione del cookie.
+    deps.onError?.(err)
+  }
 
   let pushClearedFor: string | null = null
   let pushClearFailed = false
+
+  // Il cookie muore prima dell'I/O del DB: un DB lento non tiene in vita la sessione.
+  await deps.deleteSessionCookie()
 
   if (session) {
     try {
@@ -34,8 +46,6 @@ export async function performLogout(deps: LogoutDeps): Promise<LogoutResult> {
       deps.onError?.(err)
     }
   }
-
-  await deps.deleteSessionCookie()
 
   return { ok: true, pushClearedFor, pushClearFailed }
 }

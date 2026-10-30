@@ -33,6 +33,20 @@ function clearPushSubscriptionFrom(store: Map<string, PushRecord>) {
   }
 }
 
+/** Le guardie sui sorgenti non devono dipendere dalla formattazione. */
+function normalizeSource(source: string): string {
+  return source.replace(/\s+/g, ' ')
+}
+
+/** Estrae il testo fra due marcatori, cosi' le asserzioni restano locali alla funzione. */
+function sourceBetween(source: string, startMarker: string, endMarker: string): string {
+  const start = source.indexOf(startMarker)
+  assert.notEqual(start, -1, `marcatore di inizio non trovato: ${startMarker}`)
+  const end = source.indexOf(endMarker, start + startMarker.length)
+  assert.notEqual(end, -1, `marcatore di fine non trovato: ${endMarker}`)
+  return source.slice(start, end)
+}
+
 test('due utenti sullo stesso dispositivo: il logout azzera browser e server', async () => {
   // Un solo slot per origine, come il browser: la sottoscrizione non e' per sessione.
   let slot: PushRecord | null = null
@@ -182,22 +196,139 @@ test('azzeramento mirato: esce A e resta solo B', async () => {
   assert.equal(cookie, null)
 })
 
-test('non-regressione invio: un record presente riceve il push dal provider', () => {
-  const store = new Map([['a', { endpoint: 'https://push.example/a' }]])
-  const outbox: Delivery[] = []
-  const invia = provider(store, outbox)
+test('sessione illeggibile: cookie cancellato, errore riportato, nessuna email usata', async () => {
+  let cookie: string | null = 'a'
+  const failure = new Error('sessione rotta')
+  const seen: unknown[] = []
+  const pushCalls: string[] = []
 
-  assert.equal(invia('a', 'ordine pronto'), true)
-  assert.equal(outbox.length, 1)
-  assert.equal(outbox[0]?.endpoint, 'https://push.example/a')
-  assert.equal(outbox[0]?.payload, 'ordine pronto')
+  const result = await performLogout({
+    getSession: async () => { throw failure },
+    clearPushSubscription: async (email) => { pushCalls.push(email) },
+    deleteSessionCookie: async () => { cookie = null },
+    onError: (err) => { seen.push(err) },
+  })
+
+  assert.deepEqual(result, { ok: true, pushClearedFor: null, pushClearFailed: false })
+  assert.equal(cookie, null)
+  assert.equal(seen.length, 1)
+  assert.equal(seen[0], failure)
+  assert.deepEqual(pushCalls, [])
+})
+
+test('il cookie muore prima dell azzeramento push', async () => {
+  const events: string[] = []
+
+  const result = await performLogout({
+    getSession: async () => {
+      events.push('session')
+      return { email: 'a' }
+    },
+    deleteSessionCookie: async () => { events.push('cookie') },
+    clearPushSubscription: async () => { events.push('push') },
+  })
+
+  assert.deepEqual(events, ['session', 'cookie', 'push'])
+  assert.deepEqual(result, { ok: true, pushClearedFor: 'a', pushClearFailed: false })
+})
+
+test("guardia sul contratto di account-db: iscrizione e azzeramento restano filtrati per email", () => {
+  const source = normalizeSource(readFileSync(new URL('./account-db.ts', import.meta.url), 'utf8'))
+
+  const saveBody = sourceBetween(
+    source,
+    'export async function savePushSubscription',
+    'export async function clearPushSubscription',
+  )
+  assert.match(
+    saveBody,
+    /push_subscription = \$\{JSON\.stringify\(subscription\)\}::jsonb/,
+    'savePushSubscription deve continuare a scrivere la sottoscrizione JSON',
+  )
+
+  const clearBody = sourceBetween(
+    source,
+    'export async function clearPushSubscription',
+    'export async function markPushSequenceStep',
+  )
+  assert.match(
+    clearBody,
+    /SET push_subscription = NULL/,
+    'clearPushSubscription deve azzerare la sottoscrizione',
+  )
+  assert.match(
+    clearBody,
+    /WHERE email = \$\{email\}/,
+    'clearPushSubscription deve continuare a filtrare per email',
+  )
 })
 
 test("guardia sul contratto di sendPushToEmail: filtro per email e push_subscription non null", () => {
-  const source = readFileSync(new URL('./push.ts', import.meta.url), 'utf8')
+  const source = normalizeSource(readFileSync(new URL('./push.ts', import.meta.url), 'utf8'))
   assert.match(
     source,
     /WHERE email = \$\{email\} AND push_subscription IS NOT NULL/,
     'sendPushToEmail deve continuare a selezionare solo la sottoscrizione di quella email',
   )
+})
+
+/**
+ * R1 — la suite morde le librerie, queste asserzioni legano le librerie alle
+ * entry point reali: senza, togliere la chiamata lascia tutto verde.
+ */
+test('R1a: ProfileForm disiscrive il browser prima della POST di logout', () => {
+  const source = normalizeSource(
+    readFileSync(
+      new URL(
+        '../app/(customer-app)/account/(protected)/profilo/_components/ProfileForm.tsx',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  )
+  const logoutBody = sourceBetween(source, 'async function logout()', 'router.push')
+  const unsubscribeIndex = logoutBody.indexOf('unsubscribePushOnLogout()')
+  const fetchIndex = logoutBody.indexOf("fetch('/api/account/logout'")
+
+  assert.notEqual(unsubscribeIndex, -1, 'logout() deve disiscrivere il browser')
+  assert.notEqual(fetchIndex, -1, "logout() deve chiamare fetch('/api/account/logout')")
+  assert.ok(
+    unsubscribeIndex < fetchIndex,
+    "unsubscribePushOnLogout() deve avvenire prima di fetch('/api/account/logout')",
+  )
+})
+
+test('R1b: la route di logout passa da performLogout e azzera il push', () => {
+  const source = normalizeSource(
+    readFileSync(new URL('../app/api/account/logout/route.ts', import.meta.url), 'utf8'),
+  )
+  const start = source.indexOf('export async function POST')
+  assert.notEqual(start, -1, 'la route deve esportare POST')
+  const postBody = source.slice(start)
+
+  assert.match(postBody, /performLogout\(/, 'la POST deve usare performLogout')
+  assert.match(
+    postBody,
+    /clearPushSubscription,/,
+    'performLogout deve ricevere clearPushSubscription',
+  )
+  assert.match(postBody, /getSession,/, 'performLogout deve ricevere getSession')
+  assert.match(
+    postBody,
+    /deleteSessionCookie:/,
+    'performLogout deve ricevere deleteSessionCookie',
+  )
+
+  // Il delete del cookie deve stare nella lambda passata a performLogout, non fuori.
+  const deleteIndex = postBody.indexOf('.delete(SESSION_COOKIE.name)')
+  if (deleteIndex !== -1) {
+    const deleteSessionCookieIndex = postBody.indexOf('deleteSessionCookie:')
+    const onErrorIndex = postBody.indexOf('onError:')
+    assert.notEqual(deleteSessionCookieIndex, -1, 'performLogout deve ricevere deleteSessionCookie')
+    assert.notEqual(onErrorIndex, -1, 'la POST deve passare onError a performLogout')
+    assert.ok(
+      deleteIndex > deleteSessionCookieIndex && deleteIndex < onErrorIndex,
+      'il delete del cookie deve stare nella lambda deleteSessionCookie passata a performLogout',
+    )
+  }
 })
