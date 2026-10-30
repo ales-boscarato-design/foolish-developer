@@ -27,10 +27,38 @@ async function ensurePrivateMediaFile({ data, originalDoc, req }: {
 }): Promise<Record<string, unknown>> {
   const customer = 'customer' in data ? data.customer : originalDoc?.customer
   const file = 'file' in data ? data.file : originalDoc?.file
+  const customerWasCleared = 'customer' in data && !relationId(data.customer as RelationValue)
+  let customerEmail: string | null | undefined
+
+  if (customerWasCleared) {
+    customerEmail = null
+  } else if (
+    !('customer' in data) &&
+    typeof originalDoc?.customerEmail === 'string'
+  ) {
+    customerEmail = originalDoc.customerEmail
+  } else if (relationId(customer as RelationValue) !== null) {
+    const customerId = relationId(customer as RelationValue)!
+    const owner = await req.payload.findByID({
+      collection: 'customers',
+      id: customerId,
+      depth: 0,
+      overrideAccess: true,
+      req,
+    }) as { email?: unknown } | null
+    if (!owner || typeof owner.email !== 'string' || !owner.email.trim()) {
+      throw new Error('Impossibile dimostrare il proprietario del file cliente: salvataggio rifiutato.')
+    }
+    customerEmail = owner.email.trim().toLowerCase()
+  } else {
+    customerEmail = typeof originalDoc?.customerEmail === 'string' ? originalDoc.customerEmail : null
+  }
 
   const customerId = relationId(customer as RelationValue)
   const mediaId = relationId(file as RelationValue)
-  if (!customerId || mediaId === null) return data
+  const result = { ...data }
+  if (customerEmail !== undefined) result.customerEmail = customerEmail
+  if (!customerId || mediaId === null) return result
 
   const updated = await req.payload.update({
     collection: 'media',
@@ -45,7 +73,7 @@ async function ensurePrivateMediaFile({ data, originalDoc, req }: {
     throw new Error('Impossibile marcare privato il file allegato al cliente: salvataggio rifiutato.')
   }
 
-  return data
+  return result
 }
 
 export const CustomerFiles: CollectionConfig = {
@@ -89,6 +117,17 @@ export const CustomerFiles: CollectionConfig = {
       label: 'Cliente',
       admin: {
         description: 'Lascia vuoto per rendere il file visibile a tutti i clienti registrati.',
+      },
+    },
+    {
+      name: 'customerEmail',
+      type: 'text',
+      index: true,
+      label: 'Email cliente (denormalizzata)',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        description: 'Email normalizzata del proprietario, mantenuta per verificare l’accesso senza popolare la relazione cliente.',
       },
     },
     {

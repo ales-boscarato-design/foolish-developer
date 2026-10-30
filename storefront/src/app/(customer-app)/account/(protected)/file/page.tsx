@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/account-auth'
 import { getWishlist } from '@/lib/account-db'
 import { getAccountLocale, getT } from '@/lib/account-i18n'
+import { ownsCustomerFile, type CustomerFileRelation } from '@/lib/customer-files'
 import { WishlistItemActions } from './_components/WishlistItem'
 
 interface CustomerFile {
@@ -10,7 +11,8 @@ interface CustomerFile {
   fileType: string
   active: boolean
   file?: { url?: string; filename?: string; filesize?: number }
-  customer?: { email?: string } | null
+  customerEmail?: string | null
+  customer?: CustomerFileRelation
   description?: string
 }
 
@@ -32,7 +34,7 @@ export default async function FilePage() {
   const filesData = filesRes.ok ? await filesRes.json() : null
   const filesError = filesData === null
   const allFiles: CustomerFile[] = filesData?.docs ?? []
-  const myFiles = allFiles.filter((f) => !f.customer || f.customer?.email === session.email)
+  const myFiles = allFiles.filter((f) => ownsCustomerFile(f.customerEmail, f.customer, session.email))
 
   const FILE_ICON: Record<string, string> = { guide: '📄', video: '🎬', resource: '📎' }
 

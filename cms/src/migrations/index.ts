@@ -39,6 +39,7 @@ import * as migration_20260824_100000_add_order_payment_fields from './20260824_
 import * as migration_20260912_120000_add_affiliate_attribution from './20260912_120000_add_affiliate_attribution';
 import * as migration_20261027_120000_add_tiered_promo_fields from './20261027_120000_add_tiered_promo_fields';
 import * as migration_20261027_180000_add_order_promo_fields from './20261027_180000_add_order_promo_fields';
+import * as migration_20261030_160000_backfill_customer_file_media from './20261030_160000_backfill_customer_file_media';
 import * as migration_20261030_150000_add_media_visibility from './20261030_150000_add_media_visibility';
 
 export const migrations = [
@@ -251,5 +252,10 @@ export const migrations = [
     up: migration_20261030_150000_add_media_visibility.up,
     down: migration_20261030_150000_add_media_visibility.down,
     name: '20261030_150000_add_media_visibility',
+  },
+  {
+    up: migration_20261030_160000_backfill_customer_file_media.up,
+    down: migration_20261030_160000_backfill_customer_file_media.down,
+    name: '20261030_160000_backfill_customer_file_media',
   },
 ];

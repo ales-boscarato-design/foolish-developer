@@ -16,6 +16,7 @@ export interface CustomerFileDoc {
   id: number | string
   title?: string
   active?: boolean
+  customerEmail?: string | null
   customer?: CustomerFileRelation
   file?: { url?: string | null; filename?: string | null; filesize?: number | null } | number | string | null
 }
@@ -39,20 +40,15 @@ export interface LoadCustomerFileArgs {
 }
 
 /**
- * Il file e' del cliente proprietario?
- * - `customer` vuoto/assente: il record e' per tutti i clienti registrati (stessa regola
- *   del filtro della pagina account).
- * - `customer` valorizzato: serve l'email del proprietario. Una relazione non risolta
- *   (id numerico) non permette di dimostrare la proprieta' -> nega (fail-closed).
+ * - email denormalizzata presente: confronto case-insensitive con la sessione.
+ * - relazione valorizzata senza email denormalizzata: nega (riga non backfillata, fail-closed).
  */
-export function ownsCustomerFile(customer: CustomerFileRelation, sessionEmail: string | null | undefined): boolean {
+export function ownsCustomerFile(customerEmail: string | null | undefined, customer: CustomerFileRelation, sessionEmail: string | null | undefined): boolean {
   if (!sessionEmail) return false
-  if (customer === null || customer === undefined || customer === '') return true
-  if (typeof customer === 'object') {
-    const email = customer.email
-    return typeof email === 'string' && email.length > 0 && email.toLowerCase() === sessionEmail.toLowerCase()
-  }
-  return false
+  const ownerEmail = typeof customerEmail === 'string' ? customerEmail.trim() : ''
+  if (ownerEmail) return ownerEmail.toLowerCase() === sessionEmail.trim().toLowerCase()
+  if (customer !== null && customer !== undefined && customer !== '') return false
+  return true
 }
 
 function mediaFilename(file: CustomerFileDoc['file']): string | null {
@@ -77,6 +73,7 @@ export async function loadCustomerFile({
 
   let docRes: Response
   try {
+    // depth=1 popola il file upload; customer resta un ID per via di Customers.read access.
     docRes = await fetchImpl(`${base}/api/customer-files/${encodeURIComponent(fileId)}?depth=1`, {
       headers,
       cache: 'no-store',
@@ -95,7 +92,7 @@ export async function loadCustomerFile({
   }
   if (!doc || doc.id === undefined || doc.id === null) return { ok: false, status: 404 }
   if (doc.active === false) return { ok: false, status: 404 }
-  if (!ownsCustomerFile(doc.customer, sessionEmail)) return { ok: false, status: 404 }
+  if (!ownsCustomerFile(doc.customerEmail, doc.customer, sessionEmail)) return { ok: false, status: 404 }
 
   const filename = mediaFilename(doc.file)
   if (!filename) return { ok: false, status: 502 }

@@ -660,6 +660,10 @@ export interface CustomerFile {
    * Lascia vuoto per rendere il file visibile a tutti i clienti registrati.
    */
   customer?: (number | null) | Customer;
+  /**
+   * Email normalizzata del proprietario, mantenuta per verificare l’accesso senza popolare la relazione cliente.
+   */
+  customerEmail?: string | null;
   fileType: 'guide' | 'video' | 'resource';
   active?: boolean | null;
   updatedAt: string;
@@ -1357,6 +1361,7 @@ export interface CustomerFilesSelect<T extends boolean = true> {
   title?: T;
   file?: T;
   customer?: T;
+  customerEmail?: T;
   fileType?: T;
   active?: T;
   updatedAt?: T;
