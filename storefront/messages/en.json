@@ -436,54 +436,98 @@
     "cta_short": "Enter the workshop"
   },
   "laboratorio": {
-    "meta": {
-      "description": "The Tanner. Keeper of real practice skins. He knows them pore by pore, layer by layer. He doesn't sleep: he watches over them."
-    },
     "hero": {
-      "eyebrow": "THE WORKSHOP · CHIERI (TO)",
-      "sub": "The Tanner. He talks to the skins. He knows every pore, one by one."
+      "eyebrow": "FOOLISH LAB · CHIERI (TO)",
+      "title": "One company. Six departments. One employee.",
+      "sub": "The Tanner. Seventy-five centimetres. Nobody hired him: he appointed himself."
     },
-    "lore": {
-      "eyebrow": "WHO IS IL PELLAIO",
-      "p1": "Il Pellaio is not a character. He's a consequence.",
-      "p2": "Since 2012, since the workshop started making its skins, someone had to stay and watch over them. Il Pellaio is that someone — the custodian every true artisan workshop carries within.",
-      "p3": "Twelve years of bench fumes, of catalysis, of flock that falls where it wants. He no longer knows where the workshop ends and he begins. He makes them. He watches over them during the twelve hours of catalysis. He only lets them go when he's sure they hold.",
-      "p4": "To the Tanner a skin isn't alive: it's made right. It has real pores — not drawn, not printed — so the transfer grips it and the excess ink leaves on its own. It doesn't heal and it doesn't regenerate: it holds and releases, which is what practice needs. \"Anyone telling you a skin heals is selling you a fairy tale,\" he says. \"Mine doesn't heal. Mine works.\"",
-      "quote": "You don't tattoo it, he says. You revere it. Holy skin."
+    "intro": {
+      "eyebrow": "Who he is",
+      "p1": "Nobody knows exactly when he arrived at the lab.",
+      "p2": "Some say he turned up after a particularly long night. Others insist he was already there, under the old carpenter's bench, among the moulds.",
+      "p3": "One thing is certain: one day someone said that running that lab would take at least six people.",
+      "p4": "The next morning the Tanner was there. Not six people. One, with six changes of clothes."
     },
-    "obsessions": {
-      "eyebrow": "HIS OBSESSIONS",
-      "flock": {
-        "label": "THE FLOCK",
-        "quote": "Microfibers of crushed velvet — red, blue, yellow — that fall wherever they want. That's why no two skins are ever the same. Ever. Anyone who wants them all identical might as well tattoo on linoleum."
-      },
-      "discromie": {
-        "label": "THE DISCHROMIAS",
-        "quote": "They're not defects. They're the signature. Real skin is uneven, alive. Whoever smooths everything out has never looked closely at a forearm."
-      },
-      "catalisi": {
-        "label": "THE CATALYSIS",
-        "quote": "Twelve hours. The skin is born slowly and the flocks settle where they're meant to. Anyone in a hurry doesn't deserve the skin."
-      },
-      "pelleViva": {
-        "label": "THE LAYERS",
-        "quote": "I don't spread colour: I layer it. Layer over layer, and every layer shows. That's why the washes read, and why you don't look through it — you look into it. Anyone who says «transparent» has never held a real skin."
+    "scale": {
+      "eyebrow": "Scale",
+      "p1": "The world around him is real: red brick, high ceilings, huge white tables, wooden moulds, shelves full of hands and arms.",
+      "p2": "He is not.",
+      "p3": "To him a casting table is a plain to be crossed. A mould is an extraordinary machine. An A3 sheet is a gigantic creature to be tamed, and the monocle is the most important instrument ever invented — at least according to him.",
+      "p4": "He is not a wizard and he doesn't live in another dimension. He works here. He just sees the same things from a different altitude."
+    },
+    "staff": {
+      "eyebrow": "The six departments",
+      "boardLabel": "TODAY'S STAFF",
+      "intro": "The shift board never changes. Six names. One employee.",
+      "items": {
+        "warehouse": {
+          "role": "WAREHOUSE",
+          "trait": "Practical, grumpy, hates the office.",
+          "quote": "\"If it arrived broken, it was broken before me. But I sign for it.\"",
+          "aside": ""
+        },
+        "secretary": {
+          "role": "SECRETARY",
+          "trait": "Gossipy, melodramatic, knows everything about everyone.",
+          "quote": "\"Three emails. No answer. I wrote them. I read them.\"",
+          "aside": ""
+        },
+        "callCentre": {
+          "role": "CALL CENTRE",
+          "trait": "Exasperating politeness, synthetic voice.",
+          "quote": "\"Your request is very important to us.\"",
+          "aside": "(It's me. Us.)"
+        },
+        "chemist": {
+          "role": "CHEMIST / R&D",
+          "trait": "Genius, obsessive, resents interruptions.",
+          "quote": "\"It's not 'almost even'. It's even, or it's redone.\"",
+          "aside": ""
+        },
+        "ceo": {
+          "role": "CEO",
+          "trait": "Visionary, arrogant, disconnected from reality.",
+          "quote": "\"We need to think big.\"",
+          "aside": "(The sheet is A3. Not big enough.)"
+        },
+        "cleaning": {
+          "role": "CLEANING",
+          "trait": "Permanently outraged.",
+          "quote": "\"Someone left flock on the bench. That someone is me.\"",
+          "aside": ""
+        }
+      }
+    },
+    "lab": {
+      "eyebrow": "The lab",
+      "p1": "Five areas, all real: the white casting tables, the shelves of anatomies, the carpenter's bench under the window, the book-mould station, the steel prep bench.",
+      "p2": "Under the carpenter's bench there's a space that appears in no floor plan: a microscopic desk, a lamp, notebooks full of annotations and a pile of sheets he hasn't approved yet. It's not a den. It's the workstation of someone who works too much.",
+      "p3": "And then there are the traces that aren't his. Sealed boxes, labels, finished orders, a pair of shoes that moves. Someone produces here. No face. Necessary."
+    },
+    "paradox": {
+      "eyebrow": "The paradox",
+      "intro": "He wants one thing: a perfect surface.",
+      "spessore": "The problem is that perfect human skin doesn't exist. It has uneven colour, different textures, variations in thickness. The thing that makes a practice skin believable is exactly what the Tanner calls a defect.",
+      "discromie": "Coloured flock never distributes evenly: catalysis does what it wants, and that's where the variation that reads as real skin comes from.",
+      "pori": "The pores aren't printed: they absorb the transfer and let the excess ink out.",
+      "strati": "Colour isn't laid on top, it's deposited in layers — which is why the washes read, without anyone looking through them.",
+      "closing": "To the Tanner it's a personal insult. To a tattooer it's the reason it works."
+    },
+    "series": {
+      "eyebrow": "The series",
+      "p1": "Six engines, not six topics: inspection, lab disaster, the scale problem, work that is never good enough, the human problem, the disproportionate experiment. The same mould can produce four different episodes without repeating itself.",
+      "p2": "Two rules. First: every episode works without the previous ones. Second: the Tanner never recovers from perfectionism — if he did, the series would end.",
+      "episode": {
+        "code": "EP. 003",
+        "title": "STAFF MEETING",
+        "body": ""
       }
     },
     "cta": {
-      "eyebrow": "THE BENCH IS OPEN",
-      "title": "FOLLOW OR WRITE.",
-      "drops": {
-        "button": "Follow the workshop",
-        "note": "Every twelve hours, a thought from the bench. Don't expect kindness. Expect obsession."
-      },
-      "support": {
-        "button": "Write to the workshop",
-        "note": "For orders and shipping, we answer — straight to the point."
-      }
+      "title": "The skins are here. I check them.",
+      "practiceSkin": "Practice skin",
+      "bot": "Message the lab"
     },
-    "seboLink": "Then there's Sebo. I'd rather not talk about it.",
-    "imageAlt": "Il Pellaio in the workshop",
     "backToShop": "← Back to the shop"
   },
   "sebo": {

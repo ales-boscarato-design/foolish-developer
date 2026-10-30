@@ -436,54 +436,98 @@
     "cta_short": "Conocer a Frank"
   },
   "laboratorio": {
-    "meta": {
-      "description": "El Pellejero. Guardián de las pieles de práctica de verdad. Las conoce poro por poro, capa por capa. No duerme: las vela."
-    },
     "hero": {
-      "eyebrow": "EL TALLER · CHIERI (TO)",
-      "sub": "El Pellejero. Habla a las pieles. Conoce sus poros uno por uno."
+      "eyebrow": "FOOLISH LAB · CHIERI (TO)",
+      "title": "Una empresa. Seis departamentos. Un solo empleado.",
+      "sub": "El Pellejero. Setenta y cinco centímetros. Nadie lo contrató: se nombró a sí mismo."
     },
-    "lore": {
-      "eyebrow": "QUIÉN ES EL PELLEJERO",
-      "p1": "El Pellejero no es un personaje. Es una consecuencia.",
-      "p2": "Desde 2012, desde que el taller produce sus pieles, alguien tenía que quedarse a velarlas. El Pellejero es ese alguien — el custodio que todo taller artesanal de verdad lleva dentro.",
-      "p3": "Doce años de vapores del banco, de catálisis, de flock que cae donde quiere. Ya no sabe dónde termina el taller y dónde empieza él. Él las hace. Las vigila durante las doce horas de catálisis. Solo las deja ir cuando está seguro de que aguantan.",
-      "p4": "Para el Pellejero una piel no está viva: está bien hecha. Tiene poros de verdad — ni dibujados ni impresos — y por eso el transfer se agarra y la tinta sobrante se va sola. No sana, no se regenera: retiene y suelta, que es lo que hace falta en la práctica. «Quien te cuenta que una piel sana te está vendiendo un cuento», dice. «La mía no sana. La mía funciona.»",
-      "quote": "No se tatúa, dice él. Se venera. Piel santa."
+    "intro": {
+      "eyebrow": "Quién es",
+      "p1": "Nadie sabe exactamente cuándo llegó.",
+      "p2": "Hay quien dice que apareció tras una noche de trabajo especialmente larga; otros, que ya estaba allí, bajo el viejo banco del carpintero.",
+      "p3": "Una cosa es segura: un día alguien dijo que para sacar adelante ese taller harían falta al menos seis personas.",
+      "p4": "A la mañana siguiente estaba el Pellejero. No seis personas. Una sola, con seis cambios de ropa."
     },
-    "obsessions": {
-      "eyebrow": "SUS OBSESIONES",
-      "flock": {
-        "label": "EL FLOCK",
-        "quote": "Microhilos de terciopelo triturado — rojo, azul, amarillo — que caen donde quieren. Por eso ninguna piel es igual a otra. Nunca. Quien las quiere todas idénticas que tatúe en linóleo."
-      },
-      "discromie": {
-        "label": "LAS DISCROMÍAS",
-        "quote": "No son defectos. Son la firma. La piel verdadera es heterogénea, viva. Quien alisa todo nunca ha mirado un antebrazo de cerca."
-      },
-      "catalisi": {
-        "label": "LA CATÁLISIS",
-        "quote": "Doce horas. La piel nace lenta y los flocks se posan donde deben. Quien tiene prisa no merece la piel."
-      },
-      "pelleViva": {
-        "label": "LAS CAPAS",
-        "quote": "El color no lo extiendo: lo deposito. Capa sobre capa, y cada capa se ve. Por eso los velos se leen, y por eso no se mira a través: se mira dentro. Quien te dice «transparente» nunca ha tenido una piel de verdad en la mano."
+    "scale": {
+      "eyebrow": "La escala",
+      "p1": "El mundo a su alrededor es real: ladrillo rojo, techos altos, mesas blancas enormes, moldes de madera, estanterías llenas de manos y brazos.",
+      "p2": "Él no.",
+      "p3": "Para él una mesa de colada es una llanura que atravesar. Un molde es una máquina extraordinaria. Una hoja A3 es una criatura gigantesca que hay que domar, y el monóculo es el instrumento más importante jamás inventado — al menos según él.",
+      "p4": "No es un mago y no vive en otra dimensión. Trabaja aquí. Ve las mismas cosas desde otra altura."
+    },
+    "staff": {
+      "eyebrow": "Los seis departamentos",
+      "boardLabel": "TODAY'S STAFF",
+      "intro": "El tablón de turnos nunca cambia. Seis nombres. Un empleado.",
+      "items": {
+        "warehouse": {
+          "role": "ALMACÉN",
+          "trait": "",
+          "quote": "«Si llegó roto, estaba roto antes que yo. Pero lo firmo yo.»",
+          "aside": ""
+        },
+        "secretary": {
+          "role": "SECRETARÍA",
+          "trait": "",
+          "quote": "«Tres correos. Ninguna respuesta. Los escribí yo. Los leí yo.»",
+          "aside": ""
+        },
+        "callCentre": {
+          "role": "CALL CENTER",
+          "trait": "",
+          "quote": "«Su solicitud es muy importante para nosotros.»",
+          "aside": "(Soy yo. Nosotros.)"
+        },
+        "chemist": {
+          "role": "QUÍMICO / I+D",
+          "trait": "",
+          "quote": "«No es \"casi uniforme\". O es uniforme, o se rehace.»",
+          "aside": ""
+        },
+        "ceo": {
+          "role": "CEO",
+          "trait": "",
+          "quote": "«Hay que pensar en grande.»",
+          "aside": "(La hoja es A3. No es suficiente.)"
+        },
+        "cleaning": {
+          "role": "LIMPIEZA",
+          "trait": "",
+          "quote": "«Alguien dejó flock en el banco. Ese alguien soy yo.»",
+          "aside": ""
+        }
+      }
+    },
+    "lab": {
+      "eyebrow": "El taller",
+      "p1": "Cinco zonas, todas reales: las mesas blancas de colada, las estanterías de anatomías, el banco del carpintero bajo la ventana, la estación de moldes de libro, el banco de acero de la preparación.",
+      "p2": "Bajo el banco del carpintero hay un espacio que no figura en ningún plano: un escritorio microscópico, una lámpara, cuadernos llenos de anotaciones y una pila de hojas que aún no ha aprobado. No es una madriguera. Es el puesto de alguien que trabaja demasiado.",
+      "p3": "Y están las huellas que no son suyas. Cajas cerradas, etiquetas, pedidos listos, un par de zapatos que se mueve. Alguien produce aquí. Sin rostro. Necesario."
+    },
+    "paradox": {
+      "eyebrow": "La paradoja",
+      "intro": "Quiere una sola cosa: la superficie perfecta.",
+      "spessore": "El problema es que la piel humana perfecta no existe. Tiene variaciones de color, texturas distintas, espesores desiguales. Lo que hace creíble una piel de práctica es exactamente lo que el Pellejero considera un defecto.",
+      "discromie": "Los flock de color nunca se reparten de forma uniforme: la catálisis hace lo que quiere, y de ahí nace la variación que se parece a la piel real.",
+      "pori": "Los poros no están dibujados: absorben el transfer y dejan salir la tinta sobrante.",
+      "strati": "El color no se extiende encima, se deposita por capas — y por eso los velos se leen, sin que nadie mire a través.",
+      "closing": "Para el Pellejero es una ofensa personal. Para quien tatúa es la razón por la que funciona."
+    },
+    "series": {
+      "eyebrow": "La serie",
+      "p1": "Seis motores, no seis temas: la inspección, el desastre de taller, el problema de escala, el trabajo que nunca está bien, el problema humano, el experimento desproporcionado. El mismo molde puede dar cuatro episodios distintos sin repetirse.",
+      "p2": "Dos reglas. Una: cada episodio se entiende sin los anteriores. Dos: el Pellejero no se cura del perfeccionismo — si se curara, se acabaría la serie.",
+      "episode": {
+        "code": "EP. 003",
+        "title": "STAFF MEETING",
+        "body": ""
       }
     },
     "cta": {
-      "eyebrow": "EL BANCO ESTÁ ABIERTO",
-      "title": "SIGUE O ESCRIBE.",
-      "drops": {
-        "button": "Sigue el taller",
-        "note": "Cada doce horas un pensamiento desde el banco. No esperes amabilidad. Espera obsesión."
-      },
-      "support": {
-        "button": "Escribe al taller",
-        "note": "Para pedidos y envíos respondemos nosotros, directo al grano."
-      }
+      "title": "Las pieles están aquí. Las controlo yo.",
+      "practiceSkin": "Practice skin",
+      "bot": "Escribir al taller"
     },
-    "seboLink": "Luego está Sebo. Prefiero no hablar de ello.",
-    "imageAlt": "El Pellejero en el taller",
     "backToShop": "← Vuelta al escaparate"
   },
   "sebo": {
