@@ -473,6 +473,53 @@ test('PushEndpointClaim invia il claim con endpoint esistente e senza iscrivere'
     1,
     'claimed deve essere marcato in un solo punto',
   )
+
+  // (i) riarmo su rete/visibilita', con cleanup simmetrico.
+  assert.match(code, /window\.addEventListener\(\s*['"]online['"]\s*,\s*rearm\s*\)/)
+  assert.match(
+    code,
+    /document\.addEventListener\(\s*['"]visibilitychange['"]\s*,\s*handleVisibilityChange\s*\)/,
+  )
+  assert.match(code, /document\.visibilityState\s*===\s*['"]visible['"]/)
+  assert.match(code, /window\.removeEventListener\(\s*['"]online['"]\s*,\s*rearm\s*\)/)
+  assert.match(
+    code,
+    /document\.removeEventListener\(\s*['"]visibilitychange['"]\s*,\s*handleVisibilityChange\s*\)/,
+  )
+
+  // Il riarmo non deve riaprire un claim gia' riuscito o gia' in corso.
+  const rearmBlock = bracedBlock(source, 'function rearm').replace(/\s+/g, ' ')
+  assert.match(rearmBlock, /claimed\.current/, 'il riarmo deve guardare claimed')
+  assert.match(rearmBlock, /running\.current/, 'il riarmo deve guardare running')
+
+  // La guardia anti-doppio-invio deve essere armata prima del primo await.
+  assert.ok(
+    code.indexOf('running.current = true') <
+      code.indexOf('await navigator.serviceWorker.getRegistration'),
+    'running.current = true deve precedere la prima await',
+  )
+
+  // Il timer usa la costante e il primo tentativo e' claim(1): nessun numero
+  // magico e nessun budget diverso da MAX_ATTEMPTS.
+  assert.match(code, /},\s*RETRY_DELAY_MS\s*,?\s*\)/)
+  assert.match(code, /void\s+claim\(\s*1\s*\)/)
+
+  // Dopo il fetch `cancelled` viene ricontrollato: niente mark ne' retry
+  // quando il componente e' gia' smontato.
+  assert.ok(
+    (claimBlock.match(/\bcancelled\b/g) ?? []).length >= 2,
+    'cancelled deve essere ricontrollato dopo il fetch',
+  )
+  const claimNormalized = claimBlock.replace(/\s+/g, ' ')
+  const afterFetch = claimNormalized.slice(claimNormalized.indexOf('await fetch('))
+  assert.ok(
+    afterFetch.indexOf('if (cancelled)') !== -1,
+    'dopo await fetch deve comparire if (cancelled)',
+  )
+  assert.ok(
+    afterFetch.indexOf('if (cancelled)') < afterFetch.indexOf('claimed.current = true'),
+    'if (cancelled) deve precedere claimed.current = true',
+  )
 })
 
 test('layout account monta PushEndpointClaim', () => {

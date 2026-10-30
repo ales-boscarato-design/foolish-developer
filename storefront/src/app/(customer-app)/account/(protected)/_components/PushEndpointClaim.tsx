@@ -32,6 +32,22 @@ export function PushEndpointClaim() {
 
     let retryTimer: ReturnType<typeof setTimeout> | undefined
 
+    // Riarma la guardia quando la connettivita' torna o la pagina e' visibile:
+    // un claim fallito offline non deve restare chiuso per tutta la vita del tab.
+    function rearm(): void {
+      if (!cancelled && !claimed.current && !running.current) {
+        running.current = true
+        void claim(1)
+      }
+    }
+
+    function handleVisibilityChange(): void {
+      if (document.visibilityState === 'visible') rearm()
+    }
+
+    window.addEventListener('online', rearm)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
     async function claim(attempt: number): Promise<void> {
       if (cancelled) {
         release()
@@ -78,6 +94,12 @@ export function PushEndpointClaim() {
           body: JSON.stringify({ endpoint: cleaned }),
         })
 
+        // Dopo lo smontaggio non si marca nulla: il componente non e' piu' vivo.
+        if (cancelled) {
+          release()
+          return
+        }
+
         if (res.ok) {
           // Fatto solo con una risposta 2xx del server.
           claimed.current = true
@@ -107,6 +129,8 @@ export function PushEndpointClaim() {
     return () => {
       cancelled = true
       if (retryTimer !== undefined) clearTimeout(retryTimer)
+      window.removeEventListener('online', rearm)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [])
 
