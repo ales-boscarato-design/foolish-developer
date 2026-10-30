@@ -91,6 +91,7 @@ jobs:
           npm run test:affiliate-route --silent
           npm run test:affiliate-i18n --silent
           npm run test:pwa-push-endpoint --silent
+          npm run test:pwa-push-claim --silent
 
       - name: Storefront — build
         working-directory: storefront
