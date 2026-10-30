@@ -111,6 +111,16 @@ test('la pagina /sebo e i suoi dati non esistono piu` nel repo', () => {
 
 // ── Redirect permanente ────────────────────────────────────────────────────────────────
 
+/** Le lingue dichiarate da una lista JS (`['it', 'en', …]`). */
+function localeList(source: string, pattern: RegExp): string[] {
+  const match = source.match(pattern)
+  assert.ok(match, 'elenco delle lingue non trovato')
+  return match[1]
+    .split(',')
+    .map((item) => item.trim().replace(/^['"]|['"]$/g, ''))
+    .filter(Boolean)
+}
+
 test('next.config dichiara un 301 esplicito per lingua, non un redirect generico', () => {
   const config = read('../../next.config.ts')
   const start = config.indexOf('const seboRedirects')
@@ -124,9 +134,20 @@ test('next.config dichiara un 301 esplicito per lingua, non un redirect generico
   assert.ok(block.includes('statusCode: 301'), 'lo status deve essere 301 (con `permanent: true` Next servirebbe 308)')
   assert.ok(!block.includes('permanent: true'), 'nessuna scorciatoia `permanent`, che produrrebbe un 308')
   assert.ok(!block.includes(':path*'), 'nessun pattern generico: mappa esplicita per lingua')
-  assert.ok(config.includes('...seboRedirects'), 'il blocco non e` agganciato a redirects()')
-  // Le cinque lingue sono quelle del routing: se cambiano, il redirect deve seguirle.
-  assert.match(config, /const LOCALES = \['it', 'en', 'fr', 'es', 'de'\]/)
+
+  // Non basta che la stringa esista nel file: lo spread deve essere la PRIMA voce del return
+  // di `redirects()`. Un `const _dead = [...seboRedirects]` lascerebbe il test verde con il 301
+  // sparito dal sito.
+  const returnLine = config.split('\n').find((line) => /return \[/.test(line) && /Redirects/.test(line))
+  assert.ok(returnLine, 'manca il return di redirects()')
+  assert.match(returnLine, /return \[\.\.\.seboRedirects,/, 'il blocco deve aprire il return di redirects()')
+
+  // Le lingue del redirect devono essere ESATTAMENTE quelle del routing del sito: se il sito
+  // ne aggiunge una, il 301 non deve restare indietro (e un refactor che legge `routing.locales`
+  // non deve diventare rosso).
+  const configLocales = localeList(config, /const LOCALES = \[([^\]]*)\]/)
+  const routingLocales = localeList(read('../i18n/routing.ts'), /locales: \[([^\]]*)\]/)
+  assert.deepEqual([...configLocales].sort(), [...routingLocales].sort(), 'le lingue del redirect divergono dal routing')
 })
 
 // ── sitemap ────────────────────────────────────────────────────────────────────────────
