@@ -7,7 +7,6 @@
     "limited": "🔥 Premium",
     "contatti": "Contatti",
     "account": "Account",
-    "sebo": "SEBO",
     "laboratorio": "Laboratorio",
     "logoAlt": "The Foolish Butcher"
   },
@@ -529,82 +528,6 @@
       "bot": "Scrivi al laboratorio"
     },
     "backToShop": "← Torna alla vetrina"
-  },
-  "sebo": {
-    "meta": {
-      "description": "Il peggior portfolio d'Italia. Il motivo per cui il tuo non lo è. Sbaglia su di me. Non su un cristiano."
-    },
-    "hero": {
-      "manifesto": "Sbaglia su di me.\nNon su un cristiano."
-    },
-    "bio": {
-      "eyebrow": "CHI È SEBO",
-      "p1": "Mi chiamo Sebo. Sono il peggior portfolio d'Italia, e il motivo per cui il tuo non lo è.",
-      "p2": "Ogni linea storta che porto addosso è un cliente salvato.",
-      "p3": "Non sono un personaggio. Sono una conseguenza: dal 2012 qualcuno doveva pur farsi bucare."
-    },
-    "wall": {
-      "eyebrow": "IL MURO"
-    },
-    "stickers": {
-      "eyebrow": "STICKER N°001 — COLLEZIONABILE",
-      "headline": "Non si compra.\nViene con te.",
-      "body": "Il primo sticker della serie SEBO è un die-cut numerato. Arriva nel pacco con ogni ordine da 100€ o più — niente form, niente codici, niente spiegazioni. È dentro.",
-      "conditionLabel": "Come ottenerlo",
-      "condition": "Ordine da 100€ o più → Sticker N°001 incluso nel pacco. Non è in vendita da nessuna parte.",
-      "date": "Disponibile dal 5 agosto 2026."
-    },
-    "merch": {
-      "eyebrow": "SEBO PRACTICE ARCHIVES™",
-      "headline": "Cinque documenti emessi dalla Sebo Research Division™: l'ufficio che protocolla ciò che succede prima del tatuaggio.",
-      "subline": "Ogni capo è un fascicolo. Davanti, la targhetta d'archivio con il codice del referto e il suo stato. Dietro, il documento integrale: rilievi, tolleranze, callout numerati, timbro. Tre stati possibili: VERIFIED, FAILED, PENDING. Nessuno dei tre è un complimento."
-    },
-    "pellaioLink": "Il Pellaio fa le pelli. Io le rovino. Non mi rivolge la parola dal 2012.",
-    "cta": {
-      "eyebrow": "SEGUIMI",
-      "instagram": {
-        "button": "Sebo su Instagram",
-        "note": "128 post pronti. Il profilo è il cassone dove finisce tutto — errori, tutorial, il caffè del lunedì. Aggiornato da qualcosa."
-      },
-      "telegram": {
-        "button": "Canale Telegram",
-        "note": "Per chi vuole sapere prima degli altri."
-      },
-      "support": {
-        "button": "Scrivi al laboratorio",
-        "note": "Per ordini — risponde il laboratorio."
-      }
-    },
-    "imageAlt": "Sebo — la mascotte del laboratorio",
-    "backToShop": "← Torna alla vetrina",
-    "pratica": {
-      "eyebrow": "LA PRATICA",
-      "quote": "SEBO non osserva il tatuaggio.\nOsserva la pratica. La sua."
-    },
-    "mondo": {
-      "eyebrow": "IL MONDO DI SEBO",
-      "pellaio": {
-        "name": "IL PELLAIO",
-        "line": "Mi gira verso il muro. Non chiede. Decide. Io subisco."
-      },
-      "arancia": {
-        "name": "L'ARANCIA",
-        "line": "La prima superficie su cui tutti si sono allenati. Ora aspetta sul davanzale."
-      },
-      "corriere": {
-        "name": "IL CORRIERE",
-        "line": "L'unico umano che mi tratta da pacco. Non sbaglia mai."
-      },
-      "scatola": {
-        "name": "LA SCATOLA",
-        "line": "SHIPPING SEAL: INTACT. Dal primo giorno."
-      }
-    },
-    "vitaSegreta": {
-      "eyebrow": "QUANDO NESSUNO GUARDA",
-      "headline": "Il laboratorio apre alle dieci.\nLui è lì dalle sette.",
-      "body": "C'è un rituale prima del lavoro. Uno specchio incrinato, una lametta, nessun testimone. Sebo non lo ha mai raccontato. Non perché sia un segreto — ma perché nessuno ha mai chiesto."
-    }
   },
   "subscription": {
     "hub": {
