@@ -28,6 +28,14 @@ const PUBLIC_PATHS = [
   '/carrello',
   '/checkout',
   '/api/checkout',
+  // Il pannello di revisione prezzi chiama questa rotta quando il checkout
+  // rifiuta per prezzo/fasce non allineate. E' l'unico rimedio a un 400
+  // `prezzo_non_allineato`: lasciandola dietro l'auth, l'ospite (ammesso al
+  // checkout per scelta, vedi sopra) riceveva 307 -> /login e restava
+  // bloccato senza spiegazione. La rotta e' di sola lettura: rilegge il
+  // catalogo e restituisce i prezzi correnti, non crea ordini ne'
+  // PaymentIntent (vedi app/api/cart/prices/route.ts).
+  '/api/cart/prices',
   '/api/vat',
   '/api/stripe',
   // /offerte era rimasta dietro l'auth mentre il banner che ci porta
