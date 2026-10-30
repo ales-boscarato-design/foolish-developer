@@ -4,9 +4,8 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { PROMO_TYPES, PROMO_TYPE_LABELS, isPromoType } from './promoTypes'
 
-// Questo file non gira in CI (i test CMS non sono collegati al workflow): si esegue a
-// mano con `tsx --test src/collections/promoTypes.test.ts`. Serve come guardia di
-// deriva: la lista dei tipi e' l'unica fonte, e gli enum PostgreSQL delle migration
+// Questi test girano in CI con `npm run test` (step "CMS — test"). Servono come guardia
+// di deriva: la lista dei tipi e' l'unica fonte, e gli enum PostgreSQL delle migration
 // devono restare allineati, altrimenti una scrittura valida in app fallisce sul DB.
 
 /** Ogni file di migration che tocca un enum, concatenato: la guardia guarda l'unione. */
