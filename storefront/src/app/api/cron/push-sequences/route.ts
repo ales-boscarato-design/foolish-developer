@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
           body: step.body,
           url: step.url,
         })
-        await markPushSequenceStep(subscriber.email, step.step_key)
+        if (ok) await markPushSequenceStep(subscriber.email, step.step_key)
         if (ok) sent++; else skipped++
       }
     }

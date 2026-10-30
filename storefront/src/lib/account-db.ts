@@ -1,4 +1,10 @@
 import sql from './db'
+import {
+  sqlEndpointOwnership,
+  subscriptionEndpoint,
+  takeEndpointOwnership,
+  type SqlTag,
+} from './push-endpoint'
 
 export interface AccountSubscriber {
   email: string
@@ -64,14 +70,27 @@ export async function savePushSubscription(email: string, subscription: unknown)
   `
   const isFirstTime = !rows[0]?.had_sub
 
-  await sql`
+  const updated = await sql<{ email: string }[]>`
     UPDATE marketing.subscribers
     SET
       push_subscription = ${JSON.stringify(subscription)}::jsonb,
       push_subscribed_at = COALESCE(push_subscribed_at, NOW()),
       updated_at = NOW()
     WHERE email = ${email}
+    RETURNING email
   `
+
+  // Se l'email non esiste piu' (account cancellato, sessione orfana) la UPDATE
+  // non tocca righe: non dobbiamo azzerare la sottoscrizione valida di altri.
+  if (updated.length > 0) {
+    await takeEndpointOwnership(
+      // PendingQuery di postgres.js e' un thenable; il cast e' solo di tipo.
+      sqlEndpointOwnership(sql as unknown as SqlTag),
+      email,
+      subscriptionEndpoint(subscription)
+    )
+  }
+
   return { isFirstTime }
 }
 
