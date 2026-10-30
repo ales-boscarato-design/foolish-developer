@@ -414,6 +414,10 @@ export interface Product {
 export interface Media {
   id: number;
   alt?: string | null;
+  /**
+   * Privato = i byte sono scaricabili solo dal cliente proprietario attraverso lo storefront. Un file collegato a un record "File cliente" con Cliente valorizzato viene marcato privato automaticamente.
+   */
+  visibility: 'public' | 'private';
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -1258,6 +1262,7 @@ export interface CustomersSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
+  visibility?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;

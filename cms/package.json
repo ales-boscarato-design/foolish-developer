@@ -10,7 +10,7 @@
     "build": "payload generate:importmap && next build --webpack",
     "start": "next start --port 3001",
     "generate:types": "payload generate:types",
-    "test": "tsx --test src/lib/order-line-amount.test.ts src/collections/AffiliateConversions.test.ts src/collections/promoTypes.test.ts"
+    "test": "tsx --test src/lib/order-line-amount.test.ts src/collections/AffiliateConversions.test.ts src/collections/promoTypes.test.ts src/collections/mediaAccess.test.ts src/collections/customerFilesHook.test.ts"
   },
   "engines": {
     "node": ">=20.9.0"

@@ -3,7 +3,6 @@ import { getSession } from '@/lib/account-auth'
 import { getWishlist } from '@/lib/account-db'
 import { getAccountLocale, getT } from '@/lib/account-i18n'
 import { WishlistItemActions } from './_components/WishlistItem'
-import { cmsImageUrl } from '@/lib/cms'
 
 interface CustomerFile {
   id: string
@@ -30,8 +29,9 @@ export default async function FilePage() {
     `${cmsUrl}/api/customer-files?where[active][equals]=true&limit=50&depth=1`,
     { headers: { 'x-storefront-secret': process.env.PAYLOAD_API_SECRET! }, cache: 'no-store' }
   )
-  const filesData = filesRes.ok ? await filesRes.json() : { docs: [] }
-  const allFiles: CustomerFile[] = filesData.docs ?? []
+  const filesData = filesRes.ok ? await filesRes.json() : null
+  const filesError = filesData === null
+  const allFiles: CustomerFile[] = filesData?.docs ?? []
   const myFiles = allFiles.filter((f) => !f.customer || f.customer?.email === session.email)
 
   const FILE_ICON: Record<string, string> = { guide: '📄', video: '🎬', resource: '📎' }
@@ -44,21 +44,24 @@ export default async function FilePage() {
       </div>
 
       <div style={{ fontSize: '10px', color: '#555', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
-        {t('files')} ({myFiles.length})
+        {t('files')} ({filesError ? 0 : myFiles.length})
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '20px' }}>
-        {myFiles.length === 0 && (
+        {filesError && (
+          <div style={{ color: '#c96e6e', fontSize: '12px' }}>{t('files_error')}</div>
+        )}
+        {!filesError && myFiles.length === 0 && (
           <div style={{ color: '#555', fontSize: '12px' }}>{t('no_files')}</div>
         )}
-        {myFiles.map((file) => {
-          const fullUrl = cmsImageUrl(file.file?.url)
+        {!filesError && myFiles.map((file) => {
+          const downloadUrl = `/api/account/files/${encodeURIComponent(file.id)}`
           const ext = file.file?.filename?.split('.').pop()?.toUpperCase() ?? ''
           const sizeMb = file.file?.filesize ? (file.file.filesize / 1024 / 1024).toFixed(1) : null
           return (
             <a
               key={file.id}
-              href={fullUrl}
+              href={downloadUrl}
               download
               target="_blank"
               rel="noopener noreferrer"
