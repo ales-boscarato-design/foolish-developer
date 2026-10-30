@@ -333,6 +333,32 @@ function assertOnlyStaticPrecache(harness: Harness): void {
   }
 }
 
+/**
+ * The worker may only keep the static precache, under CACHE_NAME and no other
+ * app cache: checking just CACHE_NAME would miss a page written under a new
+ * name (e.g. 'foolish-pwa-pagine').
+ */
+async function assertOnlyStaticAssetsInEveryAppCache(harness: Harness): Promise<void> {
+  // Cache writes triggered by the response may not be awaited by the worker.
+  await new Promise<void>((resolve) => setImmediate(resolve))
+
+  const appCacheNames = harness.caches.names().filter((name) => name.startsWith('foolish-pwa-'))
+  for (const name of appCacheNames) {
+    for (const key of harness.caches.entriesOf(name)) {
+      assert.ok(
+        PRECACHE_URLS.includes(key),
+        `unexpected cache entry '${key}' found in app cache '${name}'`,
+      )
+    }
+  }
+
+  assert.deepEqual(
+    [...appCacheNames].sort(),
+    [CACHE_NAME],
+    `unexpected app cache(s) besides ${CACHE_NAME}: ${appCacheNames.filter((name) => name !== CACHE_NAME).join(', ')}`,
+  )
+}
+
 test('install succeeds for an unauthenticated visitor and never precaches a redirecting page', async () => {
   const harness = createHarness({
     fetch: (request) => {
@@ -382,8 +408,10 @@ test('offline navigations always get the neutral static page, even after /accoun
   const onlineNavigation = harness.dispatch('fetch', { request: navigate('/account') })
   const onlineResponse = await onlineNavigation.response()
   assert.match(await onlineResponse.text(), /UTENTE-A/)
-  // Network-first: the personal navigation response was not stored.
+  // Network-first: the personal navigation response was not stored, in the
+  // current cache or under any other 'foolish-pwa-*' name.
   assertOnlyStaticPrecache(harness)
+  await assertOnlyStaticAssetsInEveryAppCache(harness)
 
   online = false
   const orders = harness.dispatch('fetch', { request: navigate('/it/ordini') })
@@ -520,6 +548,7 @@ test('an online navigation uses the network without writing cache; non-navigatio
   assert.match(await response.text(), /RETE \/it\/prodotti/)
   assert.equal(harness.fetchCalls.length, callsAfterInstall + 1)
   assertOnlyStaticPrecache(harness)
+  await assertOnlyStaticAssetsInEveryAppCache(harness)
 
   const apiRequest = harness.dispatch('fetch', {
     request: { url: `${ORIGIN}/api/account/profile`, mode: 'cors' },
