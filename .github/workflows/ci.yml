@@ -99,6 +99,10 @@ jobs:
         working-directory: cms
         run: npx tsc --noEmit
 
+      - name: CMS — test
+        working-directory: cms
+        run: npm run test --silent
+
       - name: CMS — build (genera import map e tipi)
         working-directory: cms
         run: npm run build
