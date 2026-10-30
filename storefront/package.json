@@ -20,7 +20,8 @@
     "test:landed-cost": "tsx --test src/lib/landed-cost.test.ts",
     "test:landed-cost-display": "tsx --test src/lib/landed-cost-display.test.ts",
     "test:spedizione-quote": "tsx --test src/app/api/spedizione/quote/route.test.ts",
-    "test:laboratorio": "tsx --test src/lib/laboratorio.test.ts"
+    "test:laboratorio": "tsx --test src/lib/laboratorio.test.ts",
+    "test:sebo-retirement": "tsx --test src/lib/sebo-retirement.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
