@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { unsubscribePushOnLogout } from '@/lib/push-logout'
 
 interface ProfileLabels {
   whoAreYou: string; preferredStyle: string; commLanguage: string; notifications: string
@@ -89,6 +90,7 @@ export function ProfileForm({ level, styles, locale, notifyOrders, notifyNewBatc
   }
 
   async function logout() {
+    await unsubscribePushOnLogout()
     await fetch('/api/account/logout', { method: 'POST' })
     router.push('/account/login')
   }
