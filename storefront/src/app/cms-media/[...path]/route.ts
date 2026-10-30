@@ -53,7 +53,12 @@ export async function GET(
       status: res.status,
       upstream,
     })
-    return new NextResponse(null, { status: res.status })
+    // Un file privato negato dal CMS non deve essere memorizzato: nessuna cache pubblica
+    // sulle risposte di errore (il corpo e' vuoto, lo status passa al client).
+    return new NextResponse(null, {
+      status: res.status,
+      headers: { 'cache-control': 'no-store' },
+    })
   }
 
   const headers = new Headers()

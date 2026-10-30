@@ -20,7 +20,17 @@ export const Media: CollectionConfig = {
     group: 'Catalogo',
   },
   access: {
-    read: () => true,
+    // Un file marcato `private` e' un documento di un singolo cliente: i suoi byte non
+    // devono essere pubblici. Payload applica questo access anche all'endpoint
+    // /api/media/file/:filename (uploads/checkFileAccess.js): se la funzione ritorna un
+    // where constraint il documento viene cercato con quel vincolo e la risposta e' 403
+    // quando non combacia. Ritornare `true` invece NON aggiunge alcun vincolo e serve i byte.
+    // Catalogo e immagini pubbliche restano leggibili da chiunque (visibility = 'public').
+    read: ({ req }) => {
+      if (req.user) return true
+      if (hasStorefrontSecret(req)) return true
+      return { visibility: { not_equals: 'private' } }
+    },
     create: ({ req }) => {
       if (req.user) return true
       return hasStorefrontSecret(req)
@@ -51,6 +61,23 @@ export const Media: CollectionConfig = {
       name: 'alt',
       type: 'text',
       label: 'Testo alternativo',
+    },
+    {
+      name: 'visibility',
+      type: 'select',
+      required: true,
+      defaultValue: 'public',
+      index: true,
+      label: 'Visibilita',
+      options: [
+        { label: 'Pubblico (catalogo, sito)', value: 'public' },
+        { label: 'Privato (documento di un cliente)', value: 'private' },
+      ],
+      admin: {
+        description:
+          'Privato = i byte sono scaricabili solo dal cliente proprietario attraverso lo storefront. ' +
+          'Un file collegato a un record "File cliente" con Cliente valorizzato viene marcato privato automaticamente.',
+      },
     },
   ],
 }
