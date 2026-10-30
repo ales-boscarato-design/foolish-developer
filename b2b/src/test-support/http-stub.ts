@@ -45,6 +45,12 @@ export interface StubState {
    * gia' accettato la creazione.
    */
   stripeTimeoutAfterRegister: boolean
+  /** Numero di PATCH /api/orders che devono fallire con 500. */
+  cmsPatchFailures: number
+  /** Orologio del provider Stripe in ms (default: orologio reale). */
+  stripeClockMs: number
+  /** TTL della chiave di idempotenza Stripe: 24 ore, come il provider vero. */
+  stripeIdempotencyKeyTtlMs: number
   viesRequests: number
 }
 
@@ -66,6 +72,9 @@ export const stubState: StubState = {
   stripeIntentResponses: [],
   stripeIdempotencyKeys: [],
   stripeTimeoutAfterRegister: false,
+  cmsPatchFailures: 0,
+  stripeClockMs: Date.now(),
+  stripeIdempotencyKeyTtlMs: 24 * 60 * 60 * 1000,
   viesRequests: 0,
 }
 
@@ -87,8 +96,22 @@ export function resetStub(): void {
   stubState.stripeIntentResponses = []
   stubState.stripeIdempotencyKeys = []
   stubState.stripeTimeoutAfterRegister = false
+  stubState.cmsPatchFailures = 0
+  stubState.stripeClockMs = Date.now()
+  stubState.stripeIdempotencyKeyTtlMs = 24 * 60 * 60 * 1000
   stubState.viesRequests = 0
   stripeIntentsByIdempotencyKey.clear()
+  stripeIntentsById.clear()
+}
+
+/** Avanza l'orologio del provider: serve a far scadere la chiave di idempotenza. */
+export function advanceStripeClock(ms: number): void {
+  stubState.stripeClockMs += ms
+}
+
+/** Riporta l'orologio del provider all'ora reale. */
+export function resetStripeClock(): void {
+  stubState.stripeClockMs = Date.now()
 }
 
 /** Marca un ordine come pagato, per esercitare il ramo `ordine_gia_pagato`. */
@@ -96,6 +119,14 @@ export function markOrderPaid(orderNumber: string): void {
   const order = stubState.cmsOrders.find((doc) => doc.orderNumber === orderNumber)
   if (!order) throw new Error(`stub: ordine ${orderNumber} non trovato`)
   order.paymentStatus = 'paid'
+  // Fedelta' col provider: un ordine pagato ha la sua PaymentIntent riuscita.
+  // Se la intent non e' collegata (bug che il test deve vedere) non si inventa
+  // nulla: l'ordine resta paid e l'intent resta nello stato in cui era.
+  const linkedId = order.stripePaymentIntentId
+  if (typeof linkedId === 'string') {
+    const stored = stripeIntentsById.get(linkedId)
+    if (stored) stored.intent.status = 'succeeded'
+  }
 }
 
 /** Cambia i campi di un ordine per simulare un documento CMS divergente. */
@@ -106,11 +137,48 @@ export function patchStoredOrder(orderNumber: string, patch: Record<string, unkn
 }
 
 /** La mappa chiave -> PaymentIntent vive nel provider, non nel codice applicativo. */
-const stripeIntentsByIdempotencyKey = new Map<string, Record<string, unknown>>()
+interface StoredStripeIntent {
+  intent: Record<string, unknown>
+  createdAtMs: number
+}
+
+const stripeIntentsByIdempotencyKey = new Map<string, StoredStripeIntent>()
+const stripeIntentsById = new Map<string, StoredStripeIntent>()
 
 export function resetStripeIntents(): void {
   stripeIntentsByIdempotencyKey.clear()
+  stripeIntentsById.clear()
 }
+
+/**
+ * Pilota lo stato di una PaymentIntent gia' creata, come farebbe il provider
+ * dopo un tentativo di pagamento (processing, succeeded, canceled, ...).
+ */
+export function patchStripeIntent(
+  id: string,
+  patch: { status?: string; latest_charge?: unknown; paid?: boolean },
+): void {
+  const stored = stripeIntentsById.get(id)
+  if (!stored) throw new Error(`stub: PaymentIntent ${id} non trovata`)
+  Object.assign(stored.intent, patch)
+}
+
+/**
+ * Come Stripe: `latest_charge` e' un id stringa finche' non viene espanso.
+ * L'app deve chiedere `expand: ['latest_charge']` per leggerne lo stato.
+ */
+function intentForResponse(stored: StoredStripeIntent, expandLatestCharge: boolean): Record<string, unknown> {
+  const intent = stored.intent
+  const charge = intent.latest_charge
+  if (!expandLatestCharge) {
+    return charge && typeof charge === 'object'
+      ? { ...intent, latest_charge: (charge as Record<string, unknown>).id ?? null }
+      : intent
+  }
+  if (!charge || typeof charge !== 'object') return { ...intent, latest_charge: null }
+  return intent
+}
+
 
 let server: Server | undefined
 let baseUrl = ''
@@ -187,6 +255,48 @@ async function handler(req: IncomingMessage, res: ServerResponse): Promise<void>
     return sendJson(res, 200, doc)
   }
 
+  const orderPatch = url.pathname.match(/^\/api\/orders\/([^/]+)$/)
+  if (orderPatch && req.method === 'PATCH') {
+    // Interruttore per riprodurre la caduta fra creazione e collegamento.
+    if (stubState.cmsPatchFailures > 0) {
+      stubState.cmsPatchFailures -= 1
+      return sendJson(res, 500, { error: 'stub: PATCH ordine fallita' })
+    }
+    const orderId = decodeURIComponent(orderPatch[1])
+    const doc = stubState.cmsOrders.find((order) => String(order.id) === orderId)
+    if (!doc) return sendJson(res, 404, { error: 'ordine non trovato' })
+    const patch = raw ? JSON.parse(raw) as Record<string, unknown> : {}
+    // Il `unique: true` del campo: lo stesso PaymentIntent non puo' stare
+    // su due ordini. Riscrivere lo stesso valore e' idempotente.
+    if (typeof patch.stripePaymentIntentId === 'string') {
+      const duplicate = stubState.cmsOrders.find(
+        (order) => order !== doc && order.stripePaymentIntentId === patch.stripePaymentIntentId,
+      )
+      if (duplicate) return sendJson(res, 409, { error: 'stripePaymentIntentId deve essere unico' })
+    }
+    Object.assign(doc, patch)
+    return sendJson(res, 200, doc)
+  }
+
+  const stripeIntentGet = url.pathname.match(/^\/stripe\/v1\/payment_intents\/([^/]+)$/)
+  if (stripeIntentGet && req.method === 'GET') {
+    const id = decodeURIComponent(stripeIntentGet[1])
+    const stored = stripeIntentsById.get(id)
+    if (!stored) {
+      return sendJson(res, 404, {
+        error: {
+          type: 'invalid_request_error',
+          code: 'resource_missing',
+          message: `No such payment_intent: '${id}'`,
+        },
+      })
+    }
+    // L'SDK serializza `expand: ['latest_charge']` come `expand[0]=latest_charge`.
+    const expandLatestCharge = [...url.searchParams.entries()]
+      .some(([name, value]) => name.startsWith('expand') && value === 'latest_charge')
+    return sendJson(res, 200, intentForResponse(stored, expandLatestCharge))
+  }
+
   if (url.pathname === '/vies' && req.method === 'POST') {
     stubState.viesRequests += 1
     if (stubState.viesStatus !== 200) return sendJson(res, stubState.viesStatus, { error: 'vies giu' })
@@ -202,10 +312,17 @@ async function handler(req: IncomingMessage, res: ServerResponse): Promise<void>
     stubState.stripeIdempotencyKeys.push(key)
 
     // Il provider ricorda la chiave: la stessa chiave restituisce la stessa
-    // PaymentIntent senza crearne una seconda.
+    // PaymentIntent senza crearne una seconda. Ma la memoria non e' eterna:
+    // dopo il TTL (24h) la chiave e' come assente.
     if (key) {
       const existing = stripeIntentsByIdempotencyKey.get(key)
-      if (existing) return sendJson(res, 200, existing)
+      if (existing) {
+        const age = stubState.stripeClockMs - existing.createdAtMs
+        if (age <= stubState.stripeIdempotencyKeyTtlMs) {
+          return sendJson(res, 200, intentForResponse(existing, false))
+        }
+        stripeIntentsByIdempotencyKey.delete(key)
+      }
     }
 
     const id = `pi_test_${stubState.stripeIntents.length + 1}`
@@ -216,12 +333,15 @@ async function handler(req: IncomingMessage, res: ServerResponse): Promise<void>
       currency: params.currency ?? 'eur',
       client_secret: `${id}_secret_test`,
       status: 'requires_payment_method',
-      created: 1,
+      created: Math.floor(stubState.stripeClockMs / 1000),
+      latest_charge: null,
       livemode: false,
     }
+    const stored: StoredStripeIntent = { intent, createdAtMs: stubState.stripeClockMs }
     stubState.stripeIntents.push(params)
     stubState.stripeIntentResponses.push(intent)
-    if (key) stripeIntentsByIdempotencyKey.set(key, intent)
+    stripeIntentsById.set(id, stored)
+    if (key) stripeIntentsByIdempotencyKey.set(key, stored)
 
     if (stubState.stripeTimeoutAfterRegister) {
       // La intent esiste gia' nel provider; e' solo la risposta a perdersi.

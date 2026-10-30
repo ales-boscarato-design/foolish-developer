@@ -4,11 +4,11 @@ import { NextResponse } from 'next/server'
 import type { B2BSession } from './auth'
 import { getServerSession } from './auth'
 import { createB2BUser, ensureB2BAuthTable, findB2BUserByEmail } from './db-auth'
-import { createB2BOrder, type B2BPaymentMethod, type CmsOrder } from './cms-orders'
+import { createB2BOrder, linkB2BPaymentIntent, type B2BPaymentMethod, type CmsOrder } from './cms-orders'
 import { fetchResellerCatalog, type ResellerProduct } from './cms'
 import { resolveAuthoritativeLines, type ResolvedLine } from './b2b-pricing'
 import { calculateResellerShipping, shippingQuoteNote, type ResellerShippingResult } from './shipping'
-import { createOrderPaymentIntent, realStripeIntentDeps } from './stripe-intents'
+import { ensureOrderPaymentIntent, realStripeIntentDeps, type IntentOutcome } from './stripe-intents'
 import { checkVatNumber, type ViesResult } from './vies'
 import {
   canonicalDocumentField,
@@ -37,7 +37,8 @@ export interface CheckoutDeps {
     orderId: string | number
     orderNumber: string
     resellerEmail: string
-  }) => Promise<{ client_secret: string | null }>
+    existingIntentId: string | null
+  }) => Promise<IntentOutcome>
 }
 
 /** Il blocco ospite di sempre: anagrafica creata dall'ordine, mai bloccante. */
@@ -59,7 +60,7 @@ export const realCheckoutDeps: CheckoutDeps = {
   getServerSession,
   checkVatNumber,
   ensureB2BAccount: ensureGuestB2BAccount,
-  createPaymentIntent: (args) => createOrderPaymentIntent(args, realStripeIntentDeps()),
+  createPaymentIntent: (args) => ensureOrderPaymentIntent(args, realStripeIntentDeps()),
 }
 
 /**
@@ -546,25 +547,53 @@ export async function handleCreateIntent(req: Request, deps: CheckoutDeps): Prom
   }
 
   // Pagato o non coerente: si ferma qui, senza toccare Stripe. Il riuso di
-  // un ordine pendente procede e la stessa idempotency key del provider
-  // restituisce la PaymentIntent gia' creata.
+  // un ordine pendente procede: l'id della PaymentIntent gia' memorizzato
+  // sull'ordine e' la fonte di verita', non la memoria di idempotenza Stripe.
   const conflict = existingOrderConflict(existing, identity, totalCents, 'stripe', notes)
   if (conflict) return conflict
 
+  const existingIntentId = existing?.stripePaymentIntentId ?? null
+
+  let outcome: IntentOutcome
   try {
-    const paymentIntent = await deps.createPaymentIntent({
+    outcome = await deps.createPaymentIntent({
       amountCents,
       orderId,
       orderNumber,
       resellerEmail: email,
-    })
-    return NextResponse.json({
-      clientSecret: paymentIntent.client_secret,
-      orderId,
-      orderNumber,
+      existingIntentId,
     })
   } catch (err) {
-    console.error('[b2b-checkout] stripe.paymentIntents.create failed (orderId=%s):', orderId, err)
+    console.error('[b2b-checkout] stripe payment intent failed (orderId=%s):', orderId, err)
     return errorResponse(502, 'Errore pagamento')
   }
+
+  if (outcome.kind === 'already_paid') {
+    return errorResponse(409, 'ordine_gia_pagato')
+  }
+
+  // Il segreto si consegna solo per una intent che l'ordine conosce. Se il
+  // collegamento cade, la intent non e' pagabile da nessuno (il segreto non
+  // e' mai uscito): 502, e il retry la ritrova e la collega.
+  if (existingIntentId !== outcome.intentId) {
+    try {
+      await linkB2BPaymentIntent({
+        orderNumber,
+        paymentIntentId: outcome.intentId,
+        // Solo un id che `ensureOrderPaymentIntent` ha appena verificato
+        // annullato e senza addebito puo' essere sostituito. Senza questa
+        // dichiarazione esplicita, un id diverso resta un errore.
+        ...(existingIntentId ? { replaceIntentId: existingIntentId } : {}),
+      })
+    } catch (err) {
+      console.error('[b2b-checkout] PaymentIntent link failed (orderId=%s):', orderId, err)
+      return errorResponse(502, 'Errore pagamento')
+    }
+  }
+
+  return NextResponse.json({
+    clientSecret: outcome.clientSecret,
+    orderId,
+    orderNumber,
+  })
 }
