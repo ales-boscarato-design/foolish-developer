@@ -57,6 +57,7 @@ test('B2B orders use Payload fields and normalize line items for CMS hooks', () 
       variantLabel: 'Grande',
       quantity: 2,
       unitPrice: 10,
+      lineTotalCents: 2000,
     }],
     total: 25,
     shippingCost: 5,
@@ -126,4 +127,69 @@ test('Stripe retry updates the existing Payload order through PATCH and stores s
     paymentStatus: 'paid',
     stripePaymentIntentId: 'pi_123',
   })
+})
+
+
+// --- invariant: riga CMS e totale ordine non divergono ----------------------
+
+test('50 pezzi a 8.125: unitPrice esatto, lineTotalCents 40625, email 406.25', () => {
+  const payload = toPayloadOrder({
+    ...input,
+    lineItems: [{
+      productName: 'Stencil',
+      variantSku: 'ST-01',
+      variantLabel: 'Grande',
+      qty: 50,
+      unitPrice: 10,
+      priceTiers: [{ minQty: 50, maxQty: null, discountPercent: 18.75 }],
+    }],
+    total: 406.25,
+    shippingCost: 0,
+  })
+  const item = (payload.lineItems as Array<Record<string, number>>)[0]
+  assert.equal(item.unitPrice, 8.125)
+  assert.equal(item.quantity, 50)
+  assert.equal(item.lineTotalCents, 40625)
+  assert.equal(item.unitPrice * item.quantity, 406.25)
+  assert.equal(Math.round(item.unitPrice * item.quantity * 100), item.lineTotalCents)
+  assert.equal((item.unitPrice * item.quantity).toFixed(2), '406.25')
+  assert.equal(Number((item.unitPrice * item.quantity).toFixed(2)), payload.total)
+})
+
+test('una riga da 0.01 con fascia 50% vale un centesimo, non zero', () => {
+  const payload = toPayloadOrder({
+    ...input,
+    lineItems: [{
+      productName: 'Stencil',
+      variantSku: 'ST-01',
+      variantLabel: 'Grande',
+      qty: 1,
+      unitPrice: 0.01,
+      priceTiers: [{ minQty: 1, maxQty: null, discountPercent: 50 }],
+    }],
+    total: 0.01,
+    shippingCost: 0,
+  })
+  const item = (payload.lineItems as Array<Record<string, number>>)[0]
+  assert.equal(item.lineTotalCents, 1)
+  assert.equal(Math.round(item.unitPrice * item.quantity * 100), item.lineTotalCents)
+})
+
+test('due righe da 0.01 al 50% sommano 2 centesimi di prodotti', () => {
+  const line = {
+    productName: 'Stencil',
+    variantSku: 'ST-01',
+    variantLabel: 'Grande',
+    qty: 1,
+    unitPrice: 0.01,
+    priceTiers: [{ minQty: 1, maxQty: null, discountPercent: 50 }],
+  }
+  const payload = toPayloadOrder({
+    ...input,
+    lineItems: [line, line],
+    total: 0.02,
+    shippingCost: 0,
+  })
+  const items = payload.lineItems as Array<Record<string, number>>
+  assert.equal(items.reduce((sum, item) => sum + item.lineTotalCents, 0), 2)
 })
