@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { resolveCheckoutCatalog } from '@/lib/catalog'
-import { shouldMarkAffiliateCheckoutPromo } from '@/lib/affiliate-checkout-marker'
+import {
+  shouldMarkAffiliateCheckoutPromo,
+  type AffiliateCheckoutMarker,
+} from '@/lib/affiliate-checkout-marker'
 import {
   AFFILIATE_REFERRAL_COOKIE,
   normalizeAffiliateSlug,
@@ -18,6 +21,7 @@ import {
   normalizeCheckoutItems,
   parsePromoCodes,
   type PromoRecord,
+  type ValidatedPromo,
 } from '@/lib/promo'
 import { getShippingZone, isFreeShippingPromoAllowed, shippingRequiresQuote } from '@/lib/shipping'
 import { resolveExtraEuShipping } from '@/lib/landed-cost'
@@ -30,6 +34,22 @@ export const dynamic = 'force-dynamic'
 
 const STOREFRONT_URL = process.env.STOREFRONT_URL || 'https://thefoolishbutcher.com'
 const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
+
+export function buildPaymentIntentMetadata(
+  sessionMetadata: Record<string, string>,
+  affiliateMarker: AffiliateCheckoutMarker | null,
+  promo: ValidatedPromo | null,
+): Record<string, string> {
+  const metadata: Record<string, string> = {
+    order_ref: sessionMetadata.order_ref,
+  }
+  if (affiliateMarker && promo) {
+    metadata.affiliate_id = String(affiliateMarker.affiliateId)
+    metadata.affiliate_slug = affiliateMarker.affiliateSlug
+    metadata.affiliate_promo_code = affiliateMarker.affiliatePromoCode
+  }
+  return metadata
+}
 
 async function assertCMSOrderAccess(): Promise<void> {
   const secret = process.env.PAYLOAD_API_SECRET
@@ -327,17 +347,9 @@ export async function POST(req: NextRequest) {
       success_url: `${STOREFRONT_URL}/grazie?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${STOREFRONT_URL}/checkout`,
       metadata: sessionMetadata,
-      ...(shouldMarkAffiliate && promo
-        ? {
-            payment_intent_data: {
-              metadata: {
-                affiliate_id: String(shouldMarkAffiliate.affiliateId),
-                affiliate_slug: shouldMarkAffiliate.affiliateSlug,
-                affiliate_promo_code: shouldMarkAffiliate.affiliatePromoCode,
-              },
-            },
-          }
-        : {}),
+      payment_intent_data: {
+        metadata: buildPaymentIntentMetadata(sessionMetadata, shouldMarkAffiliate, promo),
+      },
     })
 
     return NextResponse.json({ checkoutUrl: session.url })
