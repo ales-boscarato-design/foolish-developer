@@ -4,6 +4,7 @@ import { getSession } from '@/lib/account-auth'
 import { getAccountLocale, getT } from '@/lib/account-i18n'
 import Link from 'next/link'
 import { PwaInstallBanner } from './_components/PwaInstallBanner'
+import { PushEndpointClaim } from './_components/PushEndpointClaim'
 
 export const metadata: Metadata = {
   manifest: '/manifest.json',
@@ -24,6 +25,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
         }}
       />
       <PwaInstallBanner />
+      <PushEndpointClaim />
       <main style={{ flex: 1, overflowY: 'auto', paddingBottom: '60px' }}>
         {children}
       </main>

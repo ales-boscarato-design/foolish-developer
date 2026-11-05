@@ -1,4 +1,11 @@
 import sql from './db'
+import {
+  sqlEndpointOwnership,
+  subscriptionEndpoint,
+  takeEndpointOwnership,
+  type EndpointOwnership,
+  type SqlTag,
+} from './push-endpoint'
 
 export interface AccountSubscriber {
   email: string
@@ -64,15 +71,38 @@ export async function savePushSubscription(email: string, subscription: unknown)
   `
   const isFirstTime = !rows[0]?.had_sub
 
-  await sql`
+  const updated = await sql<{ email: string }[]>`
     UPDATE marketing.subscribers
     SET
       push_subscription = ${JSON.stringify(subscription)}::jsonb,
       push_subscribed_at = COALESCE(push_subscribed_at, NOW()),
       updated_at = NOW()
     WHERE email = ${email}
+    RETURNING email
   `
+
+  // Se l'email non esiste piu' (account cancellato, sessione orfana) la UPDATE
+  // non tocca righe: non dobbiamo azzerare la sottoscrizione valida di altri.
+  if (updated.length > 0) {
+    await takeEndpointOwnership(
+      // PendingQuery di postgres.js e' un thenable; il cast e' solo di tipo.
+      sqlEndpointOwnership(sql as unknown as SqlTag),
+      email,
+      subscriptionEndpoint(subscription)
+    )
+  }
+
   return { isFirstTime }
+}
+
+/** Azzera la sottoscrizione push dell'utente che esce: il dispositivo non deve
+ *  continuare a ricevere i suoi dati personali dopo il logout. */
+export async function clearPushSubscription(email: string): Promise<void> {
+  await sql`
+    UPDATE marketing.subscribers
+    SET push_subscription = NULL, updated_at = NOW()
+    WHERE email = ${email} AND push_subscription IS NOT NULL
+  `
 }
 
 export async function markPushSequenceStep(email: string, stepKey: string): Promise<void> {
@@ -96,6 +126,20 @@ export async function getSubscribersForSequence(): Promise<Array<{
       AND push_subscribed_at IS NOT NULL
       AND status = 'active'
   `
+}
+
+/**
+ * D3: all'apertura della sessione, l'endpoint presente nel browser non appartiene
+ * piu' ad altre email. Non scrive l'iscrizione di `email`: nessuno viene iscritto
+ * senza consenso. `ownership` esiste per i test; in produzione e' l'adattatore SQL.
+ */
+export async function claimBrowserEndpoint(
+  email: string,
+  endpoint: string,
+  ownership?: EndpointOwnership
+): Promise<string[]> {
+  const o = ownership ?? sqlEndpointOwnership(sql as unknown as SqlTag)
+  return takeEndpointOwnership(o, email, subscriptionEndpoint({ endpoint }))
 }
 
 export async function getWishlist(email: string): Promise<WishlistItem[]> {

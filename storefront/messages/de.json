@@ -233,7 +233,7 @@
     "frank": {
       "eyebrow": "DAS LABOR",
       "headline": "Da ist jemand im Labor.",
-      "body": "Es ist der Häuter. Jedes Blatt, das von hier kommt, hat er bereits angefasst, gerochen, beurteilt. Hüter der lebenden Häute seit 2012. Billige Skins nennt er 'Lügner.'",
+      "body": "Es ist der Häuter. Jedes Blatt, das von hier kommt, hat er bereits angefasst, gerochen, beurteilt. Hüter der Häute seit 2012. Eine Haut, die die Farbe nicht hält, kommt nicht über die Werkbank.",
       "cta_short": "Die Werkstatt betreten"
     }
   },
@@ -416,7 +416,7 @@
       "line1": "Frank ist keine Figur. Er ist eine Konsequenz.",
       "line2": "Seit 2012, als das Labor mit der Produktion begann, musste jemand aufpassen. Jemand mit den richtigen Brillen, um zu sehen, was andere übersehen. Mit der falschen Geduld für alles andere.",
       "line3": "Schwarzes Haar mit weißen Strähnen. Dichter Bart. Spitze Ohren. Lederschürze voller unbekannter Gegenstände. Eine Kaffeetasse, die sich nie leert — er nennt sie Caffè Turbo.",
-      "line4": "Er spricht mit den Skins. Studiert sie wie lebende Wesen. Billige Skins nennt er 'Lügner.' Sie hier nicht zu verkaufen war seine Idee.",
+      "line4": "Er spricht mit den Häuten. Er studiert sie eine nach der anderen: Poren, Stärken, Schichten. Eine Haut, die die Farbe nicht hält, kommt nicht rein: das ist seine Regel, keine Kampagne.",
       "quote": "Wenn du Fragen zu deiner Bestellung hast — Frank antwortet. Er ist nicht nett. Aber er ist präzise."
     },
     "obsessions": {
@@ -432,23 +432,23 @@
     "backToShop": "← Zurück zum Shop",
     "eyebrow": "DAS LABOR",
     "headline": "Da ist jemand im Labor.",
-    "body": "Nicht Alessandro. Aber jedes Blatt, das von hier kommt, hat er bereits angefasst, gerochen, beurteilt. Billige Skins nennt er 'Lügner.'",
+    "body": "Nicht Alessandro. Aber jedes Blatt, das von hier kommt, hat er bereits angefasst, gerochen, beurteilt. Eine Haut, die die Farbe nicht hält, kommt nicht über die Werkbank.",
     "cta_short": "Frank treffen"
   },
   "laboratorio": {
     "meta": {
-      "description": "Der Häuter. Hüter der lebenden Häute. Er spürt sie atmen, schwitzen, heilen. Er schläft nicht: er wacht über sie."
+      "description": "Der Häuter. Hüter echter Übungshäute. Er kennt sie Pore für Pore, Schicht für Schicht. Er schläft nicht: er wacht über sie."
     },
     "hero": {
       "eyebrow": "DIE WERKSTATT · CHIERI (TO)",
-      "sub": "Der Häuter. Er spricht zu den Häuten. Spürt sie atmen."
+      "sub": "Der Häuter. Er spricht zu den Häuten. Er kennt jede Pore einzeln."
     },
     "lore": {
       "eyebrow": "WER IST DER HÄUTER",
       "p1": "Der Häuter ist kein Charakter. Er ist eine Konsequenz.",
       "p2": "Seit 2012, seit die Werkstatt ihre Häute herstellt, musste jemand bei ihnen bleiben und über sie wachen. Der Häuter ist dieser Jemand — der Hüter, den jede echte Handwerkswerkstatt in sich trägt.",
-      "p3": "Zwölf Jahre Werkstattdämpfe, Katalyse, zu lange eingeatmete Haut. Er weiß nicht mehr, wo die Werkstatt endet und er beginnt. Er macht sie. Er wacht die zwölf Stunden der Katalyse über sie. Er lässt sie erst gehen, wenn er sicher ist, dass sie lebendig sind.",
-      "p4": "Für den Häuter sind die Häute lebendig. Sie atmen durch die Poren, schwitzen Tinte aus, die sie nicht verdienen zu behalten, und heilen — wenn man sich um sie kümmert. Billige Häute nennt er \"tot\", \"Lügner\": sie nicht hier zu verkaufen war sein Kampf. \"Eine Leiche heilt nicht\", sagt er. \"Die Wunde bleibt für immer offen. Meine Haut schließt sich.\"",
+      "p3": "Zwölf Jahre Werkstattdämpfe, Katalyse, Flock, der fällt, wohin er will. Er weiß nicht mehr, wo die Werkstatt endet und er beginnt. Er macht sie. Er wacht die zwölf Stunden der Katalyse über sie. Er lässt sie erst gehen, wenn er sicher ist, dass sie halten.",
+      "p4": "Für den Häuter ist eine Haut nicht lebendig: sie ist gut gemacht. Sie hat echte Poren — keine gezeichneten, keine gedruckten — und deshalb hält der Transfer und die überschüssige Farbe geht von selbst. Sie heilt nicht, sie regeneriert sich nicht: sie hält und sie gibt ab, und genau das braucht man in der Praxis. „Wer dir erzählt, eine Haut heile, verkauft dir ein Märchen\", sagt er. „Meine heilt nicht. Meine funktioniert.\"",
       "quote": "Man tätowiert nicht, sagt er. Man verehrt. Heilige Haut."
     },
     "obsessions": {
@@ -466,8 +466,8 @@
         "quote": "Zwölf Stunden. Die Haut wird langsam geboren und die Flocks setzen sich, wo sie hingehören. Wer es eilig hat, verdient die Haut nicht."
       },
       "pelleViva": {
-        "label": "DIE LEBENDE HAUT",
-        "quote": "Sie atmet. Sie schwitzt Tinte aus, die nicht bleiben soll. Und sie heilt, wenn du sie pflegst. Willst du wissen, ob eine Haut lebt? Lass sie heilen. Eine echte schließt sich. Eine Leiche bleibt, wie sie ist."
+        "label": "DIE SCHICHTEN",
+        "quote": "Farbe streiche ich nicht: ich lege sie ab. Schicht für Schicht, und jede Schicht ist sichtbar. Deshalb lesen sich die Lasierungen, und deshalb sieht man nicht hindurch: man sieht hinein. Wer «transparent» sagt, hat noch nie eine echte Haut in der Hand gehalten."
       }
     },
     "cta": {
