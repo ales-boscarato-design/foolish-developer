@@ -442,85 +442,68 @@
     },
     "intro": {
       "eyebrow": "Wer er ist",
-      "p1": "Niemand weiß genau, wann er gekommen ist.",
-      "p2": "Manche sagen, er sei nach einer besonders langen Nacht aufgetaucht; andere, er sei schon immer da gewesen, unter der alten Tischlerbank.",
-      "p3": "Eines ist sicher: Eines Tages sagte jemand, für diese Werkstatt bräuchte man mindestens sechs Leute.",
-      "p4": "Am nächsten Morgen war der Häuter da. Nicht sechs Leute. Einer, mit sechs Garderobenwechseln."
+      "p1": "Niemand weiß, wann er gekommen ist. Manche sagen nach einer zu langen Nacht, andere, er sei schon immer da gewesen, unter der Tischlerbank.",
+      "p2": "Eines Tages sagte jemand, für diese Werkstatt bräuchte man mindestens sechs Leute. Am nächsten Morgen war der Häuter da. Nicht sechs Leute: einer, mit sechs Garderobenwechseln.",
+      "p3": "Die Welt um ihn ist echt — roter Backstein, weiße Tische, Holzformen. Er ist derjenige, der fünfundsiebzig Zentimeter groß ist und dieselben Dinge aus einer anderen Höhe sieht."
     },
-    "scale": {
-      "eyebrow": "Der Maßstab",
-      "p1": "Die Welt um ihn ist echt: roter Backstein, hohe Decken, riesige weiße Tische, Holzformen, Regale voller Hände und Arme.",
-      "p2": "Er nicht.",
-      "p3": "Für ihn ist ein Gusstisch eine Fläche, die man überquert. Eine Form ist eine außergewöhnliche Maschine. Ein A3-Blatt ist ein gigantisches Wesen, das gezähmt werden muss, und das Monokel ist das wichtigste Instrument, das je erfunden wurde — zumindest seiner Meinung nach.",
-      "p4": "Er ist kein Zauberer und lebt nicht in einer anderen Dimension. Er arbeitet hier. Er sieht dieselben Dinge aus einer anderen Höhe."
-    },
-    "staff": {
-      "eyebrow": "Die sechs Abteilungen",
-      "boardLabel": "TODAY'S STAFF",
-      "intro": "Die Tafel des Schichtplans ändert sich nie. Sechs Namen. Ein Angestellter.",
-      "items": {
-        "warehouse": {
-          "role": "LAGER",
-          "trait": "",
-          "quote": "„Wenn es kaputt angekommen ist, war es vor mir kaputt. Aber ich unterschreibe.\"",
-          "aside": ""
+    "giornata": {
+      "eyebrow": "Ein Tag",
+      "intro": "Das ist keine Serie. Das ist ein Dienstag.",
+      "items": [
+        {
+          "ora": "07:12",
+          "ruolo": "Lager",
+          "testo": "Er lädt aus, er unterschreibt, er beschwert sich."
         },
-        "secretary": {
-          "role": "SEKRETARIAT",
-          "trait": "",
-          "quote": "„Drei Mails. Keine Antwort. Ich habe sie geschrieben. Ich habe sie gelesen.\"",
-          "aside": ""
+        {
+          "ora": "09:40",
+          "ruolo": "Sekretariat",
+          "testo": "Drei Mails, keine Antwort. Er hat sie geschrieben."
         },
-        "callCentre": {
-          "role": "CALL CENTER",
-          "trait": "",
-          "quote": "„Ihr Anliegen ist uns sehr wichtig.\"",
-          "aside": "(Ich bin uns.)"
+        {
+          "ora": "11:05",
+          "ruolo": "Call Center",
+          "testo": "„Ihr Anliegen ist uns sehr wichtig.\" Stimmt: er ist der Einzige, der antwortet."
         },
-        "chemist": {
-          "role": "CHEMIE / F&E",
-          "trait": "",
-          "quote": "„Es ist nicht ‚fast gleichmäßig'. Es ist gleichmäßig, oder es wird neu gemacht.\"",
-          "aside": ""
+        {
+          "ora": "14:20",
+          "ruolo": "Chemie",
+          "testo": "Die Oberfläche ist nicht gleichmäßig. Er macht es neu. Viertes Mal."
         },
-        "ceo": {
-          "role": "CEO",
-          "trait": "",
-          "quote": "„Wir müssen groß denken.\"",
-          "aside": "(Das Blatt ist A3. Nicht groß genug.)"
+        {
+          "ora": "16:45",
+          "ruolo": "CEO",
+          "testo": "Besprechung mit den Abteilungen. Die Abteilungen sind er."
         },
-        "cleaning": {
-          "role": "REINIGUNG",
-          "trait": "",
-          "quote": "„Jemand hat Flock auf der Werkbank gelassen. Dieser Jemand bin ich.\"",
-          "aside": ""
+        {
+          "ora": "19:30",
+          "ruolo": "Reinigung",
+          "testo": "Jemand hat Flock auf der Werkbank gelassen. Dieser Jemand bin ich."
+        },
+        {
+          "ora": "23:58",
+          "ruolo": "",
+          "testo": "Unter der Tischlerbank brennt noch Licht."
         }
-      }
+      ]
     },
     "lab": {
       "eyebrow": "Die Werkstatt",
       "p1": "Fünf Bereiche, alle echt: die weißen Gusstitche, die Regale mit Anatomien, die Tischlerbank unter dem Fenster, die Station der Buchformen, die Stahlbank der Vorbereitung.",
-      "p2": "Unter der Tischlerbank gibt es einen Raum, der in keinem Plan steht: ein winziger Schreibtisch, eine Lampe, Notizbücher und ein Stapel Blätter, die er noch nicht freigegeben hat. Kein Unterschlupf. Der Arbeitsplatz von jemandem, der zu viel arbeitet.",
-      "p3": "Und dann sind da die Spuren, die nicht seine sind. Verschlossene Kartons, Etiketten, fertige Aufträge, ein Paar Schuhe, das sich bewegt. Jemand produziert hier. Ohne Gesicht. Notwendig."
+      "p2": "Unter der Tischlerbank gibt es einen Raum, der in keinem Plan steht: ein winziger Schreibtisch, eine Lampe, Notizbücher und ein Stapel Blätter, die er noch nicht freigegeben hat.",
+      "p3": "Und es gibt Spuren, die nicht seine sind. Verschlossene Kartons, Etiketten, fertige Aufträge. Jemand produziert hier. Ohne Gesicht. Notwendig."
     },
     "paradox": {
       "eyebrow": "Das Paradox",
       "intro": "Er will nur eines: die perfekte Oberfläche.",
-      "spessore": "Das Problem: perfekte menschliche Haut gibt es nicht. Sie hat Farbschwankungen, unterschiedliche Texturen, ungleiche Stärken. Was eine Übungshaut glaubwürdig macht, ist genau das, was der Häuter als Fehler bezeichnet.",
-      "discromie": "Farbiger Flock verteilt sich nie gleichmäßig: die Katalyse macht, was sie will, und daraus entsteht die Schwankung, die wie echte Haut wirkt.",
-      "pori": "Die Poren sind nicht gedruckt: sie nehmen den Transfer auf und lassen überschüssige Farbe heraus.",
-      "strati": "Farbe wird nicht aufgetragen, sie wird in Schichten abgelegt — deshalb lesen sich die Lasierungen, ohne dass jemand hindurchsieht.",
+      "p1": "Das Problem: perfekte menschliche Haut gibt es nicht. Farbschwankungen, unterschiedliche Texturen, ungleiche Stärken: genau das macht eine Übungshaut glaubwürdig — und genau das nennt der Häuter einen Fehler.",
+      "p2": "Farbiger Flock verteilt sich nie gleichmäßig — die Katalyse macht, was sie will, und daraus entstehen die Schwankungen, die wie echte Haut wirken. Die Poren sind nicht gedruckt: sie nehmen den Transfer auf und lassen überschüssige Farbe heraus. Farbe wird nicht aufgetragen, sie wird in Schichten abgelegt: deshalb lesen sich die Lasierungen, ohne dass jemand hindurchsieht.",
       "closing": "Für den Häuter eine persönliche Beleidigung. Für Tätowierer der Grund, warum es funktioniert."
     },
-    "series": {
-      "eyebrow": "Die Serie",
-      "p1": "Sechs Motoren, keine sechs Themen: Inspektion, Werkstattdesaster, das Maßstabsproblem, Arbeit, die nie gut genug ist, das menschliche Problem, das unverhältnismäßige Experiment. Dieselbe Form kann vier verschiedene Episoden ergeben, ohne sich zu wiederholen.",
-      "p2": "Zwei Regeln. Erstens: jede Episode funktioniert ohne die vorherigen. Zweitens: der Häuter wird seinen Perfektionismus nie los — würde er es, wäre die Serie zu Ende.",
-      "episode": {
-        "code": "EP. 003",
-        "title": "STAFF MEETING",
-        "body": ""
-      }
+    "ponte": {
+      "eyebrow": "Was das mit dir zu tun hat",
+      "p1": "Der Häuter existiert für Leute, die alles selbst machen. Wenn du am selben Tag Kunden, Bestellungen, Versand und Social Media machst, wird dir seine Woche bekannt vorkommen.",
+      "p2": "Ein Unterschied: die Häute, die seine Werkbank verlassen, prüft er Stück für Stück. Auf alles andere — Telefon, Kurier, Fristen — antwortet er wie du."
     },
     "cta": {
       "title": "Die Häute sind hier. Ich prüfe sie.",

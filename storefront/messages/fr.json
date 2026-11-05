@@ -442,85 +442,68 @@
     },
     "intro": {
       "eyebrow": "Qui il est",
-      "p1": "Personne ne sait exactement quand il est arrivé.",
-      "p2": "Certains disent qu'il est apparu après une nuit de travail particulièrement longue, d'autres qu'il était déjà là, sous le vieil établi du menuisier.",
-      "p3": "Une chose est sûre : un jour, quelqu'un a dit qu'il faudrait au moins six personnes pour faire tourner cet atelier.",
-      "p4": "Le lendemain matin, le Peaussier était là. Pas six personnes. Une seule, avec six changes."
+      "p1": "Personne ne sait quand il est arrivé. Certains disent après une nuit trop longue, d'autres qu'il était déjà là, sous l'établi du menuisier.",
+      "p2": "Un jour quelqu'un a dit qu'il faudrait au moins six personnes pour faire tourner cet atelier. Le lendemain matin, le Peaussier était là. Pas six personnes : une seule, avec six changes.",
+      "p3": "Le monde autour de lui est réel — briques rouges, tables blanches, moules en bois. C'est lui qui mesure soixante-quinze centimètres, et il voit les mêmes choses depuis une autre altitude."
     },
-    "scale": {
-      "eyebrow": "L'échelle",
-      "p1": "Le monde autour de lui est réel : briques rouges, plafonds hauts, grandes tables blanches, moules en bois, rayonnages pleins de mains et de bras.",
-      "p2": "Lui, non.",
-      "p3": "Pour lui une table de coulée est une plaine à traverser. Un moule est une machine extraordinaire. Une feuille A3 est une créature géante à dompter, et le monocle est l'instrument le plus important jamais inventé — du moins selon lui.",
-      "p4": "Ce n'est pas un magicien et il ne vit pas dans une autre dimension. Il travaille ici. Il voit les mêmes choses depuis une autre altitude."
-    },
-    "staff": {
-      "eyebrow": "Les six services",
-      "boardLabel": "TODAY'S STAFF",
-      "intro": "Le tableau des équipes ne change jamais. Six noms. Un employé.",
-      "items": {
-        "warehouse": {
-          "role": "MAGASINIER",
-          "trait": "",
-          "quote": "« Si c'est arrivé cassé, c'était cassé avant moi. Mais c'est moi qui signe. »",
-          "aside": ""
+    "giornata": {
+      "eyebrow": "Une journée",
+      "intro": "Ce n'est pas une série. C'est un mardi.",
+      "items": [
+        {
+          "ora": "07:12",
+          "ruolo": "Magasinier",
+          "testo": "Il décharge, il signe, il se plaint."
         },
-        "secretary": {
-          "role": "SECRÉTAIRE",
-          "trait": "",
-          "quote": "« Trois mails. Aucune réponse. Je les ai écrits. Je les ai lus. »",
-          "aside": ""
+        {
+          "ora": "09:40",
+          "ruolo": "Secrétaire",
+          "testo": "Trois mails, aucune réponse. C'est lui qui les a écrits."
         },
-        "callCentre": {
-          "role": "CENTRE D'APPEL",
-          "trait": "",
-          "quote": "« Votre demande est très importante pour nous. »",
-          "aside": "(C'est moi. Nous.)"
+        {
+          "ora": "11:05",
+          "ruolo": "Centre d'appel",
+          "testo": "« Votre demande est très importante pour nous. » C'est vrai : il est le seul à répondre."
         },
-        "chemist": {
-          "role": "CHIMISTE / R&D",
-          "trait": "",
-          "quote": "« Ce n'est pas \"presque régulier\". C'est régulier, ou on recommence. »",
-          "aside": ""
+        {
+          "ora": "14:20",
+          "ruolo": "Chimiste",
+          "testo": "La surface n'est pas régulière. Il recommence. Quatrième fois."
         },
-        "ceo": {
-          "role": "PDG",
-          "trait": "",
-          "quote": "« Il faut voir grand. »",
-          "aside": "(La feuille est A3. Pas assez grand.)"
+        {
+          "ora": "16:45",
+          "ruolo": "PDG",
+          "testo": "Réunion avec les services. Les services, c'est lui."
         },
-        "cleaning": {
-          "role": "MÉNAGE",
-          "trait": "",
-          "quote": "« Quelqu'un a laissé du flock sur l'établi. Ce quelqu'un, c'est moi. »",
-          "aside": ""
+        {
+          "ora": "19:30",
+          "ruolo": "Ménage",
+          "testo": "Quelqu'un a laissé du flock sur l'établi. Ce quelqu'un, c'est moi."
+        },
+        {
+          "ora": "23:58",
+          "ruolo": "",
+          "testo": "La lumière sous l'établi du menuisier est encore allumée."
         }
-      }
+      ]
     },
     "lab": {
       "eyebrow": "L'atelier",
       "p1": "Cinq zones, toutes réelles : les tables blanches de coulée, les rayonnages d'anatomies, l'établi du menuisier sous la fenêtre, la station des moules à livre, l'établi en acier de la préparation.",
-      "p2": "Sous l'établi du menuisier il y a un espace absent de tout plan : un bureau microscopique, une lampe, des carnets pleins d'annotations et une pile de feuilles qu'il n'a pas encore approuvées. Ce n'est pas un terrier. C'est le poste de quelqu'un qui travaille trop.",
-      "p3": "Et puis il y a les traces qui ne sont pas les siennes. Cartons fermés, étiquettes, commandes prêtes, une paire de chaussures qui bouge. Quelqu'un produit ici. Sans visage. Nécessaire."
+      "p2": "Sous l'établi du menuisier il y a un espace absent de tout plan : un bureau microscopique, une lampe, des carnets et une pile de feuilles qu'il n'a pas encore approuvées.",
+      "p3": "Et il y a des traces qui ne sont pas les siennes. Cartons fermés, étiquettes, commandes prêtes. Quelqu'un produit ici. Sans visage. Nécessaire."
     },
     "paradox": {
       "eyebrow": "Le paradoxe",
       "intro": "Il ne veut qu'une chose : la surface parfaite.",
-      "spessore": "Le problème, c'est que la peau humaine parfaite n'existe pas. Elle a des variations de couleur, des textures différentes, des épaisseurs inégales. Ce qui rend crédible une peau d'entraînement est exactement ce que le Peaussier appelle un défaut.",
-      "discromie": "Les flocks colorés ne se répartissent jamais de façon uniforme : la catalyse fait ce qu'elle veut, et c'est de là que vient la variation qui ressemble à une vraie peau.",
-      "pori": "Les pores ne sont pas dessinés : ils absorbent le transfert et laissent sortir l'encre en trop.",
-      "strati": "La couleur ne se pose pas dessus, elle se dépose par couches — et c'est pour ça que les lavis se lisent, sans que personne ne regarde à travers.",
+      "p1": "Le problème, c'est que la peau humaine parfaite n'existe pas. Variations de couleur, textures différentes, épaisseurs inégales : précisément ce qui rend crédible une peau d'entraînement est ce que le Peaussier appelle un défaut.",
+      "p2": "Les flocks colorés ne se répartissent jamais de façon uniforme — la catalyse fait ce qu'elle veut, et c'est de là que viennent les variations qui ressemblent à une vraie peau. Les pores ne sont pas dessinés : ils absorbent le transfert et laissent sortir l'encre en trop. La couleur ne se pose pas dessus, elle se dépose par couches : c'est pour ça que les lavis se lisent, sans que personne ne regarde à travers.",
       "closing": "Pour le Peaussier, c'est une insulte personnelle. Pour qui tatoue, c'est la raison pour laquelle ça marche."
     },
-    "series": {
-      "eyebrow": "La série",
-      "p1": "Six moteurs, pas six sujets : l'inspection, le désastre d'atelier, le problème d'échelle, le travail jamais acceptable, le problème humain, l'expérience disproportionnée. Le même moule peut donner quatre épisodes différents sans se répéter.",
-      "p2": "Deux règles. Un : chaque épisode se comprend sans les précédents. Deux : le Peaussier ne guérit jamais de son perfectionnisme — s'il guérissait, la série s'arrêterait.",
-      "episode": {
-        "code": "EP. 003",
-        "title": "STAFF MEETING",
-        "body": ""
-      }
+    "ponte": {
+      "eyebrow": "Ce que ça a à voir avec toi",
+      "p1": "Le Peaussier existe pour ceux qui font tout seuls. Si dans la même journée tu gères clients, commandes, expéditions et réseaux sociaux, sa semaine te paraîtra familière.",
+      "p2": "Une seule différence : les peaux qui sortent de son établi, c'est lui qui les contrôle, pièce par pièce. Au reste — téléphone, transporteur, délais — il répond comme tu réponds."
     },
     "cta": {
       "title": "Les peaux sont ici. C'est moi qui les contrôle.",
