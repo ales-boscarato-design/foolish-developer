@@ -29,6 +29,7 @@
     "test:pwa-push-endpoint": "tsx --test src/lib/push-endpoint-ownership.test.ts",
     "test:pwa-push-claim": "tsx --test src/lib/push-claim.test.ts",
     "test:laboratorio": "tsx --test src/lib/laboratorio.test.ts",
+    "test:home-pellaio": "tsx --test src/lib/home-pellaio-slot.test.ts",
     "test:sebo-retirement": "tsx --test src/lib/sebo-retirement.test.ts"
   },
   "dependencies": {
