@@ -233,7 +233,7 @@
     "frank": {
       "eyebrow": "EL LABORATORIO",
       "headline": "Hay alguien en el laboratorio.",
-      "body": "Es el Pellejero. Cada hoja que sale de aquí, ya la ha tocado, olido, juzgado. Custodio de las pieles vivas desde 2012. A las pieles baratas las llama 'mentirosas.'",
+      "body": "Es el Pellejero. Cada hoja que sale de aquí, ya la ha tocado, olido, juzgado. Custodio de las pieles desde 2012. Una piel que no aguanta la tinta no pasa el banco.",
       "cta_short": "Entrar al taller"
     }
   },
@@ -416,7 +416,7 @@
       "line1": "Frank no es un personaje. Es una consecuencia.",
       "line2": "Desde 2012, cuando el laboratorio empezó a producir, alguien tenía que vigilar. Alguien con las gafas correctas para ver lo que los demás no ven. Con la paciencia equivocada para todo lo demás.",
       "line3": "Pelo negro con mechones blancos. Barba espesa. Orejas puntiagudas. Delantal de cuero lleno de objetos no identificados. Una taza de café que nunca se vacía — la llama Caffè Turbo.",
-      "line4": "Le habla a las pieles. Las estudia como seres vivos. A las pieles baratas las llama 'mentirosas.' No venderlas aquí fue idea suya.",
+      "line4": "Le habla a las pieles. Las estudia una por una: poros, espesores, capas. Una piel que no aguanta la tinta no entra: es su regla, no una campaña.",
       "quote": "Si tienes preguntas sobre tu pedido — Frank responde. No es amable. Pero es preciso."
     },
     "obsessions": {
@@ -432,23 +432,23 @@
     "backToShop": "← Volver a la tienda",
     "eyebrow": "EL LABORATORIO",
     "headline": "Hay alguien en el laboratorio.",
-    "body": "No es Alessandro. Pero cada hoja que sale de aquí, ya la ha tocado, olido, juzgado. A las pieles baratas las llama 'mentirosas.'",
+    "body": "No es Alessandro. Pero cada hoja que sale de aquí, ya la ha tocado, olido, juzgado. Una piel que no aguanta la tinta no pasa el banco.",
     "cta_short": "Conocer a Frank"
   },
   "laboratorio": {
     "meta": {
-      "description": "El Pellejero. Guardián de las pieles vivas. Las siente respirar, sudar, sanar. No duerme: las vela."
+      "description": "El Pellejero. Guardián de las pieles de práctica de verdad. Las conoce poro por poro, capa por capa. No duerme: las vela."
     },
     "hero": {
       "eyebrow": "EL TALLER · CHIERI (TO)",
-      "sub": "El Pellejero. Habla a las pieles. Las siente respirar."
+      "sub": "El Pellejero. Habla a las pieles. Conoce sus poros uno por uno."
     },
     "lore": {
       "eyebrow": "QUIÉN ES EL PELLEJERO",
       "p1": "El Pellejero no es un personaje. Es una consecuencia.",
       "p2": "Desde 2012, desde que el taller produce sus pieles, alguien tenía que quedarse a velarlas. El Pellejero es ese alguien — el custodio que todo taller artesanal de verdad lleva dentro.",
-      "p3": "Doce años de vapores del banco, de catálisis, de piel respirada demasiado tiempo. Ya no sabe dónde termina el taller y dónde empieza él. Él las hace. Las vigila durante las doce horas de catálisis. Solo las deja ir cuando está seguro de que están vivas.",
-      "p4": "Para el Pellejero las pieles están vivas. Respiran por los poros, sudan la tinta que no merecen retener, y sanan — si las cuidas. A las pieles baratas las llama \"muertas\", \"mentirosas\": no venderlas aquí fue su batalla. \"Un cadáver no sana\", dice. \"La herida le queda abierta para siempre. Mi piel se cierra.\"",
+      "p3": "Doce años de vapores del banco, de catálisis, de flock que cae donde quiere. Ya no sabe dónde termina el taller y dónde empieza él. Él las hace. Las vigila durante las doce horas de catálisis. Solo las deja ir cuando está seguro de que aguantan.",
+      "p4": "Para el Pellejero una piel no está viva: está bien hecha. Tiene poros de verdad — ni dibujados ni impresos — y por eso el transfer se agarra y la tinta sobrante se va sola. No sana, no se regenera: retiene y suelta, que es lo que hace falta en la práctica. «Quien te cuenta que una piel sana te está vendiendo un cuento», dice. «La mía no sana. La mía funciona.»",
       "quote": "No se tatúa, dice él. Se venera. Piel santa."
     },
     "obsessions": {
@@ -466,8 +466,8 @@
         "quote": "Doce horas. La piel nace lenta y los flocks se posan donde deben. Quien tiene prisa no merece la piel."
       },
       "pelleViva": {
-        "label": "LA PIEL VIVA",
-        "quote": "Respira. Suda la tinta que no merece quedarse. Y sana, si la cuidas. ¿Quieres saber si una piel está viva? Haz que sane. Una de verdad se cierra. Un cadáver se queda como está."
+        "label": "LAS CAPAS",
+        "quote": "El color no lo extiendo: lo deposito. Capa sobre capa, y cada capa se ve. Por eso los velos se leen, y por eso no se mira a través: se mira dentro. Quien te dice «transparente» nunca ha tenido una piel de verdad en la mano."
       }
     },
     "cta": {
