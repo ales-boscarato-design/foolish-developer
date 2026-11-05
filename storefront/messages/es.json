@@ -442,85 +442,68 @@
     },
     "intro": {
       "eyebrow": "Quién es",
-      "p1": "Nadie sabe exactamente cuándo llegó.",
-      "p2": "Hay quien dice que apareció tras una noche de trabajo especialmente larga; otros, que ya estaba allí, bajo el viejo banco del carpintero.",
-      "p3": "Una cosa es segura: un día alguien dijo que para sacar adelante ese taller harían falta al menos seis personas.",
-      "p4": "A la mañana siguiente estaba el Pellejero. No seis personas. Una sola, con seis cambios de ropa."
+      "p1": "Nadie sabe cuándo llegó. Hay quien dice que tras una noche demasiado larga; otros, que ya estaba allí, bajo el banco del carpintero.",
+      "p2": "Un día alguien dijo que para sacar adelante ese taller harían falta al menos seis personas. A la mañana siguiente estaba el Pellejero. No seis personas: una sola, con seis cambios de ropa.",
+      "p3": "El mundo a su alrededor es real — ladrillo rojo, mesas blancas, moldes de madera. Es él quien mide setenta y cinco centímetros, y ve las mismas cosas desde otra altura."
     },
-    "scale": {
-      "eyebrow": "La escala",
-      "p1": "El mundo a su alrededor es real: ladrillo rojo, techos altos, mesas blancas enormes, moldes de madera, estanterías llenas de manos y brazos.",
-      "p2": "Él no.",
-      "p3": "Para él una mesa de colada es una llanura que atravesar. Un molde es una máquina extraordinaria. Una hoja A3 es una criatura gigantesca que hay que domar, y el monóculo es el instrumento más importante jamás inventado — al menos según él.",
-      "p4": "No es un mago y no vive en otra dimensión. Trabaja aquí. Ve las mismas cosas desde otra altura."
-    },
-    "staff": {
-      "eyebrow": "Los seis departamentos",
-      "boardLabel": "TODAY'S STAFF",
-      "intro": "El tablón de turnos nunca cambia. Seis nombres. Un empleado.",
-      "items": {
-        "warehouse": {
-          "role": "ALMACÉN",
-          "trait": "",
-          "quote": "«Si llegó roto, estaba roto antes que yo. Pero lo firmo yo.»",
-          "aside": ""
+    "giornata": {
+      "eyebrow": "Un día",
+      "intro": "No es una serie. Es un martes.",
+      "items": [
+        {
+          "ora": "07:12",
+          "ruolo": "Almacén",
+          "testo": "Descarga él, firma él, se queja él."
         },
-        "secretary": {
-          "role": "SECRETARÍA",
-          "trait": "",
-          "quote": "«Tres correos. Ninguna respuesta. Los escribí yo. Los leí yo.»",
-          "aside": ""
+        {
+          "ora": "09:40",
+          "ruolo": "Secretaría",
+          "testo": "Tres correos, ninguna respuesta. Los escribió él."
         },
-        "callCentre": {
-          "role": "CALL CENTER",
-          "trait": "",
-          "quote": "«Su solicitud es muy importante para nosotros.»",
-          "aside": "(Soy yo. Nosotros.)"
+        {
+          "ora": "11:05",
+          "ruolo": "Call center",
+          "testo": "«Su solicitud es muy importante para nosotros.» Es cierto: es el único que contesta."
         },
-        "chemist": {
-          "role": "QUÍMICO / I+D",
-          "trait": "",
-          "quote": "«No es \"casi uniforme\". O es uniforme, o se rehace.»",
-          "aside": ""
+        {
+          "ora": "14:20",
+          "ruolo": "Químico",
+          "testo": "La superficie no es uniforme. La rehace. Cuarta vez."
         },
-        "ceo": {
-          "role": "CEO",
-          "trait": "",
-          "quote": "«Hay que pensar en grande.»",
-          "aside": "(La hoja es A3. No es suficiente.)"
+        {
+          "ora": "16:45",
+          "ruolo": "CEO",
+          "testo": "Reunión con los departamentos. Los departamentos es él."
         },
-        "cleaning": {
-          "role": "LIMPIEZA",
-          "trait": "",
-          "quote": "«Alguien dejó flock en el banco. Ese alguien soy yo.»",
-          "aside": ""
+        {
+          "ora": "19:30",
+          "ruolo": "Limpieza",
+          "testo": "Alguien dejó flock en el banco. Ese alguien soy yo."
+        },
+        {
+          "ora": "23:58",
+          "ruolo": "",
+          "testo": "La luz bajo el banco del carpintero sigue encendida."
         }
-      }
+      ]
     },
     "lab": {
       "eyebrow": "El taller",
       "p1": "Cinco zonas, todas reales: las mesas blancas de colada, las estanterías de anatomías, el banco del carpintero bajo la ventana, la estación de moldes de libro, el banco de acero de la preparación.",
-      "p2": "Bajo el banco del carpintero hay un espacio que no figura en ningún plano: un escritorio microscópico, una lámpara, cuadernos llenos de anotaciones y una pila de hojas que aún no ha aprobado. No es una madriguera. Es el puesto de alguien que trabaja demasiado.",
-      "p3": "Y están las huellas que no son suyas. Cajas cerradas, etiquetas, pedidos listos, un par de zapatos que se mueve. Alguien produce aquí. Sin rostro. Necesario."
+      "p2": "Bajo el banco del carpintero hay un espacio que no figura en ningún plano: un escritorio microscópico, una lámpara, cuadernos y una pila de hojas que aún no ha aprobado.",
+      "p3": "Y hay huellas que no son suyas. Cajas cerradas, etiquetas, pedidos listos. Alguien produce aquí. Sin rostro. Necesario."
     },
     "paradox": {
       "eyebrow": "La paradoja",
       "intro": "Quiere una sola cosa: la superficie perfecta.",
-      "spessore": "El problema es que la piel humana perfecta no existe. Tiene variaciones de color, texturas distintas, espesores desiguales. Lo que hace creíble una piel de práctica es exactamente lo que el Pellejero considera un defecto.",
-      "discromie": "Los flock de color nunca se reparten de forma uniforme: la catálisis hace lo que quiere, y de ahí nace la variación que se parece a la piel real.",
-      "pori": "Los poros no están dibujados: absorben el transfer y dejan salir la tinta sobrante.",
-      "strati": "El color no se extiende encima, se deposita por capas — y por eso los velos se leen, sin que nadie mire a través.",
+      "p1": "El problema es que la piel humana perfecta no existe. Variaciones de color, texturas distintas, espesores desiguales: justo lo que hace creíble una piel de práctica es lo que el Pellejero llama defecto.",
+      "p2": "Los flock de color nunca se reparten de forma uniforme — la catálisis hace lo que quiere, y de ahí nacen las variaciones que parecen piel real. Los poros no están dibujados: absorben el transfer y dejan salir la tinta sobrante. El color no se extiende encima, se deposita por capas: por eso los velos se leen, sin que nadie mire a través.",
       "closing": "Para el Pellejero es una ofensa personal. Para quien tatúa es la razón por la que funciona."
     },
-    "series": {
-      "eyebrow": "La serie",
-      "p1": "Seis motores, no seis temas: la inspección, el desastre de taller, el problema de escala, el trabajo que nunca está bien, el problema humano, el experimento desproporcionado. El mismo molde puede dar cuatro episodios distintos sin repetirse.",
-      "p2": "Dos reglas. Una: cada episodio se entiende sin los anteriores. Dos: el Pellejero no se cura del perfeccionismo — si se curara, se acabaría la serie.",
-      "episode": {
-        "code": "EP. 003",
-        "title": "STAFF MEETING",
-        "body": ""
-      }
+    "ponte": {
+      "eyebrow": "Qué tiene que ver contigo",
+      "p1": "El Pellejero existe para quien hace todo solo. Si en el mismo día gestionas clientes, pedidos, envíos y redes sociales, su semana te resultará familiar.",
+      "p2": "La diferencia es una sola: las pieles que salen de su banco las controla él, pieza por pieza. Al resto — teléfono, mensajería, plazos — responde como respondes tú."
     },
     "cta": {
       "title": "Las pieles están aquí. Las controlo yo.",
