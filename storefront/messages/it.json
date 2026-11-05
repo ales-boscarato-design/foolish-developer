@@ -233,7 +233,7 @@
     "frank": {
       "eyebrow": "IL LABORATORIO",
       "headline": "C'è qualcuno nel laboratorio.",
-      "body": "È il Pellaio. Ogni foglio che esce da qui, lui lo ha già toccato, annusato, giudicato. Custode delle pelli vive dal 2012. Le pelli economiche le chiama 'bugiarde.'",
+      "body": "È il Pellaio. Ogni foglio che esce da qui, lui lo ha già toccato, annusato, giudicato. Custode delle pelli dal 2012. Una pelle che non tiene l'inchiostro non supera il banco.",
       "cta_short": "Entra nel laboratorio"
     }
   },
@@ -416,7 +416,7 @@
       "line1": "Frank non è un personaggio. È una conseguenza.",
       "line2": "Dal 2012, quando il laboratorio ha iniziato a produrre, qualcuno doveva stare a guardare. Qualcuno con gli occhiali giusti per vedere quello che gli altri non vedono. Con la pazienza sbagliata per tutto il resto.",
       "line3": "Capelli neri con ciocche bianche. Barba folta. Orecchie a punta. Grembiule di cuoio con oggetti non identificati. Una tazza di caffè che non si svuota mai — la chiama Caffè Turbo.",
-      "line4": "Parla alle pelli. Le studia come fossero esseri viventi. Le pelli economiche le chiama 'bugiarde.' Non venderle qui è stata la sua idea.",
+      "line4": "Parla alle pelli. Le studia una per una: pori, spessori, strati. Una pelle che non tiene l'inchiostro non entra in laboratorio: è una sua regola, non una campagna.",
       "quote": "Se hai domande sul tuo ordine — Frank risponde. Non è gentile. Ma è preciso."
     },
     "obsessions": {
@@ -432,23 +432,23 @@
     "backToShop": "← Torna alla vetrina",
     "eyebrow": "IL LABORATORIO",
     "headline": "C'è qualcuno nel laboratorio.",
-    "body": "Non è Alessandro. Ma ogni foglio che esce da qui, lui lo ha già toccato, annusato, giudicato. Le pelli economiche le chiama 'bugiarde.'",
+    "body": "Non è Alessandro. Ma ogni foglio che esce da qui, lui lo ha già toccato, annusato, giudicato. Una pelle che non tiene l'inchiostro non supera il banco.",
     "cta_short": "Incontra Frank"
   },
   "laboratorio": {
     "meta": {
-      "description": "Il Pellaio. Custode delle pelli vive. Le sente respirare, sudare, guarire. Non dorme: le veglia."
+      "description": "Il Pellaio. Custode delle pelli vere. Le conosce poro per poro, strato per strato. Non dorme: le veglia."
     },
     "hero": {
       "eyebrow": "IL LABORATORIO · CHIERI (TO)",
-      "sub": "Il Pellaio. Parla alle pelli. Le sente respirare."
+      "sub": "Il Pellaio. Parla alle pelli. Conosce i loro pori a uno a uno."
     },
     "lore": {
       "eyebrow": "CHI È IL PELLAIO",
       "p1": "Il Pellaio non è un personaggio. È una conseguenza.",
       "p2": "Dal 2012, da quando il laboratorio produce le sue pelli, qualcuno doveva restare a vegliarle. Il Pellaio è quel qualcuno — il custode che ogni laboratorio artigianale vero si porta dentro.",
-      "p3": "Dodici anni di vapori del banco, di catalisi, di pelle respirata troppo a lungo. Non sa più dove finisce il laboratorio e dove comincia lui. Lui le fa. Le veglia nelle dodici ore di catalisi. Le manda via solo quando è sicuro che siano vive.",
-      "p4": "Per il Pellaio le pelli sono vive. Respirano dai pori, sudano fuori l'inchiostro che non meritano di tenere, e guariscono — se le curi. Le pelli economiche le chiama \"morte\", \"bugiarde\": non venderle qui è stata una sua battaglia. \"Un cadavere non guarisce\", dice. \"La ferita gli resta aperta per sempre. La mia pelle si chiude.\"",
+      "p3": "Dodici anni di vapori del banco, di catalisi, di flock che cade dove vuole. Non sa più dove finisce il laboratorio e dove comincia lui. Lui le fa. Le veglia nelle dodici ore di catalisi. Le manda via solo quando è sicuro che tengano.",
+      "p4": "Per il Pellaio una pelle non è viva: è fatta bene. Ha pori veri — non disegnati, non stampati — e per questo il transfer ci si aggrappa e l'inchiostro in eccesso se ne va da solo. Non guarisce, non si rigenera: trattiene e rilascia, che è quello che serve in pratica. «Chi ti racconta che la pelle guarisce ti sta vendendo una favola», dice. «La mia non guarisce. La mia funziona.»",
       "quote": "Non si tatua, dice lui. Si venera. Pelle santa."
     },
     "obsessions": {
@@ -466,8 +466,8 @@
         "quote": "Dodici ore. La pelle nasce piano e i flock si posano dove devono. Chi ha fretta non merita la pelle."
       },
       "pelleViva": {
-        "label": "LA PELLE VIVA",
-        "quote": "Respira. Suda fuori l'inchiostro che non merita. E guarisce, se la curi. Vuoi sapere se una pelle è viva? Falla guarire. Una vera si chiude. Un cadavere resta com'è."
+        "label": "GLI STRATI",
+        "quote": "Il colore non lo stendo: lo depongo. Strato su strato, e ogni strato si vede. Per questo le velature si leggono, e per questo non ci si guarda attraverso: si guarda dentro. Chi ti dice «trasparente» non ha mai tenuto in mano una pelle vera."
       }
     },
     "cta": {
