@@ -604,7 +604,7 @@ const TRACKING_STRINGS: Record<string, {
   },
 }
 
-const sendTrackingEmail: CollectionAfterChangeHook = async ({ doc, previousDoc, operation }) => {
+export const sendTrackingEmail: CollectionAfterChangeHook = async ({ doc, previousDoc, operation }) => {
   if (operation !== 'update') return
   if (!doc.trackingNumber) return
   if (previousDoc?.trackingNumber === doc.trackingNumber) return
@@ -618,7 +618,11 @@ const sendTrackingEmail: CollectionAfterChangeHook = async ({ doc, previousDoc, 
   if (!resendKey) return
 
   const storeFrontUrl = process.env.STOREFRONT_URL ?? 'https://thefoolishbutcher.com'
-  const trackingUrl = `${storeFrontUrl}/ordine/${doc.pageToken}`
+  const pageToken = typeof doc.pageToken === 'string' && doc.pageToken.trim() !== '' ? doc.pageToken.trim() : null
+  const trackingUrl = pageToken ? `${storeFrontUrl}/ordine/${pageToken}` : null
+  if (!trackingUrl) {
+    console.error('[Orders] sendTrackingEmail: pageToken mancante per l\'ordine', doc.orderNumber, '— link di tracking omesso')
+  }
   const telegramUrl = doc.orderNumber
     ? `https://t.me/the_foolish_butcher_bot?start=order_${doc.orderNumber}`
     : 'https://t.me/the_foolish_butcher_bot'
@@ -632,7 +636,7 @@ const sendTrackingEmail: CollectionAfterChangeHook = async ({ doc, previousDoc, 
         <div style="color:#555;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">${t.carrierLabel}</div>
         <div style="color:#fff;font-size:14px;font-family:monospace;">${doc.trackingCarrier ?? ''} · ${doc.trackingNumber}</div>
       </div>
-      <a href="${trackingUrl}" style="display:inline-block;background:#c9a96e;color:#000;padding:12px 24px;text-decoration:none;font-weight:bold;font-size:13px;border-radius:4px;">${t.trackLabel}</a>
+      ${trackingUrl ? `<a href="${trackingUrl}" style="display:inline-block;background:#c9a96e;color:#000;padding:12px 24px;text-decoration:none;font-weight:bold;font-size:13px;border-radius:4px;">${t.trackLabel}</a>` : ''}
       <p style="color:#aaa;margin:24px 0 10px;">${t.telegramLabel}</p>
       <a href="${telegramUrl}" style="display:inline-block;background:#229ED9;color:#fff;padding:12px 24px;text-decoration:none;font-weight:bold;font-size:13px;border-radius:4px;">${t.telegramLabel} →</a>
       <p style="color:#444;font-size:11px;margin-top:32px;">${t.footer}</p>
@@ -640,7 +644,7 @@ const sendTrackingEmail: CollectionAfterChangeHook = async ({ doc, previousDoc, 
   `
 
   try {
-    await fetch('https://api.resend.com/emails', {
+    const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -650,6 +654,12 @@ const sendTrackingEmail: CollectionAfterChangeHook = async ({ doc, previousDoc, 
         html,
       }),
     })
+    if (!res.ok) {
+      const text = await res.text()
+      console.error('[Orders] Tracking email Resend API error:', res.status, text)
+    } else {
+      console.log('[Orders] Tracking email sent to', doc.customerEmail, 'locale', locale, 'order', doc.orderNumber)
+    }
   } catch (err) {
     console.error('[Orders] sendTrackingEmail error:', err)
   }
