@@ -90,6 +90,19 @@ export function ProfileForm({ level, styles, locale, notifyOrders, notifyNewBatc
 
   async function logout() {
     await fetch('/api/account/logout', { method: 'POST' })
+    try {
+      if ('serviceWorker' in navigator) {
+        const controller = navigator.serviceWorker.controller
+        if (controller) {
+          controller.postMessage({ type: 'foolish:purge-personal-cache' })
+        } else {
+          const registration = await navigator.serviceWorker.getRegistration()
+          registration?.active?.postMessage({ type: 'foolish:purge-personal-cache' })
+        }
+      }
+    } catch {
+      // Il cambio pagina non deve dipendere dal service worker.
+    }
     router.push('/account/login')
   }
 
