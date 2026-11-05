@@ -15,6 +15,9 @@ import {
   MONEY_PATH_READERS,
   MONEY_PATH_WRITER,
   CHECKOUT_ROUTE,
+  REORDER_ROUTE,
+  MONEY_METADATA_WRITER_ROUTES,
+  CHECKOUT_SESSION_CREATOR_EXCLUSIONS,
   SUBSCRIPTION_METADATA_KEYS,
   GENERATED_TYPES_REL,
   extractMigrationNames,
@@ -22,6 +25,8 @@ import {
   extractCheckoutBaseMetadataKeys,
   extractCheckoutRouteMetadataKeys,
   extractSessionMetadataReadKeys,
+  findCheckoutSessionCreators,
+  compareMoneyMetadataWriters,
   leafKeyPaths,
   scanForSecrets,
   scanWorkflowForDeploy,
@@ -196,6 +201,101 @@ test('contratto metadata rispettato non produce problemi', () => {
     ]),
     [],
   )
+})
+
+// --------------------------- scrittori di metadata monetari (riordino incluso)
+
+const SUBSCRIBE_ROUTE = 'storefront/src/app/api/subscribe/checkout/route.ts'
+
+const NOMINAL_SOURCES = {
+  [CHECKOUT_ROUTE]:
+    "const metadata = buildCheckoutMetadata({ orderRef })\n"
+    + "await stripe.checkout.sessions.create({ mode: 'payment', metadata })",
+  // La rotta e' sottile: la chiamata vera vive nel modulo che importa.
+  [REORDER_ROUTE]:
+    "return handleReorder({ orderId, sessionEmail })\n"
+    + "// storefront/src/lib/reorder.ts\n"
+    + "const metadata = buildCheckoutMetadata({ orderRef })\n"
+    + "await stripe.checkout.sessions.create({ mode: 'payment', metadata })",
+  [SUBSCRIBE_ROUTE]:
+    "await stripe.checkout.sessions.create({ mode: 'subscription', subscription_data: { metadata } })",
+}
+
+const NOMINAL_FILES = Object.entries(NOMINAL_SOURCES).map(([path, content]) => ({ path, content }))
+
+test('(i) una lista che perde la rotta di riordino e` rossa e nomina la rotta', () => {
+  const creators = findCheckoutSessionCreators(NOMINAL_FILES)
+  assert.ok(creators.includes(REORDER_ROUTE), 'il caso sintetico deve contenere la rotta di riordino')
+
+  // La rotta esiste ancora: e' solo sparita dalla lista dichiarata. Il gate non
+  // deve diventare verde per omissione.
+  const problems = compareMoneyMetadataWriters(creators, [CHECKOUT_ROUTE], NOMINAL_SOURCES)
+  assert.ok(
+    problems.some((problem) => problem.includes(REORDER_ROUTE)),
+    `nessun problema nomina ${REORDER_ROUTE}: ${problems.join(' | ')}`,
+  )
+})
+
+test('(ii) una rotta che scrive metadata a mano invece di buildCheckoutMetadata e` rossa', () => {
+  // Sorgenti realistiche: fra i moduli locali c'e` la definizione VERA di
+  // buildCheckoutMetadata (promo.ts), come nel gate sul repository. Con un
+  // controllo che cerca solo il nome della funzione questo caso resterebbe
+  // verde: il test deve fallire se il controllo torna vacuo.
+  const sources = {
+    ...NOMINAL_SOURCES,
+    [REORDER_ROUTE]:
+      "await stripe.checkout.sessions.create({ metadata: { order_ref: 'FOOLISH-1' } })\n"
+      + read(MONEY_PATH_WRITER),
+  }
+  const creators = findCheckoutSessionCreators(
+    Object.entries(sources).map(([path, content]) => ({ path, content })),
+  )
+  const problems = compareMoneyMetadataWriters(creators, MONEY_METADATA_WRITER_ROUTES, sources)
+  assert.ok(
+    problems.some((problem) => problem.includes(REORDER_ROUTE) && /buildCheckoutMetadata/.test(problem)),
+    `nessun problema di metadata a mano: ${problems.join(' | ')}`,
+  )
+})
+
+test('(v) una rotta che chiama davvero buildCheckoutMetadata({...}) resta verde con la definizione fra le sorgenti', () => {
+  const sources = {
+    ...NOMINAL_SOURCES,
+    [REORDER_ROUTE]:
+      "const metadata = buildCheckoutMetadata({ orderRef, customer, chargedProductLines })\n"
+      + "await stripe.checkout.sessions.create({ mode: 'payment', metadata })\n"
+      + read(MONEY_PATH_WRITER),
+  }
+  const creators = findCheckoutSessionCreators(
+    Object.entries(sources).map(([path, content]) => ({ path, content })),
+  )
+  assert.deepEqual(
+    compareMoneyMetadataWriters(creators, MONEY_METADATA_WRITER_ROUTES, sources),
+    [],
+  )
+})
+
+test('(iii) caso nominale: checkout e riordino dichiarati sono verdi', () => {
+  const creators = findCheckoutSessionCreators(NOMINAL_FILES)
+  assert.deepEqual(
+    compareMoneyMetadataWriters(creators, MONEY_METADATA_WRITER_ROUTES, NOMINAL_SOURCES),
+    [],
+  )
+})
+
+test('(iv) la rotta esclusa dell abbonamento non produce problemi', () => {
+  assert.ok(Object.hasOwn(CHECKOUT_SESSION_CREATOR_EXCLUSIONS, SUBSCRIBE_ROUTE))
+  const creators = findCheckoutSessionCreators([
+    { path: SUBSCRIBE_ROUTE, content: NOMINAL_SOURCES[SUBSCRIBE_ROUTE] },
+  ])
+  assert.deepEqual(
+    compareMoneyMetadataWriters(creators, [], { [SUBSCRIBE_ROUTE]: NOMINAL_SOURCES[SUBSCRIBE_ROUTE] }),
+    [],
+  )
+})
+
+test('nel repository la rotta di riordino fa parte degli scrittori dichiarati', () => {
+  assert.ok(MONEY_METADATA_WRITER_ROUTES.includes(REORDER_ROUTE))
+  assert.ok(fs.existsSync(path.join(repoRoot, REORDER_ROUTE)))
 })
 
 test('le chiavi di metadata si estraggono da scritture dirette e condizionali', () => {

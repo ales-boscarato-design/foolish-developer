@@ -42,6 +42,16 @@ export const MONEY_PATH_READERS = [
 
 export const MONEY_PATH_WRITER = 'storefront/src/lib/promo.ts'
 export const CHECKOUT_ROUTE = 'storefront/src/app/api/stripe/checkout/route.ts'
+export const REORDER_ROUTE = 'storefront/src/app/api/account/reorder/[orderId]/route.ts'
+export const MONEY_METADATA_WRITER_ROUTES = [CHECKOUT_ROUTE, REORDER_ROUTE]
+
+// La sessione dell'ABBONAMENTO e' creata con `subscription_data.metadata`: non e' il
+// contratto dell'ordine e non scrive i metadata monetari letti dal webhook. E' elencata
+// qui, con la ragione, invece di essere ignorata in silenzio.
+export const CHECKOUT_SESSION_CREATOR_EXCLUSIONS = {
+  'storefront/src/app/api/subscribe/checkout/route.ts':
+    'sessione abbonamento creata con subscription_data.metadata: non e\' il contratto dell\'ordine',
+}
 
 // Chiavi dei metadata di sessione del flusso ABBONAMENTO: quella sessione e' creata fuori
 // dallo storefront (subscription_data.metadata) e non appartiene al contratto dell'ordine.
@@ -201,6 +211,60 @@ export function compareMetadataContract(written, readsByFile) {
   return problems
 }
 
+/**
+ * I file che creano davvero una Checkout Session. Il criterio e' testuale e
+ * volutamente semplice: un elenco di rotte scritto a mano invecchia, mentre una
+ * chiamata nuova a `checkout.sessions.create(` compare da sola.
+ */
+export function findCheckoutSessionCreators(files) {
+  return [...new Set(
+    files
+      .filter(({ content }) => /\bcheckout\.sessions\.create\s*\(/.test(content))
+      .map(({ path: rel }) => rel),
+  )].sort()
+}
+
+/**
+ * Confronta i creatori di Checkout Session con la lista dichiarata degli
+ * scrittori di metadata monetari. Il controllo e' autoimposto:
+ *   (a) un creatore non dichiarato e non escluso e' un problema;
+ *   (b) un percorso dichiarato che non esiste e' un problema;
+ *   (c) un percorso dichiarato che non crea sessioni e' una lista disonesta;
+ *   (d) un percorso dichiarato che scrive metadata senza un SITO DI CHIAMATA a
+ *       `buildCheckoutMetadata({ ... })` e' un problema: le chiavi devono venire
+ *       dalla funzione condivisa. Il criterio e' la chiamata con l'oggetto
+ *       letterale, non la definizione (`buildCheckoutMetadata(args: {...})`):
+ *       le sorgenti includono `promo.ts`, dove la funzione e' definita, quindi
+ *       cercare solo il nome renderebbe il controllo sempre verde.
+ * `sourcesByPath` per una rotta puo' includere i suoi moduli locali (il gate
+ * reale li segue), cosi' una rotta sottile che delega resta verificabile.
+ */
+export function compareMoneyMetadataWriters(creators, declared, sourcesByPath = {}) {
+  const problems = []
+  const excluded = new Set(Object.keys(CHECKOUT_SESSION_CREATOR_EXCLUSIONS))
+  const declaredSet = new Set(declared)
+  const buildCheckoutMetadataCall = /buildCheckoutMetadata\(\s*\{/
+
+  for (const rel of creators) {
+    if (!declaredSet.has(rel) && !excluded.has(rel)) {
+      problems.push(`${rel}: crea una Checkout Session ma non e' dichiarato in MONEY_METADATA_WRITER_ROUTES`)
+    }
+  }
+
+  for (const rel of declared) {
+    const source = sourcesByPath[rel]
+    if (typeof source !== 'string') {
+      problems.push(`${rel}: dichiarato scrittore di metadata monetari ma il file non esiste`)
+    } else if (!creators.includes(rel)) {
+      problems.push(`${rel}: dichiarato scrittore di metadata monetari ma non crea Checkout Session`)
+    } else if (!buildCheckoutMetadataCall.test(source)) {
+      problems.push(`${rel}: metadata scritti a mano invece della funzione condivisa buildCheckoutMetadata`)
+    }
+  }
+
+  return problems
+}
+
 export const SCHEMA_FILES_RE = /^cms\/src\/(?:collections|fields)\/.*\.ts$/
 export const GENERATED_TYPES_REL = 'cms/src/payload-types.ts'
 /**
@@ -353,6 +417,134 @@ function checkMoneyMetadataContract() {
   return problems.length === 0 ? true : `metadata scritti dal checkout assenti: ${problems.join(', ')}`
 }
 
+const STOREFRONT_SRC = 'storefront/src'
+const SOURCE_FILE_RE = /\.(?:ts|tsx)$/
+const SOURCE_TEST_FILE_RE = /\.test\.(?:ts|tsx)$/
+
+/** Tutti i sorgenti applicativi dello storefront (i test non creano sessioni). */
+function listStorefrontSources() {
+  const root = path.join(repoRoot, STOREFRONT_SRC)
+  const out = []
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name)
+      if (entry.isDirectory()) {
+        walk(full)
+      } else if (SOURCE_FILE_RE.test(entry.name) && !SOURCE_TEST_FILE_RE.test(entry.name)) {
+        out.push(path.relative(repoRoot, full).split(path.sep).join('/'))
+      }
+    }
+  }
+  if (fs.existsSync(root)) walk(root)
+  return out.sort()
+}
+
+function localImportSpecifiers(source) {
+  return [...source.matchAll(/(?:import|export)\s+(?:[^'"]*?\s+from\s+)?['"]([^'"]+)['"]/g)]
+    .map((match) => match[1])
+}
+
+function resolveLocalImport(fromRel, spec, sourcesByPath) {
+  let base
+  if (spec.startsWith('@/')) {
+    base = `${STOREFRONT_SRC}/${spec.slice(2)}`
+  } else if (spec.startsWith('.')) {
+    base = path.posix.normalize(path.posix.join(path.posix.dirname(fromRel), spec))
+  } else {
+    return null
+  }
+  return [base, `${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`]
+    .find((candidate) => Object.prototype.hasOwnProperty.call(sourcesByPath, candidate)) ?? null
+}
+
+/**
+ * Sorgente di una rotta PIU' i moduli locali che importa. Serve perche' la rotta
+ * di riordino e' volutamente sottile: la chiamata a Stripe e la costruzione dei
+ * metadata vivono in `lib/reorder.ts`, e il gate deve verificarle la' dove sono.
+ */
+function collectLocalSource(rel, sourcesByPath, seen = new Set()) {
+  if (seen.has(rel)) return ''
+  seen.add(rel)
+  const own = sourcesByPath[rel] ?? ''
+  const children = localImportSpecifiers(own)
+    .map((spec) => resolveLocalImport(rel, spec, sourcesByPath))
+    .filter(Boolean)
+  return [
+    own,
+    ...children.map((child) => collectLocalSource(child, sourcesByPath, seen)),
+  ].join('\n')
+}
+
+/** Mappa inversa: modulo locale -> file che lo importano. */
+function buildImporterMap(sourcesByPath) {
+  const importers = new Map()
+  for (const [rel, source] of Object.entries(sourcesByPath)) {
+    for (const spec of localImportSpecifiers(source)) {
+      const target = resolveLocalImport(rel, spec, sourcesByPath)
+      if (!target) continue
+      if (!importers.has(target)) importers.set(target, new Set())
+      importers.get(target).add(rel)
+    }
+  }
+  return importers
+}
+
+/**
+ * Risale dagli import al file di rotta che possiede il codice. Serve quando la
+ * rotta e' sottile: il creatore e' `lib/reorder.ts`, ma il percorso che deve
+ * comparire in un messaggio d'errore e' la rotta che lo importa.
+ */
+function owningRoute(rel, importers, seen = new Set()) {
+  if (/(?:^|\/)route\.(?:ts|tsx)$/.test(rel)) return rel
+  if (seen.has(rel)) return null
+  seen.add(rel)
+  for (const importer of importers.get(rel) ?? []) {
+    const owner = owningRoute(importer, importers, seen)
+    if (owner) return owner
+  }
+  return null
+}
+
+/**
+ * I creatori di Checkout Session devono coincidere con gli scrittori di metadata
+ * monetari dichiarati. La rotta di riordino e' inclusa perche' scrive gli stessi
+ * metadata dell'ordine: se qualcuno toglie la rotta dalla lista, il controllo
+ * resta rosso finche' il file esiste e crea sessioni.
+ */
+function checkMoneyMetadataWriters() {
+  const sourcePaths = listStorefrontSources()
+  const sourcesByPath = Object.fromEntries(sourcePaths.map((rel) => [rel, read(rel)]))
+  const creators = findCheckoutSessionCreators(
+    sourcePaths.map((rel) => ({ path: rel, content: sourcesByPath[rel] })),
+  )
+  if (creators.length === 0) return `nessuna Checkout Session trovata sotto ${STOREFRONT_SRC}`
+
+  const declaredSources = {}
+  const ownerByPath = new Map()
+  for (const rel of MONEY_METADATA_WRITER_ROUTES) {
+    const seen = new Set()
+    declaredSources[rel] = collectLocalSource(rel, sourcesByPath, seen)
+    for (const file of seen) {
+      if (!ownerByPath.has(file)) ownerByPath.set(file, rel)
+    }
+  }
+
+  // Attribuisce un modulo locale alla rotta dichiarata che lo importa: il
+  // creatore "vero" e' la rotta, non il file di libreria che la serve. Se la
+  // rotta e' stata tolta dalla lista, l'import graph la ritrova comunque e il
+  // messaggio la nomina (invece di far sembrare il problema un file di lib).
+  const importers = buildImporterMap(sourcesByPath)
+  const attributedCreators = [...new Set(
+    creators.map((rel) => ownerByPath.get(rel) ?? owningRoute(rel, importers) ?? rel),
+  )].sort()
+  const problems = compareMoneyMetadataWriters(
+    attributedCreators,
+    MONEY_METADATA_WRITER_ROUTES,
+    declaredSources,
+  )
+  return problems.length === 0 ? true : problems.join(' | ')
+}
+
 /**
  * Rigenera i tipi dallo schema e verifica empiricamente due cose: che il file canonico sia
  * davvero l'output del generatore (sentinella) e che il contenuto sia in sincrono.
@@ -500,6 +692,7 @@ function main() {
     runCheck('contratto push:false su Payload', checkPushContract),
     runCheck('parita` chiavi i18n (5 lingue)', checkI18nParity),
     runCheck('metadata checkout -> percorsi soldi', checkMoneyMetadataContract),
+    runCheck('riordino: metadata monetari con la funzione condivisa', checkMoneyMetadataWriters),
     runCheck('tipi CMS rigenerati col cambio schema', checkGeneratedTypes),
     runCheck('nessun deploy/migration nei workflow', checkNoDeployInWorkflows),
     runCheck('nessun segreto nei file versionati', checkNoSecrets),
