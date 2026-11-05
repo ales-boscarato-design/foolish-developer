@@ -98,6 +98,7 @@ jobs:
           npm run test:sw --silent
           npm run test:files-download --silent
           npm run test:cms-media-proxy --silent
+          npm run test:laboratorio --silent
       - name: Storefront — build
         working-directory: storefront
         run: npm run build

@@ -436,54 +436,98 @@
     "cta_short": "Frank treffen"
   },
   "laboratorio": {
-    "meta": {
-      "description": "Der Häuter. Hüter echter Übungshäute. Er kennt sie Pore für Pore, Schicht für Schicht. Er schläft nicht: er wacht über sie."
-    },
     "hero": {
-      "eyebrow": "DIE WERKSTATT · CHIERI (TO)",
-      "sub": "Der Häuter. Er spricht zu den Häuten. Er kennt jede Pore einzeln."
+      "eyebrow": "FOOLISH LAB · CHIERI (TO)",
+      "title": "Ein Betrieb. Sechs Abteilungen. Ein Angestellter.",
+      "sub": "Der Häuter. Fünfundsiebzig Zentimeter. Niemand hat ihn eingestellt: er hat sich selbst ernannt."
     },
-    "lore": {
-      "eyebrow": "WER IST DER HÄUTER",
-      "p1": "Der Häuter ist kein Charakter. Er ist eine Konsequenz.",
-      "p2": "Seit 2012, seit die Werkstatt ihre Häute herstellt, musste jemand bei ihnen bleiben und über sie wachen. Der Häuter ist dieser Jemand — der Hüter, den jede echte Handwerkswerkstatt in sich trägt.",
-      "p3": "Zwölf Jahre Werkstattdämpfe, Katalyse, Flock, der fällt, wohin er will. Er weiß nicht mehr, wo die Werkstatt endet und er beginnt. Er macht sie. Er wacht die zwölf Stunden der Katalyse über sie. Er lässt sie erst gehen, wenn er sicher ist, dass sie halten.",
-      "p4": "Für den Häuter ist eine Haut nicht lebendig: sie ist gut gemacht. Sie hat echte Poren — keine gezeichneten, keine gedruckten — und deshalb hält der Transfer und die überschüssige Farbe geht von selbst. Sie heilt nicht, sie regeneriert sich nicht: sie hält und sie gibt ab, und genau das braucht man in der Praxis. „Wer dir erzählt, eine Haut heile, verkauft dir ein Märchen\", sagt er. „Meine heilt nicht. Meine funktioniert.\"",
-      "quote": "Man tätowiert nicht, sagt er. Man verehrt. Heilige Haut."
+    "intro": {
+      "eyebrow": "Wer er ist",
+      "p1": "Niemand weiß genau, wann er gekommen ist.",
+      "p2": "Manche sagen, er sei nach einer besonders langen Nacht aufgetaucht; andere, er sei schon immer da gewesen, unter der alten Tischlerbank.",
+      "p3": "Eines ist sicher: Eines Tages sagte jemand, für diese Werkstatt bräuchte man mindestens sechs Leute.",
+      "p4": "Am nächsten Morgen war der Häuter da. Nicht sechs Leute. Einer, mit sechs Garderobenwechseln."
     },
-    "obsessions": {
-      "eyebrow": "SEINE OBSESSIONEN",
-      "flock": {
-        "label": "DER FLOCK",
-        "quote": "Mikrofasern aus zermahlenem Samt — rot, blau, gelb — die fallen, wo sie wollen. Deshalb ist keine Haut wie die andere. Niemals. Wer sie alle identisch will, kann gleich auf Linoleum tätowieren."
-      },
-      "discromie": {
-        "label": "DIE DYSCHROMIEN",
-        "quote": "Das sind keine Fehler. Das ist die Signatur. Echte Haut ist ungleichmäßig, lebendig. Wer alles glattbügelt, hat noch nie einen Unterarm aus der Nähe betrachtet."
-      },
-      "catalisi": {
-        "label": "DIE KATALYSE",
-        "quote": "Zwölf Stunden. Die Haut wird langsam geboren und die Flocks setzen sich, wo sie hingehören. Wer es eilig hat, verdient die Haut nicht."
-      },
-      "pelleViva": {
-        "label": "DIE SCHICHTEN",
-        "quote": "Farbe streiche ich nicht: ich lege sie ab. Schicht für Schicht, und jede Schicht ist sichtbar. Deshalb lesen sich die Lasierungen, und deshalb sieht man nicht hindurch: man sieht hinein. Wer «transparent» sagt, hat noch nie eine echte Haut in der Hand gehalten."
+    "scale": {
+      "eyebrow": "Der Maßstab",
+      "p1": "Die Welt um ihn ist echt: roter Backstein, hohe Decken, riesige weiße Tische, Holzformen, Regale voller Hände und Arme.",
+      "p2": "Er nicht.",
+      "p3": "Für ihn ist ein Gusstisch eine Fläche, die man überquert. Eine Form ist eine außergewöhnliche Maschine. Ein A3-Blatt ist ein gigantisches Wesen, das gezähmt werden muss, und das Monokel ist das wichtigste Instrument, das je erfunden wurde — zumindest seiner Meinung nach.",
+      "p4": "Er ist kein Zauberer und lebt nicht in einer anderen Dimension. Er arbeitet hier. Er sieht dieselben Dinge aus einer anderen Höhe."
+    },
+    "staff": {
+      "eyebrow": "Die sechs Abteilungen",
+      "boardLabel": "TODAY'S STAFF",
+      "intro": "Die Tafel des Schichtplans ändert sich nie. Sechs Namen. Ein Angestellter.",
+      "items": {
+        "warehouse": {
+          "role": "LAGER",
+          "trait": "",
+          "quote": "„Wenn es kaputt angekommen ist, war es vor mir kaputt. Aber ich unterschreibe.\"",
+          "aside": ""
+        },
+        "secretary": {
+          "role": "SEKRETARIAT",
+          "trait": "",
+          "quote": "„Drei Mails. Keine Antwort. Ich habe sie geschrieben. Ich habe sie gelesen.\"",
+          "aside": ""
+        },
+        "callCentre": {
+          "role": "CALL CENTER",
+          "trait": "",
+          "quote": "„Ihr Anliegen ist uns sehr wichtig.\"",
+          "aside": "(Ich bin uns.)"
+        },
+        "chemist": {
+          "role": "CHEMIE / F&E",
+          "trait": "",
+          "quote": "„Es ist nicht ‚fast gleichmäßig'. Es ist gleichmäßig, oder es wird neu gemacht.\"",
+          "aside": ""
+        },
+        "ceo": {
+          "role": "CEO",
+          "trait": "",
+          "quote": "„Wir müssen groß denken.\"",
+          "aside": "(Das Blatt ist A3. Nicht groß genug.)"
+        },
+        "cleaning": {
+          "role": "REINIGUNG",
+          "trait": "",
+          "quote": "„Jemand hat Flock auf der Werkbank gelassen. Dieser Jemand bin ich.\"",
+          "aside": ""
+        }
+      }
+    },
+    "lab": {
+      "eyebrow": "Die Werkstatt",
+      "p1": "Fünf Bereiche, alle echt: die weißen Gusstitche, die Regale mit Anatomien, die Tischlerbank unter dem Fenster, die Station der Buchformen, die Stahlbank der Vorbereitung.",
+      "p2": "Unter der Tischlerbank gibt es einen Raum, der in keinem Plan steht: ein winziger Schreibtisch, eine Lampe, Notizbücher und ein Stapel Blätter, die er noch nicht freigegeben hat. Kein Unterschlupf. Der Arbeitsplatz von jemandem, der zu viel arbeitet.",
+      "p3": "Und dann sind da die Spuren, die nicht seine sind. Verschlossene Kartons, Etiketten, fertige Aufträge, ein Paar Schuhe, das sich bewegt. Jemand produziert hier. Ohne Gesicht. Notwendig."
+    },
+    "paradox": {
+      "eyebrow": "Das Paradox",
+      "intro": "Er will nur eines: die perfekte Oberfläche.",
+      "spessore": "Das Problem: perfekte menschliche Haut gibt es nicht. Sie hat Farbschwankungen, unterschiedliche Texturen, ungleiche Stärken. Was eine Übungshaut glaubwürdig macht, ist genau das, was der Häuter als Fehler bezeichnet.",
+      "discromie": "Farbiger Flock verteilt sich nie gleichmäßig: die Katalyse macht, was sie will, und daraus entsteht die Schwankung, die wie echte Haut wirkt.",
+      "pori": "Die Poren sind nicht gedruckt: sie nehmen den Transfer auf und lassen überschüssige Farbe heraus.",
+      "strati": "Farbe wird nicht aufgetragen, sie wird in Schichten abgelegt — deshalb lesen sich die Lasierungen, ohne dass jemand hindurchsieht.",
+      "closing": "Für den Häuter eine persönliche Beleidigung. Für Tätowierer der Grund, warum es funktioniert."
+    },
+    "series": {
+      "eyebrow": "Die Serie",
+      "p1": "Sechs Motoren, keine sechs Themen: Inspektion, Werkstattdesaster, das Maßstabsproblem, Arbeit, die nie gut genug ist, das menschliche Problem, das unverhältnismäßige Experiment. Dieselbe Form kann vier verschiedene Episoden ergeben, ohne sich zu wiederholen.",
+      "p2": "Zwei Regeln. Erstens: jede Episode funktioniert ohne die vorherigen. Zweitens: der Häuter wird seinen Perfektionismus nie los — würde er es, wäre die Serie zu Ende.",
+      "episode": {
+        "code": "EP. 003",
+        "title": "STAFF MEETING",
+        "body": ""
       }
     },
     "cta": {
-      "eyebrow": "DIE WERKBANK IST OFFEN",
-      "title": "FOLGE ODER SCHREIB.",
-      "drops": {
-        "button": "Folge der Werkstatt",
-        "note": "Alle zwölf Stunden ein Gedanke von der Werkbank. Erwarte keine Freundlichkeit. Erwarte Besessenheit."
-      },
-      "support": {
-        "button": "Schreib der Werkstatt",
-        "note": "Für Bestellungen und Versand antworten wir selbst, direkt auf den Punkt."
-      }
+      "title": "Die Häute sind hier. Ich prüfe sie.",
+      "practiceSkin": "Practice skin",
+      "bot": "Der Werkstatt schreiben"
     },
-    "seboLink": "Dann ist da noch Sebo. Ich spreche lieber nicht darüber.",
-    "imageAlt": "Der Häuter in der Werkstatt",
     "backToShop": "← Zurück zur Auslage"
   },
   "sebo": {

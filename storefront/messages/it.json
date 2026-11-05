@@ -436,54 +436,98 @@
     "cta_short": "Incontra Frank"
   },
   "laboratorio": {
-    "meta": {
-      "description": "Il Pellaio. Custode delle pelli vere. Le conosce poro per poro, strato per strato. Non dorme: le veglia."
-    },
     "hero": {
-      "eyebrow": "IL LABORATORIO · CHIERI (TO)",
-      "sub": "Il Pellaio. Parla alle pelli. Conosce i loro pori a uno a uno."
+      "eyebrow": "FOOLISH LAB · CHIERI (TO)",
+      "title": "Un'azienda. Sei reparti. Un solo dipendente.",
+      "sub": "Il Pellaio. Settantacinque centimetri. Nessuno lo ha assunto: si è nominato da solo."
     },
-    "lore": {
-      "eyebrow": "CHI È IL PELLAIO",
-      "p1": "Il Pellaio non è un personaggio. È una conseguenza.",
-      "p2": "Dal 2012, da quando il laboratorio produce le sue pelli, qualcuno doveva restare a vegliarle. Il Pellaio è quel qualcuno — il custode che ogni laboratorio artigianale vero si porta dentro.",
-      "p3": "Dodici anni di vapori del banco, di catalisi, di flock che cade dove vuole. Non sa più dove finisce il laboratorio e dove comincia lui. Lui le fa. Le veglia nelle dodici ore di catalisi. Le manda via solo quando è sicuro che tengano.",
-      "p4": "Per il Pellaio una pelle non è viva: è fatta bene. Ha pori veri — non disegnati, non stampati — e per questo il transfer ci si aggrappa e l'inchiostro in eccesso se ne va da solo. Non guarisce, non si rigenera: trattiene e rilascia, che è quello che serve in pratica. «Chi ti racconta che la pelle guarisce ti sta vendendo una favola», dice. «La mia non guarisce. La mia funziona.»",
-      "quote": "Non si tatua, dice lui. Si venera. Pelle santa."
+    "intro": {
+      "eyebrow": "Chi è",
+      "p1": "Nessuno sa esattamente quando sia arrivato al laboratorio.",
+      "p2": "C'è chi dice che sia comparso dopo una notte di lavoro particolarmente lunga. Altri sostengono che fosse già lì, sotto il vecchio banco del falegname, tra gli stampi.",
+      "p3": "Una cosa è certa: un giorno qualcuno disse che, per mandare avanti quel laboratorio, sarebbero servite almeno sei persone.",
+      "p4": "La mattina dopo c'era il Pellaio. Non sei persone. Una sola, con sei cambi d'abito."
     },
-    "obsessions": {
-      "eyebrow": "LE SUE OSSESSIONI",
-      "flock": {
-        "label": "IL FLOCK",
-        "quote": "Microfili di velluto tritato — rosso, blu, giallo — che cadono dove vogliono loro. Per questo nessuna pelle è uguale a un'altra. Mai. Chi le vuole tutte identiche tatui pure sul linoleum."
-      },
-      "discromie": {
-        "label": "LE DISCROMIE",
-        "quote": "Non sono difetti. Sono la firma. La pelle vera è disomogenea, viva. Chi liscia tutto non ha mai guardato un avambraccio da vicino."
-      },
-      "catalisi": {
-        "label": "LA CATALISI",
-        "quote": "Dodici ore. La pelle nasce piano e i flock si posano dove devono. Chi ha fretta non merita la pelle."
-      },
-      "pelleViva": {
-        "label": "GLI STRATI",
-        "quote": "Il colore non lo stendo: lo depongo. Strato su strato, e ogni strato si vede. Per questo le velature si leggono, e per questo non ci si guarda attraverso: si guarda dentro. Chi ti dice «trasparente» non ha mai tenuto in mano una pelle vera."
+    "scale": {
+      "eyebrow": "La scala",
+      "p1": "Il mondo intorno a lui è reale: mattoni rossi, soffitti alti, tavoli bianchi enormi, stampi di legno, scaffali pieni di mani e braccia.",
+      "p2": "Il Pellaio no.",
+      "p3": "Per lui un tavolo di colata è una distesa da attraversare. Uno stampo è una macchina straordinaria. Un foglio A3 è una creatura gigantesca da domare, e il monocolo è lo strumento più importante mai inventato — almeno secondo lui.",
+      "p4": "Non è un mago e non vive in un'altra dimensione. Lavora qui. Vede le stesse cose da un'altra altezza."
+    },
+    "staff": {
+      "eyebrow": "I sei reparti",
+      "boardLabel": "TODAY'S STAFF",
+      "intro": "La lavagna dei turni è sempre la stessa. Sei nomi. Un dipendente.",
+      "items": {
+        "warehouse": {
+          "role": "MAGAZZINIERE",
+          "trait": "Pratico, burbero, odia l'ufficio.",
+          "quote": "«Se è arrivato rotto, era rotto prima di me. Ma lo firmo io.»",
+          "aside": ""
+        },
+        "secretary": {
+          "role": "SEGRETERIA",
+          "trait": "Pettegola, melodrammatica, sa tutto di tutti.",
+          "quote": "«Tre email. Nessuna risposta. Le ho scritte io. Le ho lette io.»",
+          "aside": ""
+        },
+        "callCentre": {
+          "role": "CALL CENTER",
+          "trait": "Cortesia esasperante, voce sintetica.",
+          "quote": "«La sua richiesta è molto importante per noi.»",
+          "aside": "(Sono io. Noi.)"
+        },
+        "chemist": {
+          "role": "CHIMICO / R&D",
+          "trait": "Genio, ossessivo, disprezza le interruzioni.",
+          "quote": "«Non è \"quasi uniforme\". O è uniforme, o si rifà.»",
+          "aside": ""
+        },
+        "ceo": {
+          "role": "CEO",
+          "trait": "Visionario, presuntuoso, scollegato dalla realtà.",
+          "quote": "«Dobbiamo pensare in grande.»",
+          "aside": "(Il foglio è A3. Non basta.)"
+        },
+        "cleaning": {
+          "role": "PULIZIE",
+          "trait": "Perennemente indignato.",
+          "quote": "«Qualcuno ha lasciato il flock sul banco. Quel qualcuno sono io.»",
+          "aside": ""
+        }
+      }
+    },
+    "lab": {
+      "eyebrow": "Il laboratorio",
+      "p1": "Cinque aree, e sono tutte reali: i tavoli bianchi delle colate, gli scaffali delle anatomie, il banco del falegname sotto la finestra, la stazione degli stampi a libro, il banco d'acciaio della preparazione.",
+      "p2": "Sotto il banco del falegname c'è uno spazio che non compare in nessuna planimetria: una scrivania microscopica, una lampada, quaderni pieni di annotazioni e una pila di fogli che non ha ancora approvato. Non è una tana. È la postazione di qualcuno che lavora troppo.",
+      "p3": "E poi ci sono le tracce che non sono sue. Scatole chiuse, etichette, ordini pronti, un paio di scarpe che si spostano. Qualcuno produce, qui. Non ha un volto. Serve."
+    },
+    "paradox": {
+      "eyebrow": "Il paradosso",
+      "intro": "Vuole una cosa sola: la superficie perfetta.",
+      "spessore": "Il problema è che la pelle umana perfetta non esiste. Ha discromie, consistenze diverse, variazioni di spessore. La cosa che rende credibile una pelle da pratica è esattamente quella che il Pellaio considera un difetto.",
+      "discromie": "I flock colorati non si distribuiscono mai in modo uniforme: la catalisi fa quello che vuole, e da lì nascono le variazioni che assomigliano alla pelle vera.",
+      "pori": "I pori non sono disegnati: assorbono il transfer e lasciano uscire l'inchiostro in eccesso.",
+      "strati": "Il colore non si stende sopra, si deposita a strati — ed è per questo che le velature si leggono, senza che nessuno ci guardi attraverso.",
+      "closing": "Per il Pellaio è un'offesa personale. Per chi tatua è il motivo per cui funziona."
+    },
+    "series": {
+      "eyebrow": "La serie",
+      "p1": "Sei motori, non sei argomenti: l'ispezione, il disastro di laboratorio, il problema di scala, il lavoro che non è mai accettabile, il problema umano, l'esperimento sproporzionato. Lo stesso stampo può diventare quattro episodi diversi senza ripetere niente.",
+      "p2": "Due regole. La prima: ogni episodio si capisce senza aver visto i precedenti. La seconda: il Pellaio non guarisce dal perfezionismo — se guarisse, finirebbe la serie.",
+      "episode": {
+        "code": "EP. 003",
+        "title": "STAFF MEETING",
+        "body": "Sei sedie intorno al tavolo. Un solo dipendente, e quindi anche gli altri cinque posti sono occupati da una parrucca, un cappellino, un mocio. Il CEO accusa la produzione di essere lenta. La segreteria sostiene di aver mandato tre email. Il call center ripete che la segnalazione è molto importante. Il telefono squilla. Il Pellaio chiude gli occhi."
       }
     },
     "cta": {
-      "eyebrow": "IL BANCO È APERTO",
-      "title": "SEGUI O SCRIVI.",
-      "drops": {
-        "button": "Segui il laboratorio",
-        "note": "Ogni dodici ore un pensiero dal banco. Non aspettarti gentilezza. Aspettati ossessione."
-      },
-      "support": {
-        "button": "Scrivi al laboratorio",
-        "note": "Per ordini e spedizioni rispondiamo noi, dritti al punto."
-      }
+      "title": "Le pelli le trovi qui. Io le controllo.",
+      "practiceSkin": "Practice skin",
+      "bot": "Scrivi al laboratorio"
     },
-    "seboLink": "Poi c'è Sebo. Preferirei non parlarne.",
-    "imageAlt": "Il Pellaio nel laboratorio",
     "backToShop": "← Torna alla vetrina"
   },
   "sebo": {
