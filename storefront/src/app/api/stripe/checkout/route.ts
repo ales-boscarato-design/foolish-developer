@@ -21,6 +21,11 @@ import {
 } from '@/lib/promo'
 import { getShippingZone, isFreeShippingPromoAllowed, shippingRequiresQuote } from '@/lib/shipping'
 import { resolveExtraEuShipping } from '@/lib/landed-cost'
+import {
+  buildCarrierShippingMetadata,
+  buildExtraEuShippingMetadata,
+  buildStripeLineItems,
+} from '@/lib/checkout-session'
 
 type StripeAllowedCountry = NonNullable<
   Stripe.Checkout.SessionCreateParams['shipping_address_collection']
@@ -224,28 +229,14 @@ export async function POST(req: NextRequest) {
       )
     }
     serverShippingCostCents = resolution.costCents
-    shippingMetadata.shipping_source = resolution.source
-    shippingMetadata.shipping_basis_cents = String(resolution.basisCostCents)
-    if (resolution.quote?.checkoutInvoiceNumber) {
-      shippingMetadata.shipping_quote_ref = resolution.quote.checkoutInvoiceNumber
-    }
-    if (resolution.quote?.parcel) {
-      const parcel = resolution.quote.parcel
-      shippingMetadata.shipping_parcel_json = JSON.stringify({
-        weight: parcel.weightKg,
-        length: parcel.lengthCm,
-        width: parcel.widthCm,
-        height: parcel.heightCm,
-        packages: parcel.packages,
-      })
-    }
+    Object.assign(shippingMetadata, buildExtraEuShippingMetadata(resolution))
   } else {
     serverShippingCostCents = calculateServerShippingCostCents(
       normalizedItems,
       customer.country,
       promo?.freeShipping === true,
     )
-    shippingMetadata.shipping_source = 'carrier_flat'
+    Object.assign(shippingMetadata, buildCarrierShippingMetadata())
   }
   if (serverShippingCostCents === null || !Number.isSafeInteger(serverShippingCostCents) || serverShippingCostCents < 0) {
     return NextResponse.json({ error: 'Costo di spedizione non valido' }, { status: 400 })
@@ -260,27 +251,7 @@ export async function POST(req: NextRequest) {
   const orderRef = `FOOLISH-${Date.now()}`
   const shippingCostCents = serverShippingCostCents
 
-  const lineItems = [
-    ...chargedProductLines.map((item) => ({
-      price_data: {
-        currency: 'eur',
-        unit_amount: item.unitAmountCents,
-        product_data: {
-          name: `${item.name} — ${item.variantLabel}`,
-          metadata: { sku: item.sku },
-        },
-      },
-      quantity: item.qty,
-    })),
-    ...(shippingCostCents > 0 ? [{
-      price_data: {
-        currency: 'eur',
-        unit_amount: shippingCostCents,
-        product_data: { name: 'Spedizione' },
-      },
-      quantity: 1,
-    }] : []),
-  ]
+  const lineItems = buildStripeLineItems(chargedProductLines, shippingCostCents)
 
   const metadata = buildCheckoutMetadata({
     orderRef,

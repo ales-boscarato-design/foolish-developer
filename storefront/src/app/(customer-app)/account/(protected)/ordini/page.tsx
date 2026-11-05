@@ -71,7 +71,7 @@ export default async function OrdiniPage() {
                     {lineItems.map(i => i.name).join(', ')} · €{(order.total as number)?.toFixed(2)}
                   </div>
                   <div style={{ display: 'flex', gap: '6px' }}>
-                    {!isActive && <ReorderButton orderId={order.orderNumber as string} label={t('reorder')} />}
+                    {!isActive && <ReorderButton orderId={order.orderNumber as string} label={t('reorder')} locale={locale} />}
                   </div>
                 </div>
               </div>

@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
         if (sequence?.steps) {
           for (const step of sequence.steps) {
             if (!step.active || step.delay_hours !== 0) continue
-            await sendPushToEmail(session.email, { title: step.title, body: step.body, url: step.url })
-            await markPushSequenceStep(session.email, step.step_key)
+            const ok = await sendPushToEmail(session.email, { title: step.title, body: step.body, url: step.url })
+            if (ok) await markPushSequenceStep(session.email, step.step_key)
           }
         }
       } catch (e) {

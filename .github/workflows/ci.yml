@@ -78,6 +78,8 @@ jobs:
         working-directory: storefront
         run: |
           npm run test:orders --silent
+          npm run test:reorder --silent
+          npm run test:reorder-orders --silent
           npm run test:emails --silent
           npm run test:catalog --silent
           npm run test:legacy-slugs --silent
@@ -90,8 +92,13 @@ jobs:
           npm run test:affiliate-referral --silent
           npm run test:affiliate-route --silent
           npm run test:affiliate-i18n --silent
+          npm run test:pwa-push-endpoint --silent
+          npm run test:pwa-push-claim --silent
+          npm run test:pwa-push-logout --silent
+          npm run test:sw --silent
+          npm run test:files-download --silent
+          npm run test:cms-media-proxy --silent
           npm run test:laboratorio --silent
-
       - name: Storefront — build
         working-directory: storefront
         run: npm run build
