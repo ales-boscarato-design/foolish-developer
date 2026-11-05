@@ -2,12 +2,13 @@
   "_doc": [
     "Tabella dei prezzi REALI extra-UE tenuta in casa dal negozio.",
     "Sorgente: quota live sul servizio della Pi (POST /landed-cost/v1/quote), una per paese e per banda di valore.",
+    "La base di prezzo di ogni banda e la quota del servizio sulla copertura approvata (goods_plus_shipping, 21/09/2026): merce + costo di spedizione sostenuto, premio escluso. Il blocco insurance_coverage della quota e registrato qui perche la banda si possa VERIFICARE, non solo credere.",
     "La usa il negozio quando la Pi non risponde entro il tempo breve: un guasto della Pi deve costare PRECISIONE, non vendite.",
     "Le bande sono solo quote con UN PEZZO nel carrello: le quote multi-pezzo gonfiano dazi e IVA di un fattore pari alla quantita e non sono un prezzo.",
     "Non si modifica a mano: si rigenera con scripts/landed-cost-table.mjs (che parla con la Pi) e si sottopone a review."
   ],
   "schema": 1,
-  "generated_at": "2026-09-21T13:12:49.448Z",
+  "generated_at": "2026-09-21T15:04:00.159Z",
   "generator": "scripts/landed-cost-table.mjs (quota live servita dalla Pi di Alfred)",
   "currency": "EUR",
   "countries": {
@@ -15,27 +16,33 @@
       "bands": [
         {
           "goods_value_cents": 2390,
-          "shipping_and_import_cents": 6469,
-          "landed_cost_cents": 6621,
-          "cost_basis_cents": 6621,
+          "shipping_and_import_cents": 6589,
+          "landed_cost_cents": 6589,
+          "cost_basis_cents": 6589,
+          "insurance_coverage_policy": "goods_plus_shipping",
+          "insurance_base_cents": 8760,
+          "insurance_premium_cents": 219,
           "service_id": 20937,
           "carrier": "UPS",
           "service_name": "Express Saver",
           "checkout_invoice_number": "TFC-WEB-00081",
           "probe_sku": "TS-A4",
-          "quoted_at": "2026-09-21T13:12:34.401Z"
+          "quoted_at": "2026-09-21T15:03:55.840Z"
         },
         {
           "goods_value_cents": 9900,
-          "shipping_and_import_cents": 8551,
-          "landed_cost_cents": 8703,
-          "cost_basis_cents": 8703,
+          "shipping_and_import_cents": 8758,
+          "landed_cost_cents": 8758,
+          "cost_basis_cents": 8758,
+          "insurance_coverage_policy": "goods_plus_shipping",
+          "insurance_base_cents": 18203,
+          "insurance_premium_cents": 455,
           "service_id": 20937,
           "carrier": "UPS",
           "service_name": "Express Saver",
           "checkout_invoice_number": "TFC-WEB-00082",
           "probe_sku": "T-3D-WMN-BCK",
-          "quoted_at": "2026-09-21T13:12:36.874Z"
+          "quoted_at": "2026-09-21T15:03:55.985Z"
         }
       ]
     },
@@ -43,15 +50,18 @@
       "bands": [
         {
           "goods_value_cents": 9900,
-          "shipping_and_import_cents": 4620,
-          "landed_cost_cents": 4772,
-          "cost_basis_cents": 4772,
+          "shipping_and_import_cents": 4729,
+          "landed_cost_cents": 4729,
+          "cost_basis_cents": 4729,
+          "insurance_coverage_policy": "goods_plus_shipping",
+          "insurance_base_cents": 14272,
+          "insurance_premium_cents": 357,
           "service_id": 22131,
           "carrier": "UPS",
           "service_name": "Standard Access Point",
           "checkout_invoice_number": "TFC-WEB-00066",
           "probe_sku": "T-3D-WMN-BCK",
-          "quoted_at": "2026-09-21T13:12:19.979Z"
+          "quoted_at": "2026-09-21T15:03:54.813Z"
         }
       ]
     },
@@ -59,27 +69,33 @@
       "bands": [
         {
           "goods_value_cents": 2390,
-          "shipping_and_import_cents": 3845,
-          "landed_cost_cents": 3997,
-          "cost_basis_cents": 3997,
+          "shipping_and_import_cents": 3899,
+          "landed_cost_cents": 3899,
+          "cost_basis_cents": 3899,
+          "insurance_coverage_policy": "goods_plus_shipping",
+          "insurance_base_cents": 6136,
+          "insurance_premium_cents": 153,
           "service_id": 22131,
           "carrier": "UPS",
           "service_name": "Standard Access Point",
           "checkout_invoice_number": "TFC-WEB-00069",
           "probe_sku": "TS-A4",
-          "quoted_at": "2026-09-21T13:12:22.934Z"
+          "quoted_at": "2026-09-21T15:03:55.035Z"
         },
         {
           "goods_value_cents": 9900,
-          "shipping_and_import_cents": 5894,
-          "landed_cost_cents": 6046,
-          "cost_basis_cents": 6046,
+          "shipping_and_import_cents": 6035,
+          "landed_cost_cents": 6035,
+          "cost_basis_cents": 6035,
+          "insurance_coverage_policy": "goods_plus_shipping",
+          "insurance_base_cents": 15546,
+          "insurance_premium_cents": 389,
           "service_id": 22131,
           "carrier": "UPS",
           "service_name": "Standard Access Point",
           "checkout_invoice_number": "TFC-WEB-00072",
           "probe_sku": "T-3D-WMN-BCK",
-          "quoted_at": "2026-09-21T13:12:26.705Z"
+          "quoted_at": "2026-09-21T15:03:55.192Z"
         }
       ]
     },
@@ -87,27 +103,33 @@
       "bands": [
         {
           "goods_value_cents": 2390,
-          "shipping_and_import_cents": 8364,
-          "landed_cost_cents": 8516,
-          "cost_basis_cents": 8516,
+          "shipping_and_import_cents": 8531,
+          "landed_cost_cents": 8531,
+          "cost_basis_cents": 8531,
+          "insurance_coverage_policy": "goods_plus_shipping",
+          "insurance_base_cents": 10655,
+          "insurance_premium_cents": 266,
           "service_id": 20937,
           "carrier": "UPS",
           "service_name": "Express Saver",
           "checkout_invoice_number": "TFC-WEB-00085",
           "probe_sku": "TS-A4",
-          "quoted_at": "2026-09-21T13:12:42.021Z"
+          "quoted_at": "2026-09-21T15:03:56.425Z"
         },
         {
           "goods_value_cents": 9900,
-          "shipping_and_import_cents": 9998,
-          "landed_cost_cents": 10150,
-          "cost_basis_cents": 10150,
+          "shipping_and_import_cents": 10241,
+          "landed_cost_cents": 10241,
+          "cost_basis_cents": 10241,
+          "insurance_coverage_policy": "goods_plus_shipping",
+          "insurance_base_cents": 19650,
+          "insurance_premium_cents": 491,
           "service_id": 20937,
           "carrier": "UPS",
           "service_name": "Express Saver",
           "checkout_invoice_number": "TFC-WEB-00086",
           "probe_sku": "T-3D-WMN-BCK",
-          "quoted_at": "2026-09-21T13:12:44.424Z"
+          "quoted_at": "2026-09-21T15:03:56.579Z"
         }
       ]
     },
@@ -115,27 +137,33 @@
       "bands": [
         {
           "goods_value_cents": 2390,
-          "shipping_and_import_cents": 4706,
-          "landed_cost_cents": 4858,
-          "cost_basis_cents": 4858,
+          "shipping_and_import_cents": 4782,
+          "landed_cost_cents": 4782,
+          "cost_basis_cents": 4782,
+          "insurance_coverage_policy": "goods_plus_shipping",
+          "insurance_base_cents": 6997,
+          "insurance_premium_cents": 175,
           "service_id": 22131,
           "carrier": "UPS",
           "service_name": "Standard Access Point",
           "checkout_invoice_number": "TFC-WEB-00075",
           "probe_sku": "TS-A4",
-          "quoted_at": "2026-09-21T13:12:29.462Z"
+          "quoted_at": "2026-09-21T15:03:55.357Z"
         },
         {
           "goods_value_cents": 9900,
-          "shipping_and_import_cents": 7232,
-          "landed_cost_cents": 7384,
-          "cost_basis_cents": 7384,
+          "shipping_and_import_cents": 7406,
+          "landed_cost_cents": 7406,
+          "cost_basis_cents": 7406,
+          "insurance_coverage_policy": "goods_plus_shipping",
+          "insurance_base_cents": 16884,
+          "insurance_premium_cents": 422,
           "service_id": 22131,
           "carrier": "UPS",
           "service_name": "Standard Access Point",
           "checkout_invoice_number": "TFC-WEB-00078",
           "probe_sku": "T-3D-WMN-BCK",
-          "quoted_at": "2026-09-21T13:12:32.026Z"
+          "quoted_at": "2026-09-21T15:03:55.631Z"
         }
       ]
     },
@@ -143,27 +171,33 @@
       "bands": [
         {
           "goods_value_cents": 2390,
-          "shipping_and_import_cents": 6397,
-          "landed_cost_cents": 6549,
-          "cost_basis_cents": 6549,
+          "shipping_and_import_cents": 6515,
+          "landed_cost_cents": 6515,
+          "cost_basis_cents": 6515,
+          "insurance_coverage_policy": "goods_plus_shipping",
+          "insurance_base_cents": 8688,
+          "insurance_premium_cents": 217,
           "service_id": 30343,
           "carrier": "UPS",
           "service_name": "Express Saver",
           "checkout_invoice_number": "TFC-WEB-00087",
           "probe_sku": "TS-A4",
-          "quoted_at": "2026-09-21T13:12:46.794Z"
+          "quoted_at": "2026-09-21T15:03:56.746Z"
         },
         {
           "goods_value_cents": 9900,
-          "shipping_and_import_cents": 7497,
-          "landed_cost_cents": 7649,
-          "cost_basis_cents": 7649,
+          "shipping_and_import_cents": 7678,
+          "landed_cost_cents": 7678,
+          "cost_basis_cents": 7678,
+          "insurance_coverage_policy": "goods_plus_shipping",
+          "insurance_base_cents": 17149,
+          "insurance_premium_cents": 429,
           "service_id": 30343,
           "carrier": "UPS",
           "service_name": "Express Saver",
           "checkout_invoice_number": "TFC-WEB-00088",
           "probe_sku": "T-3D-WMN-BCK",
-          "quoted_at": "2026-09-21T13:12:49.448Z"
+          "quoted_at": "2026-09-21T15:04:00.159Z"
         }
       ]
     }

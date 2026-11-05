@@ -41,8 +41,15 @@ export const EXTRA_EU_MINIMUM_SHIPPING_CENTS = Math.ceil(EXTRA_EU_MINIMUM_SHIPPI
 
 interface LandingTableBand {
   goodsValueCents: number
+  /** Base di prezzo della banda: la quota del servizio sulla copertura approvata. */
   costBasisCents: number
   shippingAndImportCents: number
+  /** Stima dichiarata dal servizio (`landed_cost_estimate`), se registrata. */
+  landedCostCents: number | null
+  /** Copertura assicurativa approvata che la banda dichiara, se registrata. */
+  insuranceCoveragePolicy: string | null
+  insuranceBaseCents: number | null
+  insurancePremiumCents: number | null
   serviceId: number | null
   checkoutInvoiceNumber: string | null
   quotedAt: string | null
@@ -106,8 +113,19 @@ export function loadLandedCostTable(raw: unknown = landedCostTable): Map<string,
           if (goodsValueCents === null || costBasisCents === null || shippingAndImportCents === null) continue
           parsed.push({
             goodsValueCents,
-            costBasisCents,
+            // La base di prezzo non sta mai sotto una cifra che il servizio ha
+            // dichiarato per quella banda (quota o stima): una banda incoerente
+            // alza la base, non la abbassa.
+            costBasisCents: Math.max(
+              costBasisCents,
+              shippingAndImportCents,
+              positiveCentsInt(candidate.landed_cost_cents) ?? 0,
+            ),
             shippingAndImportCents,
+            landedCostCents: positiveCentsInt(candidate.landed_cost_cents),
+            insuranceCoveragePolicy: boundedString(candidate.insurance_coverage_policy, 40),
+            insuranceBaseCents: positiveCentsInt(candidate.insurance_base_cents),
+            insurancePremiumCents: positiveCentsInt(candidate.insurance_premium_cents),
             serviceId: Number.isSafeInteger(candidate.service_id) ? candidate.service_id as number : null,
             checkoutInvoiceNumber: boundedString(candidate.checkout_invoice_number, 64),
             quotedAt: boundedString(candidate.quoted_at, 40),

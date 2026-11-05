@@ -163,13 +163,24 @@ export interface ExtraEuProfile {
   /** Trasporto per il collo di riferimento della zona (2,0 kg). */
   carrier: number
   /**
-   * Assicurazione: quota sul valore della merce. Sul punto misurato (merce
-   * 99,00) vale 4,00 EUR, cioe' il 2,5% del valore assicurato che Packlink
-   * dichiara (160,00) riscritto sulla merce (4,04%): qui non esiste un valore
-   * assicurato separato dalla merce. Il fattore 1,6162 e' un'ASSUNZIONE a un
-   * punto di misura, non una regola verificata (vedi SWITZERLAND_PROFILE).
+   * Assicurazione: quota sulla BASE ASSICURATA dichiarata dal servizio di quota
+   * (policy `goods_plus_shipping` — decisione di Alessandro, 21/09/2026):
+   * valore merce + costo di spedizione sostenuto, premio escluso. La quota e'
+   * 2,5% (`insurance_coverage.rate` del servizio) e sul punto misurato da'
+   * 3,57 su una base di 142,72 (merce 99,00 + 43,72 di spedizione).
+   *
+   * Prima del 21/09/2026 qui stava il 4,04% della merce: riscriveva sulla merce
+   * un premio calcolato su una base assicurata diversa (160,00), che la
+   * diagnosi del servizio ha smentito (le due quote differiscono SOLO per la
+   * base assicurata). Con `insuranceOnShippingCost` il premio segue la base
+   * approvata invece di una costante derivata a un punto di misura.
    */
   insuranceRate: number
+  /**
+   * true = il premio si calcola sulla base approvata (merce + costo di
+   * spedizione sostenuto, premio escluso); false/assente = solo sulla merce.
+   */
+  insuranceOnShippingCost?: boolean
   /**
    * Dazio all'importazione: quota sulla base CIF (merce + trasporto). E'
    * l'aliquota che vale SOTTO la soglia di `dutyAboveThreshold`, e su tutto il
@@ -229,7 +240,7 @@ export interface ExtraEuProfile {
  * calibrazione e si e' di nuovo sotto.
  *
  * Vale anche per il profilo MISURATO della Svizzera: costo e prezzo sono due
- * numeri diversi, e sul punto misurato il prezzo e' 47,72 + 10% = 52,49.
+ * numeri diversi, e sul punto misurato il prezzo e' 47,29 + 10% = 52,02.
  */
 export const EXTRA_EU_MARGIN_RATE = 0.10
 
@@ -272,15 +283,16 @@ export interface DutyAboveThreshold {
  * Profilo Svizzera — MISURATO, non stimato.
  *
  * Ordine CMS 31 / FOOLISH-1788184527086, Basel 4058, collo 40x40x10 / 2,0 kg,
- * merce 99,00 EUR. Costo reale alla cassa: 23,00 corriere + 0,99 gestione +
- * 4,00 assicurazione + 14,77 oneri doganali + 4,96 fee DDP = 47,72 EUR.
+ * merce 99,00 EUR. Costo sdoganato: 23,00 corriere + 0,99 gestione + 3,57
+ * assicurazione + 14,77 oneri doganali + 4,96 fee DDP = 47,29 EUR.
  *
  * Il 21/09/2026 i `customs_and_duties` di quell'ordine sono stati aperti e
- * separati (dazi 0,00 + IVA all'importazione 9,88 + sdoganamento 4,89). Le
- * regole reali sono quindi:
+ * separati (dazi 0,00 + IVA all'importazione 9,88 + sdoganamento 4,89), e la
+ * stessa indagine ha corretto la BASE ASSICURATA (vedi sotto). Le regole reali:
  *   IVA  8,1% su (merce 99,00 + trasporto REALE 23,00) = 9,88
+ *   assicurazione 2,5% su (merce 99,00 + 43,72 di spedizione sostenuta) = 3,57
  *   spese di sdoganamento = 4,89 (misurate, non un residuo)
- *   23,00 + 4,00 + 9,88 + 4,89 + 4,96 + 0,99 = 47,72 al centesimo
+ *   23,00 + 3,57 + 9,88 + 4,89 + 4,96 + 0,99 = 47,29 al centesimo
  *
  * Due difetti chiusi da questa misura:
  *  - la base dell'IVA all'importazione e' merce + trasporto REALE del corriere,
@@ -294,15 +306,16 @@ export interface DutyAboveThreshold {
  * Dazio 0: i prodotti industriali dei cap. 25-97 sono esenti dal 1/1/2024 a
  * prescindere dall'origine.
  *
- * ASSICURAZIONE — assunzione dichiarata, non regola: il costo misurato e' 4,00
- * EUR su merce 99,00. Packlink dichiara "2,5% del valore assicurato" e sul punto
- * misurato il valore assicurato era 160,00 (merce 99,00, fattura doganale
- * 113,99): 2,5% di 160 e il 4,04% di 99 danno entrambi 4,00. Le due letture
- * coincidono qui e divergono altrove, e con un solo punto non si sceglie: qui
- * resta la lettura che segue la merce (una quota, non un importo fisso). Se
- * invece il valore assicurato fosse FISSO a 160, i carrelli piccoli resterebbero
- * sottostimati di ~4,00 EUR a merce zero e di 2,79 EUR a merce 30. Si chiarisce
- * con un secondo punto DDP su merce diversa.
+ * ASSICURAZIONE — la base assicurata e' quella APPROVATA (`goods_plus_shipping`,
+ * Alessandro 21/09/2026): valore merce + costo di spedizione sostenuto, premio
+ * escluso. Il 4,00 EUR che stava qui prima veniva da un'altra base assicurata
+ * (160,00): la diagnosi del servizio ha mostrato che le due quote Packlink
+ * differiscono SOLO per la base (premio = 2,5% x base: 99 -> 2,48 / 160 ->
+ * 4,00), quindi il premio della copertura che compriamo e' 3,57 su base 142,72.
+ * Il profilo segue ora la regola DICHIARATA dal servizio (`insurance_coverage`:
+ * rate 0,025, base merce + spedizione) invece di una costante derivata a un
+ * punto di misura, e sul caso misurato riproduce il costo approvato al
+ * centesimo: 47,29, cioe' 52,02 di prezzo (prima 47,72 / 52,49).
  *
  * UN SOLO PUNTO DI MISURA con costo sdoganato completo (le altre 20 spedizioni
  * extra-UE sono partite in DAP: gli oneri li ha pagati il destinatario). La curva
@@ -319,7 +332,8 @@ export interface DutyAboveThreshold {
  */
 export const SWITZERLAND_PROFILE: ExtraEuProfile = {
   carrier: 23.00,
-  insuranceRate: 0.0404,
+  insuranceRate: 0.025,
+  insuranceOnShippingCost: true,
   dutyRate: 0,
   importVatRate: 0.081,
   fixedImportFee: 4.89,
@@ -331,14 +345,14 @@ export const SWITZERLAND_PROFILE: ExtraEuProfile = {
   // confermato, non con un cambio stimato.
   importVatExemptBelow: null,
   // Punto di prezzo deciso da Alessandro (21/09/2026): 10% sopra il costo
-  // sdoganato, applicato anche al profilo misurato. Il costo resta 47,72; il
-  // prezzo addebitato al punto misurato e' 52,49.
+  // sdoganato, applicato anche al profilo misurato. Il costo resta 47,29; il
+  // prezzo addebitato al punto misurato e' 52,02.
   marginRate: EXTRA_EU_MARGIN_RATE,
   // Mai gratuita: sopra soglia lo sdoganamento lo pagherebbe Foolish.
   freeAbove: null,
   freeShippingPromoAllowed: false,
   calibrated: true,
-  source: 'misurato — CMS 31 Basel CH, collo 40x40x10 2,0 kg, merce 99,00 EUR (2026-09); preventivo stessa linea UPS 23,99 (21/09/2026)',
+  source: 'misurato — CMS 31 Basel CH, collo 40x40x10 2,0 kg, merce 99,00 EUR (2026-09); copertura assicurata goods_plus_shipping approvata il 21/09/2026 (2,5% di merce + spedizione sostenuta): costo 47,29, prezzo 52,02',
 }
 
 /**
@@ -693,7 +707,6 @@ export function calculateLandedCost(
   // come merce a zero (restano comunque gli oneri fissi).
   const goods = Number.isFinite(cartTotal) ? Math.max(0, roundCents(cartTotal)) : 0
 
-  const insurance = roundCents(goods * profile.insuranceRate)
   const carrier = roundCents(profile.carrier)
   const handlingFee = roundCents(profile.handlingFee)
   const ddpFee = roundCents(profile.ddpFee)
@@ -717,9 +730,20 @@ export function calculateLandedCost(
   const exempt = profile.importVatExemptBelow !== null && vatBase < profile.importVatExemptBelow
   const importVat = exempt ? 0 : roundCents(vatBase * profile.importVatRate)
 
-  const estimatedCost = roundCents(
-    carrier + insurance + duty + importVat + fixedImportFee + ddpFee + handlingFee,
+  // Costo di spedizione SOSTENUTO, premio escluso: e' l'addendo che la base
+  // assicurata approvata somma alla merce (`goods_plus_shipping`).
+  const shippingCostExclPremium = roundCents(
+    carrier + duty + importVat + fixedImportFee + ddpFee + handlingFee,
   )
+  // Premio assicurativo sulla base APPROVATA (merce + spedizione), non su una
+  // costante derivata da un punto di misura: il premio non entra nella propria
+  // base, altrimenti si conterebbe da solo.
+  const insuranceBase = profile.insuranceOnShippingCost
+    ? roundCents(goods + shippingCostExclPremium)
+    : goods
+  const insurance = roundCents(insuranceBase * profile.insuranceRate)
+
+  const estimatedCost = roundCents(shippingCostExclPremium + insurance)
   // Un margine negativo non e' un'opzione: la tariffa non parte mai sotto il
   // costo sdoganato stimato, qualunque cosa dica la configurazione.
   const marginRate = Number.isFinite(profile.marginRate) ? Math.max(0, profile.marginRate) : 0
