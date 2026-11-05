@@ -75,6 +75,16 @@ export async function savePushSubscription(email: string, subscription: unknown)
   return { isFirstTime }
 }
 
+/** Azzera la sottoscrizione push dell'utente che esce: il dispositivo non deve
+ *  continuare a ricevere i suoi dati personali dopo il logout. */
+export async function clearPushSubscription(email: string): Promise<void> {
+  await sql`
+    UPDATE marketing.subscribers
+    SET push_subscription = NULL, updated_at = NOW()
+    WHERE email = ${email} AND push_subscription IS NOT NULL
+  `
+}
+
 export async function markPushSequenceStep(email: string, stepKey: string): Promise<void> {
   await sql`
     UPDATE marketing.subscribers
