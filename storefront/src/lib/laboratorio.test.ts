@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import test from 'node:test'
-import { TELEGRAM_BOT_URL, buildGiornataItems, practiceSkinHref } from './laboratorio'
+import { FIGURE_GIORNATA, TELEGRAM_BOT_URL, buildGiornataItems, figuraPerOra, practiceSkinHref } from './laboratorio'
 
 /**
  * La pagina `/laboratorio` e' fatta di testi approvati da Alessandro il 5/11/2026 e non
@@ -234,7 +234,17 @@ test('buildGiornataItems fallisce chiuso su una struttura non conforme', () => {
   assert.throws(() => buildGiornataItems('nope'), /array/)
   assert.throws(() => buildGiornataItems([{ ora: '07:12', ruolo: 'X' }]), /testo/)
   assert.throws(() => buildGiornataItems([{ ora: 712, ruolo: 'X', testo: 'y' }]), /ora/)
-  assert.deepEqual(buildGiornataItems([{ ora: '07:12', ruolo: '', testo: 'x' }]), [{ ora: '07:12', ruolo: '', testo: 'x' }])
+  // Un alt orfano su una voce senza figura e' un errore di contenuto, non un valore da tenere.
+  assert.throws(() => buildGiornataItems([{ ora: '23:58', ruolo: '', testo: 'x', alt: 'una figura' }]), /non ammesso/)
+  // La voce con la figura non si rende a meta': senza alt, o con un alt vuoto, e' un errore.
+  assert.throws(() => buildGiornataItems([{ ora: '07:12', ruolo: 'Magazziniere', testo: 'x' }]), /alt manca/)
+  assert.throws(() => buildGiornataItems([{ ora: '07:12', ruolo: 'Magazziniere', testo: 'x', alt: '   ' }]), /alt manca/)
+  assert.throws(() => buildGiornataItems([{ ora: '07:12', ruolo: 'Magazziniere', testo: 'x', alt: 7 }]), /alt deve essere una stringa/)
+  assert.deepEqual(buildGiornataItems([{ ora: '23:58', ruolo: '', testo: 'x' }]), [{ ora: '23:58', ruolo: '', testo: 'x', alt: '' }])
+  assert.deepEqual(
+    buildGiornataItems([{ ora: '07:12', ruolo: 'Magazziniere', testo: 'x', alt: '  descrizione del ruolo  ' }]),
+    [{ ora: '07:12', ruolo: 'Magazziniere', testo: 'x', alt: 'descrizione del ruolo' }],
+  )
 })
 
 test('nessuna parola vietata nei testi pubblici', () => {
@@ -261,7 +271,14 @@ test('nessuna parola vietata nei testi pubblici', () => {
 
 test('la pagina non usa le immagini del vecchio Pellaio ne rimanda a /sebo', () => {
   for (const source of [pageSource, libSource]) {
-    assert.ok(!source.includes('/pellaio/'), 'nessun riferimento alle immagini del vecchio Pellaio')
+    // Le uniche immagini ammesse sono i sei ritagli approvati, sotto /pellaio/personaggi/.
+    assert.ok(!/\/pellaio\/pellaio-(?:0[1-3]|lab)/.test(source), 'nessun riferimento ai file del vecchio Pellaio')
+    for (const ref of source.match(/\/pellaio\/[^'"`\s]*/g) ?? []) {
+      assert.ok(
+        ref === '/pellaio/personaggi' || ref.startsWith('/pellaio/personaggi/'),
+        `immagine fuori dalla cartella approvata: ${ref}`,
+      )
+    }
     assert.ok(!/\/sebo\b/i.test(source), 'nessun link o riferimento a /sebo')
   }
   for (const lang of LANGS) {
@@ -269,13 +286,118 @@ test('la pagina non usa le immagini del vecchio Pellaio ne rimanda a /sebo', () 
       assert.ok(!/sebo/i.test(value), `${lang}: il namespace laboratorio nomina ancora SEBO in «${value}»`)
     }
   }
-  // Gli slot immagine esistono ma restano vuoti: nessun `src`, nessun `alt` inventato.
+  // Gli slot restano per le immagini non ancora approvate (hero e laboratorio): non si inventano.
   assert.match(pageSource, /data-image-slot/, 'gli slot immagine devono essere predisposti')
-  assert.ok(!/<img|next\/image/i.test(pageSource), 'nessuna immagine resa (slot vuoti)')
-  assert.ok(!/\balt=/.test(pageSource), 'nessun alt inventato')
+  assert.match(pageSource, /<ImageSlot slot="hero" \/>/, 'lo slot dell hero resta vuoto finche non c e l immagine')
+  assert.match(pageSource, /<ImageSlot slot="lab" \/>/, 'lo slot del laboratorio resta vuoto')
   // Il solo recapito esterno della pagina e` il bot del laboratorio.
   assert.ok(pageSource.includes('href={TELEGRAM_BOT_URL}'), 'il CTA deve puntare al bot del laboratorio')
   assert.ok(TELEGRAM_BOT_URL.startsWith('https://t.me/'), 'il recapito del bot deve essere il canale Telegram')
+})
+
+// ── Le sei figure dei ruoli ──────────────────────────────────────────────────────────────
+
+const personaPath = (file: string) => new URL(`public/pellaio/personaggi/${file}`, new URL('../../', import.meta.url))
+
+/** Ogni figura ha una voce con un reparto, e le sei voci con reparto sono tutte coperte. */
+const ORE_FIGURA = ['07:12', '09:40', '11:05', '14:20', '16:45', '19:30']
+
+/** Dimensioni e trasparenza lette davvero dall'header WebP: non si fidano della tabella. */
+function webpInfo(file: string): { width: number; height: number; alpha: boolean; bytes: number } {
+  const buffer = readFileSync(personaPath(file))
+  assert.equal(buffer.toString('ascii', 0, 4), 'RIFF', `${file}: non e un contenitore RIFF`)
+  assert.equal(buffer.toString('ascii', 8, 12), 'WEBP', `${file}: non e un WebP`)
+  assert.equal(buffer.toString('ascii', 12, 16), 'VP8X', `${file}: atteso WebP esteso (VP8X)`)
+  const width = 1 + (buffer[24] | (buffer[25] << 8) | (buffer[26] << 16))
+  const height = 1 + (buffer[27] | (buffer[28] << 8) | (buffer[29] << 16))
+  return { width, height, alpha: (buffer[20] & 0x10) !== 0, bytes: buffer.length }
+}
+
+test('le sei figure esistono, sono WebP con trasparenza e la tabella dichiara le dimensioni vere', () => {
+  assert.equal(FIGURE_GIORNATA.length, 6, 'sei figure attese')
+  assert.deepEqual(FIGURE_GIORNATA.map((figura) => figura.ruolo), [
+    'Magazziniere',
+    'Segreteria',
+    'Call center',
+    'Chimico',
+    'CEO',
+    'Pulizie',
+  ], 'ruoli canonici delle figure')
+
+  let total = 0
+  for (const figura of FIGURE_GIORNATA) {
+    const file = figura.src.slice('/pellaio/personaggi/'.length)
+    assert.ok(existsSync(personaPath(file)), `${file}: file mancante in public/pellaio/personaggi/`)
+    const info = webpInfo(file)
+    assert.equal(info.width, figura.width, `${file}: larghezza dichiarata ≠ larghezza del file`)
+    assert.equal(info.height, figura.height, `${file}: altezza dichiarata ≠ altezza del file`)
+    assert.ok(info.alpha, `${file}: WebP senza canale alpha, la trasparenza e dichiarata e deve esserci`)
+    assert.ok(figura.height >= 2 * 168, `${file}: la sorgente deve coprire la resa 2x da 168px`)
+    total += info.bytes
+  }
+  assert.ok(total < 500 * 1024, `le sei figure pesano ${total} byte: il tetto e 500 KB`)
+
+  // Il README della cartella dichiara fonte, metodo, stato, limiti e la larghezza reale dei file.
+  const widths = FIGURE_GIORNATA.map((figura) => figura.width)
+  const range = `${Math.min(...widths)}–${Math.max(...widths)}`
+  assert.ok(Math.max(...widths) <= 430, `figura piu larga di un ritaglio non-hero: ${range}`)
+  const readme = readFileSync(personaPath('README.md'), 'utf8')
+  for (const needle of ['30/10', 'FRONT', 'segmentazione', 'Provvisorio', 'frangia residua', `${range} px`]) {
+    assert.ok(readme.includes(needle), `README dei personaggi senza «${needle}»`)
+  }
+})
+
+test('mappatura ruolo -> file: ogni figura e agganciata alla voce del suo ruolo, in tutte le lingue', () => {
+  const itVoci = buildGiornataItems((laboratorio('it').giornata as Tree).items)
+  assert.deepEqual(itVoci.filter((voce) => figuraPerOra(voce.ora)).map((voce) => voce.ora), ORE_FIGURA)
+  // La tabella nomina il ruolo che la pagina italiana mostra a quell'ora: la mappatura e' esplicita.
+  for (const [index, figura] of FIGURE_GIORNATA.entries()) {
+    const voce = itVoci.find((candidate) => candidate.ora === ORE_FIGURA[index])
+    assert.ok(voce, `voce ${ORE_FIGURA[index]} assente`)
+    assert.equal(figura.ruolo, voce.ruolo, `la figura ${figura.src} non e il ruolo della voce ${voce.ora}`)
+  }
+  // Nessuna figura per la voce senza reparto, e nessun doppione di file o di ruolo.
+  assert.equal(figuraPerOra('23:58'), null, 'la voce delle 23:58 non ha una figura')
+  assert.equal(figuraPerOra('00:00'), null, 'un orario sconosciuto non riceve una figura')
+  assert.equal(new Set(FIGURE_GIORNATA.map((figura) => figura.src)).size, 6, 'sei file distinti')
+  assert.equal(new Set(FIGURE_GIORNATA.map((figura) => figura.ruolo)).size, 6, 'sei ruoli distinti')
+
+  // In ogni lingua la figura cade sulla voce che ha quel reparto, e l'alt e' tradotto con quel ruolo.
+  const itAlts = new Map(itVoci.map((voce) => [voce.ora, voce.alt]))
+  for (const lang of LANGS) {
+    const voci = buildGiornataItems((laboratorio(lang).giornata as Tree).items)
+    for (const [index, ora] of ORE_FIGURA.entries()) {
+      const voce = voci.find((candidate) => candidate.ora === ora)
+      assert.ok(voce, `${lang}: voce ${ora} assente`)
+      assert.ok(voce.ruolo.length > 0, `${lang}: voce ${ora} senza ruolo`)
+      assert.equal(figuraPerOra(ora)?.ruolo, FIGURE_GIORNATA[index].ruolo, `${lang}: figura della voce ${ora}`)
+      assert.ok(voce.alt.length >= 25, `${lang}: alt troppo corto per ${ora}: «${voce.alt}»`)
+      assert.ok(voce.alt.includes(voce.ruolo), `${lang}: l alt di ${ora} non nomina il ruolo «${voce.ruolo}»`)
+      if (lang !== 'it') {
+        assert.notEqual(voce.alt, itAlts.get(ora), `${lang}: alt della voce ${ora} e rimasto in italiano`)
+      }
+    }
+    const senzaFigura = voci.find((candidate) => candidate.ora === '23:58')
+    assert.equal(senzaFigura?.alt, '', `${lang}: alt orfano sulla voce senza reparto`)
+  }
+})
+
+test('la pagina rende le figure con alt, dimensioni dichiarate, lazy e altezza normalizzata', () => {
+  // La figura viene dalla tabella, non da un percorso scritto a mano nel componente.
+  assert.match(pageSource, /figuraPerOra\(voce\.ora\)/, 'la pagina non risolve la figura della voce')
+  assert.match(pageSource, /<Image[\s\S]*?src=\{figura\.src\}/, 'la figura non arriva dalla tabella')
+  assert.match(pageSource, /alt=\{voce\.alt\}/, 'alt non legato alla voce: nessun alt o alt inventato')
+  assert.match(pageSource, /width=\{figura\.width\}/, 'larghezza intrinseca assente: layout shift')
+  assert.match(pageSource, /height=\{figura\.height\}/, 'altezza intrinseca assente: layout shift')
+  assert.match(pageSource, /loading="lazy"/, 'le figure sotto la piega devono essere lazy')
+  assert.match(pageSource, /decoding="async"/, 'decoding async atteso')
+  // Altezza comune (168 desktop, 112 mobile) e larghezza automatica: nessuna deformazione, niente cover.
+  assert.match(pageSource, /h-\[112px\][^"']*sm:h-\[168px\]|sm:h-\[168px\][^"']*h-\[112px\]/, 'altezze 112/168 assenti')
+  assert.match(pageSource, /w-auto/, 'larghezza non automatica: la figura si deformerebbe')
+  assert.ok(!/object-(cover|contain)/.test(pageSource), 'nessun ritaglio della figura')
+  // I piedi si allineano sul fondo della riga.
+  assert.match(pageSource, /flex items-end/, 'le figure non sono allineate sui piedi')
+  assert.ok(!/background(Image|Image)?[\s\S]{0,20}pellaio/.test(pageSource), 'la figura non e un background')
 })
 
 test('ogni chiave approvata e` agganciata alla pagina: nessun testo orfano', () => {
