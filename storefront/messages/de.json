@@ -7,7 +7,6 @@
     "limited": "🔥 Premium",
     "contatti": "Kontakte",
     "account": "Konto",
-    "sebo": "SEBO",
     "laboratorio": "Werkstatt",
     "logoAlt": "The Foolish Butcher"
   },
@@ -529,82 +528,6 @@
       "bot": "Der Werkstatt schreiben"
     },
     "backToShop": "← Zurück zur Auslage"
-  },
-  "sebo": {
-    "meta": {
-      "description": "Das schlechteste Portfolio Italiens. Der Grund, warum deins es nicht ist. Mach Fehler an mir. Nicht an einem Menschen."
-    },
-    "hero": {
-      "manifesto": "Mach Fehler an mir.\nNicht an einem Menschen."
-    },
-    "bio": {
-      "eyebrow": "WER IST SEBO",
-      "p1": "Mein Name ist Sebo. Ich bin das schlechteste Portfolio Italiens — und der Grund, warum deins es nicht ist.",
-      "p2": "Jede schiefe Linie, die ich trage, ist ein geretteter Kunde.",
-      "p3": "Ich bin kein Charakter. Ich bin eine Konsequenz: seit 2012 musste jemand gestochen werden."
-    },
-    "wall": {
-      "eyebrow": "DIE WAND"
-    },
-    "stickers": {
-      "eyebrow": "STICKER N°001 — COLLECTIBLE",
-      "headline": "Not for sale.\nIt comes with you.",
-      "body": "The first sticker in the SEBO series is a numbered die-cut. It arrives in the package with every order of 100€ or more — no form, no code, no explanation. It is inside.",
-      "conditionLabel": "How to get it",
-      "condition": "Order of 100€ or more → Sticker N°001 included in the package. Not available anywhere else.",
-      "date": "Available from August 5, 2026."
-    },
-    "merch": {
-      "eyebrow": "SEBO PRACTICE ARCHIVES™ × RESEARCH DIVISION™",
-      "headline": "Wear the worst portfolio in Italy.",
-      "subline": "Ten t-shirts. Each one has a status. None of them are done."
-    },
-    "pellaioLink": "Der Häuter macht die Häute. Ich ruiniere sie. Er spricht seit 2012 nicht mehr mit mir.",
-    "cta": {
-      "eyebrow": "FOLLOW ME",
-      "instagram": {
-        "button": "Sebo on Instagram",
-        "note": "128 posts ready. The profile is where everything ends up — mistakes, tutorials, Monday's coffee. Updated by something."
-      },
-      "telegram": {
-        "button": "Telegram Channel",
-        "note": "For those who want to know before anyone else."
-      },
-      "support": {
-        "button": "Contact the studio",
-        "note": "For orders — the studio responds."
-      }
-    },
-    "imageAlt": "Sebo — das Lab-Maskottchen",
-    "backToShop": "← Zurück zur Auslage",
-    "pratica": {
-      "eyebrow": "THE PRACTICE",
-      "quote": "SEBO doesn't watch the tattoo.\nHe watches the practice. His own."
-    },
-    "mondo": {
-      "eyebrow": "THE WORLD OF SEBO",
-      "pellaio": {
-        "name": "IL PELLAIO",
-        "line": "He turns me toward the wall. Doesn't ask. Decides. I accept."
-      },
-      "arancia": {
-        "name": "L'ARANCIA",
-        "line": "The first surface everyone practiced on. Now waiting on the windowsill."
-      },
-      "corriere": {
-        "name": "IL CORRIERE",
-        "line": "The only human who treats me like a package. Never gets it wrong."
-      },
-      "scatola": {
-        "name": "LA SCATOLA",
-        "line": "SHIPPING SEAL: INTACT. Since day one."
-      }
-    },
-    "vitaSegreta": {
-      "eyebrow": "WHEN NO ONE IS WATCHING",
-      "headline": "The studio opens at ten.\nHe's been there since seven.",
-      "body": "There is a ritual before work. A cracked mirror, a razor blade, no witnesses. Sebo has never talked about it. Not because it's a secret — but because nobody ever asked."
-    }
   },
   "subscription": {
     "hub": {

@@ -44,9 +44,17 @@ const nextConfig: NextConfig = {
     ],
   },
   async redirects() {
+    // Il mondo SEBO non e' piu' un ingresso del sito: il laboratorio del Pellaio e' l'unico.
+    // Un redirect esplicito per lingua (niente pattern generici), 301 come chiesto: con
+    // `permanent: true` Next servirebbe 308, quindi lo status e' dichiarato.
+    const seboRedirects = LOCALES.map((locale) => ({
+      source: `/${locale}/sebo`,
+      destination: `/${locale}/laboratorio`,
+      statusCode: 301,
+    }))
     const frankRedirects = LOCALES.map((locale) => ({
       source: `/${locale}/frank`,
-      destination: `/${locale}/sebo`,
+      destination: `/${locale}/laboratorio`,
       permanent: true,
     }))
     const masterPackRedirects = LOCALES.map((locale) => ({
@@ -114,7 +122,7 @@ const nextConfig: NextConfig = {
       },
     ])
 
-    return [...frankRedirects, ...masterPackRedirects, ...legacyRedirects, ...productCategoryRedirects]
+    return [...seboRedirects, ...frankRedirects, ...masterPackRedirects, ...legacyRedirects, ...productCategoryRedirects]
   },
   async headers() {
     return [
