@@ -453,32 +453,38 @@
         {
           "ora": "07:12",
           "ruolo": "Lager",
-          "testo": "Er lädt aus, er unterschreibt, er beschwert sich."
+          "testo": "Er lädt aus, er unterschreibt, er beschwert sich.",
+          "alt": "Lager: abgetragene Latzhose, schwarze Handschuhe und ein FOOLISH-Paket in den Armen."
         },
         {
           "ora": "09:40",
           "ruolo": "Sekretariat",
-          "testo": "Drei Mails, keine Antwort. Er hat sie geschrieben."
+          "testo": "Drei Mails, keine Antwort. Er hat sie geschrieben.",
+          "alt": "Sekretariat: Strickjacke, runde Brille, Akten unter dem Arm und ein Telefonhörer am Ohr."
         },
         {
           "ora": "11:05",
           "ruolo": "Call Center",
-          "testo": "„Ihr Anliegen ist uns sehr wichtig.\" Stimmt: er ist der Einzige, der antwortet."
+          "testo": "„Ihr Anliegen ist uns sehr wichtig.\" Stimmt: er ist der Einzige, der antwortet.",
+          "alt": "Call Center: Headset mit Mikrofon, SUPPORT-Anstecker auf der Brust, schwarze Handschuhe und Werkzeuggürtel."
         },
         {
           "ora": "14:20",
           "ruolo": "Chemie",
-          "testo": "Die Oberfläche ist nicht gleichmäßig. Er macht es neu. Viertes Mal."
+          "testo": "Die Oberfläche ist nicht gleichmäßig. Er macht es neu. Viertes Mal.",
+          "alt": "Chemie: fleckiger Kittel, Schutzlinse, schwarze Handschuhe und ein Erlenmeyerkolben mit blauer Flüssigkeit."
         },
         {
           "ora": "16:45",
           "ruolo": "CEO",
-          "testo": "Besprechung mit den Abteilungen. Die Abteilungen sind er."
+          "testo": "Besprechung mit den Abteilungen. Die Abteilungen sind er.",
+          "alt": "CEO: dunkler Gehrock, Weste, Krawatte und Uhrkette, FOOLISH-Buch unter dem Arm."
         },
         {
           "ora": "19:30",
           "ruolo": "Reinigung",
-          "testo": "Jemand hat Flock auf der Werkbank gelassen. Dieser Jemand bin ich."
+          "testo": "Jemand hat Flock auf der Werkbank gelassen. Dieser Jemand bin ich.",
+          "alt": "Reinigung: schwerer Arbeitsschurz, gelbe Gummihandschuhe, Sprühflasche und Bürste in den Taschen."
         },
         {
           "ora": "23:58",

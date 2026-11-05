@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
-import { TELEGRAM_BOT_URL, buildGiornataItems, practiceSkinHref } from '@/lib/laboratorio'
+import { TELEGRAM_BOT_URL, buildGiornataItems, figuraPerOra, practiceSkinHref } from '@/lib/laboratorio'
 
 const BASE = 'https://thefoolishbutcher.com'
 const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
@@ -85,27 +86,50 @@ export default async function LaboratorioPage({ params }: { params: Promise<{ lo
             {t('giornata.intro')}
           </p>
           <ol className="mt-10 max-w-2xl">
-            {giornata.map((voce) => (
-              <li key={voce.ora} className="py-5 border-t first:border-t-0 first:pt-0 last:pb-0" style={{ borderColor: '#1e1812' }}>
-                {/* Su mobile l'orario sta su una riga sua: a 375px nessuna colonna da comprimere. */}
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-8">
-                  <span
-                    className="shrink-0 font-display text-lg sm:text-xl tabular-nums"
-                    style={{ color: '#c9a96e' }}
-                  >
-                    {voce.ora}
-                  </span>
-                  <p className="min-w-0 text-base sm:text-lg leading-relaxed break-words" style={{ color: '#b9ab94' }}>
-                    {voce.ruolo ? (
-                      <span className="font-semibold" style={{ color: '#e8dcc8' }}>
-                        {voce.ruolo}.{' '}
-                      </span>
+            {giornata.map((voce) => {
+              // La figura del ruolo e' la stessa in tutte le lingue: cambiano solo ruolo e alt.
+              const figura = figuraPerOra(voce.ora)
+              return (
+                <li key={voce.ora} className="py-5 border-t first:border-t-0 first:pt-0 last:pb-0" style={{ borderColor: '#1e1812' }}>
+                  {/*
+                    Altezza normalizzata (le larghezze dei ritagli sono diverse), larghezza automatica:
+                    cosi' le figure non si deformano e i piedi restano sulla stessa linea, allineati al
+                    fondo della riga. Niente oggetto-cover: `next/image` qui non ritaglia nulla. Le
+                    dimensioni intrinseche in `width`/`height` riservano lo spazio prima del caricamento.
+                  */}
+                  <div className="flex items-end gap-4 sm:gap-8">
+                    {figura ? (
+                      <Image
+                        src={figura.src}
+                        alt={voce.alt}
+                        width={figura.width}
+                        height={figura.height}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-[112px] w-auto shrink-0 sm:h-[168px]"
+                      />
                     ) : null}
-                    {voce.testo}
-                  </p>
-                </div>
-              </li>
-            ))}
+                    {/* Su mobile l'orario sta su una riga sua: a 375px nessuna colonna da comprimere. */}
+                    <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-8">
+                      <span
+                        className="shrink-0 font-display text-lg sm:text-xl tabular-nums"
+                        style={{ color: '#c9a96e' }}
+                      >
+                        {voce.ora}
+                      </span>
+                      <p className="min-w-0 text-base sm:text-lg leading-relaxed break-words" style={{ color: '#b9ab94' }}>
+                        {voce.ruolo ? (
+                          <span className="font-semibold" style={{ color: '#e8dcc8' }}>
+                            {voce.ruolo}.{' '}
+                          </span>
+                        ) : null}
+                        {voce.testo}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              )
+            })}
           </ol>
         </div>
       </section>
