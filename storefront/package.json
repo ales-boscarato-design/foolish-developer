@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test:orders": "tsx --test src/lib/stripe-orders.test.ts",
+    "test:reorder": "tsx --test src/lib/reorder.test.ts",
+    "test:reorder-orders": "tsx --test src/lib/reorder-orders.test.ts",
     "test:emails": "tsx --test src/emails/copy.test.ts",
     "test:catalog": "tsx --test src/lib/catalog.test.ts",
     "test:legacy-slugs": "tsx --test src/lib/legacy-slugs.test.ts",

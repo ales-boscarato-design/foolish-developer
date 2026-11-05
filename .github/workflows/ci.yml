@@ -78,6 +78,8 @@ jobs:
         working-directory: storefront
         run: |
           npm run test:orders --silent
+          npm run test:reorder --silent
+          npm run test:reorder-orders --silent
           npm run test:emails --silent
           npm run test:catalog --silent
           npm run test:legacy-slugs --silent
