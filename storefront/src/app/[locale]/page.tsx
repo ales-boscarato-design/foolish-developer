@@ -18,6 +18,18 @@ import { SubscriptionBanner } from '@/components/SubscriptionBanner'
 const BASE = 'https://thefoolishbutcher.com'
 const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
 
+/**
+ * Slot per l'immagine del nuovo Pellaio nel teaser «laboratorio» della home.
+ *
+ * Il personaggio nuovo (Il Pellaio — The Precision Inspector) non ha ancora nessun asset
+ * approvato: lo slot resta vuoto, senza segnaposto inventati e senza `alt` inventati. Quando
+ * arrivera' un'immagine approvata si passera' qui `src` + `alt` e il resto della sezione non
+ * cambia (va ripristinata la colonna `md:grid-cols-[1fr_340px]`).
+ */
+function ImageSlot({ slot }: { slot: string }) {
+  return <div data-image-slot={slot} aria-hidden="true" hidden />
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -487,42 +499,27 @@ export default async function HomePage() {
       </section>
 
       {/* ════════════════════════════════════════════════
-          FRANK — Teaser atmosferico
+          PELLAIO — Teaser atmosferico (slot immagine vuoto: nessun asset approvato)
       ════════════════════════════════════════════════ */}
       <section className="border-b" style={{ borderColor: 'var(--border)', backgroundColor: '#0a0806' }}>
-        <div className="max-w-7xl mx-auto px-8 md:px-16 py-16 grid md:grid-cols-[1fr_340px] gap-10 items-center">
-          <div>
-            <p className="text-xs font-bold tracking-[0.4em] uppercase mb-4" style={{ color: '#c9a96e' }}>
-              {t('frank.eyebrow')}
-            </p>
-            <h2 className="font-display text-5xl md:text-6xl leading-none mb-5" style={{ color: '#e8dcc8' }}>
-              {t('frank.headline')}
-            </h2>
-            <p className="text-sm leading-relaxed mb-8 max-w-sm" style={{ color: '#a89880' }}>
-              {t('frank.body')}
-            </p>
-            <Link
-              href={`/${locale}/laboratorio`}
-              className="inline-flex items-center gap-2 text-sm font-semibold tracking-widest uppercase transition-opacity hover:opacity-70"
-              style={{ color: '#c9a96e' }}
-            >
-              {t('frank.cta_short')} →
-            </Link>
-          </div>
-          <div className="relative aspect-[3/4] rounded overflow-hidden hidden md:block">
-            <Image
-              src="/pellaio/pellaio-03.png"
-              alt="Il Pellaio nel laboratorio"
-              fill
-              sizes="(min-width: 768px) 340px, 0px"
-              className="object-cover object-top"
-              style={{ filter: 'brightness(0.75) sepia(0.3)' }}
-            />
-            <div
-              className="absolute inset-0"
-              style={{ background: 'linear-gradient(to bottom, transparent 60%, #0a0806 100%)' }}
-            />
-          </div>
+        <div className="max-w-7xl mx-auto px-8 md:px-16 py-16">
+          <p className="text-xs font-bold tracking-[0.4em] uppercase mb-4" style={{ color: '#c9a96e' }}>
+            {t('frank.eyebrow')}
+          </p>
+          <h2 className="font-display text-5xl md:text-6xl leading-none mb-5" style={{ color: '#e8dcc8' }}>
+            {t('frank.headline')}
+          </h2>
+          <p className="text-sm leading-relaxed mb-8 max-w-sm" style={{ color: '#a89880' }}>
+            {t('frank.body')}
+          </p>
+          <Link
+            href={`/${locale}/laboratorio`}
+            className="inline-flex items-center gap-2 text-sm font-semibold tracking-widest uppercase transition-opacity hover:opacity-70"
+            style={{ color: '#c9a96e' }}
+          >
+            {t('frank.cta_short')} →
+          </Link>
+          <ImageSlot slot="home-pellaio" />
         </div>
       </section>
 

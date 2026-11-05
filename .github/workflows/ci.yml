@@ -99,6 +99,7 @@ jobs:
           npm run test:files-download --silent
           npm run test:cms-media-proxy --silent
           npm run test:laboratorio --silent
+          npm run test:home-pellaio --silent
           npm run test:sebo-retirement --silent
       - name: Storefront — build
         working-directory: storefront
