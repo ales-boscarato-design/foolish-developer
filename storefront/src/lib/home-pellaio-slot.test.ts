@@ -10,11 +10,20 @@ import test from 'node:test'
  * Decisione di Alessandro (5/11/2026): opzione (c) — lo slot immagine resta predisposto e vuoto
  * finche' non arriva un asset approvato, senza segnaposto e senza `alt` inventati. Questi test
  * sono il guardiano di quella decisione: falliscono se il vecchio personaggio rientra nel codice.
+ *
+ * La guardia non si limita alla forma letterale `<Image src="/pellaio/...">`: cerca i **nomi dei
+ * file** su ogni file di `src/` (quindi anche un asset importato con alias, una regola CSS con
+ * `url(...)`, un `<img>`), e sul teaser vieta ogni strada che possa rendere un'immagine.
  */
+
+/** I quattro file di `public/pellaio/`, per nome: l'import con alias non contiene la barra. */
+const FORBIDDEN_TOKENS = ['/pellaio/', 'pellaio-01', 'pellaio-02', 'pellaio-03', 'pellaio-lab']
+/** Il vecchio personaggio ha anche una cartella gemella, mai referenziata: stessa regola. */
+const FORBIDDEN_FRANK = ['/frank/', 'frank-01', 'frank-02', 'frank-03', 'frank-lab']
 
 const homeSource = readFileSync(new URL('../app/[locale]/page.tsx', import.meta.url), 'utf8')
 
-/** Ogni file `.ts`/`.tsx` del prodotto sotto `src/`, esclusi i test stessi. */
+/** Ogni file di `src/`, test esclusi: `.ts`, `.tsx`, `.css`, `.json`, quel che c'e'. */
 function productSources(): { rel: string; source: string }[] {
   const root = new URL('../', import.meta.url)
   const out: { rel: string; source: string }[] = []
@@ -26,7 +35,6 @@ function productSources(): { rel: string; source: string }[] {
         walk(child, childRel)
         continue
       }
-      if (!/\.(ts|tsx)$/.test(entry.name)) continue
       if (/\.test\.(ts|tsx)$/.test(entry.name)) continue
       out.push({ rel: childRel, source: readFileSync(child, 'utf8') })
     }
@@ -44,16 +52,30 @@ function teaserSection(source: string): string {
   return source.slice(start, end)
 }
 
+/** Il corpo della funzione `ImageSlot`, dalla sua dichiarazione alla graffa di chiusura. */
+function imageSlotBody(source: string): string {
+  const start = source.indexOf('function ImageSlot')
+  assert.ok(start !== -1, 'la home deve avere un componente ImageSlot')
+  const end = source.indexOf('\n}', start)
+  assert.ok(end !== -1, 'ImageSlot deve chiudersi con una graffa in colonna')
+  return source.slice(start, end)
+}
+
 test('la home non referenzia piu` le immagini del vecchio Pellaio', () => {
-  assert.ok(!homeSource.includes('/pellaio/'), 'la home non deve servire /pellaio/*')
-  assert.ok(!homeSource.includes('/frank/'), 'la home non deve servire /frank/*')
+  for (const token of [...FORBIDDEN_TOKENS, ...FORBIDDEN_FRANK]) {
+    assert.ok(!homeSource.includes(token), `la home non deve contenere ${token}`)
+  }
+  assert.ok(!homeSource.includes('pellaio.png'), 'la home non deve servire pellaio.png')
 })
 
-test('nessun sorgente del prodotto referenzia /pellaio/', () => {
-  const offenders = productSources()
-    .filter(({ source }) => source.includes('/pellaio/'))
-    .map(({ rel }) => rel)
-  assert.deepEqual(offenders, [], 'nessun sorgente deve servire le immagini del vecchio Pellaio')
+test('nessun file del prodotto referenzia gli asset del vecchio personaggio', () => {
+  const offenders: string[] = []
+  for (const { rel, source } of productSources()) {
+    for (const token of [...FORBIDDEN_TOKENS, ...FORBIDDEN_FRANK]) {
+      if (source.includes(token)) offenders.push(`${rel} → ${token}`)
+    }
+  }
+  assert.deepEqual(offenders, [], 'nessun file di src/ deve servire le immagini del vecchio personaggio')
 })
 
 test('il teaser tiene lo slot predisposto e vuoto, senza immagine ne` alt inventati', () => {
@@ -62,20 +84,44 @@ test('il teaser tiene lo slot predisposto e vuoto, senza immagine ne` alt invent
   // Lo slot esiste ed e` quello della home: punto d'innesto per l'asset approvato.
   assert.match(section, /<ImageSlot slot="home-pellaio" \/>/, 'lo slot immagine del teaser deve essere predisposto')
 
-  // Vuoto: nessuna immagine resa, nessun `src`, nessun `alt` inventato.
-  assert.ok(!/<Image\b/.test(section), 'lo slot vuoto non deve rendere un <Image>')
-  assert.ok(!/next\/image/.test(section), 'lo slot vuoto non deve importare next/image')
-  assert.ok(!/\bsrc=/.test(section), 'lo slot vuoto non deve avere un src')
-  assert.ok(!/\balt=/.test(section), 'nessun alt inventato nel teaser')
+  // Vuoto: nessuna immagine resa, nessun `src`, nessun `alt` inventato, nessuna immagine di
+  // sfondo che possa riempire lo slot per via traversa.
+  const cheats: [RegExp, string][] = [
+    [/<Image\b/, 'un <Image> di next/image'],
+    [/<img\b/, 'un <img>'],
+    [/next\/image/, 'l\'import di next/image'],
+    [/\bsrc=/, 'un attributo src'],
+    [/\balt=/, 'un attributo alt'],
+    [/background-?image/i, 'un\'immagine di sfondo'],
+    [/\burl\(/, 'una url() (CSS o style)'],
+  ]
+  for (const [pattern, what] of cheats) {
+    assert.ok(!pattern.test(section), `lo slot vuoto non deve contenere ${what}`)
+  }
+})
 
-  // Il meccanismo dello slot e` quello approvato su /laboratorio (PR #37): div nascosto e
-  // invisibile all'albero di accessibilita`, non un segnaposto visivo.
-  const slotFn = /function ImageSlot\(\{ slot \}: \{ slot: string \}\) \{\s*return <div data-image-slot=\{slot\} aria-hidden="true" hidden \/>\s*\}/
-  assert.match(homeSource, slotFn, 'ImageSlot deve restare il div nascosto approvato, senza contenuto')
+test('ImageSlot resta il div nascosto approvato (nessun figlio, nessuna immagine)', () => {
+  const body = imageSlotBody(homeSource)
+
+  // Il meccanismo e` quello approvato su /laboratorio (PR #37): div nascosto, invisibile anche
+  // all'albero di accessibilita`, agganciato dal suo `data-image-slot`.
+  assert.match(body, /data-image-slot=\{slot\}/, 'ImageSlot deve esporre data-image-slot')
+  assert.match(body, /\baria-hidden="true"/, 'lo slot vuoto deve essere nascosto all\'accessibilita`')
+  assert.match(body, /\bhidden\b/, 'lo slot vuoto deve essere nascosto')
+
+  // Le guardie qui sopra sono ancorate al comportamento (direttive), non alla formattazione:
+  // ma il componente non deve diventare un modo per rendere un'immagine.
+  for (const pattern of [/\bsrc=/, /\balt=/, /<Image\b/, /<img\b/, /\burl\(/, /background-?image/i]) {
+    assert.ok(!pattern.test(body), `ImageSlot non deve contenere ${pattern}`)
+  }
+  // Nessun figlio: l'elemento restituito si chiude da se'.
+  const returned = body.slice(body.indexOf('return '))
+  assert.match(returned, /\/>\s*$/, 'lo slot non deve avere figli: l\'elemento restituito si chiude da se\'')
 })
 
 test('il teaser e` una colonna sola: nessun residuo della griglia a due colonne', () => {
   const section = teaserSection(homeSource)
   assert.ok(!/md:grid-cols-\[1fr_340px\]/.test(section), 'la colonna immagine e` collassata: via la griglia 1fr_340px')
   assert.ok(!/aspect-\[3\/4\]/.test(section), 'via il riquadro 3/4 che ospitava la vecchia immagine')
+  assert.ok(!/\bgap-10\b/.test(section), 'via il gap della griglia a due colonne')
 })
