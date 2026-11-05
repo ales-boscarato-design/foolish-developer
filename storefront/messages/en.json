@@ -442,85 +442,68 @@
     },
     "intro": {
       "eyebrow": "Who he is",
-      "p1": "Nobody knows exactly when he arrived at the lab.",
-      "p2": "Some say he turned up after a particularly long night. Others insist he was already there, under the old carpenter's bench, among the moulds.",
-      "p3": "One thing is certain: one day someone said that running that lab would take at least six people.",
-      "p4": "The next morning the Tanner was there. Not six people. One, with six changes of clothes."
+      "p1": "Nobody knows when he arrived. Some say after a night that ran too long, others that he was already there, under the carpenter's bench.",
+      "p2": "One day someone said that running that lab would take at least six people. The next morning the Tanner was there. Not six people: one, with six changes of clothes.",
+      "p3": "The world around him is real — red brick, white tables, wooden moulds. He is the one who is seventy-five centimetres tall, and he sees the same things from a different altitude."
     },
-    "scale": {
-      "eyebrow": "Scale",
-      "p1": "The world around him is real: red brick, high ceilings, huge white tables, wooden moulds, shelves full of hands and arms.",
-      "p2": "He is not.",
-      "p3": "To him a casting table is a plain to be crossed. A mould is an extraordinary machine. An A3 sheet is a gigantic creature to be tamed, and the monocle is the most important instrument ever invented — at least according to him.",
-      "p4": "He is not a wizard and he doesn't live in another dimension. He works here. He just sees the same things from a different altitude."
-    },
-    "staff": {
-      "eyebrow": "The six departments",
-      "boardLabel": "TODAY'S STAFF",
-      "intro": "The shift board never changes. Six names. One employee.",
-      "items": {
-        "warehouse": {
-          "role": "WAREHOUSE",
-          "trait": "Practical, grumpy, hates the office.",
-          "quote": "\"If it arrived broken, it was broken before me. But I sign for it.\"",
-          "aside": ""
+    "giornata": {
+      "eyebrow": "One day",
+      "intro": "It's not a series. It's a Tuesday.",
+      "items": [
+        {
+          "ora": "07:12",
+          "ruolo": "Warehouse",
+          "testo": "He unloads it, he signs for it, he complains about it."
         },
-        "secretary": {
-          "role": "SECRETARY",
-          "trait": "Gossipy, melodramatic, knows everything about everyone.",
-          "quote": "\"Three emails. No answer. I wrote them. I read them.\"",
-          "aside": ""
+        {
+          "ora": "09:40",
+          "ruolo": "Secretary",
+          "testo": "Three emails, no answer. He wrote them."
         },
-        "callCentre": {
-          "role": "CALL CENTRE",
-          "trait": "Exasperating politeness, synthetic voice.",
-          "quote": "\"Your request is very important to us.\"",
-          "aside": "(It's me. Us.)"
+        {
+          "ora": "11:05",
+          "ruolo": "Call centre",
+          "testo": "\"Your request is very important to us.\" True: he's the only one answering."
         },
-        "chemist": {
-          "role": "CHEMIST / R&D",
-          "trait": "Genius, obsessive, resents interruptions.",
-          "quote": "\"It's not 'almost even'. It's even, or it's redone.\"",
-          "aside": ""
+        {
+          "ora": "14:20",
+          "ruolo": "Chemist",
+          "testo": "The surface isn't even. He redoes it. Fourth time."
         },
-        "ceo": {
-          "role": "CEO",
-          "trait": "Visionary, arrogant, disconnected from reality.",
-          "quote": "\"We need to think big.\"",
-          "aside": "(The sheet is A3. Not big enough.)"
+        {
+          "ora": "16:45",
+          "ruolo": "CEO",
+          "testo": "Meeting with the departments. The departments are him."
         },
-        "cleaning": {
-          "role": "CLEANING",
-          "trait": "Permanently outraged.",
-          "quote": "\"Someone left flock on the bench. That someone is me.\"",
-          "aside": ""
+        {
+          "ora": "19:30",
+          "ruolo": "Cleaning",
+          "testo": "Someone left flock on the bench. That someone is me."
+        },
+        {
+          "ora": "23:58",
+          "ruolo": "",
+          "testo": "The light under the carpenter's bench is still on."
         }
-      }
+      ]
     },
     "lab": {
       "eyebrow": "The lab",
       "p1": "Five areas, all real: the white casting tables, the shelves of anatomies, the carpenter's bench under the window, the book-mould station, the steel prep bench.",
-      "p2": "Under the carpenter's bench there's a space that appears in no floor plan: a microscopic desk, a lamp, notebooks full of annotations and a pile of sheets he hasn't approved yet. It's not a den. It's the workstation of someone who works too much.",
-      "p3": "And then there are the traces that aren't his. Sealed boxes, labels, finished orders, a pair of shoes that moves. Someone produces here. No face. Necessary."
+      "p2": "Under the carpenter's bench there's a space that appears in no floor plan: a microscopic desk, a lamp, notebooks and a pile of sheets he hasn't approved yet.",
+      "p3": "And there are traces that aren't his. Sealed boxes, labels, finished orders. Someone produces here. No face. Necessary."
     },
     "paradox": {
       "eyebrow": "The paradox",
       "intro": "He wants one thing: a perfect surface.",
-      "spessore": "The problem is that perfect human skin doesn't exist. It has uneven colour, different textures, variations in thickness. The thing that makes a practice skin believable is exactly what the Tanner calls a defect.",
-      "discromie": "Coloured flock never distributes evenly: catalysis does what it wants, and that's where the variation that reads as real skin comes from.",
-      "pori": "The pores aren't printed: they absorb the transfer and let the excess ink out.",
-      "strati": "Colour isn't laid on top, it's deposited in layers — which is why the washes read, without anyone looking through them.",
+      "p1": "The problem is that perfect human skin doesn't exist. Uneven colour, different textures, variations in thickness: the very thing that makes a practice skin believable is what the Tanner calls a defect.",
+      "p2": "Coloured flock never distributes evenly — catalysis does what it wants, and that's where the variation that reads as real skin comes from. The pores aren't printed: they absorb the transfer and let the excess ink out. Colour isn't laid on top, it's deposited in layers: that's why the washes read, without anyone looking through them.",
       "closing": "To the Tanner it's a personal insult. To a tattooer it's the reason it works."
     },
-    "series": {
-      "eyebrow": "The series",
-      "p1": "Six engines, not six topics: inspection, lab disaster, the scale problem, work that is never good enough, the human problem, the disproportionate experiment. The same mould can produce four different episodes without repeating itself.",
-      "p2": "Two rules. First: every episode works without the previous ones. Second: the Tanner never recovers from perfectionism — if he did, the series would end.",
-      "episode": {
-        "code": "EP. 003",
-        "title": "STAFF MEETING",
-        "body": ""
-      }
+    "ponte": {
+      "eyebrow": "What it has to do with you",
+      "p1": "The Tanner exists for people who do everything themselves. If you handle clients, orders, shipping and social media in the same day, his week will look familiar.",
+      "p2": "There's one difference: the skins leaving his bench are checked by him, piece by piece. Everything else — phone, courier, deadlines — he answers the way you do."
     },
     "cta": {
       "title": "The skins are here. I check them.",

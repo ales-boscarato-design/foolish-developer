@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
-import { StaffBoard } from '@/components/laboratorio/StaffBoard'
-import { PARADOX_IDS, TELEGRAM_BOT_URL, practiceSkinHref, type Translate } from '@/lib/laboratorio'
+import { TELEGRAM_BOT_URL, buildGiornataItems, practiceSkinHref } from '@/lib/laboratorio'
 
 const BASE = 'https://thefoolishbutcher.com'
 const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
@@ -39,7 +38,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 export default async function LaboratorioPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'laboratorio' })
-  const tr: Translate = (key) => t(key)
+  const giornata = buildGiornataItems(t.raw('giornata.items'))
 
   return (
     <div style={{ backgroundColor: '#0a0806', color: '#e8dcc8' }}>
@@ -60,7 +59,7 @@ export default async function LaboratorioPage({ params }: { params: Promise<{ lo
         </p>
       </section>
 
-      {/* ── 2. Chi è ── */}
+      {/* ── 2. Chi è (assorbe la scala) ── */}
       <section className="border-t" style={{ borderColor: '#1e1812' }}>
         <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16 sm:py-24">
           <h2 className="text-[11px] font-bold uppercase tracking-[0.4em] mb-10" style={{ color: '#c9a96e' }}>
@@ -72,42 +71,46 @@ export default async function LaboratorioPage({ params }: { params: Promise<{ lo
             </p>
             <p>{t('intro.p2')}</p>
             <p>{t('intro.p3')}</p>
-            <p>{t('intro.p4')}</p>
           </div>
         </div>
       </section>
 
-      {/* ── 3. La scala ── */}
-      <section className="border-t" style={{ borderColor: '#1e1812' }}>
-        <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16 sm:py-24">
-          <ImageSlot slot="scale" />
-          <h2 className="text-[11px] font-bold uppercase tracking-[0.4em] mb-10" style={{ color: '#c9a96e' }}>
-            {t('scale.eyebrow')}
-          </h2>
-          <div className="max-w-2xl space-y-6 text-base sm:text-lg leading-relaxed" style={{ color: '#b9ab94' }}>
-            <p className="text-xl sm:text-2xl leading-snug" style={{ color: '#e8dcc8' }}>
-              {t('scale.p1')}
-            </p>
-            <p className="font-display text-2xl sm:text-3xl" style={{ color: '#c9a96e' }}>
-              {t('scale.p2')}
-            </p>
-            <p>{t('scale.p3')}</p>
-            <p>{t('scale.p4')}</p>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 4. I sei reparti ── */}
+      {/* ── 3. Una giornata: sette voci orarie, dalla struttura dati ── */}
       <section className="border-t" style={{ borderColor: '#1e1812' }}>
         <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16 sm:py-24">
           <h2 className="text-[11px] font-bold uppercase tracking-[0.4em] mb-10" style={{ color: '#c9a96e' }}>
-            {t('staff.eyebrow')}
+            {t('giornata.eyebrow')}
           </h2>
-          <StaffBoard t={tr} label={t('staff.boardLabel')} intro={t('staff.intro')} />
+          <p className="max-w-2xl text-xl sm:text-2xl leading-snug" style={{ color: '#e8dcc8' }}>
+            {t('giornata.intro')}
+          </p>
+          <ol className="mt-10 max-w-2xl">
+            {giornata.map((voce) => (
+              <li key={voce.ora} className="py-5 border-t first:border-t-0 first:pt-0 last:pb-0" style={{ borderColor: '#1e1812' }}>
+                {/* Su mobile l'orario sta su una riga sua: a 375px nessuna colonna da comprimere. */}
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-8">
+                  <span
+                    className="shrink-0 font-display text-lg sm:text-xl tabular-nums"
+                    style={{ color: '#c9a96e' }}
+                  >
+                    {voce.ora}
+                  </span>
+                  <p className="min-w-0 text-base sm:text-lg leading-relaxed break-words" style={{ color: '#b9ab94' }}>
+                    {voce.ruolo ? (
+                      <span className="font-semibold" style={{ color: '#e8dcc8' }}>
+                        {voce.ruolo}.{' '}
+                      </span>
+                    ) : null}
+                    {voce.testo}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
 
-      {/* ── 5. Il laboratorio ── */}
+      {/* ── 4. Il laboratorio ── */}
       <section className="border-t" style={{ borderColor: '#1e1812' }}>
         <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16 sm:py-24">
           <ImageSlot slot="lab" />
@@ -124,7 +127,7 @@ export default async function LaboratorioPage({ params }: { params: Promise<{ lo
         </div>
       </section>
 
-      {/* ── 6. Il paradosso: le quattro verita' tecniche ── */}
+      {/* ── 5. Il paradosso: le verità tecniche ── */}
       <section className="border-t" style={{ borderColor: '#1e1812' }}>
         <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16 sm:py-24">
           <h2 className="text-[11px] font-bold uppercase tracking-[0.4em] mb-10" style={{ color: '#c9a96e' }}>
@@ -135,9 +138,8 @@ export default async function LaboratorioPage({ params }: { params: Promise<{ lo
               {t('paradox.intro')}
             </p>
             <div className="space-y-5 border-l pl-5" style={{ borderColor: '#3a2f22' }}>
-              {PARADOX_IDS.map((id) => (
-                <p key={id}>{t(`paradox.${id}`)}</p>
-              ))}
+              <p>{t('paradox.p1')}</p>
+              <p>{t('paradox.p2')}</p>
             </div>
             <p className="font-display text-xl sm:text-2xl" style={{ color: '#e8dcc8' }}>
               {t('paradox.closing')}
@@ -146,33 +148,22 @@ export default async function LaboratorioPage({ params }: { params: Promise<{ lo
         </div>
       </section>
 
-      {/* ── 7. La serie ── */}
+      {/* ── 6. Cosa c'entra con te ── */}
       <section className="border-t" style={{ borderColor: '#1e1812' }}>
         <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16 sm:py-24">
           <h2 className="text-[11px] font-bold uppercase tracking-[0.4em] mb-10" style={{ color: '#c9a96e' }}>
-            {t('series.eyebrow')}
+            {t('ponte.eyebrow')}
           </h2>
           <div className="max-w-2xl space-y-6 text-base sm:text-lg leading-relaxed" style={{ color: '#b9ab94' }}>
             <p className="text-xl sm:text-2xl leading-snug" style={{ color: '#e8dcc8' }}>
-              {t('series.p1')}
+              {t('ponte.p1')}
             </p>
-            <p>{t('series.p2')}</p>
+            <p>{t('ponte.p2')}</p>
           </div>
-
-          <article className="mt-12 max-w-2xl border p-6 sm:p-8" style={{ borderColor: '#3a2f22' }}>
-            <h3 className="text-xs font-bold uppercase tracking-[0.3em]" style={{ color: '#c9a96e' }}>
-              {t('series.episode.code')} — {t('series.episode.title')}
-            </h3>
-            {t('series.episode.body') ? (
-              <p className="mt-4 text-base sm:text-lg leading-relaxed" style={{ color: '#b9ab94' }}>
-                {t('series.episode.body')}
-              </p>
-            ) : null}
-          </article>
         </div>
       </section>
 
-      {/* ── 8. CTA ── */}
+      {/* ── 7. CTA ── */}
       <section className="border-t" style={{ borderColor: '#1e1812' }}>
         <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16 sm:py-24">
           <h2 className="font-display leading-none max-w-3xl" style={{ fontSize: 'clamp(30px, 5vw, 64px)', color: '#e8dcc8' }}>

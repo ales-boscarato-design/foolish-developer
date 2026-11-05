@@ -1,45 +1,44 @@
 /**
- * Struttura della pagina `/laboratorio` (Il Pellaio — The Precision Inspector).
+ * Struttura della pagina `/laboratorio` (Il Pellaio — The Foolish Butcher).
  *
- * I sei reparti sono una struttura dati, non sei blocchi copiati a mano: l'ordine e' quello
- * della lavagna dei turni e ogni voce legge le proprie chiavi dal locale corrente.
+ * Le sette voci di «Una giornata» sono una struttura dati che vive nei file di traduzione
+ * (`laboratorio.giornata.items`, un array di `{ ora, ruolo, testo }`): il componente non
+ * contiene nessun orario e nessun testo scritto a mano.
  */
 
-export const STAFF_IDS = ['warehouse', 'secretary', 'callCentre', 'chemist', 'ceo', 'cleaning'] as const
-
-export type StaffId = (typeof STAFF_IDS)[number]
-
-export type StaffItem = {
-  id: StaffId
-  role: string
-  /** Tratto del personaggio: nei testi approvati esiste solo in italiano e inglese. */
-  trait: string
-  quote: string
-  /** Battuta fra parentesi che accompagna la citazione (call centre, CEO). */
-  aside: string
+/** Una voce della giornata: orario, ruolo (puo' essere vuoto) e cosa succede a quell'ora. */
+export type GiornataItem = {
+  ora: string
+  ruolo: string
+  testo: string
 }
 
 /** Firma minima di un traduttore del namespace `laboratorio`. */
 export type Translate = (key: string) => string
 
-/** Ordine dei quattro paragrafi che raccontano le verita' tecniche, nominati per proprieta'. */
-export const PARADOX_IDS = ['spessore', 'discromie', 'pori', 'strati'] as const
-
-export type ParadoxId = (typeof PARADOX_IDS)[number]
-
 /**
- * Estrae i sei reparti dalle traduzioni: ordine fisso, nessuna voce inventata.
- * `trait` puo' essere vuoto (lingue in cui il testo approvato non lo prevede) e in quel caso
- * la pagina non lo rende affatto.
+ * Normalizza l'array delle voci orarie che arriva dalle traduzioni.
+ *
+ * Fail-closed: un valore che non e' un array di `{ ora, ruolo, testo }` stringa e' un errore di
+ * contenuto, non un caso da rendere a meta'. `ruolo` puo' essere vuoto (la voce delle 23:58 non
+ * ha un reparto) e in quel caso la pagina non lo rende affatto.
  */
-export function buildStaffItems(t: Translate): StaffItem[] {
-  return STAFF_IDS.map((id) => ({
-    id,
-    role: t(`staff.items.${id}.role`),
-    trait: t(`staff.items.${id}.trait`),
-    quote: t(`staff.items.${id}.quote`),
-    aside: t(`staff.items.${id}.aside`),
-  }))
+export function buildGiornataItems(raw: unknown): GiornataItem[] {
+  if (!Array.isArray(raw)) {
+    throw new Error('laboratorio.giornata.items deve essere un array di { ora, ruolo, testo }')
+  }
+  return raw.map((entry, index) => {
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
+      throw new Error(`laboratorio.giornata.items[${index}] non e' un oggetto`)
+    }
+    const { ora, ruolo, testo } = entry as Record<string, unknown>
+    for (const [field, value] of Object.entries({ ora, ruolo, testo })) {
+      if (typeof value !== 'string') {
+        throw new Error(`laboratorio.giornata.items[${index}].${field} deve essere una stringa`)
+      }
+    }
+    return { ora: ora as string, ruolo: ruolo as string, testo: testo as string }
+  })
 }
 
 /** Percorso delle practice skin nella lingua corrente. */

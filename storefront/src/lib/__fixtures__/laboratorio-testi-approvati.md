@@ -1,393 +1,307 @@
-# IL PELLAIO — testi della pagina `/laboratorio` (proposta, 30/10/2026)
+# IL PELLAIO — /laboratorio v2: «Una giornata» (30/10/2026, revisione 5/11/2026)
 
-Decisioni prese da Alessandro il 30/10: `/sebo` → **301 su `/laboratorio`**, contenuti SEBO archiviati;
-i cinque prodotti restano **«SEBO Practice Archives»** come nome di linea; voce di menu **«Laboratorio»**.
+Problema rilevato da Alessandro il 5/11: la pagina sembrava un dialogo interno. Diagnosi accettata:
+la sezione «La serie» era un brief di produzione («sei motori, non sei argomenti», «due regole») e tre
+blocchi spiegavano il personaggio invece di farlo agire.
 
-Voce: il Pellaio non fa battute e non parla al pubblico. È competente, orgoglioso e sovraccarico.
-L'umorismo nasce dalle conseguenze. Nessun claim biologico, nessun confronto con altri materiali.
-
----
-
-## 1. Hero
-
-**eyebrow** — FOOLISH LAB · CHIERI (TO)
-
-**H1** — Un'azienda. Sei reparti. Un solo dipendente.
-
-**sub** — Il Pellaio. Settantacinque centimetri. Nessuno lo ha assunto: si è nominato da solo.
-
-**alt immagine** — Il Pellaio in piedi davanti a un foglio A3 che lo sovrasta
+Questa versione: **7 blocchi**, via «La serie» e l'elenco dei reparti, dentro «Una giornata», più un
+blocco nuovo che parla al lettore. Taglio di circa un terzo del testo.
 
 ---
 
-## 2. Chi è
+## 1. Hero (invariato)
 
-Nessuno sa esattamente quando sia arrivato al laboratorio.
+eyebrow — FOOLISH LAB · CHIERI (TO)
+H1 — Un'azienda. Sei reparti. Un solo dipendente.
+sub — Il Pellaio. Settantacinque centimetri. Nessuno lo ha assunto: si è nominato da solo.
 
-C'è chi dice che sia comparso dopo una notte di lavoro particolarmente lunga. Altri sostengono che fosse
-già lì, sotto il vecchio banco del falegname, tra gli stampi.
+## 2. Chi è (accorciato; assorbe «La scala»)
 
-Una cosa è certa: un giorno qualcuno disse che, per mandare avanti quel laboratorio, sarebbero servite
-almeno sei persone.
+Nessuno sa quando sia arrivato. C'è chi dice dopo una notte di lavoro troppo lunga, chi dice che era già
+lì, sotto il banco del falegname.
 
-La mattina dopo c'era il Pellaio. Non sei persone. Una sola, con sei cambi d'abito.
+Un giorno qualcuno disse che per mandare avanti quel laboratorio sarebbero servite almeno sei persone.
+La mattina dopo c'era il Pellaio. Non sei persone: una sola, con sei cambi d'abito.
 
----
+Il mondo intorno a lui è reale — mattoni rossi, tavoli bianchi, stampi di legno. È lui che è alto
+settantacinque centimetri, e vede le stesse cose da un'altra altezza.
 
-## 3. La scala
+## 3. Una giornata (sostituisce «I sei reparti» e «La serie»)
 
-Il mondo intorno a lui è reale: mattoni rossi, soffitti alti, tavoli bianchi enormi, stampi di legno,
-scaffali pieni di mani e braccia.
+**Non è una serie. È un martedì.**
 
-Il Pellaio no.
+- **07:12** — Magazziniere. Scarica lui, firma lui, si lamenta lui.
+- **09:40** — Segreteria. Tre email, nessuna risposta. Le ha scritte lui.
+- **11:05** — Call center. «La sua richiesta è molto importante per noi.» È vero: è l'unico che risponde.
+- **14:20** — Chimico. La superficie non è uniforme. La rifà. Quarta volta.
+- **16:45** — CEO. Riunione con i reparti. I reparti è lui.
+- **19:30** — Pulizie. Qualcuno ha lasciato flock sul banco. Quel qualcuno sono io.
+- **23:58** — La luce sotto il banco del falegname è ancora accesa.
 
-Per lui un tavolo di colata è una distesa da attraversare. Uno stampo è una macchina straordinaria. Un
-foglio A3 è una creatura gigantesca da domare, e il monocolo è lo strumento più importante mai inventato —
-almeno secondo lui.
+## 4. Il laboratorio (accorciato)
 
-Non è un mago e non vive in un'altra dimensione. Lavora qui. Vede le stesse cose da un'altra altezza.
-
----
-
-## 4. I sei reparti (lavagna `TODAY'S STAFF`)
-
-La lavagna dei turni è sempre la stessa. Sei nomi. Un dipendente.
-
-**MAGAZZINIERE** — Pratico, burbero, odia l'ufficio.
-> «Se è arrivato rotto, era rotto prima di me. Ma lo firmo io.»
-
-**SEGRETERIA** — Pettegola, melodrammatica, sa tutto di tutti.
-> «Tre email. Nessuna risposta. Le ho scritte io. Le ho lette io.»
-
-**CALL CENTER** — Cortesia esasperante, voce sintetica.
-> «La sua richiesta è molto importante per noi.» *(Sono io. Noi.)*
-
-**CHIMICO / R&D** — Genio, ossessivo, disprezza le interruzioni.
-> «Non è "quasi uniforme". O è uniforme, o si rifà.»
-
-**CEO** — Visionario, presuntuoso, scollegato dalla realtà.
-> «Dobbiamo pensare in grande.» *(Il foglio è A3. Non basta.)*
-
-**PULIZIE** — Perennemente indignato.
-> «Qualcuno ha lasciato il flock sul banco. Quel qualcuno sono io.»
-
----
-
-## 5. Il laboratorio
-
-Cinque aree, e sono tutte reali: i tavoli bianchi delle colate, gli scaffali delle anatomie, il banco del
+Cinque aree, tutte reali: i tavoli bianchi delle colate, gli scaffali delle anatomie, il banco del
 falegname sotto la finestra, la stazione degli stampi a libro, il banco d'acciaio della preparazione.
 
 Sotto il banco del falegname c'è uno spazio che non compare in nessuna planimetria: una scrivania
-microscopica, una lampada, quaderni pieni di annotazioni e una pila di fogli che non ha ancora approvato.
-Non è una tana. È la postazione di qualcuno che lavora troppo.
+microscopica, una lampada, quaderni e una pila di fogli che non ha ancora approvato.
 
-E poi ci sono le tracce che non sono sue. Scatole chiuse, etichette, ordini pronti, un paio di scarpe che
-si spostano. Qualcuno produce, qui. Non ha un volto. Serve.
+E ci sono tracce che non sono sue. Scatole chiuse, etichette, ordini pronti. Qualcuno produce, qui. Non
+ha un volto. Serve.
 
----
-
-## 6. Il paradosso
+## 5. Il paradosso (resta, sale prima del ponte)
 
 Vuole una cosa sola: la superficie perfetta.
 
 Il problema è che la pelle umana perfetta non esiste. Ha discromie, consistenze diverse, variazioni di
-spessore. La cosa che rende credibile una pelle da pratica è esattamente quella che il Pellaio considera
-un difetto.
+spessore: proprio quello che rende credibile una pelle da pratica è quello che il Pellaio chiama difetto.
 
-I flock colorati non si distribuiscono mai in modo uniforme: la catalisi fa quello che vuole, e da lì
-nascono le variazioni che assomigliano alla pelle vera. I pori non sono disegnati: assorbono il transfer e
-lasciano uscire l'inchiostro in eccesso. Il colore non si stende sopra, si deposita a strati — ed è per
+I flock colorati non si distribuiscono mai in modo uniforme — la catalisi fa quello che vuole, e da lì
+nascono le variazioni che assomigliano alla pelle vera. I pori non sono disegnati: assorbono il transfer
+e lasciano uscire l'inchiostro in eccesso. Il colore non si stende sopra, si deposita a strati: è per
 questo che le velature si leggono, senza che nessuno ci guardi attraverso.
 
 Per il Pellaio è un'offesa personale. Per chi tatua è il motivo per cui funziona.
 
----
+## 6. Cosa c'entra con te (nuovo)
 
-## 7. La serie
+Il Pellaio esiste per chi fa tutto da solo. Se nella stessa giornata gestisci clienti, ordini, spedizioni
+e social, la sua settimana ti sembrerà familiare.
 
-Sei motori, non sei argomenti: l'ispezione, il disastro di laboratorio, il problema di scala, il lavoro
-che non è mai accettabile, il problema umano, l'esperimento sproporzionato. Lo stesso stampo può diventare
-quattro episodi diversi senza ripetere niente.
+La differenza è una sola: la pelle che esce dal suo banco la controlla lui, pezzo per pezzo. Al resto —
+telefono, corriere, scadenze — risponde come rispondi tu.
 
-Due regole. La prima: ogni episodio si capisce senza aver visto i precedenti. La seconda: **il Pellaio non
-guarisce dal perfezionismo** — se guarisse, finirebbe la serie.
-
-**EP. 003 — STAFF MEETING.** Sei sedie intorno al tavolo. Un solo dipendente, e quindi anche gli altri
-cinque posti sono occupati da una parrucca, un cappellino, un mocio. Il CEO accusa la produzione di essere
-lenta. La segreteria sostiene di aver mandato tre email. Il call center ripete che la segnalazione è molto
-importante. Il telefono squilla. Il Pellaio chiude gli occhi.
-
----
-
-## 8. CTA
+## 7. CTA (invariato)
 
 **Le pelli le trovi qui. Io le controllo.**
-
-→ [Practice skin](/it/tattoo) · [Scrivi al laboratorio](https://t.me/the_foolish_butcher_bot)
+→ Practice skin (/it/tattoo) · Scrivi al laboratorio (bot)
 
 ---
 
 # ENGLISH
 
-## 1. Hero
+**1.** FOOLISH LAB · CHIERI (TO) — **One company. Six departments. One employee.** — The Tanner.
+Seventy-five centimetres. Nobody hired him: he appointed himself.
 
-**eyebrow** — FOOLISH LAB · CHIERI (TO)
+**2.** Nobody knows when he arrived. Some say after a night that ran too long, others that he was
+already there, under the carpenter's bench.
 
-**H1** — One company. Six departments. One employee.
+One day someone said that running that lab would take at least six people. The next morning the Tanner
+was there. Not six people: one, with six changes of clothes.
 
-**sub** — The Tanner. Seventy-five centimetres. Nobody hired him: he appointed himself.
+The world around him is real — red brick, white tables, wooden moulds. He is the one who is seventy-five
+centimetres tall, and he sees the same things from a different altitude.
 
-## 2. Who he is
+**3.** **It's not a series. It's a Tuesday.**
+- **07:12** — Warehouse. He unloads it, he signs for it, he complains about it.
+- **09:40** — Secretary. Three emails, no answer. He wrote them.
+- **11:05** — Call centre. "Your request is very important to us." True: he's the only one answering.
+- **14:20** — Chemist. The surface isn't even. He redoes it. Fourth time.
+- **16:45** — CEO. Meeting with the departments. The departments are him.
+- **19:30** — Cleaning. Someone left flock on the bench. That someone is me.
+- **23:58** — The light under the carpenter's bench is still on.
 
-Nobody knows exactly when he arrived at the lab.
-
-Some say he turned up after a particularly long night. Others insist he was already there, under the old
-carpenter's bench, among the moulds.
-
-One thing is certain: one day someone said that running that lab would take at least six people.
-
-The next morning the Tanner was there. Not six people. One, with six changes of clothes.
-
-## 3. Scale
-
-The world around him is real: red brick, high ceilings, huge white tables, wooden moulds, shelves full of
-hands and arms.
-
-He is not.
-
-To him a casting table is a plain to be crossed. A mould is an extraordinary machine. An A3 sheet is a
-gigantic creature to be tamed, and the monocle is the most important instrument ever invented — at least
-according to him.
-
-He is not a wizard and he doesn't live in another dimension. He works here. He just sees the same things
-from a different altitude.
-
-## 4. The six departments
-
-The shift board never changes. Six names. One employee.
-
-**WAREHOUSE** — Practical, grumpy, hates the office.
-> "If it arrived broken, it was broken before me. But I sign for it."
-
-**SECRETARY** — Gossipy, melodramatic, knows everything about everyone.
-> "Three emails. No answer. I wrote them. I read them."
-
-**CALL CENTRE** — Exasperating politeness, synthetic voice.
-> "Your request is very important to us." *(It's me. Us.)*
-
-**CHEMIST / R&D** — Genius, obsessive, resents interruptions.
-> "It's not 'almost even'. It's even, or it's redone."
-
-**CEO** — Visionary, arrogant, disconnected from reality.
-> "We need to think big." *(The sheet is A3. Not big enough.)*
-
-**CLEANING** — Permanently outraged.
-> "Someone left flock on the bench. That someone is me."
-
-## 5. The lab
-
-Five areas, all real: the white casting tables, the shelves of anatomies, the carpenter's bench under the
-window, the book-mould station, the steel prep bench.
+**4.** Five areas, all real: the white casting tables, the shelves of anatomies, the carpenter's bench
+under the window, the book-mould station, the steel prep bench.
 
 Under the carpenter's bench there's a space that appears in no floor plan: a microscopic desk, a lamp,
-notebooks full of annotations and a pile of sheets he hasn't approved yet. It's not a den. It's the
-workstation of someone who works too much.
+notebooks and a pile of sheets he hasn't approved yet.
 
-And then there are the traces that aren't his. Sealed boxes, labels, finished orders, a pair of shoes that
-moves. Someone produces here. No face. Necessary.
+And there are traces that aren't his. Sealed boxes, labels, finished orders. Someone produces here. No
+face. Necessary.
 
-## 6. The paradox
+**5.** He wants one thing: a perfect surface.
 
-He wants one thing: a perfect surface.
+The problem is that perfect human skin doesn't exist. Uneven colour, different textures, variations in
+thickness: the very thing that makes a practice skin believable is what the Tanner calls a defect.
 
-The problem is that perfect human skin doesn't exist. It has uneven colour, different textures, variations
-in thickness. The thing that makes a practice skin believable is exactly what the Tanner calls a defect.
-
-Coloured flock never distributes evenly: catalysis does what it wants, and that's where the variation that
-reads as real skin comes from. The pores aren't printed: they absorb the transfer and let the excess ink
-out. Colour isn't laid on top, it's deposited in layers — which is why the washes read, without anyone
+Coloured flock never distributes evenly — catalysis does what it wants, and that's where the variation
+that reads as real skin comes from. The pores aren't printed: they absorb the transfer and let the excess
+ink out. Colour isn't laid on top, it's deposited in layers: that's why the washes read, without anyone
 looking through them.
 
 To the Tanner it's a personal insult. To a tattooer it's the reason it works.
 
-## 7. The series
+**6.** The Tanner exists for people who do everything themselves. If you handle clients, orders, shipping
+and social media in the same day, his week will look familiar.
 
-Six engines, not six topics: inspection, lab disaster, the scale problem, work that is never good enough,
-the human problem, the disproportionate experiment. The same mould can produce four different episodes
-without repeating itself.
+There's one difference: the skins leaving his bench are checked by him, piece by piece. Everything else —
+phone, courier, deadlines — he answers the way you do.
 
-Two rules. First: every episode works without the previous ones. Second: **the Tanner never recovers from
-perfectionism** — if he did, the series would end.
-
-## 8. CTA
-
-**The skins are here. I check them.**
-
-→ [Practice skin](/en/tattoo) · [Message the lab](https://t.me/the_foolish_butcher_bot)
-
----
-
-## Note per l'implementazione
-
-1. `/sebo` → **301** su `/laboratorio` per tutte e 5 le lingue; le 42 chiavi `sebo.*` non si migrano: si
-   rimuovono dal file e i contenuti restano solo in archivio locale.
-2. Voce di menu: una sola, **«Laboratorio»** (tutte le lingue tradotte coerentemente).
-3. **Decisione 30/10: nessuna pagina archivio SEBO.** I vecchi contenuti non sono visitabili; il link è stato rimosso dal CTA in tutte le lingue.
-4. «75 cm» è dichiarato nel character sheet: va tenuto in pagina solo se l'hero lo mostra realmente in scala.
-5. Nessuna immagine del personaggio dentro le foto di prodotto.
+**7.** **The skins are here. I check them.** → Practice skin (/en/tattoo) · Message the lab
 
 ---
 
 # FRANÇAIS
 
-**1. Hero** — *FOOLISH LAB · CHIERI (TO)*
-**Une entreprise. Six services. Un seul employé.**
-Le Peaussier. Soixante-quinze centimètres. Personne ne l'a embauché : il s'est nommé lui-même.
+**1.** FOOLISH LAB · CHIERI (TO) — **Une entreprise. Six services. Un seul employé.** — Le Peaussier.
+Soixante-quinze centimètres. Personne ne l'a embauché : il s'est nommé lui-même.
 
-**2. Qui il est** — Personne ne sait exactement quand il est arrivé. Certains disent qu'il est apparu après
-une nuit de travail particulièrement longue, d'autres qu'il était déjà là, sous le vieil établi du menuisier.
-Une chose est sûre : un jour, quelqu'un a dit qu'il faudrait au moins six personnes pour faire tourner cet
-atelier. Le lendemain matin, le Peaussier était là. Pas six personnes. Une seule, avec six changes.
+**2.** Personne ne sait quand il est arrivé. Certains disent après une nuit trop longue, d'autres qu'il
+était déjà là, sous l'établi du menuisier.
 
-**3. L'échelle** — Le monde autour de lui est réel : briques rouges, plafonds hauts, grandes tables
-blanches, moules en bois, rayonnages pleins de mains et de bras. Lui, non. Pour lui une table de coulée est
-une plaine à traverser. Un moule est une machine extraordinaire. Une feuille A3 est une créature géante à
-dompter, et le monocle est l'instrument le plus important jamais inventé — du moins selon lui. Ce n'est pas
-un magicien et il ne vit pas dans une autre dimension. Il travaille ici. Il voit les mêmes choses depuis une
-autre altitude.
+Un jour quelqu'un a dit qu'il faudrait au moins six personnes pour faire tourner cet atelier. Le
+lendemain matin, le Peaussier était là. Pas six personnes : une seule, avec six changes.
 
-**4. Les six services** — Le tableau des équipes ne change jamais. Six noms. Un employé.
-- MAGASINIER — « Si c'est arrivé cassé, c'était cassé avant moi. Mais c'est moi qui signe. »
-- SECRÉTAIRE — « Trois mails. Aucune réponse. Je les ai écrits. Je les ai lus. »
-- CENTRE D'APPEL — « Votre demande est très importante pour nous. » *(C'est moi. Nous.)*
-- CHIMISTE / R&D — « Ce n'est pas "presque régulier". C'est régulier, ou on recommence. »
-- PDG — « Il faut voir grand. » *(La feuille est A3. Pas assez grand.)*
-- MÉNAGE — « Quelqu'un a laissé du flock sur l'établi. Ce quelqu'un, c'est moi. »
+Le monde autour de lui est réel — briques rouges, tables blanches, moules en bois. C'est lui qui mesure
+soixante-quinze centimètres, et il voit les mêmes choses depuis une autre altitude.
 
-**5. L'atelier** — Cinq zones, toutes réelles : les tables blanches de coulée, les rayonnages d'anatomies,
-l'établi du menuisier sous la fenêtre, la station des moules à livre, l'établi en acier de la préparation.
+**3.** **Ce n'est pas une série. C'est un mardi.**
+- **07:12** — Magasinier. Il décharge, il signe, il se plaint.
+- **09:40** — Secrétaire. Trois mails, aucune réponse. C'est lui qui les a écrits.
+- **11:05** — Centre d'appel. « Votre demande est très importante pour nous. » C'est vrai : il est le seul à répondre.
+- **14:20** — Chimiste. La surface n'est pas régulière. Il recommence. Quatrième fois.
+- **16:45** — PDG. Réunion avec les services. Les services, c'est lui.
+- **19:30** — Ménage. Quelqu'un a laissé du flock sur l'établi. Ce quelqu'un, c'est moi.
+- **23:58** — La lumière sous l'établi du menuisier est encore allumée.
+
+**4.** Cinq zones, toutes réelles : les tables blanches de coulée, les rayonnages d'anatomies, l'établi du
+menuisier sous la fenêtre, la station des moules à livre, l'établi en acier de la préparation.
+
 Sous l'établi du menuisier il y a un espace absent de tout plan : un bureau microscopique, une lampe, des
-carnets pleins d'annotations et une pile de feuilles qu'il n'a pas encore approuvées. Ce n'est pas un terrier.
-C'est le poste de quelqu'un qui travaille trop. Et puis il y a les traces qui ne sont pas les siennes.
-Cartons fermés, étiquettes, commandes prêtes, une paire de chaussures qui bouge. Quelqu'un produit ici.
-Sans visage. Nécessaire.
+carnets et une pile de feuilles qu'il n'a pas encore approuvées.
 
-**6. Le paradoxe** — Il ne veut qu'une chose : la surface parfaite. Le problème, c'est que la peau humaine
-parfaite n'existe pas. Elle a des variations de couleur, des textures différentes, des épaisseurs inégales.
-Ce qui rend crédible une peau d'entraînement est exactement ce que le Peaussier appelle un défaut. Les flocks
-colorés ne se répartissent jamais de façon uniforme : la catalyse fait ce qu'elle veut, et c'est de là que
-vient la variation qui ressemble à une vraie peau. Les pores ne sont pas dessinés : ils absorbent le transfert
-et laissent sortir l'encre en trop. La couleur ne se pose pas dessus, elle se dépose par couches — et c'est
-pour ça que les lavis se lisent, sans que personne ne regarde à travers. Pour le Peaussier, c'est une insulte
-personnelle. Pour qui tatoue, c'est la raison pour laquelle ça marche.
+Et il y a des traces qui ne sont pas les siennes. Cartons fermés, étiquettes, commandes prêtes. Quelqu'un
+produit ici. Sans visage. Nécessaire.
 
-**7. La série** — Six moteurs, pas six sujets : l'inspection, le désastre d'atelier, le problème d'échelle,
-le travail jamais acceptable, le problème humain, l'expérience disproportionnée. Le même moule peut donner
-quatre épisodes différents sans se répéter. Deux règles. Un : chaque épisode se comprend sans les précédents.
-Deux : **le Peaussier ne guérit jamais de son perfectionnisme** — s'il guérissait, la série s'arrêterait.
+**5.** Il ne veut qu'une chose : la surface parfaite.
 
-**8. CTA** — **Les peaux sont ici. C'est moi qui les contrôle.**
-→ [Practice skin](/fr/tattoo) · [Écrire à l'atelier](https://t.me/the_foolish_butcher_bot)
+Le problème, c'est que la peau humaine parfaite n'existe pas. Variations de couleur, textures
+différentes, épaisseurs inégales : précisément ce qui rend crédible une peau d'entraînement est ce que le
+Peaussier appelle un défaut.
+
+Les flocks colorés ne se répartissent jamais de façon uniforme — la catalyse fait ce qu'elle veut, et
+c'est de là que viennent les variations qui ressemblent à une vraie peau. Les pores ne sont pas dessinés :
+ils absorbent le transfert et laissent sortir l'encre en trop. La couleur ne se pose pas dessus, elle se
+dépose par couches : c'est pour ça que les lavis se lisent, sans que personne ne regarde à travers.
+
+Pour le Peaussier, c'est une insulte personnelle. Pour qui tatoue, c'est la raison pour laquelle ça marche.
+
+**6.** Le Peaussier existe pour ceux qui font tout seuls. Si dans la même journée tu gères clients,
+commandes, expéditions et réseaux sociaux, sa semaine te paraîtra familière.
+
+Une seule différence : les peaux qui sortent de son établi, c'est lui qui les contrôle, pièce par pièce.
+Au reste — téléphone, transporteur, délais — il répond comme tu réponds.
+
+**7.** **Les peaux sont ici. C'est moi qui les contrôle.** → Practice skin (/fr/tattoo) · Écrire à l'atelier
 
 ---
 
 # ESPAÑOL
 
-**1. Hero** — *FOOLISH LAB · CHIERI (TO)*
-**Una empresa. Seis departamentos. Un solo empleado.**
-El Pellejero. Setenta y cinco centímetros. Nadie lo contrató: se nombró a sí mismo.
+**1.** FOOLISH LAB · CHIERI (TO) — **Una empresa. Seis departamentos. Un solo empleado.** — El Pellejero.
+Setenta y cinco centímetros. Nadie lo contrató: se nombró a sí mismo.
 
-**2. Quién es** — Nadie sabe exactamente cuándo llegó. Hay quien dice que apareció tras una noche de trabajo
-especialmente larga; otros, que ya estaba allí, bajo el viejo banco del carpintero. Una cosa es segura: un día
-alguien dijo que para sacar adelante ese taller harían falta al menos seis personas. A la mañana siguiente
-estaba el Pellejero. No seis personas. Una sola, con seis cambios de ropa.
+**2.** Nadie sabe cuándo llegó. Hay quien dice que tras una noche demasiado larga; otros, que ya estaba
+allí, bajo el banco del carpintero.
 
-**3. La escala** — El mundo a su alrededor es real: ladrillo rojo, techos altos, mesas blancas enormes,
-moldes de madera, estanterías llenas de manos y brazos. Él no. Para él una mesa de colada es una llanura que
-atravesar. Un molde es una máquina extraordinaria. Una hoja A3 es una criatura gigantesca que hay que domar,
-y el monóculo es el instrumento más importante jamás inventado — al menos según él. No es un mago y no vive en
-otra dimensión. Trabaja aquí. Ve las mismas cosas desde otra altura.
+Un día alguien dijo que para sacar adelante ese taller harían falta al menos seis personas. A la mañana
+siguiente estaba el Pellejero. No seis personas: una sola, con seis cambios de ropa.
 
-**4. Los seis departamentos** — El tablón de turnos nunca cambia. Seis nombres. Un empleado.
-- ALMACÉN — «Si llegó roto, estaba roto antes que yo. Pero lo firmo yo.»
-- SECRETARÍA — «Tres correos. Ninguna respuesta. Los escribí yo. Los leí yo.»
-- CALL CENTER — «Su solicitud es muy importante para nosotros.» *(Soy yo. Nosotros.)*
-- QUÍMICO / I+D — «No es "casi uniforme". O es uniforme, o se rehace.»
-- CEO — «Hay que pensar en grande.» *(La hoja es A3. No es suficiente.)*
-- LIMPIEZA — «Alguien dejó flock en el banco. Ese alguien soy yo.»
+El mundo a su alrededor es real — ladrillo rojo, mesas blancas, moldes de madera. Es él quien mide
+setenta y cinco centímetros, y ve las mismas cosas desde otra altura.
 
-**5. El taller** — Cinco zonas, todas reales: las mesas blancas de colada, las estanterías de anatomías, el
-banco del carpintero bajo la ventana, la estación de moldes de libro, el banco de acero de la preparación.
+**3.** **No es una serie. Es un martes.**
+- **07:12** — Almacén. Descarga él, firma él, se queja él.
+- **09:40** — Secretaría. Tres correos, ninguna respuesta. Los escribió él.
+- **11:05** — Call center. «Su solicitud es muy importante para nosotros.» Es cierto: es el único que contesta.
+- **14:20** — Químico. La superficie no es uniforme. La rehace. Cuarta vez.
+- **16:45** — CEO. Reunión con los departamentos. Los departamentos es él.
+- **19:30** — Limpieza. Alguien dejó flock en el banco. Ese alguien soy yo.
+- **23:58** — La luz bajo el banco del carpintero sigue encendida.
+
+**4.** Cinco zonas, todas reales: las mesas blancas de colada, las estanterías de anatomías, el banco del
+carpintero bajo la ventana, la estación de moldes de libro, el banco de acero de la preparación.
+
 Bajo el banco del carpintero hay un espacio que no figura en ningún plano: un escritorio microscópico, una
-lámpara, cuadernos llenos de anotaciones y una pila de hojas que aún no ha aprobado. No es una madriguera. Es
-el puesto de alguien que trabaja demasiado. Y están las huellas que no son suyas. Cajas cerradas, etiquetas,
-pedidos listos, un par de zapatos que se mueve. Alguien produce aquí. Sin rostro. Necesario.
+lámpara, cuadernos y una pila de hojas que aún no ha aprobado.
 
-**6. La paradoja** — Quiere una sola cosa: la superficie perfecta. El problema es que la piel humana perfecta
-no existe. Tiene variaciones de color, texturas distintas, espesores desiguales. Lo que hace creíble una piel
-de práctica es exactamente lo que el Pellejero considera un defecto. Los flock de color nunca se reparten de
-forma uniforme: la catálisis hace lo que quiere, y de ahí nace la variación que se parece a la piel real. Los
-poros no están dibujados: absorben el transfer y dejan salir la tinta sobrante. El color no se extiende encima,
-se deposita por capas — y por eso los velos se leen, sin que nadie mire a través. Para el Pellejero es una
-ofensa personal. Para quien tatúa es la razón por la que funciona.
+Y hay huellas que no son suyas. Cajas cerradas, etiquetas, pedidos listos. Alguien produce aquí. Sin
+rostro. Necesario.
 
-**7. La serie** — Seis motores, no seis temas: la inspección, el desastre de taller, el problema de escala,
-el trabajo que nunca está bien, el problema humano, el experimento desproporcionado. El mismo molde puede dar
-cuatro episodios distintos sin repetirse. Dos reglas. Una: cada episodio se entiende sin los anteriores. Dos:
-**el Pellejero no se cura del perfeccionismo** — si se curara, se acabaría la serie.
+**5.** Quiere una sola cosa: la superficie perfecta.
 
-**8. CTA** — **Las pieles están aquí. Las controlo yo.**
-→ [Practice skin](/es/tattoo) · [Escribir al taller](https://t.me/the_foolish_butcher_bot)
+El problema es que la piel humana perfecta no existe. Variaciones de color, texturas distintas, espesores
+desiguales: justo lo que hace creíble una piel de práctica es lo que el Pellejero llama defecto.
+
+Los flock de color nunca se reparten de forma uniforme — la catálisis hace lo que quiere, y de ahí nacen
+las variaciones que parecen piel real. Los poros no están dibujados: absorben el transfer y dejan salir la
+tinta sobrante. El color no se extiende encima, se deposita por capas: por eso los velos se leen, sin que
+nadie mire a través.
+
+Para el Pellejero es una ofensa personal. Para quien tatúa es la razón por la que funciona.
+
+**6.** El Pellejero existe para quien hace todo solo. Si en el mismo día gestionas clientes, pedidos,
+envíos y redes sociales, su semana te resultará familiar.
+
+La diferencia es una sola: las pieles que salen de su banco las controla él, pieza por pieza. Al resto —
+teléfono, mensajería, plazos — responde como respondes tú.
+
+**7.** **Las pieles están aquí. Las controlo yo.** → Practice skin (/es/tattoo) · Escribir al taller
 
 ---
 
 # DEUTSCH
 
-**1. Hero** — *FOOLISH LAB · CHIERI (TO)*
-**Ein Betrieb. Sechs Abteilungen. Ein Angestellter.**
-Der Häuter. Fünfundsiebzig Zentimeter. Niemand hat ihn eingestellt: er hat sich selbst ernannt.
+**1.** FOOLISH LAB · CHIERI (TO) — **Ein Betrieb. Sechs Abteilungen. Ein Angestellter.** — Der Häuter.
+Fünfundsiebzig Zentimeter. Niemand hat ihn eingestellt: er hat sich selbst ernannt.
 
-**2. Wer er ist** — Niemand weiß genau, wann er gekommen ist. Manche sagen, er sei nach einer besonders
-langen Nacht aufgetaucht; andere, er sei schon immer da gewesen, unter der alten Tischlerbank. Eines ist
-sicher: Eines Tages sagte jemand, für diese Werkstatt bräuchte man mindestens sechs Leute. Am nächsten Morgen
-war der Häuter da. Nicht sechs Leute. Einer, mit sechs Garderobenwechseln.
+**2.** Niemand weiß, wann er gekommen ist. Manche sagen nach einer zu langen Nacht, andere, er sei schon
+immer da gewesen, unter der Tischlerbank.
 
-**3. Der Maßstab** — Die Welt um ihn ist echt: roter Backstein, hohe Decken, riesige weiße Tische,
-Holzformen, Regale voller Hände und Arme. Er nicht. Für ihn ist ein Gusstisch eine Fläche, die man überquert.
-Eine Form ist eine außergewöhnliche Maschine. Ein A3-Blatt ist ein gigantisches Wesen, das gezähmt werden
-muss, und das Monokel ist das wichtigste Instrument, das je erfunden wurde — zumindest seiner Meinung nach.
-Er ist kein Zauberer und lebt nicht in einer anderen Dimension. Er arbeitet hier. Er sieht dieselben Dinge
-aus einer anderen Höhe.
+Eines Tages sagte jemand, für diese Werkstatt bräuchte man mindestens sechs Leute. Am nächsten Morgen war
+der Häuter da. Nicht sechs Leute: einer, mit sechs Garderobenwechseln.
 
-**4. Die sechs Abteilungen** — Die Tafel des Schichtplans ändert sich nie. Sechs Namen. Ein Angestellter.
-- LAGER — „Wenn es kaputt angekommen ist, war es vor mir kaputt. Aber ich unterschreibe."
-- SEKRETARIAT — „Drei Mails. Keine Antwort. Ich habe sie geschrieben. Ich habe sie gelesen."
-- CALL CENTER — „Ihr Anliegen ist uns sehr wichtig." *(Ich bin uns.)*
-- CHEMIE / F&E — „Es ist nicht ‚fast gleichmäßig'. Es ist gleichmäßig, oder es wird neu gemacht."
-- CEO — „Wir müssen groß denken." *(Das Blatt ist A3. Nicht groß genug.)*
-- REINIGUNG — „Jemand hat Flock auf der Werkbank gelassen. Dieser Jemand bin ich."
+Die Welt um ihn ist echt — roter Backstein, weiße Tische, Holzformen. Er ist derjenige, der
+fünfundsiebzig Zentimeter groß ist und dieselben Dinge aus einer anderen Höhe sieht.
 
-**5. Die Werkstatt** — Fünf Bereiche, alle echt: die weißen Gusstitche, die Regale mit Anatomien, die
-Tischlerbank unter dem Fenster, die Station der Buchformen, die Stahlbank der Vorbereitung. Unter der
-Tischlerbank gibt es einen Raum, der in keinem Plan steht: ein winziger Schreibtisch, eine Lampe, Notizbücher
-und ein Stapel Blätter, die er noch nicht freigegeben hat. Kein Unterschlupf. Der Arbeitsplatz von jemandem,
-der zu viel arbeitet. Und dann sind da die Spuren, die nicht seine sind. Verschlossene Kartons, Etiketten,
-fertige Aufträge, ein Paar Schuhe, das sich bewegt. Jemand produziert hier. Ohne Gesicht. Notwendig.
+**3.** **Das ist keine Serie. Das ist ein Dienstag.**
+- **07:12** — Lager. Er lädt aus, er unterschreibt, er beschwert sich.
+- **09:40** — Sekretariat. Drei Mails, keine Antwort. Er hat sie geschrieben.
+- **11:05** — Call Center. „Ihr Anliegen ist uns sehr wichtig." Stimmt: er ist der Einzige, der antwortet.
+- **14:20** — Chemie. Die Oberfläche ist nicht gleichmäßig. Er macht es neu. Viertes Mal.
+- **16:45** — CEO. Besprechung mit den Abteilungen. Die Abteilungen sind er.
+- **19:30** — Reinigung. Jemand hat Flock auf der Werkbank gelassen. Dieser Jemand bin ich.
+- **23:58** — Unter der Tischlerbank brennt noch Licht.
 
-**6. Das Paradox** — Er will nur eines: die perfekte Oberfläche. Das Problem: perfekte menschliche Haut gibt
-es nicht. Sie hat Farbschwankungen, unterschiedliche Texturen, ungleiche Stärken. Was eine Übungshaut
-glaubwürdig macht, ist genau das, was der Häuter als Fehler bezeichnet. Farbiger Flock verteilt sich nie
-gleichmäßig: die Katalyse macht, was sie will, und daraus entsteht die Schwankung, die wie echte Haut wirkt.
-Die Poren sind nicht gedruckt: sie nehmen den Transfer auf und lassen überschüssige Farbe heraus. Farbe wird
-nicht aufgetragen, sie wird in Schichten abgelegt — deshalb lesen sich die Lasierungen, ohne dass jemand
-hindurchsieht. Für den Häuter eine persönliche Beleidigung. Für Tätowierer der Grund, warum es funktioniert.
+**4.** Fünf Bereiche, alle echt: die weißen Gusstitche, die Regale mit Anatomien, die Tischlerbank unter dem
+Fenster, die Station der Buchformen, die Stahlbank der Vorbereitung.
 
-**7. Die Serie** — Sechs Motoren, keine sechs Themen: Inspektion, Werkstattdesaster, das Maßstabsproblem,
-Arbeit, die nie gut genug ist, das menschliche Problem, das unverhältnismäßige Experiment. Dieselbe Form kann
-vier verschiedene Episoden ergeben, ohne sich zu wiederholen. Zwei Regeln. Erstens: jede Episode funktioniert
-ohne die vorherigen. Zweitens: **der Häuter wird seinen Perfektionismus nie los** — würde er es, wäre die
-Serie zu Ende.
+Unter der Tischlerbank gibt es einen Raum, der in keinem Plan steht: ein winziger Schreibtisch, eine
+Lampe, Notizbücher und ein Stapel Blätter, die er noch nicht freigegeben hat.
 
-**8. CTA** — **Die Häute sind hier. Ich prüfe sie.**
-→ [Practice skin](/de/tattoo) · [Der Werkstatt schreiben](https://t.me/the_foolish_butcher_bot)
+Und es gibt Spuren, die nicht seine sind. Verschlossene Kartons, Etiketten, fertige Aufträge. Jemand
+produziert hier. Ohne Gesicht. Notwendig.
+
+**5.** Er will nur eines: die perfekte Oberfläche.
+
+Das Problem: perfekte menschliche Haut gibt es nicht. Farbschwankungen, unterschiedliche Texturen,
+ungleiche Stärken: genau das macht eine Übungshaut glaubwürdig — und genau das nennt der Häuter einen
+Fehler.
+
+Farbiger Flock verteilt sich nie gleichmäßig — die Katalyse macht, was sie will, und daraus entstehen die
+Schwankungen, die wie echte Haut wirken. Die Poren sind nicht gedruckt: sie nehmen den Transfer auf und
+lassen überschüssige Farbe heraus. Farbe wird nicht aufgetragen, sie wird in Schichten abgelegt: deshalb
+lesen sich die Lasierungen, ohne dass jemand hindurchsieht.
+
+Für den Häuter eine persönliche Beleidigung. Für Tätowierer der Grund, warum es funktioniert.
+
+**6.** Der Häuter existiert für Leute, die alles selbst machen. Wenn du am selben Tag Kunden, Bestellungen,
+Versand und Social Media machst, wird dir seine Woche bekannt vorkommen.
+
+Ein Unterschied: die Häute, die seine Werkbank verlassen, prüft er Stück für Stück. Auf alles andere —
+Telefon, Kurier, Fristen — antwortet er wie du.
+
+**7.** **Die Häute sind hier. Ich prüfe sie.** → Practice skin (/de/tattoo) · Der Werkstatt schreiben
+
+---
+
+## Note per l'implementazione
+
+1. **Si rimuovono**: la sezione `serie` (motori, regole, «EP. 003»), la card dei sei reparti come elenco,
+   la sezione `scala` come blocco autonomo (assorbita in «chi è»).
+2. **Si aggiungono** in tutte e 5 le lingue: `giornata.*` (intro + 7 voci orarie) e `ponte.*`
+   (2 paragrafi).
+3. I testi si applicano come sono: nessuna riscrittura creativa, nessuna aggiunta di battute.
+4. Parità chiavi i18n obbligatoria; nessun claim nuovo (niente respira/suda/guarisce/trasparente/nano).
+5. Restano invariati hero, CTA e il paradosso nei contenuti.
