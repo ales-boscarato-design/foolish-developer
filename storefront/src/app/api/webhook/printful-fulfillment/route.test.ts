@@ -224,6 +224,30 @@ test('paese non italiano: arriva nella POST in maiuscolo, nessun default Italia'
   assert.equal(recipient.country_code, 'FR')
 })
 
+test('conflitto: collected e legacy convivono con indirizzi diversi, vince collected', async () => {
+  // Caso che discrimina l'ORDINE di precedenza sul punto che spedisce il pacco:
+  // il vecchio ordine (legacy) e i metadata portano l'indirizzo vecchio, il
+  // checkout nuovo ne porta un altro. Se la precedenza fosse invertita il pacco
+  // partirebbe per Torino.
+  await deliver({
+    collected: {
+      shipping_details: {
+        name: 'Anna Bianchi',
+        address: { line1: 'Via Nuova 99', city: 'Milano', postal_code: '20100', country: 'IT' },
+      },
+    },
+    legacy: {
+      address: { line1: 'Via Legacy 7', city: 'Bologna', postal_code: '40100', country: 'IT' },
+    },
+  })
+
+  const recipient = printfulRecipient()
+  assert.equal(recipient.address1, 'Via Nuova 99')
+  assert.equal(recipient.city, 'Milano')
+  assert.equal(recipient.zip, '20100')
+  assert.equal(recipient.name, 'Anna Bianchi')
+})
+
 test('ordine normale: entrambe le fonti concordano, spedisce all indirizzo giusto', async () => {
   await deliver({
     collected: {
