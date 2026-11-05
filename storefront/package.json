@@ -30,7 +30,9 @@
     "test:pwa-push-claim": "tsx --test src/lib/push-claim.test.ts",
     "test:laboratorio": "tsx --test src/lib/laboratorio.test.ts",
     "test:home-pellaio": "tsx --test src/lib/home-pellaio-slot.test.ts",
-    "test:sebo-retirement": "tsx --test src/lib/sebo-retirement.test.ts"
+    "test:sebo-retirement": "tsx --test src/lib/sebo-retirement.test.ts",
+    "test:printful-shipping": "tsx --test src/lib/printful-shipping.test.ts",
+    "test:printful-webhook": "tsx --test src/app/api/webhook/printful-fulfillment/route.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",

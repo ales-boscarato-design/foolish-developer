@@ -101,6 +101,8 @@ jobs:
           npm run test:laboratorio --silent
           npm run test:home-pellaio --silent
           npm run test:sebo-retirement --silent
+          npm run test:printful-shipping --silent
+          npm run test:printful-webhook --silent
       - name: Storefront — build
         working-directory: storefront
         run: npm run build
