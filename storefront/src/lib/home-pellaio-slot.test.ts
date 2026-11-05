@@ -12,20 +12,29 @@ import test from 'node:test'
  * sono il guardiano di quella decisione: falliscono se il vecchio personaggio rientra nel codice.
  *
  * La guardia non si limita alla forma letterale `<Image src="/pellaio/...">`: cerca i **nomi dei
- * file** su ogni file di `src/` (quindi anche un asset importato con alias, una regola CSS con
- * `url(...)`, un `<img>`), e sul teaser vieta ogni strada che possa rendere un'immagine.
+ * file** (`pellaio-01/02/03/-lab`, `frank-*`) su tutto `src/` piu' i punti da cui un percorso puo'
+ * arrivare nel bundle senza comparire in un componente (`messages/*.json`, `next.config.ts`), e
+ * sul teaser vieta ogni strada che possa rendere un'immagine.
+ *
+ * ATTENZIONE: quando arrivera' l'asset approvato del nuovo Pellaio, questo file va aggiornato
+ * insieme a `page.tsx` — il teaser vieta `src=`/`alt=` per costruzione. E' un tripwire voluto:
+ * l'immagine non deve poter rientrare senza che qualcuno lo dichiari.
  */
 
-/** I quattro file di `public/pellaio/`, per nome: l'import con alias non contiene la barra. */
+/** I quattro file di `public/pellaio/`, per nome (un import puo' essere `@/…` senza la barra). */
 const FORBIDDEN_TOKENS = ['/pellaio/', 'pellaio-01', 'pellaio-02', 'pellaio-03', 'pellaio-lab']
 /** Il vecchio personaggio ha anche una cartella gemella, mai referenziata: stessa regola. */
 const FORBIDDEN_FRANK = ['/frank/', 'frank-01', 'frank-02', 'frank-03', 'frank-lab']
 
 const homeSource = readFileSync(new URL('../app/[locale]/page.tsx', import.meta.url), 'utf8')
 
-/** Ogni file di `src/`, test esclusi: `.ts`, `.tsx`, `.css`, `.json`, quel che c'e'. */
-function productSources(): { rel: string; source: string }[] {
-  const root = new URL('../', import.meta.url)
+/**
+ * I file in cui un percorso del vecchio personaggio puo' nascondersi e finire comunque nel
+ * bundle: tutto `src/` (componenti, CSS, dati), i messaggi i18n e la config dei rewrite.
+ */
+function scannedSources(): { rel: string; source: string }[] {
+  const srcRoot = new URL('../', import.meta.url)
+  const appRoot = new URL('../../', import.meta.url)
   const out: { rel: string; source: string }[] = []
   const walk = (dir: URL, rel: string) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -39,7 +48,12 @@ function productSources(): { rel: string; source: string }[] {
       out.push({ rel: childRel, source: readFileSync(child, 'utf8') })
     }
   }
-  walk(root, '')
+  walk(srcRoot, 'src')
+  for (const name of readdirSync(new URL('messages/', appRoot))) {
+    if (!name.endsWith('.json')) continue
+    out.push({ rel: `messages/${name}`, source: readFileSync(new URL(`messages/${name}`, appRoot), 'utf8') })
+  }
+  out.push({ rel: 'next.config.ts', source: readFileSync(new URL('next.config.ts', appRoot), 'utf8') })
   return out
 }
 
@@ -70,12 +84,12 @@ test('la home non referenzia piu` le immagini del vecchio Pellaio', () => {
 
 test('nessun file del prodotto referenzia gli asset del vecchio personaggio', () => {
   const offenders: string[] = []
-  for (const { rel, source } of productSources()) {
+  for (const { rel, source } of scannedSources()) {
     for (const token of [...FORBIDDEN_TOKENS, ...FORBIDDEN_FRANK]) {
       if (source.includes(token)) offenders.push(`${rel} → ${token}`)
     }
   }
-  assert.deepEqual(offenders, [], 'nessun file di src/ deve servire le immagini del vecchio personaggio')
+  assert.deepEqual(offenders, [], 'nessun file servito deve referenziare le immagini del vecchio personaggio')
 })
 
 test('il teaser tiene lo slot predisposto e vuoto, senza immagine ne` alt inventati', () => {
@@ -89,8 +103,10 @@ test('il teaser tiene lo slot predisposto e vuoto, senza immagine ne` alt invent
   const cheats: [RegExp, string][] = [
     [/<Image\b/, 'un <Image> di next/image'],
     [/<img\b/, 'un <img>'],
+    [/<picture\b|<source\b|<video\b|<iframe\b/, 'un elemento che serve un\'immagine (picture/source/video/iframe)'],
     [/next\/image/, 'l\'import di next/image'],
-    [/\bsrc=/, 'un attributo src'],
+    [/\bsrc(?:[Ss]et)?=/, 'un attributo src o srcSet'],
+    [/\bposter=/, 'un attributo poster'],
     [/\balt=/, 'un attributo alt'],
     [/background-?image/i, 'un\'immagine di sfondo'],
     [/\burl\(/, 'una url() (CSS o style)'],
@@ -111,7 +127,7 @@ test('ImageSlot resta il div nascosto approvato (nessun figlio, nessuna immagine
 
   // Le guardie qui sopra sono ancorate al comportamento (direttive), non alla formattazione:
   // ma il componente non deve diventare un modo per rendere un'immagine.
-  for (const pattern of [/\bsrc=/, /\balt=/, /<Image\b/, /<img\b/, /\burl\(/, /background-?image/i]) {
+  for (const pattern of [/\bsrc(?:[Ss]et)?=/, /\bposter=/, /\balt=/, /<Image\b/, /<img\b/, /<picture\b|<source\b/, /\burl\(/, /background-?image/i]) {
     assert.ok(!pattern.test(body), `ImageSlot non deve contenere ${pattern}`)
   }
   // Nessun figlio: l'elemento restituito si chiude da se'.
