@@ -23,7 +23,9 @@
     "test:pwa-push-logout": "tsx --test src/lib/pwa-push-logout.test.ts",
     "test:sw": "tsx --test src/lib/pwa-service-worker.test.ts",
     "test:files-download": "tsx --test src/lib/customer-files.test.ts",
-    "test:cms-media-proxy": "tsx --test src/lib/cms-media-proxy.test.ts"  },
+    "test:cms-media-proxy": "tsx --test src/lib/cms-media-proxy.test.ts",
+    "test:pwa-push-endpoint": "tsx --test src/lib/push-endpoint-ownership.test.ts"
+  },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
     "@stripe/stripe-js": "^9.3.1",
