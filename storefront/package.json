@@ -19,7 +19,9 @@
     "test:affiliate-i18n": "tsx --test src/lib/affiliate-stats-i18n.test.ts",
     "test:landed-cost": "tsx --test src/lib/landed-cost.test.ts",
     "test:landed-cost-display": "tsx --test src/lib/landed-cost-display.test.ts",
-    "test:spedizione-quote": "tsx --test src/app/api/spedizione/quote/route.test.ts"
+    "test:spedizione-quote": "tsx --test src/app/api/spedizione/quote/route.test.ts",
+    "test:files-download": "tsx --test src/lib/customer-files.test.ts",
+    "test:cms-media-proxy": "tsx --test src/lib/cms-media-proxy.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
