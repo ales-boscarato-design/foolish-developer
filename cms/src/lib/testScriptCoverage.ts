@@ -107,7 +107,21 @@ export function shellTokens(script: string): string[] {
 }
 
 /** Flag che filtrano i test: renderli invisibili sarebbe come non eseguirli. */
-const FILTERING_FLAGS = ['--test-name-pattern', '--test-skip-pattern', '--test-only']
+const FILTERING_FLAGS = [
+  '--test-name-pattern',
+  '--test-skip-pattern',
+  '--test-only',
+  '-t', // alias breve di --test-name-pattern
+]
+
+/** Flag del runner che non cambiano quali file vengono eseguiti. */
+const HARMLESS_FLAGS = [
+  '--test-reporter',
+  '--test-reporter-destination',
+  '--test-concurrency',
+  '--test-timeout',
+  '--test-force-exit',
+]
 
 /** File selezionati dagli argomenti che lo script passa a `tsx --test`. */
 export function reachableTestFiles(script: string, onDisk: string[] = listTestFiles()): string[] {
@@ -121,7 +135,14 @@ export function reachableTestFiles(script: string, onDisk: string[] = listTestFi
     if (FILTERING_FLAGS.includes(flag)) {
       throw new Error(`lo script "test" usa ${flag}, che esclude test dall'esecuzione`)
     }
-    if (arg.startsWith('-')) continue
+    if (arg.startsWith('-')) {
+      // Fail-closed: un flag nuovo obbliga ad aggiornare questa guardia, invece di
+      // scivolare dentro e cambiare in silenzio cosa viene eseguito.
+      if (!HARMLESS_FLAGS.includes(flag)) {
+        throw new Error(`lo script "test" usa il flag non riconosciuto ${flag}`)
+      }
+      continue
+    }
 
     if (arg.includes('*') || arg.includes('?')) {
       const matcher = globToRegExp(arg.replace(/^\.\//, ''))

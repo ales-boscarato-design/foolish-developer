@@ -42,12 +42,25 @@ test('lo script test del CMS raggiunge ogni *.test.ts del pacchetto', () => {
 })
 
 test('lo script test non filtra i test per nome', () => {
-  for (const flag of ['--test-name-pattern', '--test-skip-pattern', '--test-only']) {
-    assert.throws(
-      () => reachableTestFiles(`tsx --test ${flag}=foo "src/**/*.test.ts"`),
-      new RegExp(flag),
-    )
+  for (const script of [
+    'tsx --test --test-name-pattern=foo "src/**/*.test.ts"',
+    'tsx --test --test-skip-pattern=foo "src/**/*.test.ts"',
+    'tsx --test --test-only "src/**/*.test.ts"',
+    'tsx --test -t foo "src/**/*.test.ts"',
+  ]) {
+    assert.throws(() => reachableTestFiles(script), /esclude test dall'esecuzione/)
   }
+})
+
+test('lo script test rifiuta flag non riconosciuti (fail-closed)', () => {
+  assert.throws(
+    () => reachableTestFiles('tsx --test --test-shard=1/2 "src/**/*.test.ts"'),
+    /non riconosciuto/,
+  )
+  // I flag innocui restano accettati.
+  assert.ok(
+    reachableTestFiles('tsx --test --test-concurrency=2 "src/**/*.test.ts"').length > 0,
+  )
 })
 
 test('shellTokens legge virgolette e spazi come la shell', () => {
