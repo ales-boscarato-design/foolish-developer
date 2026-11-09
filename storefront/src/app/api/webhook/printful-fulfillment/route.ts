@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
+import { resolvePrintfulShipping } from '@/lib/printful-shipping'
+
 export const dynamic = 'force-dynamic'
 
 interface ParsedItem {
@@ -151,37 +153,30 @@ export async function POST(req: NextRequest) {
 
       const customerName = meta.customer_name ?? session.customer_details?.name ?? ''
 
-      // Stesso pattern di cast già usato nel webhook Stripe principale per lo
-      // stesso identico campo (session.shipping_details non è ancora tipizzato
-      // nelle @types di questa versione della SDK Stripe).
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const shippingDetails = (session as any).shipping_details as {
-        address?: { line1?: string; line2?: string; city?: string; postal_code?: string; country?: string }
-      } | null
+      // L'indirizzo vive in `collected_information.shipping_details` (campo che
+      // l'API Stripe popola oggi); `shipping_details` di primo livello resta come
+      // fonte per le sessioni vecchie e i metadata come ultimo ripiego. Vedi
+      // `@/lib/printful-shipping`: leggere solo il campo legacy significava
+      // spedire sempre all'indirizzo dei metadata, cioe' a quello del PRIMO
+      // ordine quando il cliente rifa' un ordine con un indirizzo nuovo.
+      const { recipient: shipping, source: shippingSource, complete: shippingComplete } =
+        resolvePrintfulShipping({
+          session,
+          customerName,
+          // Solo le due chiavi che il resolver usa, lette qui dal vivo: il gate
+          // pre-deploy (`scripts/release-gate.mjs`, MONEY_PATH_READERS) attribuisce
+          // a questo file i metadata monetari che consuma, e non vede una lettura
+          // che avviene dentro un altro modulo.
+          metadata: { customer_address: meta.customer_address, customer_country: meta.customer_country },
+        })
 
-      const shipping = shippingDetails?.address
-        ? {
-            name: customerName,
-            address1: shippingDetails.address.line1 ?? '',
-            address2: shippingDetails.address.line2 ?? '',
-            city: shippingDetails.address.city ?? '',
-            postalCode: shippingDetails.address.postal_code ?? '',
-            country: shippingDetails.address.country ?? '',
-          }
-        : (() => {
-            // fallback: parsing dal metadata customer_address (address|city|postalCode),
-            // stesso fallback usato nel webhook principale per checkout senza
-            // raccolta nativa Stripe dell'indirizzo di spedizione.
-            const parts = (meta.customer_address ?? '').split('|')
-            return {
-              name: customerName,
-              address1: parts[0] ?? '',
-              address2: '',
-              city: parts[1] ?? '',
-              postalCode: parts[2] ?? '',
-              country: meta.customer_country ?? '',
-            }
-          })()
+      if (shippingSource !== 'metadata' && !shippingComplete) {
+        // Meglio un ordine che Printful rifiuta (e che si tratta a mano) di un
+        // pacco spedito a un indirizzo che il cliente non ha scritto.
+        console.warn(
+          `[printful-webhook] Indirizzo di spedizione incompleto da ${shippingSource} per ${orderRef}: verificare a mano prima della spedizione`,
+        )
+      }
 
       await createPrintfulOrder({ orderRef, items: merchItems, shipping })
       console.log(`[printful-webhook] Ordine Printful creato per ${orderRef} (${merchItems.length} righe)`)
