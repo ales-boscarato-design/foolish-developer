@@ -1,5 +1,6 @@
 import Stripe from 'stripe'
 import { countryToLocale } from '@/lib/resend'
+import { ORDER_REF_PREFIX } from '@/lib/order-ref'
 
 interface ParsedItem {
   sku: string
@@ -25,6 +26,32 @@ export interface OrderPersistenceResult {
   orderId?: string | number
 }
 
+/**
+ * Un pagamento che non dichiara `order_ref` e a cui nessun ordine corrisponde.
+ *
+ * PERCHE' ESISTE. Il codice vecchio, in questo caso, inventava
+ * `FOOLISH-${session.id}`: un numero di ~74 caratteri che rompeva il deep link
+ * Telegram (`order_` + numero oltre i 64 ammessi, parametro `start` scartato in
+ * silenzio) e che non era ne' un riferimento legittimo ne' una traccia
+ * dell'ordine. Adesso il caso si ferma: nessun ordine viene creato con un numero
+ * inventato, l'errore ha un codice riconoscibile nei log e il webhook risponde
+ * non-2xx (vedi `createOrderInCMSWithRetry`, che non ritenta un errore
+ * deterministico).
+ */
+export class OrderReferenceUnresolvedError extends Error {
+  readonly code = 'order_ref_unresolved' as const
+  readonly stripeSessionId: string
+
+  constructor(stripeSessionId: string) {
+    super(
+      `nessun order_ref nei metadata e nessun ordine per la sessione ${stripeSessionId}: `
+      + 'ordine non creato (il numero d\'ordine non si inventa)',
+    )
+    this.name = 'OrderReferenceUnresolvedError'
+    this.stripeSessionId = stripeSessionId
+  }
+}
+
 export interface OrderPersistenceRetryOptions {
   delays?: readonly number[]
   persist?: (session: Stripe.Checkout.Session) => Promise<OrderPersistenceResult>
@@ -42,7 +69,8 @@ export interface StripeOrderReconciliationResult {
     currency: string | null
   }>
   errors: Array<{
-    orderRef: string
+    /** `null` quando la sessione non dichiara alcun numero d'ordine: non se ne inventa uno. */
+    orderRef: string | null
     stripeSessionId: string
     error: string
   }>
@@ -106,8 +134,19 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-export function getStripeOrderRef(session: Stripe.Checkout.Session): string {
-  return session.metadata?.order_ref ?? `FOOLISH-${session.id}`
+/**
+ * Il riferimento leggibile scritto dal checkout nei metadata.
+ *
+ * `null` quando manca o e' vuoto: NON si sostituisce con l'id di sessione. L'id
+ * di sessione e' una chiave di risoluzione (`stripeSessionId` sull'ordine), non
+ * un numero d'ordine: diventandolo produceva un riferimento inventato, troppo
+ * lungo per il deep link Telegram e mai letto dal cliente.
+ */
+export function getSessionOrderRef(session: Stripe.Checkout.Session): string | null {
+  const raw = session.metadata?.order_ref
+  if (typeof raw !== 'string') return null
+  const trimmed = raw.trim()
+  return trimmed.length > 0 ? trimmed : null
 }
 
 export async function findCmsOrder(orderRef: string): Promise<CmsOrder | null> {
@@ -122,13 +161,61 @@ export async function findCmsOrder(orderRef: string): Promise<CmsOrder | null> {
   return data.docs?.[0] ?? null
 }
 
+/**
+ * L'ordine di una Checkout Session, per id di sessione.
+ *
+ * E' la chiave che regge quando il metadata `order_ref` manca: il campo e'
+ * unico sull'ordine, quindi webhook, retry Stripe e cron di riconciliazione
+ * convergono sempre sullo stesso documento.
+ */
+export async function findCmsOrderBySessionId(stripeSessionId: string): Promise<CmsOrder | null> {
+  const response = await fetch(
+    `${cmsUrl()}/api/orders?where[stripeSessionId][equals]=${encodeURIComponent(stripeSessionId)}&limit=1&depth=0`,
+    { headers: cmsHeaders(), cache: 'no-store' },
+  )
+  if (!response.ok) {
+    throw new Error(`CMS order lookup by session failed ${response.status}: ${await response.text()}`)
+  }
+  const data = await response.json() as CmsFindResponse
+  return data.docs?.[0] ?? null
+}
+
+/**
+ * Ordini del flusso vecchio: quando il metadata `order_ref` mancava, il numero
+ * salvato era `FOOLISH-<session.id>`. Si cercano per non lasciare irraggiungibile
+ * un ordine gia' creato e pagato — ma non si creano piu' numeri cosi'.
+ */
+async function findLegacySessionOrder(stripeSessionId: string): Promise<CmsOrder | null> {
+  return findCmsOrder(`${ORDER_REF_PREFIX}${stripeSessionId}`)
+}
+
+/**
+ * Risolve l'ordine gia' esistente per questa sessione, senza inventare nulla.
+ *
+ * Ordine dei tentativi: il riferimento dichiarato dal checkout, poi la chiave di
+ * sessione, poi il numero legacy `FOOLISH-<session.id>`. Ogni passaggio e' una
+ * LETTURA: nessuno di questi percorsi crea un documento.
+ */
+async function findExistingOrderForSession(session: Stripe.Checkout.Session): Promise<CmsOrder | null> {
+  const declared = getSessionOrderRef(session)
+  if (declared) return findCmsOrder(declared)
+  return (await findCmsOrderBySessionId(session.id)) ?? (await findLegacySessionOrder(session.id))
+}
+
 export async function createOrderInCMS(session: Stripe.Checkout.Session): Promise<OrderPersistenceResult> {
   const meta = session.metadata ?? {}
-  const orderRef = getStripeOrderRef(session)
-  const existing = await findCmsOrder(orderRef)
+  const declaredOrderRef = getSessionOrderRef(session)
+  const existing = await findExistingOrderForSession(session)
   if (existing) {
-    return { orderRef, created: false, orderId: existing.id }
+    return { orderRef: existing.orderNumber, created: false, orderId: existing.id }
   }
+  if (!declaredOrderRef) {
+    // Fail-closed: senza un riferimento leggibile non esiste un numero d'ordine
+    // legittimo. Crearne uno dalla sessione significherebbe scrivere un documento
+    // con un numero che il cliente non riconosce e che il bot non sa aprire.
+    throw new OrderReferenceUnresolvedError(session.id)
+  }
+  const orderRef = declaredOrderRef
 
   const customerName = meta.customer_name ?? session.customer_details?.name ?? ''
   const customerPhone = meta.customer_phone ?? ''
@@ -184,6 +271,10 @@ export async function createOrderInCMS(session: Stripe.Checkout.Session): Promis
     headers: cmsHeaders(),
     body: JSON.stringify({
       orderNumber: orderRef,
+      // Chiave di risoluzione del pagamento: il webhook trova l'ordine da qui
+      // quando il metadata `order_ref` manca, senza mai usare l'id di sessione
+      // come numero d'ordine. Unica a livello di schema.
+      stripeSessionId: session.id,
       source: 'storefront',
       customerEmail,
       customerName,
@@ -208,11 +299,14 @@ export async function createOrderInCMS(session: Stripe.Checkout.Session): Promis
   })
 
   if (!response.ok) {
-    // Webhook e cron possono correre insieme. Il vincolo unique su orderNumber
-    // decide il vincitore; se l'altro processo ha creato l'ordine, è successo.
-    const racedOrder = await findCmsOrder(orderRef).catch(() => null)
+    // Webhook e cron possono correre insieme. A decidere il vincitore sono le due
+    // chiavi uniche del CMS (`orderNumber` e `stripeSessionId`); se l'altro
+    // processo ha creato l'ordine, è successo. Si rilegge per entrambe, perché un
+    // retry dopo un timeout può arrivare quando il documento esiste gia'.
+    const racedOrder = (await findCmsOrder(orderRef).catch(() => null))
+      ?? (await findCmsOrderBySessionId(session.id).catch(() => null))
     if (racedOrder) {
-      return { orderRef, created: false, orderId: racedOrder.id }
+      return { orderRef: racedOrder.orderNumber, created: false, orderId: racedOrder.id }
     }
     throw new Error(`CMS create order failed ${response.status}: ${await response.text()}`)
   }
@@ -235,6 +329,10 @@ export async function createOrderInCMSWithRetry(
     try {
       return await persist(session)
     } catch (error) {
+      // Un pagamento senza riferimento risolvibile non migliora ritentando: e'
+      // deterministico (nessun metadata e nessun ordine per quella sessione).
+      // Ritentarlo produrrebbe solo 17 secondi di attesa e lo stesso esito.
+      if (error instanceof OrderReferenceUnresolvedError) throw error
       lastError = error instanceof Error ? error : new Error(String(error))
       console.error(`[stripe-order] CMS persistence attempt ${attempt + 1}/${delays.length} failed:`, lastError.message)
     }
@@ -274,18 +372,35 @@ export async function reconcilePaidStripeOrders(params: {
   }
 
   for (const sessionSummary of eligible) {
-    const orderRef = getStripeOrderRef(sessionSummary)
+    let orderRef: string | null = getSessionOrderRef(sessionSummary)
     try {
       // Retrieve the complete session before checking the order so attribution
       // can repair a missed ledger even when the order already exists.
       const session = await stripe.checkout.sessions.retrieve(sessionSummary.id)
-      if (await findCmsOrder(orderRef)) {
+      const declaredRef = getSessionOrderRef(session)
+      const existing = declaredRef
+        ? await findCmsOrder(declaredRef)
+        : (await findCmsOrderBySessionId(session.id)) ?? (await findLegacySessionOrder(session.id))
+
+      if (existing) {
+        // Il numero buono e' quello del documento CMS, non quello sperato nei metadata.
+        orderRef = existing.orderNumber
         result.alreadyPresent += 1
+      } else if (!declaredRef) {
+        // Fail-closed, come nel webhook: senza riferimento risolvibile non si crea
+        // nulla e lo si segnala. La riga finisce in `errors`, quindi nell'allarme.
+        result.errors.push({
+          orderRef: null,
+          stripeSessionId: session.id,
+          error: new OrderReferenceUnresolvedError(session.id).message,
+        })
+        continue
       } else {
         const persistence = await createOrderInCMSWithRetry(session)
+        orderRef = persistence.orderRef
         if (persistence.created) {
           result.recovered.push({
-            orderRef,
+            orderRef: persistence.orderRef,
             stripeSessionId: session.id,
             amount: (session.amount_total ?? 0) / 100,
             currency: session.currency?.toUpperCase() ?? null,

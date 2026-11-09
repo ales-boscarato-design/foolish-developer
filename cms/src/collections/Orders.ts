@@ -823,6 +823,28 @@ export const Orders: CollectionConfig = {
         },
       ],
     },
+    {
+      /**
+       * Chiave di risoluzione del pagamento, non un numero d'ordine.
+       *
+       * Il webhook dello storefront trova l'ordine da qui quando il metadata
+       * `order_ref` manca: prima inventava `FOOLISH-<session.id>`, un numero di
+       * ~74 caratteri che nessuno aveva scritto e che rompeva il deep link
+       * Telegram. Unica: due consegne dello stesso evento non possono creare due
+       * ordini. Nullable per costruzione (gli ordini del flusso vecchio non hanno
+       * il dato), e in PostgreSQL i NULL non collidono su un indice unico.
+       */
+      name: 'stripeSessionId',
+      type: 'text',
+      unique: true,
+      index: true,
+      maxLength: 255,
+      label: 'Stripe Checkout Session ID',
+      admin: {
+        readOnly: true,
+        description: 'Risoluzione del webhook per sessione. Non è un numero d\'ordine.',
+      },
+    },
 
     // ── Promo ─────────────────────────────────────────────────────
     // Snapshot del codice applicato al momento dell'ordine: sono valori storici, non

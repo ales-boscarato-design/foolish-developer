@@ -491,6 +491,10 @@ export interface Order {
   paymentMethod?: ('bonifico' | 'stripe' | 'manual') | null;
   stripePaymentIntentId?: string | null;
   /**
+   * Risoluzione del webhook per sessione. Non è un numero d'ordine.
+   */
+  stripeSessionId?: string | null;
+  /**
    * Salvato in uppercase, come su PromoCodes
    */
   promoCode?: string | null;
@@ -1181,6 +1185,7 @@ export interface OrdersSelect<T extends boolean = true> {
   paymentStatus?: T;
   paymentMethod?: T;
   stripePaymentIntentId?: T;
+  stripeSessionId?: T;
   promoCode?: T;
   promoType?: T;
   promoDiscountCents?: T;

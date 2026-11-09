@@ -7,6 +7,7 @@ import {
   createOrderInCMS,
   createOrderInCMSWithRetry,
   reconcilePaidStripeOrders,
+  OrderReferenceUnresolvedError,
   PROMO_TYPES,
   type OrderPersistenceResult,
 } from './stripe-orders'
@@ -389,4 +390,196 @@ test('the storefront promo type list matches the canonical CMS list', () => {
   const cmsTypes = [...match[1].matchAll(/'([^']+)'/g)].map((entry) => entry[1])
 
   assert.deepEqual([...PROMO_TYPES].sort(), [...cmsTypes].sort())
+})
+
+// ─── Risoluzione per id di sessione: il numero d'ordine non si inventa ────────
+// Il codice vecchio, quando il metadata `order_ref` mancava, usava
+// `FOOLISH-${session.id}`: un numero di ~74 caratteri scritto dal webhook, che
+// nessuno aveva emesso e che rompeva il deep link Telegram. Qui il caso si
+// risolve per le chiavi che esistono davvero (`stripeSessionId` sull'ordine, poi
+// il numero legacy) oppure si ferma con un errore esplicito.
+
+/** Quale filtro porta la richiesta: la chiave di sessione o il numero d'ordine. */
+function cmsLookup(input: unknown): 'session' | 'order' | 'other' {
+  const url = new URL(String(input))
+  if (url.searchParams.get('where[stripeSessionId][equals]')) return 'session'
+  if (url.searchParams.get('where[orderNumber][equals]')) return 'order'
+  return 'other'
+}
+
+test('order_ref assente ma sessione registrata: l ordine si risolve, nessun numero inventato', async () => {
+  const originalFetch = globalThis.fetch
+  let postCount = 0
+  const lookups: string[] = []
+  const resolvedOrderNumber = 'FOOLISH-0123456789abcdef0123456789abcdef'
+  globalThis.fetch = async (input, init) => {
+    if (init?.method === 'POST') {
+      postCount += 1
+      return jsonResponse({ id: 900, orderNumber: 'NON-DOVUTO' }, 201)
+    }
+    const kind = cmsLookup(input)
+    lookups.push(kind)
+    return kind === 'session'
+      ? jsonResponse({ docs: [{ id: 77, orderNumber: resolvedOrderNumber }] })
+      : jsonResponse({ docs: [] })
+  }
+
+  try {
+    const session = checkoutSession({ id: 'cs_live_no_order_ref', metadata: { items_json: '[]' } })
+    const result = await createOrderInCMSWithRetry(session, { delays: [0] })
+
+    assert.equal(result.created, false, 'l ordine esiste già: non se ne crea un secondo')
+    assert.equal(result.orderId, 77)
+    assert.equal(result.orderRef, resolvedOrderNumber)
+    assert.notEqual(result.orderRef, `FOOLISH-${session.id}`, 'id di sessione usato come numero d’ordine')
+    assert.equal(postCount, 0)
+    assert.deepEqual(lookups, ['session'], 'con la sessione registrata basta una lettura')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('senza order_ref e senza ordine per la sessione: errore esplicito, nessuna scrittura, nessun retry', async () => {
+  const originalFetch = globalThis.fetch
+  let postCount = 0
+  const lookups: string[] = []
+  globalThis.fetch = async (input, init) => {
+    if (init?.method === 'POST') {
+      postCount += 1
+      return jsonResponse({ id: 901, orderNumber: 'FOOLISH-ffffffffffffffffffffffffffffffff' }, 201)
+    }
+    lookups.push(cmsLookup(input))
+    return jsonResponse({ docs: [] })
+  }
+
+  try {
+    const session = checkoutSession({ id: 'cs_live_unresolved', metadata: { items_json: '[]' } })
+
+    await assert.rejects(
+      createOrderInCMSWithRetry(session, { delays: [0, 0, 0, 0] }),
+      (error: unknown) => {
+        assert.ok(error instanceof OrderReferenceUnresolvedError, 'il tipo di errore deve essere riconoscibile')
+        assert.equal(error.code, 'order_ref_unresolved')
+        assert.equal(error.stripeSessionId, 'cs_live_unresolved')
+        return true
+      },
+    )
+
+    assert.equal(postCount, 0, 'nessun ordine creato con un numero inventato')
+    // Un tentativo = due letture (sessione, poi numero legacy). Quattro letture
+    // significherebbero due tentativi: l'errore deterministico non va ritentato.
+    assert.deepEqual(lookups, ['session', 'order'])
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('un ordine legacy con numero FOOLISH-cs_live_... resta raggiungibile', async () => {
+  const originalFetch = globalThis.fetch
+  let postCount = 0
+  const legacyOrderNumber = 'FOOLISH-cs_live_legacy_order'
+  const requested: string[] = []
+  globalThis.fetch = async (input, init) => {
+    if (init?.method === 'POST') {
+      postCount += 1
+      return jsonResponse({ id: 902, orderNumber: 'NON-DOVUTO' }, 201)
+    }
+    const url = new URL(String(input))
+    requested.push(url.searchParams.get('where[orderNumber][equals]') ?? 'session')
+    if (url.searchParams.get('where[orderNumber][equals]') === legacyOrderNumber) {
+      return jsonResponse({ docs: [{ id: 88, orderNumber: legacyOrderNumber }] })
+    }
+    return jsonResponse({ docs: [] })
+  }
+
+  try {
+    const session = checkoutSession({ id: 'cs_live_legacy_order', metadata: { items_json: '[]' } })
+    const result = await createOrderInCMSWithRetry(session, { delays: [0] })
+
+    assert.equal(result.created, false)
+    assert.equal(result.orderId, 88)
+    assert.equal(result.orderRef, legacyOrderNumber)
+    assert.equal(postCount, 0)
+    assert.deepEqual(requested, ['session', legacyOrderNumber], 'la ricerca legacy è una lettura, non una creazione')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('l ordine creato registra la sessione Stripe come chiave di risoluzione', async () => {
+  const body = await captureOrderBody(checkoutSession())
+  assert.equal(body.orderNumber, 'FOOLISH-ORDER-TEST')
+  assert.equal(body.stripeSessionId, 'cs_live_order_test')
+})
+
+test('riconciliazione: risolve per sessione e attribuisce il numero dell ordine, non un id inventato', async () => {
+  const originalFetch = globalThis.fetch
+  const resolvedOrderNumber = 'FOOLISH-0123456789abcdef0123456789abcdef'
+  let attributionOrderRef: string | null = null
+  globalThis.fetch = async (input) => (
+    cmsLookup(input) === 'session'
+      ? jsonResponse({ docs: [{ id: 909, orderNumber: resolvedOrderNumber }] })
+      : jsonResponse({ docs: [] })
+  )
+
+  const paid = checkoutSession({ id: 'cs_live_reconcile_session', metadata: { items_json: '[]' } })
+  const stripe = {
+    checkout: {
+      sessions: {
+        list: () => ({ autoPagingToArray: async () => [paid] }),
+        retrieve: async () => paid,
+      },
+    },
+  } as unknown as Stripe
+
+  try {
+    const result = await reconcilePaidStripeOrders({
+      stripe,
+      lookbackDays: 30,
+      affiliateAttribution: async (_session, orderNumber) => { attributionOrderRef = orderNumber },
+    })
+
+    assert.equal(result.alreadyPresent, 1)
+    assert.equal(result.recovered.length, 0)
+    assert.equal(result.errors.length, 0)
+    assert.equal(attributionOrderRef, resolvedOrderNumber)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('riconciliazione: una sessione senza riferimento finisce fra gli errori, con orderRef nullo', async () => {
+  const originalFetch = globalThis.fetch
+  let postCount = 0
+  globalThis.fetch = async (_input, init) => {
+    if (init?.method === 'POST') postCount += 1
+    return jsonResponse({ docs: [] })
+  }
+
+  const paid = checkoutSession({ id: 'cs_live_reconcile_unresolved', metadata: { items_json: '[]' } })
+  const stripe = {
+    checkout: {
+      sessions: {
+        list: () => ({ autoPagingToArray: async () => [paid] }),
+        retrieve: async () => paid,
+      },
+    },
+  } as unknown as Stripe
+
+  try {
+    const result = await reconcilePaidStripeOrders({ stripe, lookbackDays: 30 })
+
+    assert.equal(result.recovered.length, 0)
+    assert.equal(result.alreadyPresent, 0)
+    assert.equal(result.errors.length, 1)
+    assert.equal(result.errors[0]?.orderRef, null)
+    assert.equal(result.errors[0]?.stripeSessionId, 'cs_live_reconcile_unresolved')
+    assert.match(result.errors[0]?.error ?? '', /order_ref/)
+    assert.equal(postCount, 0)
+
+    const counted = result.alreadyPresent + result.recovered.length + result.errors.length
+    assert.equal(counted, result.eligiblePaidSessions, 'ogni sessione idonea deve avere un esito')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
 })
