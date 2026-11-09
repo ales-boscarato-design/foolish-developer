@@ -577,8 +577,12 @@ test('riconciliazione: una sessione senza riferimento finisce fra gli errori, co
     assert.match(result.errors[0]?.error ?? '', /order_ref/)
     assert.equal(postCount, 0)
 
+    // In questo scenario (nessuna attribuzione affiliate) ogni sessione idonea ha
+    // esattamente un esito. Non e' un invariante globale: se `affiliateAttribution`
+    // fallisce, la stessa sessione resta in `alreadyPresent` e finisce anche in
+    // `errors` — comportamento preesistente, non introdotto qui.
     const counted = result.alreadyPresent + result.recovered.length + result.errors.length
-    assert.equal(counted, result.eligiblePaidSessions, 'ogni sessione idonea deve avere un esito')
+    assert.equal(counted, result.eligiblePaidSessions, 'in questo scenario ogni sessione idonea ha un esito')
   } finally {
     globalThis.fetch = originalFetch
   }
