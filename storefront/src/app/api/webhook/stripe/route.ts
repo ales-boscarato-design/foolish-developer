@@ -4,6 +4,7 @@ import { upsertSubscriber, markCartSessionRecovered, logEmail, upsertCmsCustomer
 import { createCustomerOffer } from '@/lib/account-db'
 import { sendWelcomeEmail, countryToLocale } from '@/lib/resend'
 import { notifyNanobot } from '@/lib/nanobot'
+import { resolvePrintfulShipping } from '@/lib/printful-shipping'
 import { createOrderInCMSWithRetry } from '@/lib/stripe-orders'
 import {
   AffiliateAttributionError,
@@ -310,12 +311,19 @@ export async function POST(req: NextRequest) {
     try {
       const customerEmail = (session.customer_email ?? session.customer_details?.email ?? '').toLowerCase().trim()
       const customerName = session.metadata?.customer_name ?? session.customer_details?.name ?? null
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const legacyShippingCountry = (session as any).shipping_details?.address?.country as string | undefined
-      const country = session.collected_information?.shipping_details?.address?.country
-        ?? legacyShippingCountry
-        ?? session.metadata?.customer_country
-        ?? null
+      // Stessa precedenza del resto del flusso, letta in un posto solo
+      // (`@/lib/printful-shipping`): `shipping_details` di primo livello non e'
+      // piu' popolato dall'API Stripe e ogni copia scritta a mano di questa
+      // catena e' un punto in cui le copie divergono domani.
+      const { recipient } = resolvePrintfulShipping({
+        session,
+        customerName,
+        metadata: {
+          customer_address: session.metadata?.customer_address,
+          customer_country: session.metadata?.customer_country,
+        },
+      })
+      const country = recipient.country || null
       if (customerEmail) {
         await upsertCmsCustomer({ email: customerEmail, name: customerName, country })
       }
