@@ -409,8 +409,16 @@ export async function POST(req: NextRequest) {
       try {
         const customerName = session.metadata?.customer_name ?? session.customer_details?.name ?? null
         const amountEur = (session.amount_total ?? 0) / 100
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const shippingCountry = (session as any).shipping_details?.address?.country
+        // Stessa precedenza del resto del flusso: il campo `shipping_details` di
+        // primo livello non e' piu' popolato dall'API Stripe, quindi senza
+        // `collected_information` il paese cadeva sempre sui metadata. Il campo
+        // legacy non esiste piu' nei tipi della SDK, quindi lo si dichiara qui
+        // invece di castare la sessione a `any`.
+        const legacyShipping = (session as {
+          shipping_details?: { address?: { country?: string | null } | null } | null
+        }).shipping_details
+        const shippingCountry = session.collected_information?.shipping_details?.address?.country
+          ?? legacyShipping?.address?.country
           ?? session.metadata?.customer_country
           ?? null
         const locale = countryToLocale(shippingCountry)

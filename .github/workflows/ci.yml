@@ -91,6 +91,7 @@ jobs:
           npm run test:landed-cost-display --silent
           npm run test:spedizione-quote --silent
           npm run test:subscription --silent
+          npm run test:subscription-zone --silent
           npm run test:affiliate-referral --silent
           npm run test:affiliate-route --silent
           npm run test:affiliate-i18n --silent
@@ -103,6 +104,8 @@ jobs:
           npm run test:laboratorio --silent
           npm run test:home-pellaio --silent
           npm run test:sebo-retirement --silent
+          npm run test:printful-shipping --silent
+          npm run test:printful-webhook --silent
       - name: Storefront — build
         working-directory: storefront
         run: npm run build
