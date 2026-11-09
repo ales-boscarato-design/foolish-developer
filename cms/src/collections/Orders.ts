@@ -2,6 +2,11 @@ import { APIError } from 'payload'
 import type { CollectionConfig, CollectionAfterChangeHook, CollectionBeforeChangeHook, PayloadRequest } from 'payload'
 import crypto from 'crypto'
 import type { Order } from '../payload-types'
+import { PROMO_TYPES, PROMO_TYPE_LABELS, isPromoType } from './promoTypes'
+import { formatOrderLineTotal } from '../lib/order-line-amount'
+
+/** Formato di un codice promo: stessa regex di `PromoCodes.code`, normalizzato in uppercase. */
+const PROMO_CODE_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
 
 function hasStorefrontSecret(req: PayloadRequest): boolean {
   const secret = req.headers?.get?.('x-storefront-secret') ?? (req.headers as unknown as Record<string, string>)?.['x-storefront-secret']
@@ -78,6 +83,59 @@ function parseAlfredOrderUpdate(body: unknown): AlfredOrderUpdate {
   }
 
   return update
+}
+
+/**
+ * `promoCode` è uno snapshot: il filtro e la ricerca della lista Orders usano la forma
+ * canonica uppercase (come `PromoCodes.code`), quindi una scrittura manuale in minuscolo
+ * diventerebbe introvabile. Qui si normalizza; stringa vuota => nessun codice.
+ */
+const normalizePromoCodeField: CollectionBeforeChangeHook = ({ data }) => {
+  if (!data || typeof data !== 'object' || !('promoCode' in data)) return data
+
+  const raw = (data as Record<string, unknown>).promoCode
+  if (raw === null || raw === undefined) return { ...data, promoCode: null }
+  if (typeof raw !== 'string') throw new APIError('promoCode must be a string', 400)
+
+  const value = raw.trim().toUpperCase()
+  return { ...data, promoCode: value || null }
+}
+
+/**
+ * `customerTelegramId` è testo libero: `''`, spazi o un valore non numerico rompono in silenzio il
+ * match `where[customerTelegramId][equals]` su cui vive la scheda caso, che resta muta senza dire
+ * perché. Qui si normalizza (trim, vuoto → null) e si rifiuta ciò che non è una chat id.
+ */
+const normalizeCustomerTelegramId: CollectionBeforeChangeHook = ({ data }) => {
+  if (!data || typeof data !== 'object' || !('customerTelegramId' in data)) return data
+
+  const raw = data.customerTelegramId
+  if (raw === null || raw === undefined) return { ...data, customerTelegramId: null }
+  if (typeof raw !== 'string') throw new APIError('customerTelegramId must be a string', 400)
+
+  const value = raw.trim()
+  if (!value) return { ...data, customerTelegramId: null }
+  if (!/^\d{3,20}$/.test(value)) {
+    throw new APIError('customerTelegramId must contain digits only', 400)
+  }
+  return { ...data, customerTelegramId: value }
+}
+
+/**
+ * Un ordine appartiene a una chat sola. La macchina (secret Alfred) non può portarne via uno già
+ * collegato a un altro cliente: quello lo decide una persona dal CMS. Svuotare il campo resta
+ * possibile con lo stesso secret, perché serve alla manutenzione (`unlink_customer`).
+ */
+const refuseTelegramLinkTakeover: CollectionBeforeChangeHook = ({ data, originalDoc, req }) => {
+  if (!data || typeof data !== 'object' || !('customerTelegramId' in data)) return data
+
+  const previous = typeof originalDoc?.customerTelegramId === 'string'
+    ? originalDoc.customerTelegramId.trim()
+    : ''
+  const next = typeof data.customerTelegramId === 'string' ? data.customerTelegramId.trim() : ''
+
+  if (!previous || !next || previous === next || req?.user) return data
+  throw new APIError('order already linked to another Telegram chat', 409)
 }
 
 const syncCustomer: CollectionAfterChangeHook = async ({ doc, operation, req }) => {
@@ -244,7 +302,7 @@ const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation
         ${i.name}${i.variantLabel ? ` <span style="color:#6b5f4a">— ${i.variantLabel}</span>` : ''}
       </td>
       <td style="padding:10px 0;border-bottom:1px solid #1e1a14;text-align:center;color:#6b5f4a;font-size:14px">×${i.quantity}</td>
-      <td style="padding:10px 0;border-bottom:1px solid #1e1a14;text-align:right;color:#c9c0b0;font-size:14px">${(i.unitPrice * i.quantity).toFixed(2)}€</td>
+      <td style="padding:10px 0;border-bottom:1px solid #1e1a14;text-align:right;color:#c9c0b0;font-size:14px">${formatOrderLineTotal(i as unknown as Record<string, unknown>)}€</td>
     </tr>`).join('')
 
   const shippingRow = doc.shippingCost > 0
@@ -438,7 +496,7 @@ const notifyAlessandroByEmail: CollectionAfterChangeHook = async ({ doc, operati
     Array.isArray(doc.lineItems) ? doc.lineItems : []
 
   const itemsText = items
-    .map((i) => `• ${i.quantity}× ${i.name} ${i.variantLabel} — ${(i.unitPrice * i.quantity).toFixed(2)}€`)
+    .map((i) => `• ${i.quantity}× ${i.name} ${i.variantLabel} — ${formatOrderLineTotal(i as unknown as Record<string, unknown>)}€`)
     .join('\n')
 
   const addr = doc.shippingAddress as Record<string, string> | undefined
@@ -497,7 +555,7 @@ const notifyAlessandroByEmail: CollectionAfterChangeHook = async ({ doc, operati
 
 const TRACKING_STRINGS: Record<string, {
   subject: string; heading: string; body: string;
-  trackLabel: string; carrierLabel: string; footer: string;
+  trackLabel: string; carrierLabel: string; telegramLabel: string; footer: string;
 }> = {
   it: {
     subject: 'Il tuo ordine è in viaggio',
@@ -505,6 +563,7 @@ const TRACKING_STRINGS: Record<string, {
     body: 'Il tuo ordine è stato spedito. Puoi tracciarlo usando le informazioni qui sotto.',
     trackLabel: 'Traccia il tuo ordine →',
     carrierLabel: 'Corriere',
+    telegramLabel: 'Aggiornamenti su Telegram',
     footer: 'The Foolish Butcher · Chieri (TO), Italia · Made in Italy',
   },
   en: {
@@ -513,6 +572,7 @@ const TRACKING_STRINGS: Record<string, {
     body: 'Your order has been shipped. You can track it using the information below.',
     trackLabel: 'Track your order →',
     carrierLabel: 'Carrier',
+    telegramLabel: 'Updates on Telegram',
     footer: 'The Foolish Butcher · Chieri (TO), Italy · Made in Italy',
   },
   de: {
@@ -521,6 +581,7 @@ const TRACKING_STRINGS: Record<string, {
     body: 'Ihre Bestellung wurde versendet. Sie können sie mit den folgenden Informationen verfolgen.',
     trackLabel: 'Bestellung verfolgen →',
     carrierLabel: 'Transportunternehmen',
+    telegramLabel: 'Updates auf Telegram',
     footer: 'The Foolish Butcher · Chieri (TO), Italien · Made in Italy',
   },
   fr: {
@@ -529,6 +590,7 @@ const TRACKING_STRINGS: Record<string, {
     body: 'Votre commande a été expédiée. Vous pouvez la suivre avec les informations ci-dessous.',
     trackLabel: 'Suivre ma commande →',
     carrierLabel: 'Transporteur',
+    telegramLabel: 'Mises à jour sur Telegram',
     footer: 'The Foolish Butcher · Chieri (TO), Italie · Made in Italy',
   },
   es: {
@@ -537,6 +599,7 @@ const TRACKING_STRINGS: Record<string, {
     body: 'Tu pedido ha sido enviado. Puedes rastrearlo con la información a continuación.',
     trackLabel: 'Rastrear mi pedido →',
     carrierLabel: 'Transportista',
+    telegramLabel: 'Novedades en Telegram',
     footer: 'The Foolish Butcher · Chieri (TO), Italia · Made in Italy',
   },
 }
@@ -556,6 +619,9 @@ const sendTrackingEmail: CollectionAfterChangeHook = async ({ doc, previousDoc, 
 
   const storeFrontUrl = process.env.STOREFRONT_URL ?? 'https://thefoolishbutcher.com'
   const trackingUrl = `${storeFrontUrl}/ordine/${doc.pageToken}`
+  const telegramUrl = doc.orderNumber
+    ? `https://t.me/the_foolish_butcher_bot?start=order_${doc.orderNumber}`
+    : 'https://t.me/the_foolish_butcher_bot'
 
   const html = `
     <div style="font-family:monospace;max-width:480px;margin:0 auto;background:#0d0d0d;color:#fff;padding:32px;">
@@ -567,6 +633,8 @@ const sendTrackingEmail: CollectionAfterChangeHook = async ({ doc, previousDoc, 
         <div style="color:#fff;font-size:14px;font-family:monospace;">${doc.trackingCarrier ?? ''} · ${doc.trackingNumber}</div>
       </div>
       <a href="${trackingUrl}" style="display:inline-block;background:#c9a96e;color:#000;padding:12px 24px;text-decoration:none;font-weight:bold;font-size:13px;border-radius:4px;">${t.trackLabel}</a>
+      <p style="color:#aaa;margin:24px 0 10px;">${t.telegramLabel}</p>
+      <a href="${telegramUrl}" style="display:inline-block;background:#229ED9;color:#fff;padding:12px 24px;text-decoration:none;font-weight:bold;font-size:13px;border-radius:4px;">${t.telegramLabel} →</a>
       <p style="color:#444;font-size:11px;margin-top:32px;">${t.footer}</p>
     </div>
   `
@@ -627,13 +695,13 @@ export const Orders: CollectionConfig = {
     },
   ],
   hooks: {
-    beforeChange: [generatePageToken],
+    beforeChange: [normalizePromoCodeField, normalizeCustomerTelegramId, refuseTelegramLinkTakeover, generatePageToken],
     afterChange: [sendOrderConfirmation, notifyAlfred, notifyAlessandroByEmail, syncCustomer, sendTrackingEmail],
   },
   admin: {
     useAsTitle: 'orderNumber',
-    defaultColumns: ['orderNumber', 'customerEmail', 'pipelineState', 'total', 'createdAt'],
-    listSearchableFields: ['orderNumber', 'customerEmail', 'customerName'],
+    defaultColumns: ['orderNumber', 'customerEmail', 'pipelineState', 'promoCode', 'total', 'createdAt'],
+    listSearchableFields: ['orderNumber', 'customerEmail', 'customerName', 'promoCode'],
     group: 'Ordini',
     preview: (doc) => {
       const token = (doc as Record<string, unknown>).pageToken as string | undefined
@@ -752,6 +820,46 @@ export const Orders: CollectionConfig = {
           unique: true,
           label: 'Stripe PaymentIntent ID',
           admin: { width: '34%', readOnly: true },
+        },
+      ],
+    },
+
+    // ── Promo ─────────────────────────────────────────────────────
+    // Snapshot del codice applicato al momento dell'ordine: sono valori storici, non
+    // un riferimento vivo a `promo-codes` (il codice puo' essere disattivato o cambiare).
+    // Tutti e tre nullable: gli ordini senza promo restano validi.
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'promoCode',
+          type: 'text',
+          maxLength: 64,
+          index: true,
+          label: 'Codice promo',
+          admin: { width: '40%', description: 'Salvato in uppercase, come su PromoCodes' },
+          validate: (value: unknown) =>
+            value == null
+            || (typeof value === 'string' && PROMO_CODE_RE.test(value))
+            || 'Il codice promo deve contenere solo lettere, numeri, _ o - (1–64 caratteri)',
+        },
+        {
+          name: 'promoType',
+          type: 'select',
+          label: 'Tipo promo',
+          admin: { width: '30%' },
+          options: PROMO_TYPES.map((value) => ({ label: PROMO_TYPE_LABELS[value], value })),
+          validate: (value: unknown) => value == null || isPromoType(value) || 'Tipo promo non supportato',
+        },
+        {
+          name: 'promoDiscountCents',
+          type: 'number',
+          label: 'Sconto promo (centesimi)',
+          admin: { width: '30%' },
+          validate: (value: unknown) =>
+            value == null
+            || (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0)
+            || 'Lo sconto promo deve essere un intero positivo in centesimi',
         },
       ],
     },

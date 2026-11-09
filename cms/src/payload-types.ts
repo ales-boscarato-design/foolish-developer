@@ -414,6 +414,10 @@ export interface Product {
 export interface Media {
   id: number;
   alt?: string | null;
+  /**
+   * Privato = i byte sono scaricabili solo dal cliente proprietario attraverso lo storefront. Un file collegato a un record "File cliente" con Cliente valorizzato viene marcato privato automaticamente.
+   */
+  visibility: 'public' | 'private';
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -486,6 +490,12 @@ export interface Order {
   paymentStatus?: ('pending' | 'paid' | 'failed' | 'refunded' | 'cancelled') | null;
   paymentMethod?: ('bonifico' | 'stripe' | 'manual') | null;
   stripePaymentIntentId?: string | null;
+  /**
+   * Salvato in uppercase, come su PromoCodes
+   */
+  promoCode?: string | null;
+  promoType?: ('free_shipping' | 'percent_pro' | 'percent' | 'amount' | 'percent_tiered') | null;
+  promoDiscountCents?: number | null;
   lineItems:
     | {
         [k: string]: unknown;
@@ -611,7 +621,7 @@ export interface ProMember {
 export interface PromoCode {
   id: number;
   code: string;
-  type: 'free_shipping' | 'percent_pro' | 'percent' | 'amount';
+  type: 'free_shipping' | 'percent_pro' | 'percent' | 'amount' | 'percent_tiered';
   /**
    * Es. 20 per il 20% di sconto
    */
@@ -620,12 +630,18 @@ export interface PromoCode {
    * Es. 15 per €15 di sconto
    */
   discountAmount?: number | null;
+  minSubtotalCents?: number | null;
+  tier2SubtotalCents?: number | null;
+  tier2DiscountPercent?: number | null;
   active?: boolean | null;
   /**
    * Lascia vuoto per codice senza scadenza
    */
   expiresAt?: string | null;
   proMember?: (number | null) | ProMember;
+  /**
+   * Campo storico: nessun codice lo incrementa, quindi il valore può non riflettere la realtà. Per l’utilizzo reale conta gli ordini in Ordini con questo codice nel campo "Codice promo".
+   */
   usageCount?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -644,6 +660,10 @@ export interface CustomerFile {
    * Lascia vuoto per rendere il file visibile a tutti i clienti registrati.
    */
   customer?: (number | null) | Customer;
+  /**
+   * Email normalizzata del proprietario, mantenuta per verificare l’accesso senza popolare la relazione cliente.
+   */
+  customerEmail?: string | null;
   fileType: 'guide' | 'video' | 'resource';
   active?: boolean | null;
   updatedAt: string;
@@ -1161,6 +1181,9 @@ export interface OrdersSelect<T extends boolean = true> {
   paymentStatus?: T;
   paymentMethod?: T;
   stripePaymentIntentId?: T;
+  promoCode?: T;
+  promoType?: T;
+  promoDiscountCents?: T;
   lineItems?: T;
   trackingNumber?: T;
   trackingCarrier?: T;
@@ -1243,6 +1266,7 @@ export interface CustomersSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
+  visibility?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -1319,6 +1343,9 @@ export interface PromoCodesSelect<T extends boolean = true> {
   type?: T;
   discountPercent?: T;
   discountAmount?: T;
+  minSubtotalCents?: T;
+  tier2SubtotalCents?: T;
+  tier2DiscountPercent?: T;
   active?: T;
   expiresAt?: T;
   proMember?: T;
@@ -1334,6 +1361,7 @@ export interface CustomerFilesSelect<T extends boolean = true> {
   title?: T;
   file?: T;
   customer?: T;
+  customerEmail?: T;
   fileType?: T;
   active?: T;
   updatedAt?: T;

@@ -7,6 +7,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
+import { spawnSync } from 'node:child_process'
 
 import {
   repoRoot,
@@ -14,20 +15,132 @@ import {
   MONEY_PATH_READERS,
   MONEY_PATH_WRITER,
   CHECKOUT_ROUTE,
+  REORDER_ROUTE,
+  MONEY_METADATA_WRITER_ROUTES,
+  CHECKOUT_SESSION_CREATOR_EXCLUSIONS,
   SUBSCRIPTION_METADATA_KEYS,
+  GENERATED_TYPES_REL,
   extractMigrationNames,
   extractRegisteredMigrations,
   extractCheckoutBaseMetadataKeys,
   extractCheckoutRouteMetadataKeys,
   extractSessionMetadataReadKeys,
+  findCheckoutSessionCreators,
+  compareMoneyMetadataWriters,
   leafKeyPaths,
   scanForSecrets,
   scanWorkflowForDeploy,
   compareMigrationRegistration,
   compareLeafKeySets,
   compareMetadataContract,
+  evaluateGeneratedTypes,
+  isSchemaFile,
   read,
 } from './release-gate.mjs'
+
+// ------------------------------------------------- tipi CMS rigenerati
+
+test('tipi rigenerati identici: nessun problema', () => {
+  assert.equal(evaluateGeneratedTypes({ generated: 'done', before: 'x', after: 'x', changed: [] }), true)
+})
+
+test('un cambio che sposta i tipi generati viene segnalato', () => {
+  // Una `option` in piu` su un select cambia l'unione dei literal: e` il caso che un
+  // elenco di chiavi scritto a mano non vede (successo davvero in review).
+  const detail = evaluateGeneratedTypes({ generated: 'done', before: 'x', after: 'y', changed: [] })
+  assert.equal(typeof detail, 'string')
+  assert.match(detail, /non corrisponde allo schema/)
+})
+
+test('se il generatore non e` installato si torna al controllo conservativo sul diff', () => {
+  const missing = evaluateGeneratedTypes({
+    generated: 'unavailable',
+    changed: ['cms/src/collections/Products.ts'],
+  })
+  assert.equal(typeof missing, 'string')
+  const covered = evaluateGeneratedTypes({
+    generated: 'unavailable',
+    changed: ['cms/src/collections/Products.ts', GENERATED_TYPES_REL],
+  })
+  assert.equal(covered, true)
+  assert.equal(evaluateGeneratedTypes({ generated: 'unavailable', changed: ['README.md'] }), true)
+  // Senza riferimento di diff il controllo si salta, ma dichiarandolo (non fingendo verde).
+  assert.equal(
+    evaluateGeneratedTypes({ generated: 'unavailable', changed: null }).skip,
+    'generatore non installato e nessun riferimento di diff',
+  )
+})
+
+test('una rigenerazione che tocca file inattesi sotto cms/ e` un errore', () => {
+  // Caso vero: spostare `typescript.outputFile` nella config farebbe generare altrove e
+  // il confronto sul percorso fisso resterebbe verde.
+  const detail = evaluateGeneratedTypes({ generated: 'done', before: 'x', after: 'x', changed: [], dirty: true })
+  assert.equal(typeof detail, 'string')
+  assert.match(detail, /qualcosa e' cambiato nell'albero/)
+  // Con il dettaglio di cosa e' comparso: serve a distinguere un output spostato da una
+  // scrittura concorrente senza doverlo indovinare.
+  assert.match(
+    String(evaluateGeneratedTypes({ generated: 'done', before: 'x', after: 'x', changed: [], dirty: '?? probe.ts' })),
+    /\?\? probe\.ts/,
+  )
+})
+
+test('se il generatore non riscrive il file canonico il controllo e` rosso', () => {
+  // Verificato con la sentinella: nessuna grafia della chiave `outputFile` puo` ingannare
+  // il controllo, perche` non si legge la config: si guarda quale file viene riscritto.
+  const detail = evaluateGeneratedTypes({
+    generated: 'done',
+    before: 'x',
+    after: 'x',
+    changed: [],
+    dirty: false,
+    wroteCanonical: false,
+  })
+  assert.equal(typeof detail, 'string')
+  assert.match(detail, /non e' il file che il generatore riscrive/)
+})
+
+test('con il file canonico riscritto e contenuto in sincrono il controllo e` verde', () => {
+  assert.equal(
+    evaluateGeneratedTypes({
+      generated: 'done',
+      before: 'x',
+      after: 'x',
+      changed: [],
+      dirty: false,
+      wroteCanonical: true,
+    }),
+    true,
+  )
+})
+
+test('un generatore che fallisce non vale come controllo verde', () => {
+  assert.equal(typeof evaluateGeneratedTypes({ generated: 'failed', changed: [] }), 'string')
+  // Un binario che non parte non e' una config sbagliata: il messaggio non deve mandare a
+  // cercare la' dove non c'e' niente.
+  const detail = evaluateGeneratedTypes({ generated: 'done', changed: [], spawnFailed: true })
+  assert.match(String(detail), /generatore assente o in errore/)
+})
+
+test('PAYLOAD_TS_OUTPUT_PATH viene segnalata invece di essere ignorata', () => {
+  process.env.PAYLOAD_TS_OUTPUT_PATH = './altrove/payload-types.ts'
+  try {
+    const detail = evaluateGeneratedTypes({ generated: 'done', before: 'x', after: 'x', changed: [], dirty: false, wroteCanonical: true })
+    assert.equal(typeof detail, 'string')
+    assert.match(detail, /PAYLOAD_TS_OUTPUT_PATH/)
+  } finally {
+    delete process.env.PAYLOAD_TS_OUTPUT_PATH
+  }
+})
+
+test('i file di schema sono quelli da cui Payload genera i tipi', () => {
+  assert.equal(isSchemaFile('cms/src/collections/Products.ts'), true)
+  assert.equal(isSchemaFile('cms/src/fields/slug.ts'), true)
+  assert.equal(isSchemaFile('cms/src/payload.config.ts'), true)
+  assert.equal(isSchemaFile('cms/src/collections/Orders.test.ts'), true)
+  assert.equal(isSchemaFile('storefront/src/lib/legacy-slugs.ts'), false)
+  assert.equal(isSchemaFile('cms/src/migrations/index.ts'), false)
+})
 
 // ------------------------------------------------------------------ casi negativi
 
@@ -88,6 +201,101 @@ test('contratto metadata rispettato non produce problemi', () => {
     ]),
     [],
   )
+})
+
+// --------------------------- scrittori di metadata monetari (riordino incluso)
+
+const SUBSCRIBE_ROUTE = 'storefront/src/app/api/subscribe/checkout/route.ts'
+
+const NOMINAL_SOURCES = {
+  [CHECKOUT_ROUTE]:
+    "const metadata = buildCheckoutMetadata({ orderRef })\n"
+    + "await stripe.checkout.sessions.create({ mode: 'payment', metadata })",
+  // La rotta e' sottile: la chiamata vera vive nel modulo che importa.
+  [REORDER_ROUTE]:
+    "return handleReorder({ orderId, sessionEmail })\n"
+    + "// storefront/src/lib/reorder.ts\n"
+    + "const metadata = buildCheckoutMetadata({ orderRef })\n"
+    + "await stripe.checkout.sessions.create({ mode: 'payment', metadata })",
+  [SUBSCRIBE_ROUTE]:
+    "await stripe.checkout.sessions.create({ mode: 'subscription', subscription_data: { metadata } })",
+}
+
+const NOMINAL_FILES = Object.entries(NOMINAL_SOURCES).map(([path, content]) => ({ path, content }))
+
+test('(i) una lista che perde la rotta di riordino e` rossa e nomina la rotta', () => {
+  const creators = findCheckoutSessionCreators(NOMINAL_FILES)
+  assert.ok(creators.includes(REORDER_ROUTE), 'il caso sintetico deve contenere la rotta di riordino')
+
+  // La rotta esiste ancora: e' solo sparita dalla lista dichiarata. Il gate non
+  // deve diventare verde per omissione.
+  const problems = compareMoneyMetadataWriters(creators, [CHECKOUT_ROUTE], NOMINAL_SOURCES)
+  assert.ok(
+    problems.some((problem) => problem.includes(REORDER_ROUTE)),
+    `nessun problema nomina ${REORDER_ROUTE}: ${problems.join(' | ')}`,
+  )
+})
+
+test('(ii) una rotta che scrive metadata a mano invece di buildCheckoutMetadata e` rossa', () => {
+  // Sorgenti realistiche: fra i moduli locali c'e` la definizione VERA di
+  // buildCheckoutMetadata (promo.ts), come nel gate sul repository. Con un
+  // controllo che cerca solo il nome della funzione questo caso resterebbe
+  // verde: il test deve fallire se il controllo torna vacuo.
+  const sources = {
+    ...NOMINAL_SOURCES,
+    [REORDER_ROUTE]:
+      "await stripe.checkout.sessions.create({ metadata: { order_ref: 'FOOLISH-1' } })\n"
+      + read(MONEY_PATH_WRITER),
+  }
+  const creators = findCheckoutSessionCreators(
+    Object.entries(sources).map(([path, content]) => ({ path, content })),
+  )
+  const problems = compareMoneyMetadataWriters(creators, MONEY_METADATA_WRITER_ROUTES, sources)
+  assert.ok(
+    problems.some((problem) => problem.includes(REORDER_ROUTE) && /buildCheckoutMetadata/.test(problem)),
+    `nessun problema di metadata a mano: ${problems.join(' | ')}`,
+  )
+})
+
+test('(v) una rotta che chiama davvero buildCheckoutMetadata({...}) resta verde con la definizione fra le sorgenti', () => {
+  const sources = {
+    ...NOMINAL_SOURCES,
+    [REORDER_ROUTE]:
+      "const metadata = buildCheckoutMetadata({ orderRef, customer, chargedProductLines })\n"
+      + "await stripe.checkout.sessions.create({ mode: 'payment', metadata })\n"
+      + read(MONEY_PATH_WRITER),
+  }
+  const creators = findCheckoutSessionCreators(
+    Object.entries(sources).map(([path, content]) => ({ path, content })),
+  )
+  assert.deepEqual(
+    compareMoneyMetadataWriters(creators, MONEY_METADATA_WRITER_ROUTES, sources),
+    [],
+  )
+})
+
+test('(iii) caso nominale: checkout e riordino dichiarati sono verdi', () => {
+  const creators = findCheckoutSessionCreators(NOMINAL_FILES)
+  assert.deepEqual(
+    compareMoneyMetadataWriters(creators, MONEY_METADATA_WRITER_ROUTES, NOMINAL_SOURCES),
+    [],
+  )
+})
+
+test('(iv) la rotta esclusa dell abbonamento non produce problemi', () => {
+  assert.ok(Object.hasOwn(CHECKOUT_SESSION_CREATOR_EXCLUSIONS, SUBSCRIBE_ROUTE))
+  const creators = findCheckoutSessionCreators([
+    { path: SUBSCRIBE_ROUTE, content: NOMINAL_SOURCES[SUBSCRIBE_ROUTE] },
+  ])
+  assert.deepEqual(
+    compareMoneyMetadataWriters(creators, [], { [SUBSCRIBE_ROUTE]: NOMINAL_SOURCES[SUBSCRIBE_ROUTE] }),
+    [],
+  )
+})
+
+test('nel repository la rotta di riordino fa parte degli scrittori dichiarati', () => {
+  assert.ok(MONEY_METADATA_WRITER_ROUTES.includes(REORDER_ROUTE))
+  assert.ok(fs.existsSync(path.join(repoRoot, REORDER_ROUTE)))
 })
 
 test('le chiavi di metadata si estraggono da scritture dirette e condizionali', () => {
@@ -228,6 +436,20 @@ test('il numero di migration registrate coincide con i file su disco', () => {
   const registered = extractRegisteredMigrations(read('cms/src/migrations/index.ts'))
   assert.ok(onDisk.length > 0, 'nessuna migration trovata su disco')
   assert.equal(registered.length, onDisk.length)
+})
+
+test('payload-types.ts corrisponde allo schema (rigenerazione vera)', () => {
+  // Il controllo del gate gira sullo stesso generatore: qui si prova l'invariante
+  // reale, che nessun elenco di chiavi scritto a mano puo` sostituire.
+  const bin = path.join(repoRoot, 'cms', 'node_modules', '.bin', 'payload')
+  if (!fs.existsSync(bin)) return // generatore non installato: resta il controllo del gate
+  const typesPath = path.join(repoRoot, GENERATED_TYPES_REL)
+  const before = fs.readFileSync(typesPath, 'utf8')
+  const res = spawnSync(bin, ['generate:types'], { cwd: path.join(repoRoot, 'cms'), encoding: 'utf8' })
+  const after = fs.readFileSync(typesPath, 'utf8')
+  if (after !== before) fs.writeFileSync(typesPath, before)
+  assert.equal(res.status, 0, 'payload generate:types e` fallito')
+  assert.equal(after, before, `${GENERATED_TYPES_REL} fuori sincrono con lo schema`)
 })
 
 test('il checkout scrive tutte le chiavi di metadata che i percorsi soldi leggono', () => {

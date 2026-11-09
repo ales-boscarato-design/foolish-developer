@@ -7,8 +7,7 @@
     "limited": "🔥 Premium",
     "contatti": "Contacts",
     "account": "Account",
-    "sebo": "SEBO",
-    "laboratorio": "Workshop",
+    "laboratorio": "Laboratory",
     "logoAlt": "The Foolish Butcher"
   },
   "footer": {
@@ -233,7 +232,7 @@
     "frank": {
       "eyebrow": "THE LABORATORY",
       "headline": "There's someone in the lab.",
-      "body": "Not Alessandro. But every sheet that comes out of here, he has already touched, smelled, judged. He calls cheap skins 'liars.'",
+      "body": "It's the Tanner. Every sheet that comes out of here, he has already touched, smelled, judged. Keeper of the skins since 2012. A skin that won't hold ink doesn't leave his bench.",
       "cta_short": "Meet Sebo"
     }
   },
@@ -416,7 +415,7 @@
       "line1": "Frank is not a character. He is a consequence.",
       "line2": "Since 2012, when the laboratory started producing, someone had to watch over things. Someone with the right glasses to see what others miss. With the wrong patience for everything else.",
       "line3": "Black hair with white streaks. Thick beard. Pointed ears. Leather apron full of unidentified objects. A coffee mug that never empties — he calls it Caffè Turbo.",
-      "line4": "He talks to the skins. Studies them like living beings. He calls cheap skins 'liars.' Not selling them here was his idea.",
+      "line4": "He talks to the skins. He studies them one by one: pores, thickness, layers. A skin that won't hold ink doesn't get in: it's his rule, not a campaign.",
       "quote": "If you have questions about your order — Frank answers. He's not nice. But he's precise."
     },
     "obsessions": {
@@ -432,135 +431,92 @@
     "backToShop": "← Back to shop",
     "eyebrow": "THE LABORATORY",
     "headline": "There's someone in the lab.",
-    "body": "Il Pellaio. Every sheet that comes out of here, he has already touched, smelled, judged. Guardian of living skins since 2012. He calls cheap skins 'liars.'",
+    "body": "Not Alessandro. But every sheet that comes out of here, he has already touched, smelled, judged. A skin that won't hold ink doesn't leave his bench.",
     "cta_short": "Enter the workshop"
   },
   "laboratorio": {
-    "meta": {
-      "description": "The Tannery Keeper. Guardian of living skins. He feels them breathe, sweat, heal. He doesn't sleep: he watches over them."
-    },
     "hero": {
-      "eyebrow": "THE WORKSHOP · CHIERI (TO)",
-      "sub": "The Tannery Keeper. He talks to the skins. Feels them breathe."
+      "eyebrow": "FOOLISH LAB · CHIERI (TO)",
+      "title": "One company. Six departments. One employee.",
+      "sub": "The Tanner. Seventy-five centimetres. Nobody hired him: he appointed himself."
     },
-    "lore": {
-      "eyebrow": "WHO IS IL PELLAIO",
-      "p1": "Il Pellaio is not a character. He's a consequence.",
-      "p2": "Since 2012, since the workshop started making its skins, someone had to stay and watch over them. Il Pellaio is that someone — the custodian every true artisan workshop carries within.",
-      "p3": "Twelve years of bench fumes, of catalysis, of skin breathed in too long. He no longer knows where the workshop ends and he begins. He makes them. He watches over them during the twelve hours of catalysis. He only lets them go when he's sure they're alive.",
-      "p4": "To Il Pellaio, skins are alive. They breathe through their pores, sweat out ink that doesn't deserve to stay, and heal — if you take care of them. Cheap skins he calls \"dead\", \"liars\": not selling them here was his battle. \"A corpse doesn't heal,\" he says. \"The wound stays open forever. My skin closes.\"",
-      "quote": "You don't tattoo it, he says. You revere it. Holy skin."
+    "intro": {
+      "eyebrow": "Who he is",
+      "p1": "Nobody knows when he arrived. Some say after a night that ran too long, others that he was already there, under the carpenter's bench.",
+      "p2": "One day someone said that running that lab would take at least six people. The next morning the Tanner was there. Not six people: one, with six changes of clothes.",
+      "p3": "The world around him is real — red brick, white tables, wooden moulds. He is the one who is seventy-five centimetres tall, and he sees the same things from a different altitude."
     },
-    "obsessions": {
-      "eyebrow": "HIS OBSESSIONS",
-      "flock": {
-        "label": "THE FLOCK",
-        "quote": "Microfibers of crushed velvet — red, blue, yellow — that fall wherever they want. That's why no two skins are ever the same. Ever. Anyone who wants them all identical might as well tattoo on linoleum."
-      },
-      "discromie": {
-        "label": "THE DISCHROMIAS",
-        "quote": "They're not defects. They're the signature. Real skin is uneven, alive. Whoever smooths everything out has never looked closely at a forearm."
-      },
-      "catalisi": {
-        "label": "THE CATALYSIS",
-        "quote": "Twelve hours. The skin is born slowly and the flocks settle where they're meant to. Anyone in a hurry doesn't deserve the skin."
-      },
-      "pelleViva": {
-        "label": "LIVING SKIN",
-        "quote": "It breathes. It sweats out ink that doesn't deserve to stay. And it heals, if you care for it. Want to know if a skin is alive? Make it heal. A real one closes. A corpse stays as it is."
-      }
+    "giornata": {
+      "eyebrow": "One day",
+      "intro": "It's not a series. It's a Tuesday.",
+      "items": [
+        {
+          "ora": "07:12",
+          "ruolo": "Warehouse",
+          "testo": "He unloads it, he signs for it, he complains about it.",
+          "alt": "Warehouse: worn bib overalls, black gloves and a FOOLISH parcel in his arms."
+        },
+        {
+          "ora": "09:40",
+          "ruolo": "Secretary",
+          "testo": "Three emails, no answer. He wrote them.",
+          "alt": "Secretary: knitted cardigan, round glasses, ledgers under one arm and a phone receiver at her ear."
+        },
+        {
+          "ora": "11:05",
+          "ruolo": "Call centre",
+          "testo": "\"Your request is very important to us.\" True: he's the only one answering.",
+          "alt": "Call centre: headset with boom microphone, SUPPORT badge on the chest, black gloves and a tool belt."
+        },
+        {
+          "ora": "14:20",
+          "ruolo": "Chemist",
+          "testo": "The surface isn't even. He redoes it. Fourth time.",
+          "alt": "Chemist: stained lab coat, a single protective lens, black gloves and a blue-filled flask in one hand."
+        },
+        {
+          "ora": "16:45",
+          "ruolo": "CEO",
+          "testo": "Meeting with the departments. The departments are him.",
+          "alt": "CEO: dark frock coat, waistcoat, necktie and watch chain, FOOLISH ledger under one arm."
+        },
+        {
+          "ora": "19:30",
+          "ruolo": "Cleaning",
+          "testo": "Someone left flock on the bench. That someone is me.",
+          "alt": "Cleaning: heavy work apron, yellow rubber gloves, a spray bottle and a scrubbing brush in the pockets."
+        },
+        {
+          "ora": "23:58",
+          "ruolo": "",
+          "testo": "The light under the carpenter's bench is still on."
+        }
+      ]
+    },
+    "lab": {
+      "eyebrow": "The lab",
+      "p1": "Five areas, all real: the white casting tables, the shelves of anatomies, the carpenter's bench under the window, the book-mould station, the steel prep bench.",
+      "p2": "Under the carpenter's bench there's a space that appears in no floor plan: a microscopic desk, a lamp, notebooks and a pile of sheets he hasn't approved yet.",
+      "p3": "And there are traces that aren't his. Sealed boxes, labels, finished orders. Someone produces here. No face. Necessary."
+    },
+    "paradox": {
+      "eyebrow": "The paradox",
+      "intro": "He wants one thing: a perfect surface.",
+      "p1": "The problem is that perfect human skin doesn't exist. Uneven colour, different textures, variations in thickness: the very thing that makes a practice skin believable is what the Tanner calls a defect.",
+      "p2": "Coloured flock never distributes evenly — catalysis does what it wants, and that's where the variation that reads as real skin comes from. The pores aren't printed: they absorb the transfer and let the excess ink out. Colour isn't laid on top, it's deposited in layers: that's why the washes read, without anyone looking through them.",
+      "closing": "To the Tanner it's a personal insult. To a tattooer it's the reason it works."
+    },
+    "ponte": {
+      "eyebrow": "What it has to do with you",
+      "p1": "The Tanner exists for people who do everything themselves. If you handle clients, orders, shipping and social media in the same day, his week will look familiar.",
+      "p2": "There's one difference: the skins leaving his bench are checked by him, piece by piece. Everything else — phone, courier, deadlines — he answers the way you do."
     },
     "cta": {
-      "eyebrow": "THE BENCH IS OPEN",
-      "title": "FOLLOW OR WRITE.",
-      "drops": {
-        "button": "Follow the workshop",
-        "note": "Every twelve hours, a thought from the bench. Don't expect kindness. Expect obsession."
-      },
-      "support": {
-        "button": "Write to the workshop",
-        "note": "For orders and shipping, we answer — straight to the point."
-      }
+      "title": "The skins are here. I check them.",
+      "practiceSkin": "Practice skin",
+      "bot": "Message the lab"
     },
-    "seboLink": "Then there's Sebo. I'd rather not talk about it.",
-    "imageAlt": "Il Pellaio in the workshop",
     "backToShop": "← Back to the shop"
-  },
-  "sebo": {
-    "meta": {
-      "description": "The worst portfolio in Italy. The reason yours isn't. Mess up on me. Not on a human."
-    },
-    "hero": {
-      "manifesto": "Mess up on me.\nNot on a human."
-    },
-    "bio": {
-      "eyebrow": "WHO IS SEBO",
-      "p1": "My name is Sebo. I'm the worst portfolio in Italy, and the reason yours isn't.",
-      "p2": "Every crooked line I carry is a client saved.",
-      "p3": "I'm not a character. I'm a consequence: since 2012, someone had to get stabbed."
-    },
-    "wall": {
-      "eyebrow": "THE WALL"
-    },
-    "stickers": {
-      "eyebrow": "STICKER N°001 — COLLECTIBLE",
-      "headline": "Not for sale.\nIt comes with you.",
-      "body": "The first sticker in the SEBO series is a numbered die-cut. It arrives in the package with every order of 100€ or more — no form, no code, no explanation. It is inside.",
-      "conditionLabel": "How to get it",
-      "condition": "Order of 100€ or more → Sticker N°001 included in the package. Not available anywhere else.",
-      "date": "Available from August 5, 2026."
-    },
-    "merch": {
-      "eyebrow": "SEBO PRACTICE ARCHIVES™ × RESEARCH DIVISION™",
-      "headline": "Wear the worst portfolio in Italy.",
-      "subline": "Ten t-shirts. Each one has a status. None of them are done."
-    },
-    "pellaioLink": "Il Pellaio makes the skins. I ruin them. He hasn't spoken to me since 2012.",
-    "cta": {
-      "eyebrow": "FOLLOW ME",
-      "instagram": {
-        "button": "Sebo on Instagram",
-        "note": "128 posts ready. The profile is where everything ends up — mistakes, tutorials, Monday's coffee. Updated by something."
-      },
-      "telegram": {
-        "button": "Telegram Channel",
-        "note": "For those who want to know before anyone else."
-      },
-      "support": {
-        "button": "Contact the studio",
-        "note": "For orders — the studio responds."
-      }
-    },
-    "imageAlt": "Sebo — the lab mascot",
-    "backToShop": "← Back to the shop",
-    "pratica": {
-      "eyebrow": "THE PRACTICE",
-      "quote": "SEBO doesn't watch the tattoo.\nHe watches the practice. His own."
-    },
-    "mondo": {
-      "eyebrow": "THE WORLD OF SEBO",
-      "pellaio": {
-        "name": "IL PELLAIO",
-        "line": "He turns me toward the wall. Doesn't ask. Decides. I accept."
-      },
-      "arancia": {
-        "name": "L'ARANCIA",
-        "line": "The first surface everyone practiced on. Now waiting on the windowsill."
-      },
-      "corriere": {
-        "name": "IL CORRIERE",
-        "line": "The only human who treats me like a package. Never gets it wrong."
-      },
-      "scatola": {
-        "name": "LA SCATOLA",
-        "line": "SHIPPING SEAL: INTACT. Since day one."
-      }
-    },
-    "vitaSegreta": {
-      "eyebrow": "WHEN NO ONE IS WATCHING",
-      "headline": "The studio opens at ten.\nHe's been there since seven.",
-      "body": "There is a ritual before work. A cracked mirror, a razor blade, no witnesses. Sebo has never talked about it. Not because it's a secret — but because nobody ever asked."
-    }
   },
   "subscription": {
     "hub": {

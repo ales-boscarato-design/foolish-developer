@@ -7,7 +7,6 @@
     "limited": "🔥 Premium",
     "contatti": "Kontakte",
     "account": "Konto",
-    "sebo": "SEBO",
     "laboratorio": "Werkstatt",
     "logoAlt": "The Foolish Butcher"
   },
@@ -233,7 +232,7 @@
     "frank": {
       "eyebrow": "DAS LABOR",
       "headline": "Da ist jemand im Labor.",
-      "body": "Es ist der Häuter. Jedes Blatt, das von hier kommt, hat er bereits angefasst, gerochen, beurteilt. Hüter der lebenden Häute seit 2012. Billige Skins nennt er 'Lügner.'",
+      "body": "Es ist der Häuter. Jedes Blatt, das von hier kommt, hat er bereits angefasst, gerochen, beurteilt. Hüter der Häute seit 2012. Eine Haut, die die Farbe nicht hält, kommt nicht über die Werkbank.",
       "cta_short": "Die Werkstatt betreten"
     }
   },
@@ -416,7 +415,7 @@
       "line1": "Frank ist keine Figur. Er ist eine Konsequenz.",
       "line2": "Seit 2012, als das Labor mit der Produktion begann, musste jemand aufpassen. Jemand mit den richtigen Brillen, um zu sehen, was andere übersehen. Mit der falschen Geduld für alles andere.",
       "line3": "Schwarzes Haar mit weißen Strähnen. Dichter Bart. Spitze Ohren. Lederschürze voller unbekannter Gegenstände. Eine Kaffeetasse, die sich nie leert — er nennt sie Caffè Turbo.",
-      "line4": "Er spricht mit den Skins. Studiert sie wie lebende Wesen. Billige Skins nennt er 'Lügner.' Sie hier nicht zu verkaufen war seine Idee.",
+      "line4": "Er spricht mit den Häuten. Er studiert sie eine nach der anderen: Poren, Stärken, Schichten. Eine Haut, die die Farbe nicht hält, kommt nicht rein: das ist seine Regel, keine Kampagne.",
       "quote": "Wenn du Fragen zu deiner Bestellung hast — Frank antwortet. Er ist nicht nett. Aber er ist präzise."
     },
     "obsessions": {
@@ -432,135 +431,92 @@
     "backToShop": "← Zurück zum Shop",
     "eyebrow": "DAS LABOR",
     "headline": "Da ist jemand im Labor.",
-    "body": "Nicht Alessandro. Aber jedes Blatt, das von hier kommt, hat er bereits angefasst, gerochen, beurteilt. Billige Skins nennt er 'Lügner.'",
+    "body": "Nicht Alessandro. Aber jedes Blatt, das von hier kommt, hat er bereits angefasst, gerochen, beurteilt. Eine Haut, die die Farbe nicht hält, kommt nicht über die Werkbank.",
     "cta_short": "Frank treffen"
   },
   "laboratorio": {
-    "meta": {
-      "description": "Der Häuter. Hüter der lebenden Häute. Er spürt sie atmen, schwitzen, heilen. Er schläft nicht: er wacht über sie."
-    },
     "hero": {
-      "eyebrow": "DIE WERKSTATT · CHIERI (TO)",
-      "sub": "Der Häuter. Er spricht zu den Häuten. Spürt sie atmen."
+      "eyebrow": "FOOLISH LAB · CHIERI (TO)",
+      "title": "Ein Betrieb. Sechs Abteilungen. Ein Angestellter.",
+      "sub": "Der Häuter. Fünfundsiebzig Zentimeter. Niemand hat ihn eingestellt: er hat sich selbst ernannt."
     },
-    "lore": {
-      "eyebrow": "WER IST DER HÄUTER",
-      "p1": "Der Häuter ist kein Charakter. Er ist eine Konsequenz.",
-      "p2": "Seit 2012, seit die Werkstatt ihre Häute herstellt, musste jemand bei ihnen bleiben und über sie wachen. Der Häuter ist dieser Jemand — der Hüter, den jede echte Handwerkswerkstatt in sich trägt.",
-      "p3": "Zwölf Jahre Werkstattdämpfe, Katalyse, zu lange eingeatmete Haut. Er weiß nicht mehr, wo die Werkstatt endet und er beginnt. Er macht sie. Er wacht die zwölf Stunden der Katalyse über sie. Er lässt sie erst gehen, wenn er sicher ist, dass sie lebendig sind.",
-      "p4": "Für den Häuter sind die Häute lebendig. Sie atmen durch die Poren, schwitzen Tinte aus, die sie nicht verdienen zu behalten, und heilen — wenn man sich um sie kümmert. Billige Häute nennt er \"tot\", \"Lügner\": sie nicht hier zu verkaufen war sein Kampf. \"Eine Leiche heilt nicht\", sagt er. \"Die Wunde bleibt für immer offen. Meine Haut schließt sich.\"",
-      "quote": "Man tätowiert nicht, sagt er. Man verehrt. Heilige Haut."
+    "intro": {
+      "eyebrow": "Wer er ist",
+      "p1": "Niemand weiß, wann er gekommen ist. Manche sagen nach einer zu langen Nacht, andere, er sei schon immer da gewesen, unter der Tischlerbank.",
+      "p2": "Eines Tages sagte jemand, für diese Werkstatt bräuchte man mindestens sechs Leute. Am nächsten Morgen war der Häuter da. Nicht sechs Leute: einer, mit sechs Garderobenwechseln.",
+      "p3": "Die Welt um ihn ist echt — roter Backstein, weiße Tische, Holzformen. Er ist derjenige, der fünfundsiebzig Zentimeter groß ist und dieselben Dinge aus einer anderen Höhe sieht."
     },
-    "obsessions": {
-      "eyebrow": "SEINE OBSESSIONEN",
-      "flock": {
-        "label": "DER FLOCK",
-        "quote": "Mikrofasern aus zermahlenem Samt — rot, blau, gelb — die fallen, wo sie wollen. Deshalb ist keine Haut wie die andere. Niemals. Wer sie alle identisch will, kann gleich auf Linoleum tätowieren."
-      },
-      "discromie": {
-        "label": "DIE DYSCHROMIEN",
-        "quote": "Das sind keine Fehler. Das ist die Signatur. Echte Haut ist ungleichmäßig, lebendig. Wer alles glattbügelt, hat noch nie einen Unterarm aus der Nähe betrachtet."
-      },
-      "catalisi": {
-        "label": "DIE KATALYSE",
-        "quote": "Zwölf Stunden. Die Haut wird langsam geboren und die Flocks setzen sich, wo sie hingehören. Wer es eilig hat, verdient die Haut nicht."
-      },
-      "pelleViva": {
-        "label": "DIE LEBENDE HAUT",
-        "quote": "Sie atmet. Sie schwitzt Tinte aus, die nicht bleiben soll. Und sie heilt, wenn du sie pflegst. Willst du wissen, ob eine Haut lebt? Lass sie heilen. Eine echte schließt sich. Eine Leiche bleibt, wie sie ist."
-      }
+    "giornata": {
+      "eyebrow": "Ein Tag",
+      "intro": "Das ist keine Serie. Das ist ein Dienstag.",
+      "items": [
+        {
+          "ora": "07:12",
+          "ruolo": "Lager",
+          "testo": "Er lädt aus, er unterschreibt, er beschwert sich.",
+          "alt": "Lager: abgetragene Latzhose, schwarze Handschuhe und ein FOOLISH-Paket in den Armen."
+        },
+        {
+          "ora": "09:40",
+          "ruolo": "Sekretariat",
+          "testo": "Drei Mails, keine Antwort. Er hat sie geschrieben.",
+          "alt": "Sekretariat: Strickjacke, runde Brille, Akten unter dem Arm und ein Telefonhörer am Ohr."
+        },
+        {
+          "ora": "11:05",
+          "ruolo": "Call Center",
+          "testo": "„Ihr Anliegen ist uns sehr wichtig.\" Stimmt: er ist der Einzige, der antwortet.",
+          "alt": "Call Center: Headset mit Mikrofon, SUPPORT-Anstecker auf der Brust, schwarze Handschuhe und Werkzeuggürtel."
+        },
+        {
+          "ora": "14:20",
+          "ruolo": "Chemie",
+          "testo": "Die Oberfläche ist nicht gleichmäßig. Er macht es neu. Viertes Mal.",
+          "alt": "Chemie: fleckiger Kittel, Schutzlinse, schwarze Handschuhe und ein Erlenmeyerkolben mit blauer Flüssigkeit."
+        },
+        {
+          "ora": "16:45",
+          "ruolo": "CEO",
+          "testo": "Besprechung mit den Abteilungen. Die Abteilungen sind er.",
+          "alt": "CEO: dunkler Gehrock, Weste, Krawatte und Uhrkette, FOOLISH-Buch unter dem Arm."
+        },
+        {
+          "ora": "19:30",
+          "ruolo": "Reinigung",
+          "testo": "Jemand hat Flock auf der Werkbank gelassen. Dieser Jemand bin ich.",
+          "alt": "Reinigung: schwerer Arbeitsschurz, gelbe Gummihandschuhe, Sprühflasche und Bürste in den Taschen."
+        },
+        {
+          "ora": "23:58",
+          "ruolo": "",
+          "testo": "Unter der Tischlerbank brennt noch Licht."
+        }
+      ]
+    },
+    "lab": {
+      "eyebrow": "Die Werkstatt",
+      "p1": "Fünf Bereiche, alle echt: die weißen Gusstitche, die Regale mit Anatomien, die Tischlerbank unter dem Fenster, die Station der Buchformen, die Stahlbank der Vorbereitung.",
+      "p2": "Unter der Tischlerbank gibt es einen Raum, der in keinem Plan steht: ein winziger Schreibtisch, eine Lampe, Notizbücher und ein Stapel Blätter, die er noch nicht freigegeben hat.",
+      "p3": "Und es gibt Spuren, die nicht seine sind. Verschlossene Kartons, Etiketten, fertige Aufträge. Jemand produziert hier. Ohne Gesicht. Notwendig."
+    },
+    "paradox": {
+      "eyebrow": "Das Paradox",
+      "intro": "Er will nur eines: die perfekte Oberfläche.",
+      "p1": "Das Problem: perfekte menschliche Haut gibt es nicht. Farbschwankungen, unterschiedliche Texturen, ungleiche Stärken: genau das macht eine Übungshaut glaubwürdig — und genau das nennt der Häuter einen Fehler.",
+      "p2": "Farbiger Flock verteilt sich nie gleichmäßig — die Katalyse macht, was sie will, und daraus entstehen die Schwankungen, die wie echte Haut wirken. Die Poren sind nicht gedruckt: sie nehmen den Transfer auf und lassen überschüssige Farbe heraus. Farbe wird nicht aufgetragen, sie wird in Schichten abgelegt: deshalb lesen sich die Lasierungen, ohne dass jemand hindurchsieht.",
+      "closing": "Für den Häuter eine persönliche Beleidigung. Für Tätowierer der Grund, warum es funktioniert."
+    },
+    "ponte": {
+      "eyebrow": "Was das mit dir zu tun hat",
+      "p1": "Der Häuter existiert für Leute, die alles selbst machen. Wenn du am selben Tag Kunden, Bestellungen, Versand und Social Media machst, wird dir seine Woche bekannt vorkommen.",
+      "p2": "Ein Unterschied: die Häute, die seine Werkbank verlassen, prüft er Stück für Stück. Auf alles andere — Telefon, Kurier, Fristen — antwortet er wie du."
     },
     "cta": {
-      "eyebrow": "DIE WERKBANK IST OFFEN",
-      "title": "FOLGE ODER SCHREIB.",
-      "drops": {
-        "button": "Folge der Werkstatt",
-        "note": "Alle zwölf Stunden ein Gedanke von der Werkbank. Erwarte keine Freundlichkeit. Erwarte Besessenheit."
-      },
-      "support": {
-        "button": "Schreib der Werkstatt",
-        "note": "Für Bestellungen und Versand antworten wir selbst, direkt auf den Punkt."
-      }
+      "title": "Die Häute sind hier. Ich prüfe sie.",
+      "practiceSkin": "Practice skin",
+      "bot": "Der Werkstatt schreiben"
     },
-    "seboLink": "Dann ist da noch Sebo. Ich spreche lieber nicht darüber.",
-    "imageAlt": "Der Häuter in der Werkstatt",
     "backToShop": "← Zurück zur Auslage"
-  },
-  "sebo": {
-    "meta": {
-      "description": "Das schlechteste Portfolio Italiens. Der Grund, warum deins es nicht ist. Mach Fehler an mir. Nicht an einem Menschen."
-    },
-    "hero": {
-      "manifesto": "Mach Fehler an mir.\nNicht an einem Menschen."
-    },
-    "bio": {
-      "eyebrow": "WER IST SEBO",
-      "p1": "Mein Name ist Sebo. Ich bin das schlechteste Portfolio Italiens — und der Grund, warum deins es nicht ist.",
-      "p2": "Jede schiefe Linie, die ich trage, ist ein geretteter Kunde.",
-      "p3": "Ich bin kein Charakter. Ich bin eine Konsequenz: seit 2012 musste jemand gestochen werden."
-    },
-    "wall": {
-      "eyebrow": "DIE WAND"
-    },
-    "stickers": {
-      "eyebrow": "STICKER N°001 — COLLECTIBLE",
-      "headline": "Not for sale.\nIt comes with you.",
-      "body": "The first sticker in the SEBO series is a numbered die-cut. It arrives in the package with every order of 100€ or more — no form, no code, no explanation. It is inside.",
-      "conditionLabel": "How to get it",
-      "condition": "Order of 100€ or more → Sticker N°001 included in the package. Not available anywhere else.",
-      "date": "Available from August 5, 2026."
-    },
-    "merch": {
-      "eyebrow": "SEBO PRACTICE ARCHIVES™ × RESEARCH DIVISION™",
-      "headline": "Wear the worst portfolio in Italy.",
-      "subline": "Ten t-shirts. Each one has a status. None of them are done."
-    },
-    "pellaioLink": "Der Häuter macht die Häute. Ich ruiniere sie. Er spricht seit 2012 nicht mehr mit mir.",
-    "cta": {
-      "eyebrow": "FOLLOW ME",
-      "instagram": {
-        "button": "Sebo on Instagram",
-        "note": "128 posts ready. The profile is where everything ends up — mistakes, tutorials, Monday's coffee. Updated by something."
-      },
-      "telegram": {
-        "button": "Telegram Channel",
-        "note": "For those who want to know before anyone else."
-      },
-      "support": {
-        "button": "Contact the studio",
-        "note": "For orders — the studio responds."
-      }
-    },
-    "imageAlt": "Sebo — das Lab-Maskottchen",
-    "backToShop": "← Zurück zur Auslage",
-    "pratica": {
-      "eyebrow": "THE PRACTICE",
-      "quote": "SEBO doesn't watch the tattoo.\nHe watches the practice. His own."
-    },
-    "mondo": {
-      "eyebrow": "THE WORLD OF SEBO",
-      "pellaio": {
-        "name": "IL PELLAIO",
-        "line": "He turns me toward the wall. Doesn't ask. Decides. I accept."
-      },
-      "arancia": {
-        "name": "L'ARANCIA",
-        "line": "The first surface everyone practiced on. Now waiting on the windowsill."
-      },
-      "corriere": {
-        "name": "IL CORRIERE",
-        "line": "The only human who treats me like a package. Never gets it wrong."
-      },
-      "scatola": {
-        "name": "LA SCATOLA",
-        "line": "SHIPPING SEAL: INTACT. Since day one."
-      }
-    },
-    "vitaSegreta": {
-      "eyebrow": "WHEN NO ONE IS WATCHING",
-      "headline": "The studio opens at ten.\nHe's been there since seven.",
-      "body": "There is a ritual before work. A cracked mirror, a razor blade, no witnesses. Sebo has never talked about it. Not because it's a secret — but because nobody ever asked."
-    }
   },
   "subscription": {
     "hub": {

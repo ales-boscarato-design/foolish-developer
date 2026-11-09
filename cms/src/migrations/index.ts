@@ -37,6 +37,10 @@ import * as migration_20260728_160000_fix_users_api_key_column_name from './2026
 import * as migration_20260805_100000_add_products_seo_fields from './20260805_100000_add_products_seo_fields';
 import * as migration_20260824_100000_add_order_payment_fields from './20260824_100000_add_order_payment_fields';
 import * as migration_20260912_120000_add_affiliate_attribution from './20260912_120000_add_affiliate_attribution';
+import * as migration_20261027_120000_add_tiered_promo_fields from './20261027_120000_add_tiered_promo_fields';
+import * as migration_20261027_180000_add_order_promo_fields from './20261027_180000_add_order_promo_fields';
+import * as migration_20261030_160000_backfill_customer_file_media from './20261030_160000_backfill_customer_file_media';
+import * as migration_20261030_150000_add_media_visibility from './20261030_150000_add_media_visibility';
 
 export const migrations = [
   {
@@ -233,5 +237,25 @@ export const migrations = [
     up: migration_20260912_120000_add_affiliate_attribution.up,
     down: migration_20260912_120000_add_affiliate_attribution.down,
     name: '20260912_120000_add_affiliate_attribution',
+  },
+  {
+    up: migration_20261027_120000_add_tiered_promo_fields.up,
+    down: migration_20261027_120000_add_tiered_promo_fields.down,
+    name: '20261027_120000_add_tiered_promo_fields',
+  },
+  {
+    up: migration_20261027_180000_add_order_promo_fields.up,
+    down: migration_20261027_180000_add_order_promo_fields.down,
+    name: '20261027_180000_add_order_promo_fields',
+  },
+  {
+    up: migration_20261030_150000_add_media_visibility.up,
+    down: migration_20261030_150000_add_media_visibility.down,
+    name: '20261030_150000_add_media_visibility',
+  },
+  {
+    up: migration_20261030_160000_backfill_customer_file_media.up,
+    down: migration_20261030_160000_backfill_customer_file_media.down,
+    name: '20261030_160000_backfill_customer_file_media',
   },
 ];

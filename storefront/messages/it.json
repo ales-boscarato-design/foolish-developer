@@ -7,7 +7,6 @@
     "limited": "🔥 Premium",
     "contatti": "Contatti",
     "account": "Account",
-    "sebo": "SEBO",
     "laboratorio": "Laboratorio",
     "logoAlt": "The Foolish Butcher"
   },
@@ -233,7 +232,7 @@
     "frank": {
       "eyebrow": "IL LABORATORIO",
       "headline": "C'è qualcuno nel laboratorio.",
-      "body": "È il Pellaio. Ogni foglio che esce da qui, lui lo ha già toccato, annusato, giudicato. Custode delle pelli vive dal 2012. Le pelli economiche le chiama 'bugiarde.'",
+      "body": "È il Pellaio. Ogni foglio che esce da qui, lui lo ha già toccato, annusato, giudicato. Custode delle pelli dal 2012. Una pelle che non tiene l'inchiostro non supera il banco.",
       "cta_short": "Entra nel laboratorio"
     }
   },
@@ -416,7 +415,7 @@
       "line1": "Frank non è un personaggio. È una conseguenza.",
       "line2": "Dal 2012, quando il laboratorio ha iniziato a produrre, qualcuno doveva stare a guardare. Qualcuno con gli occhiali giusti per vedere quello che gli altri non vedono. Con la pazienza sbagliata per tutto il resto.",
       "line3": "Capelli neri con ciocche bianche. Barba folta. Orecchie a punta. Grembiule di cuoio con oggetti non identificati. Una tazza di caffè che non si svuota mai — la chiama Caffè Turbo.",
-      "line4": "Parla alle pelli. Le studia come fossero esseri viventi. Le pelli economiche le chiama 'bugiarde.' Non venderle qui è stata la sua idea.",
+      "line4": "Parla alle pelli. Le studia una per una: pori, spessori, strati. Una pelle che non tiene l'inchiostro non entra in laboratorio: è una sua regola, non una campagna.",
       "quote": "Se hai domande sul tuo ordine — Frank risponde. Non è gentile. Ma è preciso."
     },
     "obsessions": {
@@ -432,135 +431,92 @@
     "backToShop": "← Torna alla vetrina",
     "eyebrow": "IL LABORATORIO",
     "headline": "C'è qualcuno nel laboratorio.",
-    "body": "Non è Alessandro. Ma ogni foglio che esce da qui, lui lo ha già toccato, annusato, giudicato. Le pelli economiche le chiama 'bugiarde.'",
+    "body": "Non è Alessandro. Ma ogni foglio che esce da qui, lui lo ha già toccato, annusato, giudicato. Una pelle che non tiene l'inchiostro non supera il banco.",
     "cta_short": "Incontra Frank"
   },
   "laboratorio": {
-    "meta": {
-      "description": "Il Pellaio. Custode delle pelli vive. Le sente respirare, sudare, guarire. Non dorme: le veglia."
-    },
     "hero": {
-      "eyebrow": "IL LABORATORIO · CHIERI (TO)",
-      "sub": "Il Pellaio. Parla alle pelli. Le sente respirare."
+      "eyebrow": "FOOLISH LAB · CHIERI (TO)",
+      "title": "Un'azienda. Sei reparti. Un solo dipendente.",
+      "sub": "Il Pellaio. Settantacinque centimetri. Nessuno lo ha assunto: si è nominato da solo."
     },
-    "lore": {
-      "eyebrow": "CHI È IL PELLAIO",
-      "p1": "Il Pellaio non è un personaggio. È una conseguenza.",
-      "p2": "Dal 2012, da quando il laboratorio produce le sue pelli, qualcuno doveva restare a vegliarle. Il Pellaio è quel qualcuno — il custode che ogni laboratorio artigianale vero si porta dentro.",
-      "p3": "Dodici anni di vapori del banco, di catalisi, di pelle respirata troppo a lungo. Non sa più dove finisce il laboratorio e dove comincia lui. Lui le fa. Le veglia nelle dodici ore di catalisi. Le manda via solo quando è sicuro che siano vive.",
-      "p4": "Per il Pellaio le pelli sono vive. Respirano dai pori, sudano fuori l'inchiostro che non meritano di tenere, e guariscono — se le curi. Le pelli economiche le chiama \"morte\", \"bugiarde\": non venderle qui è stata una sua battaglia. \"Un cadavere non guarisce\", dice. \"La ferita gli resta aperta per sempre. La mia pelle si chiude.\"",
-      "quote": "Non si tatua, dice lui. Si venera. Pelle santa."
+    "intro": {
+      "eyebrow": "Chi è",
+      "p1": "Nessuno sa quando sia arrivato. C'è chi dice dopo una notte di lavoro troppo lunga, chi dice che era già lì, sotto il banco del falegname.",
+      "p2": "Un giorno qualcuno disse che per mandare avanti quel laboratorio sarebbero servite almeno sei persone. La mattina dopo c'era il Pellaio. Non sei persone: una sola, con sei cambi d'abito.",
+      "p3": "Il mondo intorno a lui è reale — mattoni rossi, tavoli bianchi, stampi di legno. È lui che è alto settantacinque centimetri, e vede le stesse cose da un'altra altezza."
     },
-    "obsessions": {
-      "eyebrow": "LE SUE OSSESSIONI",
-      "flock": {
-        "label": "IL FLOCK",
-        "quote": "Microfili di velluto tritato — rosso, blu, giallo — che cadono dove vogliono loro. Per questo nessuna pelle è uguale a un'altra. Mai. Chi le vuole tutte identiche tatui pure sul linoleum."
-      },
-      "discromie": {
-        "label": "LE DISCROMIE",
-        "quote": "Non sono difetti. Sono la firma. La pelle vera è disomogenea, viva. Chi liscia tutto non ha mai guardato un avambraccio da vicino."
-      },
-      "catalisi": {
-        "label": "LA CATALISI",
-        "quote": "Dodici ore. La pelle nasce piano e i flock si posano dove devono. Chi ha fretta non merita la pelle."
-      },
-      "pelleViva": {
-        "label": "LA PELLE VIVA",
-        "quote": "Respira. Suda fuori l'inchiostro che non merita. E guarisce, se la curi. Vuoi sapere se una pelle è viva? Falla guarire. Una vera si chiude. Un cadavere resta com'è."
-      }
+    "giornata": {
+      "eyebrow": "Una giornata",
+      "intro": "Non è una serie. È un martedì.",
+      "items": [
+        {
+          "ora": "07:12",
+          "ruolo": "Magazziniere",
+          "testo": "Scarica lui, firma lui, si lamenta lui.",
+          "alt": "Magazziniere: salopette da lavoro, guanti neri e un pacco FOOLISH tra le braccia."
+        },
+        {
+          "ora": "09:40",
+          "ruolo": "Segreteria",
+          "testo": "Tre email, nessuna risposta. Le ha scritte lui.",
+          "alt": "Segreteria: cardigan di lana, occhiali, registri sotto il braccio e cornetta del telefono all'orecchio."
+        },
+        {
+          "ora": "11:05",
+          "ruolo": "Call center",
+          "testo": "«La sua richiesta è molto importante per noi.» È vero: è l'unico che risponde.",
+          "alt": "Call center: cuffie con microfono, badge SUPPORT sul petto, guanti neri e cintura portastrumenti."
+        },
+        {
+          "ora": "14:20",
+          "ruolo": "Chimico",
+          "testo": "La superficie non è uniforme. La rifà. Quarta volta.",
+          "alt": "Chimico: camice macchiato, occhiale protettivo, guanti neri e una beuta di liquido blu in mano."
+        },
+        {
+          "ora": "16:45",
+          "ruolo": "CEO",
+          "testo": "Riunione con i reparti. I reparti è lui.",
+          "alt": "CEO: redingote scura, panciotto, cravatta e catena da orologio, registro FOOLISH sotto il braccio."
+        },
+        {
+          "ora": "19:30",
+          "ruolo": "Pulizie",
+          "testo": "Qualcuno ha lasciato flock sul banco. Quel qualcuno sono io.",
+          "alt": "Pulizie: grembiule da lavoro, guanti di gomma gialli, spruzzino e spazzola nelle tasche."
+        },
+        {
+          "ora": "23:58",
+          "ruolo": "",
+          "testo": "La luce sotto il banco del falegname è ancora accesa."
+        }
+      ]
+    },
+    "lab": {
+      "eyebrow": "Il laboratorio",
+      "p1": "Cinque aree, tutte reali: i tavoli bianchi delle colate, gli scaffali delle anatomie, il banco del falegname sotto la finestra, la stazione degli stampi a libro, il banco d'acciaio della preparazione.",
+      "p2": "Sotto il banco del falegname c'è uno spazio che non compare in nessuna planimetria: una scrivania microscopica, una lampada, quaderni e una pila di fogli che non ha ancora approvato.",
+      "p3": "E ci sono tracce che non sono sue. Scatole chiuse, etichette, ordini pronti. Qualcuno produce, qui. Non ha un volto. Serve."
+    },
+    "paradox": {
+      "eyebrow": "Il paradosso",
+      "intro": "Vuole una cosa sola: la superficie perfetta.",
+      "p1": "Il problema è che la pelle umana perfetta non esiste. Ha discromie, consistenze diverse, variazioni di spessore: proprio quello che rende credibile una pelle da pratica è quello che il Pellaio chiama difetto.",
+      "p2": "I flock colorati non si distribuiscono mai in modo uniforme — la catalisi fa quello che vuole, e da lì nascono le variazioni che assomigliano alla pelle vera. I pori non sono disegnati: assorbono il transfer e lasciano uscire l'inchiostro in eccesso. Il colore non si stende sopra, si deposita a strati: è per questo che le velature si leggono, senza che nessuno ci guardi attraverso.",
+      "closing": "Per il Pellaio è un'offesa personale. Per chi tatua è il motivo per cui funziona."
+    },
+    "ponte": {
+      "eyebrow": "Cosa c'entra con te",
+      "p1": "Il Pellaio esiste per chi fa tutto da solo. Se nella stessa giornata gestisci clienti, ordini, spedizioni e social, la sua settimana ti sembrerà familiare.",
+      "p2": "La differenza è una sola: la pelle che esce dal suo banco la controlla lui, pezzo per pezzo. Al resto — telefono, corriere, scadenze — risponde come rispondi tu."
     },
     "cta": {
-      "eyebrow": "IL BANCO È APERTO",
-      "title": "SEGUI O SCRIVI.",
-      "drops": {
-        "button": "Segui il laboratorio",
-        "note": "Ogni dodici ore un pensiero dal banco. Non aspettarti gentilezza. Aspettati ossessione."
-      },
-      "support": {
-        "button": "Scrivi al laboratorio",
-        "note": "Per ordini e spedizioni rispondiamo noi, dritti al punto."
-      }
+      "title": "Le pelli le trovi qui. Io le controllo.",
+      "practiceSkin": "Practice skin",
+      "bot": "Scrivi al laboratorio"
     },
-    "seboLink": "Poi c'è Sebo. Preferirei non parlarne.",
-    "imageAlt": "Il Pellaio nel laboratorio",
     "backToShop": "← Torna alla vetrina"
-  },
-  "sebo": {
-    "meta": {
-      "description": "Il peggior portfolio d'Italia. Il motivo per cui il tuo non lo è. Sbaglia su di me. Non su un cristiano."
-    },
-    "hero": {
-      "manifesto": "Sbaglia su di me.\nNon su un cristiano."
-    },
-    "bio": {
-      "eyebrow": "CHI È SEBO",
-      "p1": "Mi chiamo Sebo. Sono il peggior portfolio d'Italia, e il motivo per cui il tuo non lo è.",
-      "p2": "Ogni linea storta che porto addosso è un cliente salvato.",
-      "p3": "Non sono un personaggio. Sono una conseguenza: dal 2012 qualcuno doveva pur farsi bucare."
-    },
-    "wall": {
-      "eyebrow": "IL MURO"
-    },
-    "stickers": {
-      "eyebrow": "STICKER N°001 — COLLEZIONABILE",
-      "headline": "Non si compra.\nViene con te.",
-      "body": "Il primo sticker della serie SEBO è un die-cut numerato. Arriva nel pacco con ogni ordine da 100€ o più — niente form, niente codici, niente spiegazioni. È dentro.",
-      "conditionLabel": "Come ottenerlo",
-      "condition": "Ordine da 100€ o più → Sticker N°001 incluso nel pacco. Non è in vendita da nessuna parte.",
-      "date": "Disponibile dal 5 agosto 2026."
-    },
-    "merch": {
-      "eyebrow": "SEBO PRACTICE ARCHIVES™",
-      "headline": "Cinque documenti emessi dalla Sebo Research Division™: l'ufficio che protocolla ciò che succede prima del tatuaggio.",
-      "subline": "Ogni capo è un fascicolo. Davanti, la targhetta d'archivio con il codice del referto e il suo stato. Dietro, il documento integrale: rilievi, tolleranze, callout numerati, timbro. Tre stati possibili: VERIFIED, FAILED, PENDING. Nessuno dei tre è un complimento."
-    },
-    "pellaioLink": "Il Pellaio fa le pelli. Io le rovino. Non mi rivolge la parola dal 2012.",
-    "cta": {
-      "eyebrow": "SEGUIMI",
-      "instagram": {
-        "button": "Sebo su Instagram",
-        "note": "128 post pronti. Il profilo è il cassone dove finisce tutto — errori, tutorial, il caffè del lunedì. Aggiornato da qualcosa."
-      },
-      "telegram": {
-        "button": "Canale Telegram",
-        "note": "Per chi vuole sapere prima degli altri."
-      },
-      "support": {
-        "button": "Scrivi al laboratorio",
-        "note": "Per ordini — risponde il laboratorio."
-      }
-    },
-    "imageAlt": "Sebo — la mascotte del laboratorio",
-    "backToShop": "← Torna alla vetrina",
-    "pratica": {
-      "eyebrow": "LA PRATICA",
-      "quote": "SEBO non osserva il tatuaggio.\nOsserva la pratica. La sua."
-    },
-    "mondo": {
-      "eyebrow": "IL MONDO DI SEBO",
-      "pellaio": {
-        "name": "IL PELLAIO",
-        "line": "Mi gira verso il muro. Non chiede. Decide. Io subisco."
-      },
-      "arancia": {
-        "name": "L'ARANCIA",
-        "line": "La prima superficie su cui tutti si sono allenati. Ora aspetta sul davanzale."
-      },
-      "corriere": {
-        "name": "IL CORRIERE",
-        "line": "L'unico umano che mi tratta da pacco. Non sbaglia mai."
-      },
-      "scatola": {
-        "name": "LA SCATOLA",
-        "line": "SHIPPING SEAL: INTACT. Dal primo giorno."
-      }
-    },
-    "vitaSegreta": {
-      "eyebrow": "QUANDO NESSUNO GUARDA",
-      "headline": "Il laboratorio apre alle dieci.\nLui è lì dalle sette.",
-      "body": "C'è un rituale prima del lavoro. Uno specchio incrinato, una lametta, nessun testimone. Sebo non lo ha mai raccontato. Non perché sia un segreto — ma perché nessuno ha mai chiesto."
-    }
   },
   "subscription": {
     "hub": {

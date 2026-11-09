@@ -78,8 +78,11 @@ jobs:
         working-directory: storefront
         run: |
           npm run test:orders --silent
+          npm run test:reorder --silent
+          npm run test:reorder-orders --silent
           npm run test:emails --silent
           npm run test:catalog --silent
+          npm run test:legacy-slugs --silent
           npm run test:promo --silent
           npm run test:shipping --silent
           npm run test:landed-cost --silent
@@ -90,7 +93,15 @@ jobs:
           npm run test:affiliate-referral --silent
           npm run test:affiliate-route --silent
           npm run test:affiliate-i18n --silent
-
+          npm run test:pwa-push-endpoint --silent
+          npm run test:pwa-push-claim --silent
+          npm run test:pwa-push-logout --silent
+          npm run test:sw --silent
+          npm run test:files-download --silent
+          npm run test:cms-media-proxy --silent
+          npm run test:laboratorio --silent
+          npm run test:home-pellaio --silent
+          npm run test:sebo-retirement --silent
       - name: Storefront — build
         working-directory: storefront
         run: npm run build
@@ -99,6 +110,10 @@ jobs:
         working-directory: cms
         run: npx tsc --noEmit
 
+      - name: CMS — test
+        working-directory: cms
+        run: npm run test --silent
+
       - name: CMS — build (genera import map e tipi)
         working-directory: cms
         run: npm run build
@@ -106,6 +121,10 @@ jobs:
       - name: B2B — tipi
         working-directory: b2b
         run: npx tsc --noEmit
+
+      - name: B2B — test
+        working-directory: b2b
+        run: npm run test:checkout --silent
 
       - name: B2B — build
         working-directory: b2b
