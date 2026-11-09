@@ -453,32 +453,38 @@
         {
           "ora": "07:12",
           "ruolo": "Magazziniere",
-          "testo": "Scarica lui, firma lui, si lamenta lui."
+          "testo": "Scarica lui, firma lui, si lamenta lui.",
+          "alt": "Magazziniere: salopette da lavoro, guanti neri e un pacco FOOLISH tra le braccia."
         },
         {
           "ora": "09:40",
           "ruolo": "Segreteria",
-          "testo": "Tre email, nessuna risposta. Le ha scritte lui."
+          "testo": "Tre email, nessuna risposta. Le ha scritte lui.",
+          "alt": "Segreteria: cardigan di lana, occhiali, registri sotto il braccio e cornetta del telefono all'orecchio."
         },
         {
           "ora": "11:05",
           "ruolo": "Call center",
-          "testo": "«La sua richiesta è molto importante per noi.» È vero: è l'unico che risponde."
+          "testo": "«La sua richiesta è molto importante per noi.» È vero: è l'unico che risponde.",
+          "alt": "Call center: cuffie con microfono, badge SUPPORT sul petto, guanti neri e cintura portastrumenti."
         },
         {
           "ora": "14:20",
           "ruolo": "Chimico",
-          "testo": "La superficie non è uniforme. La rifà. Quarta volta."
+          "testo": "La superficie non è uniforme. La rifà. Quarta volta.",
+          "alt": "Chimico: camice macchiato, occhiale protettivo, guanti neri e una beuta di liquido blu in mano."
         },
         {
           "ora": "16:45",
           "ruolo": "CEO",
-          "testo": "Riunione con i reparti. I reparti è lui."
+          "testo": "Riunione con i reparti. I reparti è lui.",
+          "alt": "CEO: redingote scura, panciotto, cravatta e catena da orologio, registro FOOLISH sotto il braccio."
         },
         {
           "ora": "19:30",
           "ruolo": "Pulizie",
-          "testo": "Qualcuno ha lasciato flock sul banco. Quel qualcuno sono io."
+          "testo": "Qualcuno ha lasciato flock sul banco. Quel qualcuno sono io.",
+          "alt": "Pulizie: grembiule da lavoro, guanti di gomma gialli, spruzzino e spazzola nelle tasche."
         },
         {
           "ora": "23:58",

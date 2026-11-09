@@ -21,10 +21,28 @@ import test from 'node:test'
  * l'immagine non deve poter rientrare senza che qualcuno lo dichiari.
  */
 
-/** I quattro file di `public/pellaio/`, per nome (un import puo' essere `@/…` senza la barra). */
-const FORBIDDEN_TOKENS = ['/pellaio/', 'pellaio-01', 'pellaio-02', 'pellaio-03', 'pellaio-lab']
+/**
+ * Il vecchio personaggio, per **nome di file** (un import puo' essere `@/…` senza la barra).
+ *
+ * Il prefisso `/pellaio/` da solo non e' piu' un token vietato: la stessa cartella ospita ora i
+ * **sei ritagli approvati dei ruoli**, sotto `personaggi/` (card t_3458967b). A distinguerli dai
+ * vecchi file e' `pellaioReferences()`, che accetta solo quella sottocartella: un riferimento a
+ * qualunque altro file di `public/pellaio/` continua a far fallire la guardia.
+ */
+const FORBIDDEN_TOKENS = ['pellaio-01', 'pellaio-02', 'pellaio-03', 'pellaio-lab', 'pellaio.png']
+/** L'unica sottocartella di `public/pellaio/` che il prodotto puo' servire: i sei ruoli. */
+const ALLOWED_PELLAIO_DIR = '/pellaio/personaggi'
 /** Il vecchio personaggio ha anche una cartella gemella, mai referenziata: stessa regola. */
 const FORBIDDEN_FRANK = ['/frank/', 'frank-01', 'frank-02', 'frank-03', 'frank-lab']
+
+/**
+ * Ogni percorso `/pellaio/...` presente in un sorgente. Serve a vietare la cartella intera tranne
+ * la sottocartella approvata: senza, togliere il token `/pellaio/` aprirebbe un buco (basterebbe
+ * referenziare `pellaio-qualunque.png` per tornare al personaggio precedente con un altro nome).
+ */
+function pellaioReferences(source: string): string[] {
+  return source.match(/\/pellaio\/[^'"`\s,)]*/g) ?? []
+}
 
 const homeSource = readFileSync(new URL('../app/[locale]/page.tsx', import.meta.url), 'utf8')
 
@@ -80,6 +98,9 @@ test('la home non referenzia piu` le immagini del vecchio Pellaio', () => {
     assert.ok(!homeSource.includes(token), `la home non deve contenere ${token}`)
   }
   assert.ok(!homeSource.includes('pellaio.png'), 'la home non deve servire pellaio.png')
+  // Sulla home la regola resta assoluta: nessun file di `public/pellaio/`, nemmeno i ritagli nuovi
+  // (i sei ruoli vivono in `/laboratorio`, non nel teaser: lo slot della home resta vuoto).
+  assert.deepEqual(pellaioReferences(homeSource), [], 'la home non deve referenziare alcun file di /pellaio/')
 })
 
 test('nessun file del prodotto referenzia gli asset del vecchio personaggio', () => {
@@ -87,6 +108,11 @@ test('nessun file del prodotto referenzia gli asset del vecchio personaggio', ()
   for (const { rel, source } of scannedSources()) {
     for (const token of [...FORBIDDEN_TOKENS, ...FORBIDDEN_FRANK]) {
       if (source.includes(token)) offenders.push(`${rel} → ${token}`)
+    }
+    for (const ref of pellaioReferences(source)) {
+      if (ref !== ALLOWED_PELLAIO_DIR && !ref.startsWith(`${ALLOWED_PELLAIO_DIR}/`)) {
+        offenders.push(`${rel} → ${ref}`)
+      }
     }
   }
   assert.deepEqual(offenders, [], 'nessun file servito deve referenziare le immagini del vecchio personaggio')

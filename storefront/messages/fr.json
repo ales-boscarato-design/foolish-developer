@@ -453,32 +453,38 @@
         {
           "ora": "07:12",
           "ruolo": "Magasinier",
-          "testo": "Il décharge, il signe, il se plaint."
+          "testo": "Il décharge, il signe, il se plaint.",
+          "alt": "Magasinier : salopette de travail usée, gants noirs et un colis FOOLISH dans les bras."
         },
         {
           "ora": "09:40",
           "ruolo": "Secrétaire",
-          "testo": "Trois mails, aucune réponse. C'est lui qui les a écrits."
+          "testo": "Trois mails, aucune réponse. C'est lui qui les a écrits.",
+          "alt": "Secrétaire : gilet de laine, lunettes rondes, registres sous le bras et combiné téléphonique à l'oreille."
         },
         {
           "ora": "11:05",
           "ruolo": "Centre d'appel",
-          "testo": "« Votre demande est très importante pour nous. » C'est vrai : il est le seul à répondre."
+          "testo": "« Votre demande est très importante pour nous. » C'est vrai : il est le seul à répondre.",
+          "alt": "Centre d'appel : casque avec micro, badge SUPPORT sur la poitrine, gants noirs et ceinture à outils."
         },
         {
           "ora": "14:20",
           "ruolo": "Chimiste",
-          "testo": "La surface n'est pas régulière. Il recommence. Quatrième fois."
+          "testo": "La surface n'est pas régulière. Il recommence. Quatrième fois.",
+          "alt": "Chimiste : blouse tachée, verre de protection sur un œil, gants noirs et un erlenmeyer de liquide bleu."
         },
         {
           "ora": "16:45",
           "ruolo": "PDG",
-          "testo": "Réunion avec les services. Les services, c'est lui."
+          "testo": "Réunion avec les services. Les services, c'est lui.",
+          "alt": "PDG : redingote sombre, gilet, cravate et chaîne de montre, registre FOOLISH sous le bras."
         },
         {
           "ora": "19:30",
           "ruolo": "Ménage",
-          "testo": "Quelqu'un a laissé du flock sur l'établi. Ce quelqu'un, c'est moi."
+          "testo": "Quelqu'un a laissé du flock sur l'établi. Ce quelqu'un, c'est moi.",
+          "alt": "Ménage : tablier de travail épais, gants en caoutchouc jaunes, vaporisateur et brosse dans les poches."
         },
         {
           "ora": "23:58",
