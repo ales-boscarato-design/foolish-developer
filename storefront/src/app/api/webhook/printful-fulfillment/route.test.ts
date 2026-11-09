@@ -113,6 +113,10 @@ interface SessionOverrides {
   metadata?: Record<string, string>
   /** Sessione il cui checkout NON ha dichiarato `order_ref` nei metadata. */
   omitOrderRef?: boolean
+  /** `checkout.session.mode` (default: pagamento singolo). */
+  mode?: string
+  /** `checkout.session.payment_status` (default: paid). */
+  paymentStatus?: string
 }
 
 function sessionEvent(overrides: SessionOverrides = {}): Record<string, unknown> {
@@ -132,8 +136,8 @@ function sessionEvent(overrides: SessionOverrides = {}): Record<string, unknown>
   const session: Record<string, unknown> = {
     id: 'cs_test_printful_1',
     object: 'checkout.session',
-    mode: 'payment',
-    payment_status: 'paid',
+    mode: overrides.mode ?? 'payment',
+    payment_status: overrides.paymentStatus ?? 'paid',
     amount_total: 2390,
     customer_details: { name: 'Mario Rossi', email: 'mario@example.com' },
     metadata,
@@ -454,4 +458,31 @@ test('sessione senza order_ref e senza righe merch: nessun allarme, 200', async 
 
   assert.equal(alerts.length, 0)
   assert.equal(printfulLookups().length, 0)
+})
+
+test('ordine CMS legacy e pacco legacy entrambi presenti: nessun secondo pacco', async () => {
+  await deliver({
+    omitOrderRef: true,
+    cmsOrders: [{ orderNumber: 'FOOLISH-cs_test_printful_1' }],
+    printfulExistingRefs: ['FOOLISH-cs_test_printful_1'],
+  })
+
+  assert.equal(printfulCreateRequest(), undefined, 'nessun secondo ordine di stampa')
+  assert.ok(printfulLookups().includes('FOOLISH-cs_test_printful_1'))
+  assert.equal(alerts.length, 0)
+})
+
+test('sessione abbonamento: nessuna stampa e nessun allarme', async () => {
+  await deliver({ mode: 'subscription', omitOrderRef: true })
+
+  assert.equal(printfulCreateRequest(), undefined)
+  assert.equal(alerts.length, 0)
+})
+
+test('sessione non pagata: nessuna stampa e nessun allarme', async () => {
+  await deliver({ paymentStatus: 'unpaid', omitOrderRef: true })
+
+  assert.equal(printfulCreateRequest(), undefined)
+  assert.equal(printfulLookups().length, 0)
+  assert.equal(alerts.length, 0)
 })
