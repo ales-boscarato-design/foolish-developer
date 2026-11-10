@@ -10,10 +10,10 @@
     "build": "payload generate:importmap && next build --webpack",
     "start": "next start --port 3001",
     "generate:types": "payload generate:types",
-    "test": "tsx --test \"src/**/*.test.ts\""
+    "test": "tsx scripts/run-tests.ts"
   },
   "engines": {
-    "node": ">=20.9.0"
+    "node": ">=22.0.0"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.88.0",
