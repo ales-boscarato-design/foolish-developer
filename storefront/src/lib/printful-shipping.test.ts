@@ -175,3 +175,21 @@ test('metadata assenti: nessuna eccezione, indirizzo vuoto dichiarato incompleto
     country: '',
   })
 })
+
+test('il paese non si prende da un altra fonte quando quella scelta non ce l ha', () => {
+  // Scelta consapevole, non un effetto collaterale: il webhook Stripe usa
+  // `recipient.country` anche per il paese del cliente nel CMS, quindi qui si
+  // fissa che la regola "i campi non si mescolano" vale anche per il paese.
+  // Se un giorno il consumatore volesse il ripiego per singolo campo, dovrebbe
+  // chiederlo esplicitamente: mescolare in silenzio qui vorrebbe dire spedire
+  // un pacco con il paese di un'altra fonte.
+  const resolved = resolvePrintfulShipping({
+    session: { collected_information: { shipping_details: { address: { line1: 'Via Nuova 1', city: 'Milano', postal_code: '20100' } } } },
+    metadata: METADATA, // METADATA porta customer_country
+    customerName: 'Mario Rossi',
+  })
+
+  assert.equal(resolved.source, 'collected_information')
+  assert.equal(resolved.recipient.country, '')
+  assert.equal(resolved.complete, false)
+})
