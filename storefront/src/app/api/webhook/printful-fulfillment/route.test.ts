@@ -23,6 +23,8 @@ process.env.STRIPE_SECRET_KEY = 'sk_test_dummy'
 process.env.PRINTFUL_API_KEY = 'printful-test-key'
 process.env.PAYLOAD_PUBLIC_URL = 'https://cms.test'
 process.env.PAYLOAD_API_SECRET = 'cms-test-secret'
+// Canale degli avvisi operativi: senza URL e segreto `notifyNanobot` non invia
+// nulla e il test non vedrebbe la differenza fra "avviso mandato" e "nessun avviso".
 process.env.NANOBOT_WEBHOOK_URL = 'https://nanobot.test'
 process.env.NANOBOT_WEBHOOK_SECRET = 'nanobot-test-secret'
 
@@ -36,7 +38,13 @@ interface Captured {
   body?: { recipient?: Record<string, string | undefined> } & Record<string, unknown>
 }
 
+interface CapturedAlert {
+  path: string
+  body: Record<string, unknown>
+}
+
 let captured: Captured[] = []
+let alerts: CapturedAlert[] = []
 let printfulOrderExists = false
 /** Riferimenti per cui Printful considera gia' esistente l'ordine (GET /orders/@ref). */
 let printfulExistingRefs: string[] = []
@@ -44,17 +52,31 @@ let printfulExistingRefs: string[] = []
 let cmsOrders: Array<{ orderNumber: string; stripeSessionId?: string }> = []
 /** Se valorizzato, la ricerca ordini sul CMS fallisce con questo status. */
 let cmsOrdersFailure: number | null = null
-/** Payload degli avvisi operativi inviati al ricevitore. */
-let alerts: Array<Record<string, unknown>> = []
+let printfulCreateStatus = 200
+let nanobotFails = false
+let catalogFails = false
+let createNetworkError = false
 
 const realFetch = globalThis.fetch
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
   const method = (init?.method ?? 'GET').toUpperCase()
+
+  // Avvisi operativi (notifyNanobot): stessa fetch del resto del codice.
+  if (url.startsWith('https://nanobot.test')) {
+    alerts.push({
+      path: url.slice('https://nanobot.test'.length),
+      body: JSON.parse(String(init?.body ?? '{}')),
+    })
+    if (nanobotFails) throw new Error('nanobot irraggiungibile (test)')
+    return new Response('{}', { status: 200 })
+  }
+
   captured.push({ url, method, body: init?.body ? JSON.parse(String(init.body)) : undefined })
 
   // Catalogo CMS: una riga merch con sync variant Printful.
   if (url.startsWith('https://cms.test/api/products')) {
+    if (catalogFails) throw new Error('CMS irraggiungibile (test)')
     return new Response(
       JSON.stringify({ docs: [{ variants: [{ sku: 'TS-A4', printfulSyncVariantId: '4011' }] }] }),
       { status: 200, headers: { 'content-type': 'application/json' } },
@@ -79,12 +101,6 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     })
   }
 
-  // Avvisi operativi al ricevitore (hook firmato).
-  if (url.startsWith('https://nanobot.test/hooks/')) {
-    alerts.push(JSON.parse(String(init?.body ?? '{}')))
-    return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } })
-  }
-
   // Idempotenza: GET /orders/@<external_id>.
   if (url.startsWith(`${PRINTFUL_CREATE_URL}/@`)) {
     const ref = decodeURIComponent(url.slice(`${PRINTFUL_CREATE_URL}/@`.length))
@@ -92,6 +108,20 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     return new Response('{}', { status: exists ? 200 : 404 })
   }
   if (url === PRINTFUL_CREATE_URL && method === 'POST') {
+    if (createNetworkError) throw new Error('ECONNRESET (test)')
+    if (printfulCreateStatus !== 200) {
+      // Il corpo dell'errore contiene il destinatario: e' il caso peggiore per
+      // l'avviso, che deve restare pulito anche quando Printful rimanda i dati.
+      return new Response(
+        JSON.stringify({
+          error: {
+            message: 'invalid recipient',
+            recipient: { name: 'Anna Bianchi', address1: 'Via Nuova 99', city: 'Milano', email: 'anna@example.com' },
+          },
+        }),
+        { status: printfulCreateStatus, headers: { 'content-type': 'application/json' } },
+      )
+    }
     return new Response(JSON.stringify({ result: { id: 1 } }), {
       status: 200,
       headers: { 'content-type': 'application/json' },
@@ -120,34 +150,39 @@ interface SessionOverrides {
 }
 
 function sessionEvent(overrides: SessionOverrides = {}): Record<string, unknown> {
-  const metadata: Record<string, string> = {
-    order_ref: ORDER_REF,
-    customer_name: 'Mario Rossi',
-    customer_country: 'IT',
-    // Indirizzo del PRIMO ordine: sul riordino resta vecchio per costruzione
-    // (reorder.ts lo ricava dall'ordine precedente, non dal checkout nuovo).
-    customer_address: OLD_ADDRESS,
-    items_json: JSON.stringify([
-      { sku: 'TS-A4', qty: 1, name: 'T-Sheet A4', variantLabel: 'A4', price: 23.9 },
-    ]),
-    ...overrides.metadata,
-  }
-  if (overrides.omitOrderRef) delete metadata.order_ref
   const session: Record<string, unknown> = {
     id: 'cs_test_printful_1',
     object: 'checkout.session',
-    mode: overrides.mode ?? 'payment',
-    payment_status: overrides.paymentStatus ?? 'paid',
+    mode: 'payment',
+    payment_status: 'paid',
     amount_total: 2390,
     customer_details: { name: 'Mario Rossi', email: 'mario@example.com' },
-    metadata,
+    metadata: {
+      order_ref: ORDER_REF,
+      customer_name: 'Mario Rossi',
+      customer_country: 'IT',
+      // Indirizzo del PRIMO ordine: sul riordino resta vecchio per costruzione
+      // (reorder.ts lo ricava dall'ordine precedente, non dal checkout nuovo).
+      customer_address: OLD_ADDRESS,
+      items_json: JSON.stringify([
+        { sku: 'TS-A4', qty: 1, name: 'T-Sheet A4', variantLabel: 'A4', price: 23.9 },
+      ]),
+      ...overrides.metadata,
+    },
   }
   if (overrides.collected !== undefined) session.collected_information = overrides.collected
   if (overrides.legacy !== undefined) session.shipping_details = overrides.legacy
+  if (overrides.omitOrderRef) delete (session.metadata as Record<string, string>).order_ref
+  if (overrides.mode !== undefined) session.mode = overrides.mode
+  if (overrides.paymentStatus !== undefined) session.payment_status = overrides.paymentStatus
   return session
 }
 
-interface DeliverOptions extends SessionOverrides {
+interface DeliverOptions {
+  createStatus?: number
+  nanobotDown?: boolean
+  catalogDown?: boolean
+  createNetworkDown?: boolean
   /** Ordini presenti nel CMS finto, interrogabili per `orderNumber` o `stripeSessionId`. */
   cmsOrders?: Array<{ orderNumber: string; stripeSessionId?: string }>
   /** Se valorizzato, la ricerca ordini sul CMS fallisce con questo status. */
@@ -158,18 +193,22 @@ interface DeliverOptions extends SessionOverrides {
   expectedStatus?: number
 }
 
-async function deliver(options: DeliverOptions = {}): Promise<Response> {
+async function deliver(overrides: SessionOverrides = {}, opts: DeliverOptions = {}): Promise<Response> {
   captured = []
-  printfulOrderExists = false
-  printfulExistingRefs = options.printfulExistingRefs ?? []
-  cmsOrders = options.cmsOrders ?? []
-  cmsOrdersFailure = options.cmsOrdersFailure ?? null
   alerts = []
+  printfulOrderExists = false
+  printfulExistingRefs = opts.printfulExistingRefs ?? []
+  cmsOrders = opts.cmsOrders ?? []
+  cmsOrdersFailure = opts.cmsOrdersFailure ?? null
+  printfulCreateStatus = opts.createStatus ?? 200
+  nanobotFails = opts.nanobotDown ?? false
+  catalogFails = opts.catalogDown ?? false
+  createNetworkError = opts.createNetworkDown ?? false
   const payload = JSON.stringify({
     id: 'evt_test_1',
     object: 'event',
     type: 'checkout.session.completed',
-    data: { object: sessionEvent(options) },
+    data: { object: sessionEvent(overrides) },
   })
   const signature = new Stripe('sk_test_dummy').webhooks.generateTestHeaderString({
     payload,
@@ -181,7 +220,7 @@ async function deliver(options: DeliverOptions = {}): Promise<Response> {
     headers: { 'stripe-signature': signature },
   })
   const res = await POST(req)
-  assert.equal(res.status, options.expectedStatus ?? 200)
+  assert.equal(res.status, opts.expectedStatus ?? 200)
   return res
 }
 
@@ -354,6 +393,159 @@ test('ordine Printful già esistente: nessuna seconda POST (idempotenza invariat
   assert.equal(captured.filter((c) => c.url === PRINTFUL_CREATE_URL && c.method === 'POST').length, 0)
 })
 
+// ── Avvisi operativi ─────────────────────────────────────────────────────────────
+//
+// Perche' questi test: la rotta risponde SEMPRE 200 (un ordine gia' registrato nel
+// CMS non deve far ritentare Stripe), quindi un indirizzo incompleto o un rifiuto
+// di Printful non lasciano altra traccia che un log. Il rischio misurato e' un
+// ordine merch mai stampato e scoperto giorni dopo. L'avviso deve partire in
+// entrambi i casi, e deve contenere solo riferimenti: nome, indirizzo ed email
+// del cliente non appartengono a un canale di notifica.
+
+const ALERT_HOOK = '/hooks/foolish-printful-fulfillment'
+const PII_MARKERS = ['Via Vecchia 1', 'Via Nuova 99', 'Torino', 'Milano', 'Mario Rossi', 'Anna Bianchi', 'mario@example.com']
+
+function fulfillmentAlerts(): CapturedAlert[] {
+  return alerts.filter((alert) => alert.path === ALERT_HOOK)
+}
+
+function alertBody(alert: CapturedAlert): string {
+  return JSON.stringify(alert.body)
+}
+
+function assertNoPersonalData(alert: CapturedAlert): void {
+  const text = alertBody(alert)
+  for (const marker of PII_MARKERS) {
+    assert.ok(!text.includes(marker), `l'avviso contiene un dato personale (${marker}): ${text}`)
+  }
+}
+
+test('indirizzo incompleto dai metadata: avviso operativo e risposta 200', async () => {
+  // Il caso che la condizione precedente (`source !== 'metadata'`) escludeva: il
+  // fallback sui metadata e' proprio quello dei riordini e degli ordini storici,
+  // dove mancare un campo e' piu' probabile.
+  await deliver({ metadata: { customer_address: 'Via Vecchia 1' } }) // mancano citta' e CAP
+
+  const found = fulfillmentAlerts()
+  assert.equal(found.length, 1, `atteso un avviso, ricevuti ${alerts.length}: ${JSON.stringify(alerts)}`)
+  const [alert] = found
+  assert.equal(alert.body.eventType, 'printful_fulfillment_alert')
+  assert.equal(alert.body.orderRef, ORDER_REF)
+  assert.equal(alert.body.source, 'metadata')
+  assert.equal(alert.body.reason, 'indirizzo_incompleto')
+  assert.deepEqual(alert.body.missingFields, ['city', 'postalCode'])
+  assertNoPersonalData(alert)
+
+  // La rotta continua a tentare la stampa: l'avviso non cambia il flusso.
+  printfulRecipient()
+})
+
+test('indirizzo incompleto da collected_information: avviso con la fonte giusta', async () => {
+  await deliver({ collected: { shipping_details: { address: { line1: 'Via Nuova 99', country: 'IT' } } } })
+
+  const found = fulfillmentAlerts()
+  assert.equal(found.length, 1, `atteso un avviso, ricevuti ${alerts.length}: ${JSON.stringify(alerts)}`)
+  assert.equal(found[0].body.source, 'collected_information')
+  assert.equal(found[0].body.reason, 'indirizzo_incompleto')
+  assert.deepEqual(found[0].body.missingFields, ['city', 'postalCode'])
+  assertNoPersonalData(found[0])
+})
+
+test('Printful rifiuta la create (500): avviso operativo e risposta 200', async () => {
+  await deliver({}, { createStatus: 500 })
+
+  const found = fulfillmentAlerts()
+  assert.equal(found.length, 1, `atteso un avviso, ricevuti ${alerts.length}: ${JSON.stringify(alerts)}`)
+  assert.equal(found[0].body.reason, 'printful_create_failed')
+  assert.equal(found[0].body.printfulStatus, 500)
+  assert.deepEqual(found[0].body.missingFields, [])
+  assertNoPersonalData(found[0])
+})
+
+test('indirizzo completo e Printful disponibile: nessun avviso (caso negativo)', async () => {
+  await deliver({
+    collected: {
+      shipping_details: {
+        name: 'Anna Bianchi',
+        address: { line1: 'Via Nuova 99', city: 'Milano', postal_code: '20100', country: 'IT' },
+      },
+    },
+  })
+
+  assert.deepEqual(fulfillmentAlerts(), [], `nessun avviso atteso, ricevuti: ${JSON.stringify(alerts)}`)
+  printfulRecipient()
+})
+
+test('indirizzo incompleto E Printful lo rifiuta: UN avviso solo, con il motivo del rifiuto', async () => {
+  // Due avvisi per lo stesso ordine (uno per l'indirizzo, uno per il rifiuto)
+  // direbbero la stessa cosa due volte: chi interviene riceve due messaggi con lo
+  // stesso ordine. L'avviso e' uno e porta la causa (i campi) e l'esito (lo stato).
+  await deliver(
+    { collected: { shipping_details: { address: { line1: 'Via Nuova 99', country: 'IT' } } } },
+    { createStatus: 500 },
+  )
+
+  const found = fulfillmentAlerts()
+  assert.equal(found.length, 1, `atteso un solo avviso, ricevuti ${found.length}: ${JSON.stringify(found)}`)
+  assert.equal(found[0].body.reason, 'printful_create_failed')
+  assert.equal(found[0].body.printfulStatus, 500)
+  assert.deepEqual(found[0].body.missingFields, ['city', 'postalCode'])
+  assertNoPersonalData(found[0])
+})
+
+test('avviso irraggiungibile: la rotta resta 200 e l ordine di stampa nasce lo stesso', async () => {
+  // L'invariante del webhook: un canale di notifica rotto non deve fermare la
+  // stampa ne' far ritentare Stripe su un evento gia' gestito.
+  await deliver({ metadata: { customer_address: 'Via Vecchia 1' } }, { nanobotDown: true })
+
+  printfulRecipient() // la POST a Printful e' avvenuta
+  assert.equal(fulfillmentAlerts().length, 1, 'il tentativo di avviso deve comunque avvenire')
+})
+
+test('errore imprevisto (CMS irraggiungibile): avviso fulfillment_failed e 200', async () => {
+  // Il percorso generico del catch esterno: senza avviso, un errore diverso da
+  // "indirizzo incompleto" e "Printful 500" resterebbe un log e basta.
+  await deliver({}, { catalogDown: true })
+
+  const found = fulfillmentAlerts()
+  assert.equal(found.length, 1, `atteso un avviso, ricevuti ${alerts.length}: ${JSON.stringify(alerts)}`)
+  assert.equal(found[0].body.reason, 'fulfillment_failed')
+  assert.equal(found[0].body.orderRef, ORDER_REF)
+  assertNoPersonalData(found[0])
+})
+
+test('errore di rete sulla create (non un rifiuto di Printful): avviso fulfillment_failed', async () => {
+  // Un errore che non e' un rifiuto (connessione, chiave, corpo inatteso) viene
+  // rilanciato al catch esterno: se qualcuno lo trattasse come un rifiuto, il
+  // motivo dell'avviso mentirebbe sullo stato HTTP.
+  await deliver({}, { createNetworkDown: true })
+
+  const found = fulfillmentAlerts()
+  assert.equal(found.length, 1, `atteso un avviso, ricevuti ${alerts.length}: ${JSON.stringify(alerts)}`)
+  assert.equal(found[0].body.reason, 'fulfillment_failed')
+  assert.equal(found[0].body.printfulStatus, undefined)
+  assertNoPersonalData(found[0])
+})
+
+test('destinatario senza nome: l avviso dice che manca il nome', async () => {
+  // Printful richiede `recipient.name`; la create lo manda. Con tutti i campi
+  // dell'indirizzo ma senza nome, il rifiuto deve portare il campo mancante.
+  await deliver(
+    {
+      collected: {
+        shipping_details: { address: { line1: 'Via Nuova 99', city: 'Milano', postal_code: '20100', country: 'IT' } },
+      },
+      metadata: { customer_name: '' },
+    },
+    { createStatus: 422 },
+  )
+
+  const found = fulfillmentAlerts()
+  assert.equal(found.length, 1, `atteso un avviso, ricevuti ${alerts.length}: ${JSON.stringify(alerts)}`)
+  assert.deepEqual(found[0].body.missingFields, ['name'])
+  assert.equal(found[0].body.printfulStatus, 422)
+})
+
 // ── Riferimento dell'ordine: non si inventa ────────────────────────────────────
 //
 // Il codice vecchio faceva `meta.order_ref ?? \`FOOLISH-${session.id}\``. Il riferimento
@@ -365,7 +557,7 @@ test('ordine Printful già esistente: nessuna seconda POST (idempotenza invariat
 
 const CMS_ORDER_NUMBER = 'FOOLISH-0123456789abcdef0123456789abcdef'
 
-function printfulCreateRequest() {
+function printfulCreateRequest(): Captured | undefined {
   return captured.find((c) => c.url === PRINTFUL_CREATE_URL && c.method === 'POST')
 }
 
@@ -376,10 +568,10 @@ function printfulLookups(): string[] {
 }
 
 test('sessione senza order_ref con ordine CMS esistente: usa il numero dell ordine, non l id di sessione', async () => {
-  await deliver({
-    omitOrderRef: true,
-    cmsOrders: [{ orderNumber: CMS_ORDER_NUMBER, stripeSessionId: 'cs_test_printful_1' }],
-  })
+  await deliver(
+    { omitOrderRef: true },
+    { cmsOrders: [{ orderNumber: CMS_ORDER_NUMBER, stripeSessionId: 'cs_test_printful_1' }] },
+  )
 
   const create = printfulCreateRequest()
   assert.ok(create, "nessuna POST a Printful: l'ordine di stampa non e' stato creato")
@@ -392,7 +584,7 @@ test('sessione senza order_ref con ordine CMS esistente: usa il numero dell ordi
 })
 
 test('sessione senza order_ref e senza ordine CMS: nessun ordine di stampa, 503 e avviso', async () => {
-  const res = await deliver({ omitOrderRef: true, cmsOrders: [], expectedStatus: 503 })
+  const res = await deliver({ omitOrderRef: true }, { cmsOrders: [], expectedStatus: 503 })
   const body = await res.json()
 
   assert.equal(body.error, 'order_reference_unresolved')
@@ -401,33 +593,30 @@ test('sessione senza order_ref e senza ordine CMS: nessun ordine di stampa, 503 
   // L'unica chiamata a Printful e' la ricerca del riferimento legacy: nessuna create.
   assert.deepEqual(printfulLookups(), ['FOOLISH-cs_test_printful_1'])
   assert.equal(alerts.length, 1)
-  assert.equal(alerts[0].eventType, 'printful_fulfillment_alert')
-  assert.equal(alerts[0].reason, 'order_ref_unresolved')
-  assert.equal(alerts[0].stripeSessionId, 'cs_test_printful_1')
-  assert.equal(alerts[0].legacyPrintfulOrderExists, false)
+  assert.equal(alerts[0]!.path, '/hooks/foolish-printful-fulfillment')
+  assert.equal(alerts[0]!.body.eventType, 'printful_fulfillment_alert')
+  assert.equal(alerts[0]!.body.reason, 'order_ref_unresolved')
+  assert.equal(alerts[0]!.body.stripeSessionId, 'cs_test_printful_1')
+  assert.equal(alerts[0]!.body.legacyPrintfulOrderExists, false)
 })
 
 test('legacy: un pacco gia creato con FOOLISH-<session.id> viene ritrovato, non duplicato', async () => {
-  const res = await deliver({
-    omitOrderRef: true,
-    cmsOrders: [],
-    printfulExistingRefs: ['FOOLISH-cs_test_printful_1'],
-  })
+  const res = await deliver(
+    { omitOrderRef: true },
+    { cmsOrders: [], printfulExistingRefs: ['FOOLISH-cs_test_printful_1'] },
+  )
   const body = await res.json()
 
   assert.equal(res.status, 200)
   assert.equal(body.legacyOrderRef, 'FOOLISH-cs_test_printful_1')
   assert.equal(printfulCreateRequest(), undefined, 'nessun secondo ordine di stampa')
   assert.equal(alerts.length, 1)
-  assert.equal(alerts[0].legacyPrintfulOrderExists, true)
-  assert.equal(alerts[0].orderRef, 'FOOLISH-cs_test_printful_1')
+  assert.equal(alerts[0]!.body.legacyPrintfulOrderExists, true)
+  assert.equal(alerts[0]!.body.orderRef, 'FOOLISH-cs_test_printful_1')
 })
 
 test('ordine CMS legacy senza stripeSessionId: ritrovato per numero, stessa chiave di stampa', async () => {
-  await deliver({
-    omitOrderRef: true,
-    cmsOrders: [{ orderNumber: 'FOOLISH-cs_test_printful_1' }],
-  })
+  await deliver({ omitOrderRef: true }, { cmsOrders: [{ orderNumber: 'FOOLISH-cs_test_printful_1' }] })
 
   const create = printfulCreateRequest()
   assert.ok(create, "nessuna POST a Printful: l'ordine di stampa non e' stato creato")
@@ -437,7 +626,7 @@ test('ordine CMS legacy senza stripeSessionId: ritrovato per numero, stessa chia
 })
 
 test('order_ref dichiarato: nessuna ricerca sul CMS, la POST usa il numero dichiarato', async () => {
-  await deliver({ cmsOrders: [{ orderNumber: 'altro-ordine' }] })
+  await deliver({}, { cmsOrders: [{ orderNumber: 'altro-ordine' }] })
 
   const create = printfulCreateRequest()
   assert.ok(create, "nessuna POST a Printful: l'ordine di stampa non e' stato creato")
@@ -446,7 +635,7 @@ test('order_ref dichiarato: nessuna ricerca sul CMS, la POST usa il numero dichi
 })
 
 test('CMS non disponibile durante la risoluzione: 503 e nessun ordine di stampa', async () => {
-  const res = await deliver({ omitOrderRef: true, cmsOrdersFailure: 500, expectedStatus: 503 })
+  const res = await deliver({ omitOrderRef: true }, { cmsOrdersFailure: 500, expectedStatus: 503 })
   const body = await res.json()
 
   assert.equal(body.error, 'order_reference_lookup_failed')
@@ -461,11 +650,13 @@ test('sessione senza order_ref e senza righe merch: nessun allarme, 200', async 
 })
 
 test('ordine CMS legacy e pacco legacy entrambi presenti: nessun secondo pacco', async () => {
-  await deliver({
-    omitOrderRef: true,
-    cmsOrders: [{ orderNumber: 'FOOLISH-cs_test_printful_1' }],
-    printfulExistingRefs: ['FOOLISH-cs_test_printful_1'],
-  })
+  await deliver(
+    { omitOrderRef: true },
+    {
+      cmsOrders: [{ orderNumber: 'FOOLISH-cs_test_printful_1' }],
+      printfulExistingRefs: ['FOOLISH-cs_test_printful_1'],
+    },
+  )
 
   assert.equal(printfulCreateRequest(), undefined, 'nessun secondo ordine di stampa')
   assert.ok(printfulLookups().includes('FOOLISH-cs_test_printful_1'))
