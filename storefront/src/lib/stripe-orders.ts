@@ -30,6 +30,27 @@ export interface OrderPersistenceRetryOptions {
   persist?: (session: Stripe.Checkout.Session) => Promise<OrderPersistenceResult>
 }
 
+export interface CmsLookupRetryOptions {
+  delays?: readonly number[]
+  maxRetryAfterMs?: number
+  sleep?: (ms: number) => Promise<void>
+  now?: () => number
+}
+
+export class CmsLookupError extends Error {
+  readonly status: number
+  readonly retryAfterMs: number | null
+  readonly transient: boolean
+
+  constructor(status: number, body: string, retryAfterMs: number | null, transient: boolean) {
+    super(`CMS order lookup failed ${status}: ${body}`)
+    this.name = 'CmsLookupError'
+    this.status = status
+    this.retryAfterMs = retryAfterMs
+    this.transient = transient
+  }
+}
+
 export interface StripeOrderReconciliationResult {
   lookbackDays: number
   sessionsScanned: number
@@ -106,20 +127,84 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+const CMS_LOOKUP_TRANSIENT_STATUSES = new Set([429, 502, 503, 504])
+
+function parseRetryAfter(value: string | null, now: () => number = Date.now): number | null {
+  if (!value) return null
+  const trimmed = value.trim()
+  if (/^\d+$/.test(trimmed)) {
+    const seconds = Number(trimmed)
+    const milliseconds = seconds * 1_000
+    if (Number.isSafeInteger(seconds) && Number.isSafeInteger(milliseconds)) return milliseconds
+    return null
+  }
+
+  const timestamp = Date.parse(trimmed)
+  if (!Number.isFinite(timestamp)) return null
+  const delay = timestamp - now()
+  return delay >= 0 ? delay : null
+}
+
+function isTransientCmsLookupError(error: unknown): error is CmsLookupError {
+  return error instanceof CmsLookupError && error.transient
+}
+
 export function getStripeOrderRef(session: Stripe.Checkout.Session): string {
   return session.metadata?.order_ref ?? `FOOLISH-${session.id}`
 }
 
-export async function findCmsOrder(orderRef: string): Promise<CmsOrder | null> {
-  const response = await fetch(
-    `${cmsUrl()}/api/orders?where[orderNumber][equals]=${encodeURIComponent(orderRef)}&limit=1&depth=0`,
-    { headers: cmsHeaders(), cache: 'no-store' },
-  )
+export async function findCmsOrder(orderRef: string, now: () => number = Date.now): Promise<CmsOrder | null> {
+  let response: Response
+  try {
+    response = await fetch(
+      `${cmsUrl()}/api/orders?where[orderNumber][equals]=${encodeURIComponent(orderRef)}&limit=1&depth=0`,
+      { headers: cmsHeaders(), cache: 'no-store' },
+    )
+  } catch (error) {
+    const body = error instanceof Error ? error.message : String(error)
+    throw new CmsLookupError(0, body, null, true)
+  }
+
   if (!response.ok) {
-    throw new Error(`CMS order lookup failed ${response.status}: ${await response.text()}`)
+    const retryAfterMs = parseRetryAfter(response.headers?.get('retry-after') ?? null, now)
+    const body = await response.text()
+    throw new CmsLookupError(
+      response.status,
+      body,
+      retryAfterMs,
+      CMS_LOOKUP_TRANSIENT_STATUSES.has(response.status),
+    )
   }
   const data = await response.json() as CmsFindResponse
   return data.docs?.[0] ?? null
+}
+
+export async function findCmsOrderWithRetry(
+  orderRef: string,
+  options: CmsLookupRetryOptions = {},
+): Promise<CmsOrder | null> {
+  const delays = options.delays ?? [0, 2_000, 5_000]
+  const maxRetryAfterMs = Math.max(0, options.maxRetryAfterMs ?? 5_000)
+  const wait = options.sleep ?? sleep
+  const now = options.now ?? Date.now
+  let lastError: CmsLookupError | null = null
+
+  for (let attempt = 0; attempt < delays.length; attempt += 1) {
+    try {
+      return await findCmsOrder(orderRef, now)
+    } catch (error) {
+      if (!isTransientCmsLookupError(error)) throw error
+      lastError = error
+      if (attempt + 1 >= delays.length) break
+
+      const configuredDelay = delays[attempt + 1]!
+      // Retry-After può allungare il backoff configurato, mai accorciarlo; il cap è un limite duro.
+      const delay = Math.min(Math.max(configuredDelay, error.retryAfterMs ?? 0), maxRetryAfterMs)
+      await wait(delay)
+    }
+  }
+
+  throw lastError ?? new CmsLookupError(0, 'no lookup attempts configured', null, true)
 }
 
 export async function createOrderInCMS(session: Stripe.Checkout.Session): Promise<OrderPersistenceResult> {
@@ -248,8 +333,9 @@ export async function reconcilePaidStripeOrders(params: {
   lookbackDays: number
   maxSessions?: number
   affiliateAttribution?: (session: Stripe.Checkout.Session, orderNumber: string) => Promise<void>
+  lookupRetry?: CmsLookupRetryOptions
 }): Promise<StripeOrderReconciliationResult> {
-  const { stripe, lookbackDays, maxSessions = 1_000, affiliateAttribution } = params
+  const { stripe, lookbackDays, maxSessions = 1_000, affiliateAttribution, lookupRetry } = params
   const createdAfter = Math.floor(Date.now() / 1000) - lookbackDays * 86_400
   const sessions = await stripe.checkout.sessions
     .list({ created: { gte: createdAfter }, limit: 100 })
@@ -273,13 +359,28 @@ export async function reconcilePaidStripeOrders(params: {
     errors: [],
   }
 
+  let lookupCircuitOpenReason: string | null = null
   for (const sessionSummary of eligible) {
     const orderRef = getStripeOrderRef(sessionSummary)
     try {
       // Retrieve the complete session before checking the order so attribution
       // can repair a missed ledger even when the order already exists.
       const session = await stripe.checkout.sessions.retrieve(sessionSummary.id)
-      if (await findCmsOrder(orderRef)) {
+      if (lookupCircuitOpenReason !== null) {
+        throw new Error(`CMS order lookup skipped: ${lookupCircuitOpenReason}`)
+      }
+
+      let existing: CmsOrder | null
+      try {
+        existing = await findCmsOrderWithRetry(orderRef, lookupRetry)
+      } catch (error) {
+        // Any exhausted transient means CMS is unhealthy for this whole run, not just one order.
+        if (isTransientCmsLookupError(error) && lookupCircuitOpenReason === null) {
+          lookupCircuitOpenReason = error.message
+        }
+        throw error
+      }
+      if (existing) {
         result.alreadyPresent += 1
       } else {
         const persistence = await createOrderInCMSWithRetry(session)

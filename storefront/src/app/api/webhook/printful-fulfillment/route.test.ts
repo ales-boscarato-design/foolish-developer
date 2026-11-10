@@ -23,6 +23,10 @@ process.env.STRIPE_SECRET_KEY = 'sk_test_dummy'
 process.env.PRINTFUL_API_KEY = 'printful-test-key'
 process.env.PAYLOAD_PUBLIC_URL = 'https://cms.test'
 process.env.PAYLOAD_API_SECRET = 'cms-test-secret'
+// Canale degli avvisi operativi: senza URL e segreto `notifyNanobot` non invia
+// nulla e il test non vedrebbe la differenza fra "avviso mandato" e "nessun avviso".
+process.env.NANOBOT_WEBHOOK_URL = 'https://nanobot.test'
+process.env.NANOBOT_WEBHOOK_SECRET = 'nanobot-test-secret'
 
 import Stripe from 'stripe'
 
@@ -34,17 +38,39 @@ interface Captured {
   body?: { recipient?: Record<string, string | undefined> } & Record<string, unknown>
 }
 
+interface CapturedAlert {
+  path: string
+  body: Record<string, unknown>
+}
+
 let captured: Captured[] = []
+let alerts: CapturedAlert[] = []
 let printfulOrderExists = false
+let printfulCreateStatus = 200
+let nanobotFails = false
+let catalogFails = false
+let createNetworkError = false
 
 const realFetch = globalThis.fetch
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
   const method = (init?.method ?? 'GET').toUpperCase()
+
+  // Avvisi operativi (notifyNanobot): stessa fetch del resto del codice.
+  if (url.startsWith('https://nanobot.test')) {
+    alerts.push({
+      path: url.slice('https://nanobot.test'.length),
+      body: JSON.parse(String(init?.body ?? '{}')),
+    })
+    if (nanobotFails) throw new Error('nanobot irraggiungibile (test)')
+    return new Response('{}', { status: 200 })
+  }
+
   captured.push({ url, method, body: init?.body ? JSON.parse(String(init.body)) : undefined })
 
   // Catalogo CMS: una riga merch con sync variant Printful.
   if (url.startsWith('https://cms.test/api/products')) {
+    if (catalogFails) throw new Error('CMS irraggiungibile (test)')
     return new Response(
       JSON.stringify({ docs: [{ variants: [{ sku: 'TS-A4', printfulSyncVariantId: '4011' }] }] }),
       { status: 200, headers: { 'content-type': 'application/json' } },
@@ -56,6 +82,20 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     return new Response('{}', { status: printfulOrderExists ? 200 : 404 })
   }
   if (url === PRINTFUL_CREATE_URL && method === 'POST') {
+    if (createNetworkError) throw new Error('ECONNRESET (test)')
+    if (printfulCreateStatus !== 200) {
+      // Il corpo dell'errore contiene il destinatario: e' il caso peggiore per
+      // l'avviso, che deve restare pulito anche quando Printful rimanda i dati.
+      return new Response(
+        JSON.stringify({
+          error: {
+            message: 'invalid recipient',
+            recipient: { name: 'Anna Bianchi', address1: 'Via Nuova 99', city: 'Milano', email: 'anna@example.com' },
+          },
+        }),
+        { status: printfulCreateStatus, headers: { 'content-type': 'application/json' } },
+      )
+    }
     return new Response(JSON.stringify({ result: { id: 1 } }), {
       status: 200,
       headers: { 'content-type': 'application/json' },
@@ -103,9 +143,17 @@ function sessionEvent(overrides: SessionOverrides = {}): Record<string, unknown>
   return session
 }
 
-async function deliver(overrides: SessionOverrides = {}): Promise<void> {
+async function deliver(
+  overrides: SessionOverrides = {},
+  opts: { createStatus?: number; nanobotDown?: boolean; catalogDown?: boolean; createNetworkDown?: boolean } = {},
+): Promise<void> {
   captured = []
+  alerts = []
   printfulOrderExists = false
+  printfulCreateStatus = opts.createStatus ?? 200
+  nanobotFails = opts.nanobotDown ?? false
+  catalogFails = opts.catalogDown ?? false
+  createNetworkError = opts.createNetworkDown ?? false
   const payload = JSON.stringify({
     id: 'evt_test_1',
     object: 'event',
@@ -292,4 +340,157 @@ test('ordine Printful già esistente: nessuna seconda POST (idempotenza invariat
   )
   assert.equal(res.status, 200)
   assert.equal(captured.filter((c) => c.url === PRINTFUL_CREATE_URL && c.method === 'POST').length, 0)
+})
+
+// ── Avvisi operativi ─────────────────────────────────────────────────────────────
+//
+// Perche' questi test: la rotta risponde SEMPRE 200 (un ordine gia' registrato nel
+// CMS non deve far ritentare Stripe), quindi un indirizzo incompleto o un rifiuto
+// di Printful non lasciano altra traccia che un log. Il rischio misurato e' un
+// ordine merch mai stampato e scoperto giorni dopo. L'avviso deve partire in
+// entrambi i casi, e deve contenere solo riferimenti: nome, indirizzo ed email
+// del cliente non appartengono a un canale di notifica.
+
+const ALERT_HOOK = '/hooks/foolish-printful-fulfillment'
+const PII_MARKERS = ['Via Vecchia 1', 'Via Nuova 99', 'Torino', 'Milano', 'Mario Rossi', 'Anna Bianchi', 'mario@example.com']
+
+function fulfillmentAlerts(): CapturedAlert[] {
+  return alerts.filter((alert) => alert.path === ALERT_HOOK)
+}
+
+function alertBody(alert: CapturedAlert): string {
+  return JSON.stringify(alert.body)
+}
+
+function assertNoPersonalData(alert: CapturedAlert): void {
+  const text = alertBody(alert)
+  for (const marker of PII_MARKERS) {
+    assert.ok(!text.includes(marker), `l'avviso contiene un dato personale (${marker}): ${text}`)
+  }
+}
+
+test('indirizzo incompleto dai metadata: avviso operativo e risposta 200', async () => {
+  // Il caso che la condizione precedente (`source !== 'metadata'`) escludeva: il
+  // fallback sui metadata e' proprio quello dei riordini e degli ordini storici,
+  // dove mancare un campo e' piu' probabile.
+  await deliver({ metadata: { customer_address: 'Via Vecchia 1' } }) // mancano citta' e CAP
+
+  const found = fulfillmentAlerts()
+  assert.equal(found.length, 1, `atteso un avviso, ricevuti ${alerts.length}: ${JSON.stringify(alerts)}`)
+  const [alert] = found
+  assert.equal(alert.body.eventType, 'printful_fulfillment_alert')
+  assert.equal(alert.body.orderRef, ORDER_REF)
+  assert.equal(alert.body.source, 'metadata')
+  assert.equal(alert.body.reason, 'indirizzo_incompleto')
+  assert.deepEqual(alert.body.missingFields, ['city', 'postalCode'])
+  assertNoPersonalData(alert)
+
+  // La rotta continua a tentare la stampa: l'avviso non cambia il flusso.
+  printfulRecipient()
+})
+
+test('indirizzo incompleto da collected_information: avviso con la fonte giusta', async () => {
+  await deliver({ collected: { shipping_details: { address: { line1: 'Via Nuova 99', country: 'IT' } } } })
+
+  const found = fulfillmentAlerts()
+  assert.equal(found.length, 1, `atteso un avviso, ricevuti ${alerts.length}: ${JSON.stringify(alerts)}`)
+  assert.equal(found[0].body.source, 'collected_information')
+  assert.equal(found[0].body.reason, 'indirizzo_incompleto')
+  assert.deepEqual(found[0].body.missingFields, ['city', 'postalCode'])
+  assertNoPersonalData(found[0])
+})
+
+test('Printful rifiuta la create (500): avviso operativo e risposta 200', async () => {
+  await deliver({}, { createStatus: 500 })
+
+  const found = fulfillmentAlerts()
+  assert.equal(found.length, 1, `atteso un avviso, ricevuti ${alerts.length}: ${JSON.stringify(alerts)}`)
+  assert.equal(found[0].body.reason, 'printful_create_failed')
+  assert.equal(found[0].body.printfulStatus, 500)
+  assert.deepEqual(found[0].body.missingFields, [])
+  assertNoPersonalData(found[0])
+})
+
+test('indirizzo completo e Printful disponibile: nessun avviso (caso negativo)', async () => {
+  await deliver({
+    collected: {
+      shipping_details: {
+        name: 'Anna Bianchi',
+        address: { line1: 'Via Nuova 99', city: 'Milano', postal_code: '20100', country: 'IT' },
+      },
+    },
+  })
+
+  assert.deepEqual(fulfillmentAlerts(), [], `nessun avviso atteso, ricevuti: ${JSON.stringify(alerts)}`)
+  printfulRecipient()
+})
+
+test('indirizzo incompleto E Printful lo rifiuta: UN avviso solo, con il motivo del rifiuto', async () => {
+  // Due avvisi per lo stesso ordine (uno per l'indirizzo, uno per il rifiuto)
+  // direbbero la stessa cosa due volte: chi interviene riceve due messaggi con lo
+  // stesso ordine. L'avviso e' uno e porta la causa (i campi) e l'esito (lo stato).
+  await deliver(
+    { collected: { shipping_details: { address: { line1: 'Via Nuova 99', country: 'IT' } } } },
+    { createStatus: 500 },
+  )
+
+  const found = fulfillmentAlerts()
+  assert.equal(found.length, 1, `atteso un solo avviso, ricevuti ${found.length}: ${JSON.stringify(found)}`)
+  assert.equal(found[0].body.reason, 'printful_create_failed')
+  assert.equal(found[0].body.printfulStatus, 500)
+  assert.deepEqual(found[0].body.missingFields, ['city', 'postalCode'])
+  assertNoPersonalData(found[0])
+})
+
+test('avviso irraggiungibile: la rotta resta 200 e l ordine di stampa nasce lo stesso', async () => {
+  // L'invariante del webhook: un canale di notifica rotto non deve fermare la
+  // stampa ne' far ritentare Stripe su un evento gia' gestito.
+  await deliver({ metadata: { customer_address: 'Via Vecchia 1' } }, { nanobotDown: true })
+
+  printfulRecipient() // la POST a Printful e' avvenuta
+  assert.equal(fulfillmentAlerts().length, 1, 'il tentativo di avviso deve comunque avvenire')
+})
+
+test('errore imprevisto (CMS irraggiungibile): avviso fulfillment_failed e 200', async () => {
+  // Il percorso generico del catch esterno: senza avviso, un errore diverso da
+  // "indirizzo incompleto" e "Printful 500" resterebbe un log e basta.
+  await deliver({}, { catalogDown: true })
+
+  const found = fulfillmentAlerts()
+  assert.equal(found.length, 1, `atteso un avviso, ricevuti ${alerts.length}: ${JSON.stringify(alerts)}`)
+  assert.equal(found[0].body.reason, 'fulfillment_failed')
+  assert.equal(found[0].body.orderRef, ORDER_REF)
+  assertNoPersonalData(found[0])
+})
+
+test('errore di rete sulla create (non un rifiuto di Printful): avviso fulfillment_failed', async () => {
+  // Un errore che non e' un rifiuto (connessione, chiave, corpo inatteso) viene
+  // rilanciato al catch esterno: se qualcuno lo trattasse come un rifiuto, il
+  // motivo dell'avviso mentirebbe sullo stato HTTP.
+  await deliver({}, { createNetworkDown: true })
+
+  const found = fulfillmentAlerts()
+  assert.equal(found.length, 1, `atteso un avviso, ricevuti ${alerts.length}: ${JSON.stringify(alerts)}`)
+  assert.equal(found[0].body.reason, 'fulfillment_failed')
+  assert.equal(found[0].body.printfulStatus, undefined)
+  assertNoPersonalData(found[0])
+})
+
+test('destinatario senza nome: l avviso dice che manca il nome', async () => {
+  // Printful richiede `recipient.name`; la create lo manda. Con tutti i campi
+  // dell'indirizzo ma senza nome, il rifiuto deve portare il campo mancante.
+  await deliver(
+    {
+      collected: {
+        shipping_details: { address: { line1: 'Via Nuova 99', city: 'Milano', postal_code: '20100', country: 'IT' } },
+      },
+      metadata: { customer_name: '' },
+    },
+    { createStatus: 422 },
+  )
+
+  const found = fulfillmentAlerts()
+  assert.equal(found.length, 1, `atteso un avviso, ricevuti ${alerts.length}: ${JSON.stringify(alerts)}`)
+  assert.deepEqual(found[0].body.missingFields, ['name'])
+  assert.equal(found[0].body.printfulStatus, 422)
 })
