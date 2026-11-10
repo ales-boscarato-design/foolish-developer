@@ -15,6 +15,8 @@ import {
 } from '@/lib/affiliate-attribution'
 import { attachScheduleToSubscription } from '@/lib/stripe-subscription-schedule'
 import { getBenefitForCycle, type PlanKey, type Zone } from '@/lib/subscription-plans'
+import { detectRenewalZoneMismatch } from '@/lib/subscription-renewal-zone'
+import { reportRenewalZoneMismatch } from '@/lib/subscription-renewal-zone-alert'
 
 export const dynamic = 'force-dynamic'
 
@@ -486,13 +488,37 @@ export async function POST(req: NextRequest) {
 
         const newCycle = record.cyclesCompleted + 1
         const shippingDetails = invoice.customer_shipping
+        const destinationCountry = shippingDetails?.address?.country ?? null
+
+        // Il rinnovo si prezza da `record.zone` ma si spedisce a
+        // `invoice.customer_shipping`: se qualcuno cambia l'indirizzo a mano
+        // (supporto o dashboard Stripe) le due cose divergono, il cliente paga
+        // la tariffa della zona vecchia e la perdita si ripete a ogni ciclo
+        // senza che nulla la segnali. Si misura e si avvisa; la zona NON si
+        // corregge da soli (cambierebbe il prezzo al cliente senza consenso) e
+        // il rinnovo gia' pagato non si blocca: reportRenewalZoneMismatch non
+        // lancia mai, e la guardia qui sotto e' la seconda rete.
+        try {
+          await reportRenewalZoneMismatch(
+            detectRenewalZoneMismatch({
+              subscriptionId,
+              plan: record.plan,
+              cycle: newCycle,
+              registeredZone: record.zone,
+              destinationCountry,
+            }),
+          )
+        } catch (err) {
+          console.error('[webhook] subscription renewal zone check failed:', err)
+        }
+
         const shippingAddress = {
           name: shippingDetails?.name ?? '',
           address1: shippingDetails?.address?.line1 ?? '',
           address2: shippingDetails?.address?.line2 ?? '',
           city: shippingDetails?.address?.city ?? '',
           postalCode: shippingDetails?.address?.postal_code ?? '',
-          country: shippingDetails?.address?.country ?? record.zone,
+          country: destinationCountry ?? record.zone,
         }
 
         await createRenewalOrder({
