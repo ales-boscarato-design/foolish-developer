@@ -6,6 +6,7 @@ import type Stripe from 'stripe'
 import {
   createOrderInCMS,
   createOrderInCMSWithRetry,
+  findCmsOrderWithRetry,
   reconcilePaidStripeOrders,
   PROMO_TYPES,
   type OrderPersistenceResult,
@@ -264,6 +265,245 @@ test('reconciliation invokes attribution for a paid session whose order already 
     assert.equal(retrieveCount, 1)
     assert.equal((attributionSession as unknown as Stripe.Checkout.Session).id, paid.id)
     assert.equal(attributionOrderRef, 'FOOLISH-ORDER-TEST')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+function cmsLookupResponse(status: number, value: unknown, retryAfter?: string): Response {
+  const headers = new Headers({ 'content-type': 'application/json' })
+  if (retryAfter !== undefined) headers.set('retry-after', retryAfter)
+  return new Response(JSON.stringify(value), { status, headers })
+}
+
+function reconciliationStripe(sessions: Stripe.Checkout.Session[]): Stripe {
+  return {
+    checkout: {
+      sessions: {
+        list: () => ({
+          autoPagingToArray: async () => sessions,
+        }),
+        retrieve: async (id: string) => sessions.find((session) => session.id === id)!,
+      },
+    },
+  } as unknown as Stripe
+}
+
+test('reconciliation treats a recovered lookup 429 as already present', async () => {
+  const originalFetch = globalThis.fetch
+  const paid = checkoutSession()
+  let lookupAttempts = 0
+  let postAttempts = 0
+  const waits: number[] = []
+
+  globalThis.fetch = async (_input, init) => {
+    if (init?.method === 'POST') {
+      postAttempts += 1
+      return jsonResponse({ id: 1001 }, 201)
+    }
+    lookupAttempts += 1
+    return lookupAttempts < 3
+      ? cmsLookupResponse(429, { error: 'rate limited' })
+      : cmsLookupResponse(200, { docs: [{ id: 1001, orderNumber: 'FOOLISH-ORDER-TEST' }] })
+  }
+
+  try {
+    const result = await reconcilePaidStripeOrders({
+      stripe: reconciliationStripe([paid]),
+      lookbackDays: 30,
+      lookupRetry: { delays: [0, 0, 0], sleep: async (ms) => { waits.push(ms) } },
+    })
+    assert.equal(result.alreadyPresent, 1)
+    assert.equal(result.errors.length, 0)
+    assert.equal(result.recovered.length, 0)
+    assert.equal(lookupAttempts, 3)
+    assert.equal(postAttempts, 0)
+    assert.deepEqual(waits, [0, 0])
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('persistent lookup 429 fails closed without creating an order', async () => {
+  const originalFetch = globalThis.fetch
+  const paid = checkoutSession()
+  let lookupAttempts = 0
+  let postAttempts = 0
+
+  globalThis.fetch = async (_input, init) => {
+    if (init?.method === 'POST') {
+      postAttempts += 1
+      return jsonResponse({ id: 1002 }, 201)
+    }
+    lookupAttempts += 1
+    return cmsLookupResponse(429, { error: 'rate limited' })
+  }
+
+  try {
+    const result = await reconcilePaidStripeOrders({
+      stripe: reconciliationStripe([paid]),
+      lookbackDays: 30,
+      lookupRetry: { delays: [0, 0, 0], sleep: async () => {} },
+    })
+    assert.equal(result.recovered.length, 0)
+    assert.equal(result.alreadyPresent, 0)
+    assert.equal(result.errors.length, 1)
+    assert.match(result.errors[0]!.error, /CMS order lookup failed 429/)
+    assert.equal(lookupAttempts, 3)
+    assert.equal(postAttempts, 0)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('lookup Retry-After never shortens the configured backoff and is capped', async () => {
+  const originalFetch = globalThis.fetch
+
+  const run = async (
+    retryAfter: string,
+    delays: readonly number[],
+    maxRetryAfterMs?: number,
+    now?: () => number,
+  ): Promise<number[]> => {
+    const waits: number[] = []
+    let lookupAttempts = 0
+    globalThis.fetch = async () => {
+      lookupAttempts += 1
+      return lookupAttempts === 1
+        ? cmsLookupResponse(429, { error: 'rate limited' }, retryAfter)
+        : cmsLookupResponse(200, { docs: [] })
+    }
+    await findCmsOrderWithRetry('FOOLISH-RETRY-AFTER', {
+      delays,
+      maxRetryAfterMs,
+      now,
+      sleep: async (ms) => { waits.push(ms) },
+    })
+    return waits
+  }
+
+  try {
+    assert.deepEqual(await run('1', [0, 4_000]), [4_000])
+    assert.deepEqual(await run('30', [0, 0]), [5_000])
+    assert.deepEqual(await run('30', [0, 0], 500), [500])
+
+    const now = 1_700_000_000_000
+    const futureDate = new Date(now + 3_000).toUTCString()
+    assert.deepEqual(await run(futureDate, [0, 0], undefined, () => now), [3_000])
+    assert.deepEqual(await run(new Date(now - 3_000).toUTCString(), [0, 4_000], undefined, () => now), [4_000])
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('non-transient lookup errors are not retried', async () => {
+  const originalFetch = globalThis.fetch
+  const paid = checkoutSession()
+  let lookupAttempts = 0
+  let postAttempts = 0
+  const waits: number[] = []
+
+  globalThis.fetch = async (_input, init) => {
+    if (init?.method === 'POST') {
+      postAttempts += 1
+      return jsonResponse({ id: 1004 }, 201)
+    }
+    lookupAttempts += 1
+    return cmsLookupResponse(401, { error: 'unauthorized' })
+  }
+
+  try {
+    const result = await reconcilePaidStripeOrders({
+      stripe: reconciliationStripe([paid]),
+      lookbackDays: 30,
+      lookupRetry: { delays: [0, 0, 0], sleep: async (ms) => { waits.push(ms) } },
+    })
+    assert.equal(lookupAttempts, 1)
+    assert.deepEqual(waits, [])
+    assert.equal(result.errors.length, 1)
+    assert.match(result.errors[0]!.error, /CMS order lookup failed 401/)
+    assert.equal(postAttempts, 0)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('an exhausted lookup retry opens a circuit for later sessions', async () => {
+  const originalFetch = globalThis.fetch
+  const sessions = [
+    checkoutSession({ id: 'cs_live_first_lookup_failure' }),
+    checkoutSession({
+      id: 'cs_live_second_lookup_failure',
+      metadata: { ...checkoutSession().metadata, order_ref: 'FOOLISH-ORDER-SECOND' },
+    }),
+  ]
+  let lookupAttempts = 0
+  let postAttempts = 0
+
+  globalThis.fetch = async (_input, init) => {
+    if (init?.method === 'POST') {
+      postAttempts += 1
+      return jsonResponse({ id: 1005 }, 201)
+    }
+    lookupAttempts += 1
+    return cmsLookupResponse(429, { error: 'rate limited' })
+  }
+
+  try {
+    const result = await reconcilePaidStripeOrders({
+      stripe: reconciliationStripe(sessions),
+      lookbackDays: 30,
+      lookupRetry: { delays: [0, 0, 0], sleep: async () => {} },
+    })
+    assert.equal(result.errors.length, 2)
+    assert.equal(result.recovered.length, 0)
+    assert.equal(result.alreadyPresent, 0)
+    assert.equal(lookupAttempts, 3)
+    assert.equal(postAttempts, 0)
+    assert.match(result.errors[1]!.error, /^CMS order lookup skipped: CMS order lookup failed 429:/)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('an exhausted lookup circuit limits CMS requests across a batch', async () => {
+  const originalFetch = globalThis.fetch
+  const sessions = [
+    checkoutSession({ id: 'cs_live_batch_lookup_failure_1' }),
+    checkoutSession({
+      id: 'cs_live_batch_lookup_failure_2',
+      metadata: { ...checkoutSession().metadata, order_ref: 'FOOLISH-ORDER-BATCH-2' },
+    }),
+    checkoutSession({
+      id: 'cs_live_batch_lookup_failure_3',
+      metadata: { ...checkoutSession().metadata, order_ref: 'FOOLISH-ORDER-BATCH-3' },
+    }),
+  ]
+  let lookupAttempts = 0
+  let postAttempts = 0
+
+  globalThis.fetch = async (_input, init) => {
+    if (init?.method === 'POST') {
+      postAttempts += 1
+      return jsonResponse({ id: 1006 }, 201)
+    }
+    lookupAttempts += 1
+    return cmsLookupResponse(429, { error: 'rate limited' })
+  }
+
+  try {
+    const result = await reconcilePaidStripeOrders({
+      stripe: reconciliationStripe(sessions),
+      lookbackDays: 30,
+      lookupRetry: { delays: [0, 0, 0], sleep: async () => {} },
+    })
+    assert.equal(lookupAttempts, 3)
+    assert.equal(result.errors.length, 3)
+    assert.equal(result.recovered.length, 0)
+    assert.equal(result.alreadyPresent, 0)
+    assert.equal(postAttempts, 0)
+    assert.match(result.errors[1]!.error, /^CMS order lookup skipped:/)
+    assert.match(result.errors[2]!.error, /^CMS order lookup skipped:/)
   } finally {
     globalThis.fetch = originalFetch
   }
