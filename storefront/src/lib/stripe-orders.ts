@@ -57,6 +57,27 @@ export interface OrderPersistenceRetryOptions {
   persist?: (session: Stripe.Checkout.Session) => Promise<OrderPersistenceResult>
 }
 
+export interface CmsLookupRetryOptions {
+  delays?: readonly number[]
+  maxRetryAfterMs?: number
+  sleep?: (ms: number) => Promise<void>
+  now?: () => number
+}
+
+export class CmsLookupError extends Error {
+  readonly status: number
+  readonly retryAfterMs: number | null
+  readonly transient: boolean
+
+  constructor(status: number, body: string, retryAfterMs: number | null, transient: boolean) {
+    super(`CMS order lookup failed ${status}: ${body}`)
+    this.name = 'CmsLookupError'
+    this.status = status
+    this.retryAfterMs = retryAfterMs
+    this.transient = transient
+  }
+}
+
 export interface StripeOrderReconciliationResult {
   lookbackDays: number
   sessionsScanned: number
@@ -149,16 +170,63 @@ export function getSessionOrderRef(session: Stripe.Checkout.Session): string | n
   return trimmed.length > 0 ? trimmed : null
 }
 
-export async function findCmsOrder(orderRef: string): Promise<CmsOrder | null> {
-  const response = await fetch(
-    `${cmsUrl()}/api/orders?where[orderNumber][equals]=${encodeURIComponent(orderRef)}&limit=1&depth=0`,
-    { headers: cmsHeaders(), cache: 'no-store' },
-  )
+const CMS_LOOKUP_TRANSIENT_STATUSES = new Set([429, 502, 503, 504])
+
+function parseRetryAfter(value: string | null, now: () => number = Date.now): number | null {
+  if (!value) return null
+  const trimmed = value.trim()
+  if (/^\d+$/.test(trimmed)) {
+    const seconds = Number(trimmed)
+    const milliseconds = seconds * 1_000
+    if (Number.isSafeInteger(seconds) && Number.isSafeInteger(milliseconds)) return milliseconds
+    return null
+  }
+
+  const timestamp = Date.parse(trimmed)
+  if (!Number.isFinite(timestamp)) return null
+  const delay = timestamp - now()
+  return delay >= 0 ? delay : null
+}
+
+function isTransientCmsLookupError(error: unknown): error is CmsLookupError {
+  return error instanceof CmsLookupError && error.transient
+}
+
+/**
+ * Una sola lettura su `/api/orders`, con la classificazione d'errore che serve al
+ * retry: `CmsLookupError` porta lo stato, il `Retry-After` e se l'errore e'
+ * transitorio. Ogni chiave di ricerca (numero d'ordine, id di sessione) passa di
+ * qui, cosi' il retry e il circuit breaker vedono lo stesso errore da qualunque
+ * filtro, invece di un `Error` generico che nessuno ritenta.
+ */
+async function fetchCmsOrder(search: string, now: () => number = Date.now): Promise<CmsOrder | null> {
+  let response: Response
+  try {
+    response = await fetch(
+      `${cmsUrl()}/api/orders?${search}`,
+      { headers: cmsHeaders(), cache: 'no-store' },
+    )
+  } catch (error) {
+    const body = error instanceof Error ? error.message : String(error)
+    throw new CmsLookupError(0, body, null, true)
+  }
+
   if (!response.ok) {
-    throw new Error(`CMS order lookup failed ${response.status}: ${await response.text()}`)
+    const retryAfterMs = parseRetryAfter(response.headers?.get('retry-after') ?? null, now)
+    const body = await response.text()
+    throw new CmsLookupError(
+      response.status,
+      body,
+      retryAfterMs,
+      CMS_LOOKUP_TRANSIENT_STATUSES.has(response.status),
+    )
   }
   const data = await response.json() as CmsFindResponse
   return data.docs?.[0] ?? null
+}
+
+export async function findCmsOrder(orderRef: string, now: () => number = Date.now): Promise<CmsOrder | null> {
+  return fetchCmsOrder(`where[orderNumber][equals]=${encodeURIComponent(orderRef)}&limit=1&depth=0`, now)
 }
 
 /**
@@ -168,16 +236,14 @@ export async function findCmsOrder(orderRef: string): Promise<CmsOrder | null> {
  * unico sull'ordine, quindi webhook, retry Stripe e cron di riconciliazione
  * convergono sempre sullo stesso documento.
  */
-export async function findCmsOrderBySessionId(stripeSessionId: string): Promise<CmsOrder | null> {
-  const response = await fetch(
-    `${cmsUrl()}/api/orders?where[stripeSessionId][equals]=${encodeURIComponent(stripeSessionId)}&limit=1&depth=0`,
-    { headers: cmsHeaders(), cache: 'no-store' },
+export async function findCmsOrderBySessionId(
+  stripeSessionId: string,
+  now: () => number = Date.now,
+): Promise<CmsOrder | null> {
+  return fetchCmsOrder(
+    `where[stripeSessionId][equals]=${encodeURIComponent(stripeSessionId)}&limit=1&depth=0`,
+    now,
   )
-  if (!response.ok) {
-    throw new Error(`CMS order lookup by session failed ${response.status}: ${await response.text()}`)
-  }
-  const data = await response.json() as CmsFindResponse
-  return data.docs?.[0] ?? null
 }
 
 /**
@@ -185,8 +251,11 @@ export async function findCmsOrderBySessionId(stripeSessionId: string): Promise<
  * salvato era `FOOLISH-<session.id>`. Si cercano per non lasciare irraggiungibile
  * un ordine gia' creato e pagato — ma non si creano piu' numeri cosi'.
  */
-async function findLegacySessionOrder(stripeSessionId: string): Promise<CmsOrder | null> {
-  return findCmsOrder(`${ORDER_REF_PREFIX}${stripeSessionId}`)
+async function findLegacySessionOrder(
+  stripeSessionId: string,
+  now: () => number = Date.now,
+): Promise<CmsOrder | null> {
+  return findCmsOrder(`${ORDER_REF_PREFIX}${stripeSessionId}`, now)
 }
 
 /**
@@ -194,12 +263,52 @@ async function findLegacySessionOrder(stripeSessionId: string): Promise<CmsOrder
  *
  * Ordine dei tentativi: il riferimento dichiarato dal checkout, poi la chiave di
  * sessione, poi il numero legacy `FOOLISH-<session.id>`. Ogni passaggio e' una
- * LETTURA: nessuno di questi percorsi crea un documento.
+ * LETTURA: nessuno di questi percorsi crea un documento. Un tentativo solo: chi
+ * vuole il retry lo chiede a `retryCmsLookup`, che non riprova mai una scrittura.
  */
-async function findExistingOrderForSession(session: Stripe.Checkout.Session): Promise<CmsOrder | null> {
+async function findExistingOrderForSession(
+  session: Stripe.Checkout.Session,
+  now: () => number = Date.now,
+): Promise<CmsOrder | null> {
   const declared = getSessionOrderRef(session)
-  if (declared) return findCmsOrder(declared)
-  return (await findCmsOrderBySessionId(session.id)) ?? (await findLegacySessionOrder(session.id))
+  if (declared) return findCmsOrder(declared, now)
+  return (await findCmsOrderBySessionId(session.id, now)) ?? (await findLegacySessionOrder(session.id, now))
+}
+
+/**
+ * Retry bounded su una LETTURA del CMS. `lookup` deve essere idempotente: qui non
+ * passa nessuna POST, e un errore persistente esce dopo l'ultimo tentativo
+ * (fail-closed) invece di essere ingoiato.
+ */
+async function retryCmsLookup<T>(lookup: () => Promise<T>, options: CmsLookupRetryOptions = {}): Promise<T> {
+  const delays = options.delays ?? [0, 2_000, 5_000]
+  const maxRetryAfterMs = Math.max(0, options.maxRetryAfterMs ?? 5_000)
+  const wait = options.sleep ?? sleep
+  let lastError: CmsLookupError | null = null
+
+  for (let attempt = 0; attempt < delays.length; attempt += 1) {
+    try {
+      return await lookup()
+    } catch (error) {
+      if (!isTransientCmsLookupError(error)) throw error
+      lastError = error
+      if (attempt + 1 >= delays.length) break
+
+      const configuredDelay = delays[attempt + 1]!
+      // Retry-After può allungare il backoff configurato, mai accorciarlo; il cap è un limite duro.
+      const delay = Math.min(Math.max(configuredDelay, error.retryAfterMs ?? 0), maxRetryAfterMs)
+      await wait(delay)
+    }
+  }
+
+  throw lastError ?? new CmsLookupError(0, 'no lookup attempts configured', null, true)
+}
+
+export async function findCmsOrderWithRetry(
+  orderRef: string,
+  options: CmsLookupRetryOptions = {},
+): Promise<CmsOrder | null> {
+  return retryCmsLookup(() => findCmsOrder(orderRef, options.now), options)
 }
 
 export async function createOrderInCMS(session: Stripe.Checkout.Session): Promise<OrderPersistenceResult> {
@@ -346,8 +455,9 @@ export async function reconcilePaidStripeOrders(params: {
   lookbackDays: number
   maxSessions?: number
   affiliateAttribution?: (session: Stripe.Checkout.Session, orderNumber: string) => Promise<void>
+  lookupRetry?: CmsLookupRetryOptions
 }): Promise<StripeOrderReconciliationResult> {
-  const { stripe, lookbackDays, maxSessions = 1_000, affiliateAttribution } = params
+  const { stripe, lookbackDays, maxSessions = 1_000, affiliateAttribution, lookupRetry } = params
   const createdAfter = Math.floor(Date.now() / 1000) - lookbackDays * 86_400
   const sessions = await stripe.checkout.sessions
     .list({ created: { gte: createdAfter }, limit: 100 })
@@ -371,16 +481,35 @@ export async function reconcilePaidStripeOrders(params: {
     errors: [],
   }
 
+  let lookupCircuitOpenReason: string | null = null
   for (const sessionSummary of eligible) {
     let orderRef: string | null = getSessionOrderRef(sessionSummary)
     try {
       // Retrieve the complete session before checking the order so attribution
       // can repair a missed ledger even when the order already exists.
       const session = await stripe.checkout.sessions.retrieve(sessionSummary.id)
+
+      if (lookupCircuitOpenReason !== null) {
+        throw new Error(`CMS order lookup skipped: ${lookupCircuitOpenReason}`)
+      }
+
       const declaredRef = getSessionOrderRef(session)
-      const existing = declaredRef
-        ? await findCmsOrder(declaredRef)
-        : (await findCmsOrderBySessionId(session.id)) ?? (await findLegacySessionOrder(session.id))
+      let existing: CmsOrder | null
+      try {
+        // La risoluzione copre tutte e tre le chiavi (riferimento dichiarato, id di
+        // sessione, numero legacy). Il retry e' sulle LETTURE: la creazione
+        // dell'ordine non viene mai ripetuta da qui.
+        existing = await retryCmsLookup(
+          () => findExistingOrderForSession(session, lookupRetry?.now),
+          lookupRetry,
+        )
+      } catch (error) {
+        // Any exhausted transient means CMS is unhealthy for this whole run, not just one order.
+        if (isTransientCmsLookupError(error) && lookupCircuitOpenReason === null) {
+          lookupCircuitOpenReason = error.message
+        }
+        throw error
+      }
 
       if (existing) {
         // Il numero buono e' quello del documento CMS, non quello sperato nei metadata.
