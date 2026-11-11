@@ -42,11 +42,15 @@
       "address": "Dirección",
       "city": "Ciudad",
       "postalCode": "Código postal",
+      "firstName": "Nombre",
+      "lastName": "Apellidos",
+      "province": "Provincia (sigla)",
       "fiscalCode": "NIF / CIF / VAT",
       "phone": "Número de teléfono"
     },
     "emailInvalid": "Email inválido o inexistente — comprueba el dominio",
     "postalCodeInvalid": "Código postal inválido para el país seleccionado",
+    "provinceInvalid": "Introduce la sigla de la provincia (2 letras)",
     "billingTitle": "Dirección de facturación",
     "billingSameAsShipping": "La dirección de facturación coincide con la de envío",
     "countries": {
