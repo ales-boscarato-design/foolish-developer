@@ -762,7 +762,9 @@ test('conferma del duplicato non disponibile: resta l esito della create (status
   assert.equal(body.printfulStatus, 400)
   const found = fulfillmentAlerts()
   assert.equal(found.length, 1)
+  assert.equal(found[0].body.reason, 'printful_create_failed')
   assert.equal(found[0].body.printfulStatus, 400)
+  assertNoPersonalData(found[0])
   assert.equal(printfulCreateRequests().length, 1, 'la conferma fallita non deve produrre una seconda create')
 })
 
