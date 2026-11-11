@@ -13,7 +13,9 @@
  * `max(profilo, tabella in casa)`. 18 combinazioni su 32 divergevano, SEMPRE
  * con la pagina sotto: CA merce 50,00 → mostrato 50,14 / incassato 95,73;
  * JP 50,00 → 48,00 / 111,65; US 99,00 → 48,00 / 84,14; NO 50,00 → 60,82 /
- * 81,22; GB 50,00 → 56,36 / 66,51; CH 20,00 → 48,00 / 52,49.
+ * 81,22; GB 50,00 → 56,36 / 66,51; CH 20,00 → 48,00 / 52,49 (numeri del
+ * 21/09/2026, prima della rigenerazione della tabella e del premio sulla base
+ * approvata).
  *
  * Il test e' rosso sul codice precedente: e' stato validato rimettendo il
  * difetto (pagina = solo profilo) e osservando i numeri esatti qui sopra.
@@ -84,16 +86,16 @@ test('ACCETTAZIONE: senza risposta del server la pagina non mostra MAI meno di q
 test('casi misurati: i numeri della pagina e quelli del checkout combaciano al centesimo', async () => {
   // Tabella di regressione sui casi che divergevano prima della correzione.
   const casi: [string, number, number][] = [
-    ['CA', 5000, 9573],
-    ['CA', 9900, 9573],
-    ['CA', 2000, 7283],
-    ['JP', 5000, 11_165],
-    ['JP', 9900, 11_165],
-    ['US', 9900, 8414],
-    ['NO', 5000, 8122],
-    ['GB', 5000, 6651],
-    ['CH', 2000, 5249],
-    ['CH', 9900, 5249],
+    ['CA', 5000, 9656],
+    ['CA', 9900, 9656],
+    ['CA', 2000, 7271],
+    ['JP', 5000, 11_287],
+    ['JP', 9900, 11_287],
+    ['US', 9900, 8747],
+    ['NO', 5000, 8170],
+    ['GB', 5000, 6661],
+    ['CH', 2000, 5224],
+    ['CH', 9900, 5224],
   ]
   for (const [country, goodsCents, incassato] of casi) {
     const shown = extraEuDisplayedPriceCents({ countryCode: country, goodsCents, serverQuotedCents: null })
@@ -105,9 +107,9 @@ test('casi misurati: i numeri della pagina e quelli del checkout combaciano al c
 test('quando il server ha risposto la pagina mostra ESATTAMENTE quel prezzo', () => {
   // La quota live puo' essere piu' economica della base prudenziale: la pagina
   // mostra la quota, non un numero prudenziale piu' alto del dovuto.
-  assert.equal(extraEuDisplayedPriceCents({ countryCode: 'CH', goodsCents: 9900, serverQuotedCents: 5249 }), 5249)
-  assert.equal(extraEuDisplayedPriceCents({ countryCode: 'CA', goodsCents: 5000, serverQuotedCents: 6621 }), 6621)
-  assert.equal(extraEuDisplayedPriceCents({ countryCode: 'US', goodsCents: 5000, serverQuotedCents: 6549 }), 6549)
+  assert.equal(extraEuDisplayedPriceCents({ countryCode: 'CH', goodsCents: 9900, serverQuotedCents: 5224 }), 5224)
+  assert.equal(extraEuDisplayedPriceCents({ countryCode: 'CA', goodsCents: 5000, serverQuotedCents: 7271 }), 7271)
+  assert.equal(extraEuDisplayedPriceCents({ countryCode: 'US', goodsCents: 5000, serverQuotedCents: 7360 }), 7360)
   // Un valore non valido non e' un prezzo: si ricade sulla regola prudenziale.
   for (const invalid of [0, -1, 12.5, Number.NaN, Number.POSITIVE_INFINITY]) {
     assert.equal(
