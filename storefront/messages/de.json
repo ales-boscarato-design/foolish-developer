@@ -438,7 +438,8 @@
     "hero": {
       "eyebrow": "FOOLISH LAB · CHIERI (TO)",
       "title": "Ein Betrieb. Sechs Abteilungen. Ein Angestellter.",
-      "sub": "Der Häuter. Fünfundsiebzig Zentimeter. Niemand hat ihn eingestellt: er hat sich selbst ernannt."
+      "sub": "Der Häuter. Fünfundsiebzig Zentimeter. Niemand hat ihn eingestellt: er hat sich selbst ernannt.",
+      "alt": "Der Gerber, eine 75 Zentimeter große Kreatur mit Messingmonokel, prüft eine Lage synthetischer Haut in der FOOLISH-Werkstatt in Chieri."
     },
     "intro": {
       "eyebrow": "Wer er ist",

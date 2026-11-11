@@ -438,7 +438,8 @@
     "hero": {
       "eyebrow": "FOOLISH LAB · CHIERI (TO)",
       "title": "Un'azienda. Sei reparti. Un solo dipendente.",
-      "sub": "Il Pellaio. Settantacinque centimetri. Nessuno lo ha assunto: si è nominato da solo."
+      "sub": "Il Pellaio. Settantacinque centimetri. Nessuno lo ha assunto: si è nominato da solo.",
+      "alt": "Il Pellaio, creatura di settantacinque centimetri con un monocolo di ottone, esamina un foglio di pelle sintetica nel laboratorio FOOLISH di Chieri."
     },
     "intro": {
       "eyebrow": "Chi è",
