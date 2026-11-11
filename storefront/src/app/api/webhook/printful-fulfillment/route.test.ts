@@ -56,6 +56,15 @@ let printfulCreateStatus = 200
 let nanobotFails = false
 let catalogFails = false
 let createNetworkError = false
+/**
+ * Status da restituire alle GET /orders/@<ref>, consumati in ordine; esaurita la
+ * coda vale il comportamento normale (`printfulOrderExists` / `printfulExistingRefs`).
+ * Serve a distinguere i due lookup della rotta: quello PRIMA della create e quello
+ * di verifica dopo un errore ambiguo.
+ */
+let printfulLookupQueuedStatuses: number[] = []
+/** Righe di `console.log` emesse durante la richiesta (per i log strutturati). */
+let logs: string[] = []
 
 const realFetch = globalThis.fetch
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -103,6 +112,8 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 
   // Idempotenza: GET /orders/@<external_id>.
   if (url.startsWith(`${PRINTFUL_CREATE_URL}/@`)) {
+    const queued = printfulLookupQueuedStatuses.shift()
+    if (queued !== undefined) return new Response('{}', { status: queued })
     const ref = decodeURIComponent(url.slice(`${PRINTFUL_CREATE_URL}/@`.length))
     const exists = printfulOrderExists || printfulExistingRefs.includes(ref)
     return new Response('{}', { status: exists ? 200 : 404 })
@@ -189,6 +200,8 @@ interface DeliverOptions {
   cmsOrdersFailure?: number
   /** Riferimenti per cui Printful considera gia' esistente l'ordine. */
   printfulExistingRefs?: string[]
+  /** Status in coda per le GET /orders/@<ref> (prima la verifica pre-create, poi quella dopo un errore). */
+  printfulLookupStatuses?: number[]
   /** Status atteso della rotta (default 200: il percorso che gia' funziona). */
   expectedStatus?: number
 }
@@ -204,6 +217,7 @@ async function deliver(overrides: SessionOverrides = {}, opts: DeliverOptions = 
   nanobotFails = opts.nanobotDown ?? false
   catalogFails = opts.catalogDown ?? false
   createNetworkError = opts.createNetworkDown ?? false
+  printfulLookupQueuedStatuses = [...(opts.printfulLookupStatuses ?? [])]
   const payload = JSON.stringify({
     id: 'evt_test_1',
     object: 'event',
@@ -219,8 +233,25 @@ async function deliver(overrides: SessionOverrides = {}, opts: DeliverOptions = 
     body: payload,
     headers: { 'stripe-signature': signature },
   })
-  const res = await POST(req)
-  assert.equal(res.status, opts.expectedStatus ?? 200)
+  // I log strutturati sono parte del comportamento richiesto (es.
+  // `already_created_after_error`): si catturano invece di stamparli, cosi' un test
+  // puo' pretendere la riga esatta senza dipendere dall'output del runner.
+  const originalLog = console.log
+  logs = []
+  console.log = (...args: unknown[]) => {
+    logs.push(args.map((arg) => String(arg)).join(' '))
+  }
+  let res: Response
+  try {
+    res = await POST(req)
+  } finally {
+    console.log = originalLog
+  }
+  assert.equal(
+    res.status,
+    opts.expectedStatus ?? 200,
+    `status inatteso ${res.status}; log della rotta: ${logs.join(' | ') || '(nessuno)'}`,
+  )
   return res
 }
 
@@ -451,15 +482,26 @@ test('indirizzo incompleto da collected_information: avviso con la fonte giusta'
   assertNoPersonalData(found[0])
 })
 
-test('Printful rifiuta la create (500): avviso operativo e risposta 200', async () => {
-  await deliver({}, { createStatus: 500 })
+test('Printful rifiuta la create (500): avviso operativo e 503 (Stripe ritenta)', async () => {
+  // Il difetto misurato nella review della PR #49: con la create fallita la rotta
+  // rispondeva 200, Stripe non ritentava e l'ordine pagato restava non stampato.
+  const res = await deliver({}, { createStatus: 500, expectedStatus: 503 })
+  const body = await res.json()
+
+  assert.equal(body.error, 'printful_create_failed')
+  assert.equal(body.code, 'printful_create_retryable')
+  assert.equal(body.printfulStatus, 500)
 
   const found = fulfillmentAlerts()
   assert.equal(found.length, 1, `atteso un avviso, ricevuti ${alerts.length}: ${JSON.stringify(alerts)}`)
   assert.equal(found[0].body.reason, 'printful_create_failed')
   assert.equal(found[0].body.printfulStatus, 500)
   assert.deepEqual(found[0].body.missingFields, [])
+  assert.deepEqual(found[0].body.skus, ['TS-A4'])
   assertNoPersonalData(found[0])
+
+  // Il retry e' di Stripe: la rotta non ritenta la POST nella stessa richiesta.
+  assert.equal(printfulCreateRequests().length, 1)
 })
 
 test('indirizzo completo e Printful disponibile: nessun avviso (caso negativo)', async () => {
@@ -480,9 +522,10 @@ test('indirizzo incompleto E Printful lo rifiuta: UN avviso solo, con il motivo 
   // Due avvisi per lo stesso ordine (uno per l'indirizzo, uno per il rifiuto)
   // direbbero la stessa cosa due volte: chi interviene riceve due messaggi con lo
   // stesso ordine. L'avviso e' uno e porta la causa (i campi) e l'esito (lo stato).
+  // Con un 5xx la risposta e' 503 (retryable), non 200.
   await deliver(
     { collected: { shipping_details: { address: { line1: 'Via Nuova 99', country: 'IT' } } } },
-    { createStatus: 500 },
+    { createStatus: 500, expectedStatus: 503 },
   )
 
   const found = fulfillmentAlerts()
@@ -514,16 +557,97 @@ test('errore imprevisto (CMS irraggiungibile): avviso fulfillment_failed e 200',
   assertNoPersonalData(found[0])
 })
 
-test('errore di rete sulla create (non un rifiuto di Printful): avviso fulfillment_failed', async () => {
-  // Un errore che non e' un rifiuto (connessione, chiave, corpo inatteso) viene
-  // rilanciato al catch esterno: se qualcuno lo trattasse come un rifiuto, il
-  // motivo dell'avviso mentirebbe sullo stato HTTP.
-  await deliver({}, { createNetworkDown: true })
+test('errore di rete sulla create: 503 retryable, avviso con il motivo del fallimento', async () => {
+  // Un errore che non e' un rifiuto (connessione, timeout) e' il caso AMBIGUO: la
+  // POST puo' essere arrivata lo stesso. Si risponde 503 (Stripe ritenta, e il
+  // tentativo successivo rifa' la verifica `external_id` prima di creare) e si
+  // avvisa, perche' se l'ordine non esiste nessuno lo stampa da solo.
+  const res = await deliver({}, { createNetworkDown: true, expectedStatus: 503 })
+  const body = await res.json()
 
+  assert.equal(body.code, 'printful_create_retryable')
   const found = fulfillmentAlerts()
   assert.equal(found.length, 1, `atteso un avviso, ricevuti ${alerts.length}: ${JSON.stringify(alerts)}`)
-  assert.equal(found[0].body.reason, 'fulfillment_failed')
+  assert.equal(found[0].body.reason, 'printful_create_failed')
   assert.equal(found[0].body.printfulStatus, undefined)
+  assert.deepEqual(found[0].body.skus, ['TS-A4'])
+  assertNoPersonalData(found[0])
+})
+
+// ── Doppio invio: un errore puo' significare "ordine gia' creato" ─────────────
+//
+// Perche' questi test: Printful non documenta `external_id` come chiave di
+// idempotenza, quindi un timeout ambiguo e' il punto in cui la rotta puo' creare un
+// SECONDO pacco a pagamento. Prima di dichiarare fallita la stampa si cerca l'ordine
+// con lo stesso `external_id`; se c'e', il pacco e' partito.
+
+test('create con timeout ma ordine gia creato: 200, nessun nuovo invio, log already_created_after_error', async () => {
+  // 1o lookup (prima della create) 404; POST che non risponde; 2o lookup (verifica) 200.
+  const res = await deliver(
+    {},
+    { createNetworkDown: true, printfulLookupStatuses: [404, 200], expectedStatus: 200 },
+  )
+  const body = await res.json()
+
+  assert.equal(body.received, true)
+  // Un solo tentativo di creazione: il secondo invio sarebbe un secondo pacco.
+  assert.equal(printfulCreateRequests().length, 1)
+  assert.deepEqual(printfulLookups(), [ORDER_REF, ORDER_REF])
+  assert.equal(alerts.length, 0, `nessun avviso atteso (il pacco esiste), ricevuti: ${JSON.stringify(alerts)}`)
+  assert.ok(
+    logs.some((line) => line.includes('already_created_after_error')),
+    `log already_created_after_error atteso, ricevuto: ${logs.join(' | ') || '(nessuno)'}`,
+  )
+})
+
+test('create ambiguo e verifica impossibile: 503 (non 200), cosi il retry rifa la verifica', async () => {
+  // La verifica dopo l'errore non risponde: non si sa se il pacco c'e'. Non si crea
+  // nulla e si restituisce non-2xx; il tentativo successivo rifa' la verifica.
+  const res = await deliver(
+    {},
+    { createNetworkDown: true, printfulLookupStatuses: [404, 500], expectedStatus: 503 },
+  )
+  const body = await res.json()
+
+  assert.equal(body.code, 'printful_create_retryable')
+  assert.equal(printfulCreateRequests().length, 1)
+  const found = fulfillmentAlerts()
+  assert.equal(found.length, 1)
+  assert.equal(found[0].body.reason, 'printful_create_failed')
+  assert.equal(found[0].body.printfulStatus, undefined)
+  assertNoPersonalData(found[0])
+})
+
+test('verifica di esistenza non disponibile prima della create: 503 e avviso, nessuna create', async () => {
+  // Printful non risponde al controllo: creare alla cieca rischia un duplicato,
+  // non creare lascia l'ordine senza stampa. Si risponde non-2xx e si avvisa.
+  const res = await deliver({}, { printfulLookupStatuses: [500], expectedStatus: 503 })
+  const body = await res.json()
+
+  assert.equal(body.code, 'printful_order_lookup_retryable')
+  assert.equal(printfulCreateRequests().length, 0, 'nessuna create senza aver verificato l esistenza')
+  const found = fulfillmentAlerts()
+  assert.equal(found.length, 1)
+  assert.equal(found[0].body.reason, 'fulfillment_failed')
+  assert.equal(found[0].body.printfulStatus, 500)
+  assert.deepEqual(found[0].body.skus, ['TS-A4'])
+  assertNoPersonalData(found[0])
+})
+
+test('create 422 di validazione: 200 e code permanente, nessun retry atteso', async () => {
+  // Un rifiuto di validazione viene ripetuto identico per tre giorni: il retry di
+  // Stripe non aggiunge nulla, quindi la rotta avvisa e risponde 200.
+  const res = await deliver({}, { createStatus: 422, expectedStatus: 200 })
+  const body = await res.json()
+
+  assert.equal(body.code, 'printful_create_permanent')
+  assert.equal(body.printfulStatus, 422)
+  const found = fulfillmentAlerts()
+  assert.equal(found.length, 1)
+  assert.equal(found[0].body.reason, 'printful_create_failed')
+  assert.equal(found[0].body.printfulStatus, 422)
+  // Nessuna verifica di esistenza: un rifiuto di validazione non crea nulla.
+  assert.deepEqual(printfulLookups(), [ORDER_REF])
   assertNoPersonalData(found[0])
 })
 
@@ -559,6 +683,10 @@ const CMS_ORDER_NUMBER = 'FOOLISH-0123456789abcdef0123456789abcdef'
 
 function printfulCreateRequest(): Captured | undefined {
   return captured.find((c) => c.url === PRINTFUL_CREATE_URL && c.method === 'POST')
+}
+
+function printfulCreateRequests(): Captured[] {
+  return captured.filter((c) => c.url === PRINTFUL_CREATE_URL && c.method === 'POST')
 }
 
 function printfulLookups(): string[] {
@@ -640,6 +768,17 @@ test('CMS non disponibile durante la risoluzione: 503 e nessun ordine di stampa'
 
   assert.equal(body.error, 'order_reference_lookup_failed')
   assert.equal(printfulCreateRequest(), undefined)
+})
+
+test('ordine con order_ref ma senza righe merch: 200, nessuna create, nessun avviso', async () => {
+  // Comportamento attuale da non rompere: un ordine senza merce da stampare non deve
+  // produrre un ordine Printful (e quindi non deve nemmeno allertare). Qui `order_ref`
+  // c'e': il ritorno anticipato e' per le righe, non per il riferimento.
+  await deliver({ metadata: { items_json: '[]', order_ref: ORDER_REF } })
+
+  assert.equal(alerts.length, 0)
+  assert.equal(printfulCreateRequests().length, 0)
+  assert.equal(printfulLookups().length, 0)
 })
 
 test('sessione senza order_ref e senza righe merch: nessun allarme, 200', async () => {
