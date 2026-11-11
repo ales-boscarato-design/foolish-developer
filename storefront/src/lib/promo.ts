@@ -4,6 +4,7 @@ import {
   isAllowedShippingCountry,
   type AllowedShippingCountry,
 } from './shipping'
+import { prudentialExtraEuPriceCents } from './landed-cost-price'
 
 export type PromoType = 'free_shipping' | 'percent_pro' | 'percent' | 'amount' | 'percent_tiered'
 
@@ -320,32 +321,30 @@ export function calculateServerShippingCostCents(
   const uppercaseCountry = normalizedCountry.toUpperCase()
   if (!isAllowedShippingCountry(uppercaseCountry)) return null
 
-  // Una destinazione extra-UE NON si prezza da qui. Quello che il checkout e il
-  // riordino incassano su extra-UE nasce da `resolveExtraEuShipping`
-  // (`landed-cost.ts`): quota live → tabella in casa → profilo di paese, poi
-  // margine e pavimento. Questa funzione e' sincrona e userebbe il solo profilo,
-  // quindi starebbe SOTTO il prezzo incassato ogni volta che la tabella o la
-  // quota superano il profilo — misurato l'11/11/2026 su un carrello da 99,00:
-  // NO 76,54 prodotti contro 81,22 incassati, CA 87,41 contro 95,73, GB 63,83
-  // contro 66,51, JP 105,05 contro 111,65. E' la classe di difetto che
-  // `landed-cost-display.test.ts` esiste per impedire: un prezzo che sta sotto
-  // quello incassato. E una seconda autorita' di prezzo non chiude la
-  // divergenza, la produce.
-  //
-  // La risposta onesta e' `null` («qui la dogana non si prezza»). I due
-  // consumatori attuali scelgono il ramo extra-UE prima di chiamare questa
-  // funzione e trattano `null` come «non addebitabile»: un consumatore futuro
-  // che sbaglia si ferma, invece di incassare meno del costo sdoganato.
-  if (getShippingZone(uppercaseCountry) === 'EXTRA_EU') return null
-
   const subtotalCents = cartSubtotalCents(normalizedItems)
   if (subtotalCents === null) return null
+
+  // Extra-UE: UN SOLO prezzo, e non e' questo modulo a deciderlo. La catena
+  // (quota live -> tabella in casa -> profilo del PAESE, poi margine e
+  // pavimento) vive in `landed-cost-price.ts`, che e' la stessa aritmetica usata
+  // da `resolveExtraEuShipping` nel checkout: qui si CHIAMA quella funzione,
+  // cosi' i due percorsi non possono piu' divergere. Una seconda autorita' di
+  // prezzo — come la stima sincrona del solo profilo che stava qui prima — sta
+  // sotto il prezzo incassato ogni volta che la tabella o la quota lo superano
+  // (misurato l'11/11/2026 su un carrello da 99,00: NO 76,54 contro 81,22,
+  // GB 63,83 contro 66,51, JP 105,05 contro 111,65).
+  //
+  // La promo "spedizione gratuita" qui non entra: su extra-UE azzererebbe anche
+  // dazi, IVA all'importazione e fee DDP, che non sono sconto.
+  if (getShippingZone(uppercaseCountry) === 'EXTRA_EU') {
+    return prudentialExtraEuPriceCents(uppercaseCountry, subtotalCents)
+  }
 
   const baseShipping = calculateShipping(subtotalCents / 100, uppercaseCountry)
 
   // Rete di sicurezza: una destinazione che va quotata a mano non deve mai
   // uscire da qui con un numero. Oggi tutte le destinazioni con
-  // `requiresQuote` sono extra-UE (fermate sopra); il controllo resta perche'
+  // `requiresQuote` sono extra-UE (gestite sopra); il controllo resta perche'
   // una zona nuova non passi muta.
   if (baseShipping.requiresQuote) return null
 

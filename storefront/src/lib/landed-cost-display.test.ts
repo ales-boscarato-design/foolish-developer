@@ -33,13 +33,19 @@ import {
   ALLOWED_SHIPPING_COUNTRIES,
   EXTRA_EU_MINIMUM_SHIPPING,
   getShippingZone,
+  shippingRequiresQuote,
 } from './shipping'
 
 process.env.SHIPPING_QUOTE_TOKEN_SECRET = 'test-only-token-secret'
 
-/** Tutte le destinazioni extra-UE vendibili. */
+/**
+ * Tutte le destinazioni extra-UE che si VENDONO: quelle con un profilo di paese
+ * (misurato o prudenziale). Un paese senza profilo — oggi il Brasile, che non ha
+ * una linea DDP — non ha una base di prezzo e si quota a mano: inclusarlo qui
+ * vorrebbe dire pretendere un numero che non esiste.
+ */
 const EXTRA_EU_COUNTRIES = ALLOWED_SHIPPING_COUNTRIES.filter(
-  (country) => getShippingZone(country) === 'EXTRA_EU',
+  (country) => getShippingZone(country) === 'EXTRA_EU' && !shippingRequiresQuote(country),
 )
 
 /** Valori di merce: sotto il pavimento, sulle bande misurate, sopra l'ultima. */
@@ -89,7 +95,8 @@ test('casi misurati: i numeri della pagina e quelli del checkout combaciano al c
     ['CA', 2000, 7283],
     ['JP', 5000, 11_165],
     ['JP', 9900, 11_165],
-    ['US', 9900, 8414],
+    ['AU', 9900, 10_530],
+    ['US', 9900, 9937],
     ['NO', 5000, 8122],
     ['GB', 5000, 6651],
     ['CH', 2000, 5249],
@@ -124,6 +131,23 @@ test('Italia e UE restano fuori dal prezzo extra-UE', () => {
     assert.equal(extraEuDisplayedPriceCents({ countryCode: country, goodsCents: 9900, serverQuotedCents: 1499 }), null)
     assert.equal(prudentialExtraEuPriceCents(country, 9900), null)
   }
+})
+
+test('un paese senza profilo non ha ne un prezzo mostrato ne uno incassato', async () => {
+  // BR non ha una linea DDP: il modello landed-cost non e' costruibile. Prima
+  // della correzione l'11/11/2026 la pagina e il checkout mostravano 52,49 —
+  // cioe' il costo sdoganato SVIZZERO applicato a un paese che non si spedisce.
+  // La risposta corretta e' il rifiuto, non il pavimento di 48,00.
+  assert.equal(shippingRequiresQuote('BR'), true)
+  assert.equal(prudentialExtraEuPriceCents('BR', 9900), null)
+  assert.equal(extraEuDisplayedPriceCents({ countryCode: 'BR', goodsCents: 9900, serverQuotedCents: null }), null)
+  const resolution = await resolveExtraEuShipping({
+    countryCode: 'BR',
+    goodsCents: 9900,
+    items: [{ sku: 'TS-A4', quantity: 1 }],
+    quoteConfig: NO_QUOTE_CONFIG,
+  })
+  assert.equal(resolution, null)
 })
 
 test('nessuna destinazione extra-UE mostra 0,00 o meno del pavimento', async () => {

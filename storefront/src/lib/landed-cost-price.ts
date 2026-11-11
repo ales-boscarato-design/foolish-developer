@@ -25,12 +25,13 @@
  */
 
 import {
-  DEFAULT_EXTRA_EU_PROFILE,
   EXTRA_EU_MARGIN_RATE,
   EXTRA_EU_MINIMUM_SHIPPING,
   LANDED_COST_COUNTRIES,
   calculateLandedCost,
   getShippingZone,
+  uncalibratedExtraEuProfile,
+  type AllowedShippingCountry,
   type ExtraEuProfile,
   type LandedCostBreakdown,
 } from './shipping'
@@ -145,12 +146,37 @@ export function tableCostCents(countryCode: string, goodsCents: number): number 
   return bands[bands.length - 1]!.costBasisCents
 }
 
-/** Stima di costo del profilo di paese (senza margine, senza pavimento). */
-export function profileCostCents(countryCode: string, goodsCents: number): number | null {
+/**
+ * Profilo di prezzo di una destinazione extra-UE: quello MISURATO se esiste,
+ * altrimenti quello prudenziale del PAESE (trasporto della linea DDP-capace +
+ * aliquote di legge del paese). `null` quando il paese non ha nessuno dei due
+ * (nessuna linea DDP: oggi il Brasile) — e in quel caso la spedizione si quota
+ * a mano.
+ *
+ * E' la STESSA risoluzione che applica `calculateShipping`
+ * (`LANDED_COST_COUNTRIES[country] ?? uncalibratedExtraEuProfile(country)`).
+ *
+ * MISURA che ha aperto il caso (11/11/2026, carrello 99,00): questa funzione
+ * ripiegava su `DEFAULT_EXTRA_EU_PROFILE`, cioe' sul profilo SVIZZERO, e ogni
+ * paese non mappato veniva prezzato con trasporto e IVA della Svizzera. Il
+ * percorso che incassa (`resolveExtraEuShipping`) leggeva 52,49 per l'Australia
+ * contro i 105,30 del suo profilo, 84,14 per gli USA contro 99,37, 95,73 per il
+ * Canada contro 87,41; e il Brasile, che non ha una linea DDP, veniva venduto
+ * invece che quotato. Un default non e' un profilo: e' il costo di un altro
+ * paese.
+ */
+export function extraEuProfileFor(countryCode: string): ExtraEuProfile | null {
   const country = String(countryCode ?? '').trim().toUpperCase()
   if (getShippingZone(country) !== 'EXTRA_EU') return null
-  const profile: ExtraEuProfile = LANDED_COST_COUNTRIES[country as keyof typeof LANDED_COST_COUNTRIES]
-    ?? DEFAULT_EXTRA_EU_PROFILE
+  const measured = LANDED_COST_COUNTRIES[country as AllowedShippingCountry]
+  if (measured) return measured
+  return uncalibratedExtraEuProfile(country as AllowedShippingCountry)
+}
+
+/** Stima di costo del profilo di paese (senza margine, senza pavimento). */
+export function profileCostCents(countryCode: string, goodsCents: number): number | null {
+  const profile = extraEuProfileFor(countryCode)
+  if (!profile) return null
   const landed: LandedCostBreakdown = calculateLandedCost(goodsCents / 100, profile)
   return toCents(landed.estimatedCost)
 }
@@ -187,10 +213,13 @@ export function prudentialBasisCents(
 export function prudentialExtraEuPriceCents(countryCode: string, goodsCents: number): number | null {
   const country = String(countryCode ?? '').trim().toUpperCase()
   if (getShippingZone(country) !== 'EXTRA_EU') return null
-  const basis = prudentialBasisCents(
-    profileCostCents(country, goodsCents),
-    tableCostCents(country, goodsCents),
-  )
+  const profileCost = profileCostCents(country, goodsCents)
+  const tableCost = tableCostCents(country, goodsCents)
+  // Nessuna base di prezzo per quella destinazione: non si vende (fail-closed).
+  // Il pavimento NON e' una base — senza questo controllo un paese senza profilo
+  // e senza banda uscirebbe a 48,00, cioe' a un prezzo inventato.
+  if (profileCost === null && tableCost === null) return null
+  const basis = prudentialBasisCents(profileCost, tableCost)
   const price = Math.max(priceFromBasisCents(basis), EXTRA_EU_MINIMUM_SHIPPING_CENTS)
   return Number.isSafeInteger(price) && price > 0 ? price : null
 }

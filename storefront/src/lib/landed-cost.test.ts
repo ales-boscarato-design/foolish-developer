@@ -350,10 +350,13 @@ test('resolveExtraEuShipping: la quota gonfiata dalla quantita non si incassa', 
   assert.ok(resolution)
   assert.equal(resolution.quote, null)
   assert.equal(resolution.quoteFailure, 'inconsistent_import_charges')
-  assert.equal(resolution.source, 'price_table')
-  // base = max(profilo, banda reale 76,49) e mai sotto la banda misurata
+  // Base = il MAGGIORE fra profilo del paese e banda misurata: oggi vince il
+  // profilo USA (81,01 contro la banda 76,49). Il punto del test resta che una
+  // quota scartata non si incassa e che il prezzo non scende sotto la banda.
+  const profilo = profileCostCents('US', 5000) ?? 0
+  assert.equal(resolution.source, profilo > 7649 ? 'profile' : 'price_table')
   assert.equal(resolution.tableCostCents, 7649)
-  assert.equal(resolution.basisCostCents, Math.max(7649, profileCostCents('US', 5000) ?? 0))
+  assert.equal(resolution.basisCostCents, Math.max(7649, profilo))
   assert.ok(resolution.costCents >= 7649 + Math.round(7649 * 0.1))
 })
 
@@ -446,8 +449,8 @@ test('resolveExtraEuShipping: un carrello con pack non viene mai mandato alla qu
   assert.ok(resolution.costCents > 0)
 })
 
-test('su ogni destinazione extra-UE il prezzo e un intero di centesimi, mai zero', async () => {
-  for (const country of ['CH', 'GB', 'NO', 'CA', 'AU', 'JP', 'US', 'BR']) {
+test('su ogni destinazione extra-UE vendibile il prezzo e un intero di centesimi, mai zero', async () => {
+  for (const country of ['CH', 'GB', 'NO', 'CA', 'AU', 'JP', 'US']) {
     for (const goods of [0, 2390, 9900, 25_000, 500_000]) {
       const resolution = await resolveExtraEuShipping({
         countryCode: country,
@@ -460,5 +463,20 @@ test('su ogni destinazione extra-UE il prezzo e un intero di centesimi, mai zero
       assert.ok(resolution.costCents > 0, `${country} ${goods}`)
       assert.ok(resolution.costCents >= Math.round(EXTRA_EU_MINIMUM_SHIPPING * 100), `${country} ${goods}`)
     }
+  }
+})
+
+test('una destinazione senza profilo non viene prezzata: si quota a mano', async () => {
+  // BR non ha una linea DDP, quindi non esiste un costo sdoganato da stimare.
+  // Prima della correzione l'11/11/2026 usciva 52,49: il profilo svizzero
+  // applicato come default a un paese che non ha ne' trasporto ne' aliquote sue.
+  for (const goods of [0, 2390, 9900, 25_000]) {
+    const resolution = await resolveExtraEuShipping({
+      countryCode: 'BR',
+      goodsCents: goods,
+      items: [{ sku: 'TS-A4', quantity: 1 }],
+      quoteConfig: { ...QUOTE_CONFIG, enabled: false },
+    })
+    assert.equal(resolution, null, `BR ${goods}: nessun prezzo inventato`)
   }
 })

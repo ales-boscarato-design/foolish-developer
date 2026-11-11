@@ -27,15 +27,11 @@
  */
 
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
-import {
-  DEFAULT_EXTRA_EU_PROFILE,
-  LANDED_COST_COUNTRIES,
-  getShippingZone,
-  type ExtraEuProfile,
-} from './shipping'
+import { getShippingZone } from './shipping'
 import {
   EXTRA_EU_MINIMUM_SHIPPING_CENTS,
   extraEuMarginCents,
+  extraEuProfileFor,
   priceFromBasisCents,
   profileCostCents,
   prudentialBasisCents,
@@ -275,9 +271,11 @@ export const MULTI_UNIT_IMPORT_RATE_TOLERANCE = 0.08
 
 /** Aliquota dazi+IVA di legge del paese di destinazione (profilo prudenziale). */
 export function referenceImportRate(countryCode: string): number {
-  const country = String(countryCode ?? '').trim().toUpperCase()
-  const profile: ExtraEuProfile = LANDED_COST_COUNTRIES[country as keyof typeof LANDED_COST_COUNTRIES]
-    ?? DEFAULT_EXTRA_EU_PROFILE
+  // Stesso profilo del paese che usa il prezzo: un default (la Svizzera) darebbe
+  // un'aliquota di riferimento sbagliata proprio ai paesi che non sono mappati.
+  // Paese senza profilo (nessuna linea DDP): nessuna aliquota di riferimento.
+  const profile = extraEuProfileFor(countryCode)
+  if (!profile) return 0
   const rate = (Number.isFinite(profile.importVatRate) ? profile.importVatRate : 0)
     + (Number.isFinite(profile.dutyRate) ? profile.dutyRate : 0)
   return rate > 0 ? rate : 0
