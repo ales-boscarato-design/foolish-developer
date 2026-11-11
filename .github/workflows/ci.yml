@@ -114,6 +114,13 @@ jobs:
         working-directory: cms
         run: npx tsc --noEmit
 
+      - name: CMS — guardia copertura test (path esplicito, fuori dal glob)
+        # La guardia e' essa stessa un *.test.ts: se la invocasse solo `npm run test`, un
+        # glob rotto (che esce 0 con zero test) la renderebbe muta. Questo passo la esegue
+        # per path esplicito, quindi il glob non puo' nasconderla.
+        working-directory: cms
+        run: ./node_modules/.bin/tsx --test src/lib/testScriptCoverage.test.ts
+
       - name: CMS — test
         working-directory: cms
         run: npm run test --silent
