@@ -442,7 +442,8 @@
     "hero": {
       "eyebrow": "FOOLISH LAB · CHIERI (TO)",
       "title": "Una empresa. Seis departamentos. Un solo empleado.",
-      "sub": "El Pellejero. Setenta y cinco centímetros. Nadie lo contrató: se nombró a sí mismo."
+      "sub": "El Pellejero. Setenta y cinco centímetros. Nadie lo contrató: se nombró a sí mismo.",
+      "alt": "El Curtidor, una criatura de setenta y cinco centímetros con un monóculo de latón, examina una lámina de piel sintética en el taller FOOLISH de Chieri."
     },
     "intro": {
       "eyebrow": "Quién es",

@@ -442,7 +442,8 @@
     "hero": {
       "eyebrow": "FOOLISH LAB · CHIERI (TO)",
       "title": "Une entreprise. Six services. Un seul employé.",
-      "sub": "Le Peaussier. Soixante-quinze centimètres. Personne ne l'a embauché : il s'est nommé lui-même."
+      "sub": "Le Peaussier. Soixante-quinze centimètres. Personne ne l'a embauché : il s'est nommé lui-même.",
+      "alt": "Le Tanneur, créature de soixante-quinze centimètres au monocle de laiton, examine une feuille de peau synthétique dans l'atelier FOOLISH de Chieri."
     },
     "intro": {
       "eyebrow": "Qui il est",
