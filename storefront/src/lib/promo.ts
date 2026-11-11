@@ -1,5 +1,6 @@
 import {
   calculateShipping,
+  getShippingZone,
   isAllowedShippingCountry,
   type AllowedShippingCountry,
 } from './shipping'
@@ -239,23 +240,42 @@ export function calculateServerShippingCostCents(
   const uppercaseCountry = normalizedCountry.toUpperCase()
   if (!isAllowedShippingCountry(uppercaseCountry)) return null
 
+  // Una destinazione extra-UE NON si prezza da qui. Quello che il checkout e il
+  // riordino incassano su extra-UE nasce da `resolveExtraEuShipping`
+  // (`landed-cost.ts`): quota live → tabella in casa → profilo di paese, poi
+  // margine e pavimento. Questa funzione e' sincrona e userebbe il solo profilo,
+  // quindi starebbe SOTTO il prezzo incassato ogni volta che la tabella o la
+  // quota superano il profilo — misurato l'11/11/2026 su un carrello da 99,00:
+  // NO 76,54 prodotti contro 81,22 incassati, CA 87,41 contro 95,73, GB 63,83
+  // contro 66,51, JP 105,05 contro 111,65. E' la classe di difetto che
+  // `landed-cost-display.test.ts` esiste per impedire: un prezzo che sta sotto
+  // quello incassato. E una seconda autorita' di prezzo non chiude la
+  // divergenza, la produce.
+  //
+  // La risposta onesta e' `null` («qui la dogana non si prezza»). I due
+  // consumatori attuali scelgono il ramo extra-UE prima di chiamare questa
+  // funzione e trattano `null` come «non addebitabile»: un consumatore futuro
+  // che sbaglia si ferma, invece di incassare meno del costo sdoganato.
+  if (getShippingZone(uppercaseCountry) === 'EXTRA_EU') return null
+
   const subtotalCents = cartSubtotalCents(normalizedItems)
   if (subtotalCents === null) return null
 
   const baseShipping = calculateShipping(subtotalCents / 100, uppercaseCountry)
 
-  // Destinazione senza misura: non esiste un prezzo da addebitare. Mai 0 —
-  // zero vorrebbe dire velocizzare a spese di Foolish. Il chiamante la tratta
-  // come preventivo (vedi shippingRequiresQuote).
+  // Rete di sicurezza: una destinazione che va quotata a mano non deve mai
+  // uscire da qui con un numero. Oggi tutte le destinazioni con
+  // `requiresQuote` sono extra-UE (fermate sopra); il controllo resta perche'
+  // una zona nuova non passi muta.
   if (baseShipping.requiresQuote) return null
 
   const baseShippingCostCents = moneyToCents(baseShipping.cost)
   if (baseShippingCostCents === null) return null
 
-  // La promo "spedizione gratuita" azzera la tariffa solo dove la tariffa e'
-  // il solo trasporto. Su una destinazione extra-UE azzererebbe anche dazi,
-  // IVA all'importazione e fee DDP: li' la promo non si applica e il costo
-  // sdoganato resta intero.
+  // La promo "spedizione gratuita" azzera la tariffa solo dove la tariffa e' il
+  // solo trasporto (`freeShippingPromoAllowed`, vera per IT/EU e falsa per
+  // extra-UE): quello che il cliente paga per dazi, IVA all'importazione e fee
+  // DDP non e' sconto.
   const freeShippingApplied = freeShipping && baseShipping.freeShippingPromoAllowed
   return freeShippingApplied ? 0 : baseShippingCostCents
 }

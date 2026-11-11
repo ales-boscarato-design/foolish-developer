@@ -10,6 +10,9 @@ import {
   normalizeCheckoutItems,
   parsePromoCodes,
 } from './promo'
+import { ALLOWED_SHIPPING_COUNTRIES, getShippingZone, shippingRequiresQuote } from './shipping'
+import { resolveExtraEuShipping } from './landed-cost'
+import { EXTRA_EU_MINIMUM_SHIPPING_CENTS } from './landed-cost-price'
 
 const items = [{ price: 100, quantity: 1, productName: 'Test', variantLabel: 'A', sku: 'TEST' }]
 const now = new Date('2026-09-11T12:00:00.000Z')
@@ -229,62 +232,65 @@ test('server shipping uses the normalized subtotal and preserves free-above-thre
   assert.equal(calculateServerShippingCostCents(thresholdItems, 'XX', false), null)
 })
 
-test('la promo "spedizione gratuita" non azzera una tariffa extra-UE', () => {
-  const items = normalizeCheckoutItems([{
+test('extra-UE: questa funzione non prezza la dogana, e il prezzo che il checkout incassa non scende mai sotto il pavimento', async () => {
+  const cart = normalizeCheckoutItems([{
     price: 99,
     quantity: 1,
     productName: 'Test',
     variantLabel: 'A',
     sku: 'TEST',
   }])
-  assert.ok(items)
-  if (!items) return
+  assert.ok(cart)
+  if (!cart) return
 
-  // Svizzera: il costo sdoganato misurato (47,72 EUR) + il margine deciso da
-  // Alessandro (10%) = 52,49 resta intero. La promo non deve regalare dazi,
-  // IVA all'importazione e fee DDP.
-  assert.equal(calculateServerShippingCostCents(items, 'CH', true), 5249)
-  assert.equal(calculateServerShippingCostCents(items, 'CH', false), 5249)
+  const extraEuCountries = ALLOWED_SHIPPING_COUNTRIES
+    .filter((country) => getShippingZone(country) === 'EXTRA_EU')
+  assert.ok(
+    extraEuCountries.length >= 8,
+    `elenco delle destinazioni extra-UE inatteso: ${extraEuCountries.join(',')}`,
+  )
 
-  // Paese extra-UE senza misura: dal 21/09/2026 si vende, con l'aliquota IVA del
-  // paese di destinazione, gli oneri misurati su CH, il trasporto della linea
-  // DDP-capace e il pavimento di 48,00 EUR. La promo non deve MAI azzerare quella
-  // tariffa: zero qui vorrebbe dire regalare anche dazi, IVA all'importazione e
-  // fee DDP.
-  assert.equal(calculateServerShippingCostCents(items, 'US', true), 9937)
-  assert.equal(calculateServerShippingCostCents(items, 'US', false), 9937)
-  assert.equal(calculateServerShippingCostCents(items, 'GB', true), 6383)
-  assert.equal(calculateServerShippingCostCents(items, 'NO', true), 7654)
-  assert.equal(calculateServerShippingCostCents(items, 'CA', true), 8741)
-  assert.equal(calculateServerShippingCostCents(items, 'AU', true), 10530)
-  assert.equal(calculateServerShippingCostCents(items, 'JP', true), 10505)
-
-  // Il Brasile non ha una linea DDP: la spedizione si quota, non si incassa
-  // nulla. null (e non 0) e' l'unica risposta che non regala la spedizione.
-  assert.equal(calculateServerShippingCostCents(items, 'BR', true), null)
-  assert.equal(calculateServerShippingCostCents(items, 'BR', false), null)
-
-  // Proprieta' strutturale (era di main, in versione piu' debole: una lista
-  // fissa di paesi): ogni destinazione extra-UE o si quota (null), o produce una
-  // riga Stripe che non sta mai sotto il pavimento — promo o non promo. Cosi'
-  // l'aggiunta di un paese nuovo non puo' passare sotto silenzio.
-  for (const country of ['CH', 'NO', 'US', 'GB', 'CA', 'AU', 'JP', 'BR'] as const) {
+  // 1. Il rifiuto e' DICHIARATO, non un valore sbagliato. Una stima sincrona del
+  //    solo profilo non puo' che stare sotto il prezzo che il checkout incassa
+  //    (quota live, tabella in casa e pavimento vivono in
+  //    `resolveExtraEuShipping`): misurato l'11/11/2026 su un carrello da 99,00
+  //    su questo albero, NO 76,54 prodotti contro 81,22 incassati, CA 87,41
+  //    contro 95,73, GB 63,83 contro 66,51, JP 105,05 contro 111,65. Se questa
+  //    asserzione diventa rossa, qualcuno ha reintrodotto la seconda autorita' di
+  //    prezzo: la dogana torna a passare da `resolveExtraEuShipping`, non da qui.
+  for (const country of extraEuCountries) {
     for (const promo of [true, false]) {
-      const cents = calculateServerShippingCostCents(items, country, promo)
-      if (country === 'BR') {
-        assert.equal(cents, null, 'BR: la spedizione si quota, non si incassa')
-        continue
-      }
-      assert.ok(
-        cents !== null && cents >= 4800,
-        `${country} (promo=${promo}): riga Stripe sotto il pavimento (${cents})`,
+      assert.equal(
+        calculateServerShippingCostCents(cart, country, promo),
+        null,
+        `${country} (promo=${promo}): la spedizione extra-UE non si prezza da questa funzione`,
       )
     }
   }
 
-  // Unione Europea: il comportamento di prima non cambia.
-  assert.equal(calculateServerShippingCostCents(items, 'DE', true), 0)
-  assert.equal(calculateServerShippingCostCents(items, 'DE', false), 1499)
+  // 2. Il rifiuto non lascia un buco: sulle destinazioni che si vendono (BR non
+  //    ha una linea DDP e si quota a mano) l'autorita' vera risponde, e non
+  //    scende mai sotto il pavimento di spedizione — promo o non promo, perche'
+  //    su extra-UE la promo non entra in questo prezzo.
+  for (const country of extraEuCountries) {
+    if (shippingRequiresQuote(country)) continue
+    const resolution = await resolveExtraEuShipping({
+      countryCode: country,
+      goodsCents: cartSubtotalCents(cart) ?? 0,
+      items: cart.map((item) => ({ sku: item.sku, quantity: item.quantity })),
+      quoteConfig: { url: 'http://127.0.0.1:9/quote', secret: '', enabled: false },
+    })
+    assert.ok(resolution, `${country}: nessun prezzo nemmeno dall'autorita' extra-UE`)
+    assert.ok(
+      resolution.costCents >= EXTRA_EU_MINIMUM_SHIPPING_CENTS,
+      `${country}: ${resolution.costCents} sotto il pavimento di ${EXTRA_EU_MINIMUM_SHIPPING_CENTS}`,
+    )
+  }
+
+  // 3. Unione Europea: il comportamento di prima non cambia (tariffa corriere,
+  //    azzerata dalla promo solo dove la tariffa e' il solo trasporto).
+  assert.equal(calculateServerShippingCostCents(cart, 'DE', true), 0)
+  assert.equal(calculateServerShippingCostCents(cart, 'DE', false), 1499)
 })
 
 test('allocates a discount across non-negative product prices with at most two lines per item', () => {
