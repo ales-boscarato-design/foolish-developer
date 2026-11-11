@@ -30,12 +30,35 @@ export interface CheckoutCartItem {
 
 export interface CheckoutCustomer {
   email: string
+  firstName: string
+  lastName: string
   name: string
   country: AllowedShippingCountry
   address: string
   city: string
   postalCode: string
+  /** Sigla provincia (IT) o stato/regione, quando il percorso la conosce. Mai obbligatoria. */
+  province: string | null
   phone: string
+  /**
+   * `true` quando nome e cognome NON sono stati raccolti separatamente ma ricavati
+   * da `name` (prima parola = nome, resto = cognome). Serve a distinguere i due
+   * percorsi: il checkout li raccoglie, il riordino di un ordine storico ha solo
+   * il nome completo.
+   */
+  nameDerived: boolean
+}
+
+export interface NormalizeCheckoutCustomerOptions {
+  /**
+   * `true` per i percorsi che RACCOLGONO i campi strutturati (pagina checkout): un
+   * valore presente ma malformato viene rifiutato, invece di essere scartato.
+   *
+   * I percorsi che non li raccolgono (riordino di un ordine storico) non devono
+   * rifiutare un ordine leggibile: la' la provincia si scarta, non si blocca.
+   * In nessun percorso la provincia e' obbligatoria.
+   */
+  structuredAddressCollected?: boolean
 }
 
 export interface ChargedProductLine {
@@ -72,11 +95,17 @@ export const MAX_STRIPE_METADATA_VALUE_LENGTH = 500
 const CUSTOMER_FIELD_LIMITS = {
   email: 254,
   name: 120,
+  firstName: 80,
+  lastName: 80,
   address: 180,
   city: 100,
   postalCode: 32,
+  province: 40,
   phone: 40,
 } as const
+
+/** Sigla di provincia italiana: due lettere, niente punti ne' spazi. */
+const IT_PROVINCE_RE = /^[A-Z]{2}$/
 
 const ITEM_FIELD_LIMITS = {
   productName: 120,
@@ -127,21 +156,68 @@ export function formatCents(cents: number): string {
   return (cents / 100).toFixed(2)
 }
 
-export function normalizeCheckoutCustomer(value: unknown): CheckoutCustomer | null {
+/**
+ * Divide un nome completo raccolto come un'unica stringa ("Mario Rossi") nelle
+ * due parti che il CMS espone separatamente. Prima parola = nome, il resto =
+ * cognome: e' l'unica lettura che non inventa dati. Un nome di una parola sola
+ * lascia il cognome vuoto, invece di duplicarlo.
+ */
+export function splitFullName(fullName: string): { firstName: string; lastName: string } {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return { firstName: '', lastName: '' }
+  return { firstName: parts[0]!, lastName: parts.slice(1).join(' ') }
+}
+
+export function normalizeCheckoutCustomer(
+  value: unknown,
+  options: NormalizeCheckoutCustomerOptions = {},
+): CheckoutCustomer | null {
   if (!isPlainObject(value)) return null
 
   const email = boundedString(value.email, CUSTOMER_FIELD_LIMITS.email)
-  const name = boundedString(value.name, CUSTOMER_FIELD_LIMITS.name)
   const countryValue = boundedString(value.country, 2)
   const address = boundedString(value.address, CUSTOMER_FIELD_LIMITS.address)
   const city = boundedString(value.city, CUSTOMER_FIELD_LIMITS.city)
   const postalCode = boundedString(value.postalCode, CUSTOMER_FIELD_LIMITS.postalCode)
   const phone = value.phone === undefined ? '' : boundedString(value.phone, CUSTOMER_FIELD_LIMITS.phone)
 
+  // Il nome completo e' il ripiego universale: il riordino di un ordine storico
+  // ha solo quello. Nome e cognome separati, quando ci sono, vincono.
+  const fullName = boundedString(value.name, CUSTOMER_FIELD_LIMITS.name)
+  const rawFirstName = boundedString(value.firstName, CUSTOMER_FIELD_LIMITS.firstName)
+  const rawLastName = boundedString(value.lastName, CUSTOMER_FIELD_LIMITS.lastName)
+  const derivedParts = splitFullName(fullName ?? '')
+  const firstName = rawFirstName ?? derivedParts.firstName
+  const lastName = rawLastName ?? derivedParts.lastName
+  const name = fullName ?? [firstName, lastName].filter(Boolean).join(' ')
+  const nameDerived = !(rawFirstName && rawLastName)
+
+  // La provincia e' un'informazione in piu', mai un requisito: gli ordini
+  // storici e i paesi che non la usano non ce l'hanno. Un valore presente ma
+  // malformato viene rifiutato solo dove la pagina lo raccoglie davvero (li' un
+  // errore e' un errore del client); altrove si scarta, perche' bloccare un
+  // riordino leggibile per una sigla sarebbe peggio che perdere la sigla.
+  const rawProvince = value.province
+  let province: string | null = null
+  if (rawProvince !== undefined && rawProvince !== null && rawProvince !== '') {
+    const candidate = boundedString(rawProvince, CUSTOMER_FIELD_LIMITS.province)
+    if (candidate === null) {
+      if (options.structuredAddressCollected) return null
+    } else {
+      const normalizedProvince = candidate.toUpperCase()
+      if (IT_PROVINCE_RE.test(normalizedProvince)) {
+        province = normalizedProvince
+      } else if (options.structuredAddressCollected) {
+        return null
+      }
+    }
+  }
+
   const normalizedCountry = countryValue?.toUpperCase()
   if (
     !email
     || !name
+    || !firstName
     || !normalizedCountry
     || !isAllowedShippingCountry(normalizedCountry)
     || !address
@@ -154,12 +230,16 @@ export function normalizeCheckoutCustomer(value: unknown): CheckoutCustomer | nu
 
   return {
     email,
+    firstName,
+    lastName,
     name,
     country: normalizedCountry,
     address,
     city,
     postalCode,
+    province,
     phone,
+    nameDerived,
   }
 }
 
@@ -465,6 +545,11 @@ export function buildCheckoutMetadata(args: {
   const metadata: Record<string, string> = {
     order_ref: args.orderRef,
     customer_name: args.customer.name,
+    // Nome e cognome separati: e' l'informazione che il CMS salva in due campi
+    // (etichette di spedizione, corriere, fattura). Il nome completo resta per i
+    // consumatori storici e per i percorsi che hanno solo quello.
+    customer_first_name: args.customer.firstName,
+    customer_last_name: args.customer.lastName,
     customer_country: args.customer.country,
     customer_address: `${args.customer.address}|${args.customer.city}|${args.customer.postalCode}`,
     customer_phone: args.customer.phone,
@@ -476,6 +561,11 @@ export function buildCheckoutMetadata(args: {
       price: item.price,
     }))),
   }
+
+  // La provincia esiste solo quando il paese la usa e il cliente l'ha scritta:
+  // una chiave con stringa vuota sarebbe un dato finto ("provincia: ''"), e
+  // Stripe conserva i metadata vuoti come se fossero un valore.
+  if (args.customer.province) metadata.customer_province = args.customer.province
 
   if (args.promo) {
     metadata.promo_code = args.promo.code

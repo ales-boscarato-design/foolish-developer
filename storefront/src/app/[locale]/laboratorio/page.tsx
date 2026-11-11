@@ -8,11 +8,11 @@ const BASE = 'https://thefoolishbutcher.com'
 const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
 
 /**
- * Slot per le immagini del nuovo Pellaio.
+ * Slot per le immagini del nuovo Pellaio non ancora approvate.
  *
- * Non esiste ancora nessun asset approvato del personaggio nuovo: lo slot resta vuoto, senza
- * segnaposto inventati e senza `alt` inventati. Quando arrivera' un'immagine approvata si
- * passera' qui `src` + `alt` e il resto della pagina non cambia.
+ * Lo slot dell'hero ha ricevuto la sua immagine (t_a27df990) e non ne ha piu' bisogno: resta
+ * quello del laboratorio, vuoto, senza segnaposto inventati e senza `alt` inventati. Quando
+ * arrivera' un'immagine approvata si passera' `src` + `alt` e il resto della pagina non cambia.
  */
 function ImageSlot({ slot }: { slot: string }) {
   return <div data-image-slot={slot} aria-hidden="true" hidden />
@@ -43,9 +43,35 @@ export default async function LaboratorioPage({ params }: { params: Promise<{ lo
 
   return (
     <div style={{ backgroundColor: '#0a0806', color: '#e8dcc8' }}>
-      {/* ── 1. Hero tipografico (nessuna fotografia) ── */}
-      <section className="max-w-6xl mx-auto px-5 sm:px-8 pt-20 sm:pt-32 pb-14 sm:pb-20">
-        <ImageSlot slot="hero" />
+      {/* ── 1. Hero: immagine di testa e poi il testo, senza sovrapposizioni ── */}
+      <section className="max-w-6xl mx-auto px-5 sm:px-8 pt-8 sm:pt-12 pb-14 sm:pb-20">
+        {/*
+          Immagine di testa approvata: un solo `<picture>` con due ritagli. Sotto i 640px entra il
+          verticale (testa, monocolo e mano), altrimenti il paesaggio; la soglia e' la stessa del
+          `min-[641px]` qui sotto, cosi' il rapporto riservato e' sempre quello del file scelto e
+          il layout non salta mentre l'immagine decodifica. `width`/`height` sono le dimensioni
+          intrinseche del file di fallback, come nel documento.
+          Nessun testo sopra l'immagine: la composizione ha il Pellaio a sinistra-centro e
+          l'insegna FOOLISH in alto a destra, e qualunque testo finirebbe addosso a uno dei due.
+        */}
+        <div className="mb-10 sm:mb-14 overflow-hidden border" style={{ borderColor: '#1e1812' }}>
+          <picture>
+            <source media="(max-width: 640px)" srcSet="/pellaio/hero-pellaio-mobile.webp" width={752} height={941} />
+            {/* File statici gia' ridimensionati: `next/image` non serve qui, l'art direction vuole
+                due ritagli diversi e le dimensioni intrinseche sono dichiarate a mano. */}
+            <img
+              src="/pellaio/hero-pellaio-desktop.webp"
+              alt={t('hero.alt')}
+              width={1600}
+              height={900}
+              sizes="100vw"
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+              className="block w-full h-auto aspect-[752/941] min-[641px]:aspect-[1600/900]"
+            />
+          </picture>
+        </div>
         <p className="text-[11px] font-bold uppercase tracking-[0.4em] mb-6" style={{ color: '#c9a96e' }}>
           {t('hero.eyebrow')}
         </p>

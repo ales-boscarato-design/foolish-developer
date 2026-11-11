@@ -16,16 +16,17 @@ export const dynamic = 'force-dynamic'
 /**
  * Avviso operativo quando una riga merch non puo' essere stampata.
  *
- * Perche' esiste: la rotta risponde 200 anche quando l'ordine di stampa non
- * nasce, e deve continuare a rispondere 200 (Stripe rilancerebbe un webhook gia'
- * gestito e l'ordine nel CMS esiste comunque). Senza un avviso esplicito l'unica
- * traccia era un `console.warn`: un ordine merch poteva restare non stampato e
- * scoprirlo giorni dopo. Il canale e' lo stesso usato dalle altre segnalazioni
- * operative dello storefront (hook firmato al ricevitore, che consegna al topic).
+ * Perche' esiste: per un errore DEFINITIVO la rotta risponde 200 (vedi la politica
+ * di retry in `POST`: un ordine gia' registrato nel CMS, o un rifiuto di validazione
+ * che il retry non cambierebbe, non deve far ritentare Stripe all'infinito). In quel
+ * caso l'unica traccia sarebbe un `console.warn`: un ordine merch poteva restare non
+ * stampato e scoprirlo giorni dopo. Il canale e' lo stesso usato dalle altre
+ * segnalazioni operative dello storefront (hook firmato al ricevitore, che consegna
+ * al topic).
  *
- * Contenuto: solo riferimenti e NOMI dei campi mancanti. Mai nome del cliente,
- * indirizzo, email o corpo della risposta di Printful (che puo' rimandare i dati
- * del destinatario): l'avviso serve a sapere che c'e' qualcosa da guardare.
+ * Contenuto: solo riferimenti, CODICI SKU e NOMI dei campi mancanti. Mai nome del
+ * cliente, indirizzo, email o corpo della risposta di Printful (che puo' rimandare i
+ * dati del destinatario): l'avviso serve a sapere che c'e' qualcosa da guardare.
  */
 const FULFILLMENT_ALERT_HOOK = '/hooks/foolish-printful-fulfillment'
 
@@ -42,6 +43,8 @@ interface FulfillmentAlert {
   reason: FulfillmentAlertReason
   /** Nomi dei campi che Printful richiede e che l'indirizzo scelto non ha. */
   missingFields: string[]
+  /** Codici SKU delle righe merch coinvolte: quali prodotti non sono partiti. */
+  skus?: string[]
   /** Stato HTTP restituito da Printful, quando ce n'e' uno. */
   printfulStatus?: number
   /** Solo per `order_ref_unresolved`: la sessione Stripe senza numero d'ordine. */
@@ -111,6 +114,38 @@ function printfulHeaders(): Record<string, string> {
   return { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' }
 }
 
+/**
+ * Un errore dell'API Printful, classificato per la politica di retry di Stripe.
+ *
+ * Perche' una classe e non `Error`: (a) il corpo della risposta di Printful puo'
+ * rimandare il destinatario e non deve finire nell'avviso — qui resta in `detail`,
+ * che non viene mai serializzato nel payload dell'hook; (b) "ritentare o no" va
+ * deciso dallo STATUS e non dal testo dell'errore.
+ *
+ * Classificazione:
+ * - `retryable: true`  -> nessuna risposta (`status: null`: rete, DNS, timeout),
+ *   408, 429, 5xx. Sono i casi in cui la stampa puo' nascere al tentativo
+ *   successivo, quindi la rotta risponde 503 e lascia ritentare Stripe.
+ * - `retryable: false` -> 4xx di validazione (400, 401, 403, 422: indirizzo
+ *   rifiutato, chiave sbagliata). Ritentare la stessa richiesta produce lo stesso
+ *   rifiuto: la rotta avvisa e risponde 200, perche' tre giorni di retry su un
+ *   ordine che nessuno guarda non lo stampano.
+ */
+class PrintfulApiError extends Error {
+  readonly status: number | null
+  readonly detail: string
+  readonly retryable: boolean
+
+  constructor(params: { status: number | null; detail: string }) {
+    super(params.status === null ? 'Printful non ha risposto' : `Printful ha risposto ${params.status}`)
+    this.name = 'PrintfulApiError'
+    this.status = params.status
+    this.detail = params.detail
+    this.retryable =
+      params.status === null || params.status === 408 || params.status === 429 || params.status >= 500
+  }
+}
+
 // Idempotenza: la documentazione pubblica Printful NON garantisce che un secondo
 // POST /orders con lo stesso external_id venga deduplicato (potrebbe rifiutarlo
 // con errore, oppure — non essendo questo comportamento documentato in modo
@@ -126,27 +161,22 @@ function printfulHeaders(): Record<string, string> {
 // eventuale errore di "external_id duplicato" ritornato dalla create come segnale
 // di "già fulfillato" invece che come fallimento.
 async function printfulOrderAlreadyExists(orderRef: string): Promise<boolean> {
-  const res = await fetch(`https://api.printful.com/orders/@${encodeURIComponent(orderRef)}`, {
-    method: 'GET',
-    headers: printfulHeaders(),
-  })
+  // Gli header si costruiscono FUORI dal try: una chiave API assente non e' un
+  // errore di rete, e classificarla come tale la farebbe ritentare per giorni.
+  const headers = printfulHeaders()
+  let res: Response
+  try {
+    res = await fetch(`https://api.printful.com/orders/@${encodeURIComponent(orderRef)}`, {
+      method: 'GET',
+      headers,
+    })
+  } catch (cause) {
+    throw new PrintfulApiError({ status: null, detail: `lookup: ${String(cause)}` })
+  }
   if (res.status === 404) return false
   if (res.ok) return true
   const text = await res.text()
-  throw new Error(`Printful lookup order failed ${res.status}: ${text}`)
-}
-
-/** Errore della create Printful: il corpo della risposta resta fuori dall'avviso. */
-class PrintfulCreateError extends Error {
-  readonly status: number
-  readonly detail: string
-
-  constructor(status: number, detail: string) {
-    super(`Printful create order failed ${status}`)
-    this.name = 'PrintfulCreateError'
-    this.status = status
-    this.detail = detail
-  }
+  throw new PrintfulApiError({ status: res.status, detail: `lookup order: ${text}` })
 }
 
 async function createPrintfulOrder(params: {
@@ -154,33 +184,73 @@ async function createPrintfulOrder(params: {
   items: Array<{ variantId: string; quantity: number }>
   shipping: { name: string; address1: string; address2: string; city: string; postalCode: string; country: string }
 }): Promise<void> {
-  const res = await fetch('https://api.printful.com/orders', {
-    method: 'POST',
-    headers: printfulHeaders(),
-    body: JSON.stringify({
-      external_id: params.orderRef,
-      recipient: {
-        name: params.shipping.name,
-        address1: params.shipping.address1,
-        address2: params.shipping.address2 || undefined,
-        city: params.shipping.city,
-        zip: params.shipping.postalCode,
-        country_code: params.shipping.country,
-      },
-      items: params.items.map((i) => ({ sync_variant_id: Number(i.variantId), quantity: i.quantity })),
-      confirm: true,
-    }),
-  })
+  const headers = printfulHeaders()
+  let res: Response
+  try {
+    res = await fetch('https://api.printful.com/orders', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        external_id: params.orderRef,
+        recipient: {
+          name: params.shipping.name,
+          address1: params.shipping.address1,
+          address2: params.shipping.address2 || undefined,
+          city: params.shipping.city,
+          zip: params.shipping.postalCode,
+          country_code: params.shipping.country,
+        },
+        items: params.items.map((i) => ({ sync_variant_id: Number(i.variantId), quantity: i.quantity })),
+        confirm: true,
+      }),
+    })
+  } catch (cause) {
+    // `fetch` lancia prima di avere uno status: rete, DNS, timeout del socket. E' il
+    // caso AMBIGUO per eccellenza — la POST puo' essere arrivata e la risposta no —
+    // quindi si classifica retryable e chi chiama verifica `external_id` prima di
+    // dichiarare fallita la stampa.
+    throw new PrintfulApiError({ status: null, detail: `create: ${String(cause)}` })
+  }
   if (!res.ok) {
     const text = await res.text()
-    // Rete di sicurezza: se Printful segnala che l'external_id è già in uso,
-    // trattiamo la richiesta come già evasa (non un errore) — vedi nota di
-    // idempotenza sopra sulla finestra di razza check-then-create.
-    if (res.status === 409 || /external_id/i.test(text)) {
-      console.warn(`[printful-webhook] Ordine ${params.orderRef} risulta già presente su Printful (create ha risposto ${res.status}): ${text}`)
-      return
+    // Rete di sicurezza: se Printful segnala ESPLICITAMENTE che l'ordine esiste gia'
+    // (`external_id` in uso), la richiesta e' gia' evasa — vedi nota di idempotenza
+    // sopra sulla finestra di razza check-then-create.
+    //
+    // Il segnale e' lo STATUS (409) o un 4xx che DICE "duplicato" (`already exists`,
+    // `already used`, `duplicate`). NON basta che il corpo nomini `external_id`: un 5xx
+    // che cita quel campo nei dettagli d'errore (`internal: external_id lookup failed`)
+    // non e' un duplicato, e trattarlo come successo riporta l'ordine al caso "pagato,
+    // non stampato, nessun avviso" che questa rotta deve rendere impossibile. Lo stato
+    // HTTP decide, non il testo.
+    //
+    // E il testo da solo non basta nemmeno quando dice "duplicate": un 4xx di validazione
+    // puo' usare la stessa parola per un'altra ragione (`duplicate entries in items
+    // array`). Prima di dichiarare evasa la stampa si CONFERMA con la stessa GET usata
+    // dalla deduplica; se l'ordine non c'e', resta un rifiuto e finisce nel ramo
+    // permanente, con l'avviso. Il 409 e' l'unico segnale che si prende per buono da
+    // solo (e' lo status con cui si risponde a un conflitto di unicita').
+    const explicitDuplicate =
+      res.status === 409 || (res.status < 500 && /already\s+(?:exists|used|taken)|duplicate/i.test(text))
+    if (explicitDuplicate) {
+      // Se la conferma non risponde non si sa se l'ordine c'e': si resta sull'esito
+      // della CREATE (status e corpo suoi), perche' una diagnostica che riporta lo
+      // status della GET al posto di quello del rifiuto manda chi interviene a
+      // guardare la cosa sbagliata. In ogni caso non si crea una seconda volta.
+      let confirmed = res.status === 409
+      if (!confirmed) {
+        try {
+          confirmed = await printfulOrderAlreadyExists(params.orderRef)
+        } catch (confirmError) {
+          console.warn(`[printful-webhook] CONFIRM DUPLICATE FAILED ${params.orderRef}:`, confirmError)
+        }
+      }
+      if (confirmed) {
+        console.warn(`[printful-webhook] Ordine ${params.orderRef} risulta già presente su Printful (create ha risposto ${res.status}): ${text}`)
+        return
+      }
     }
-    throw new PrintfulCreateError(res.status, text)
+    throw new PrintfulApiError({ status: res.status, detail: text })
   }
 }
 
@@ -289,9 +359,15 @@ export async function POST(req: NextRequest) {
       }
 
       const merchItems: Array<{ variantId: string; quantity: number }> = []
+      // Gli SKU che finiscono davvero in stampa: servono all'avviso ("quali righe non
+      // sono partite") e sono codici prodotto, non dati del cliente.
+      const merchSkus: string[] = []
       for (const item of parsedItems) {
         const variantId = await findPrintfulVariantForSku(item.sku)
-        if (variantId) merchItems.push({ variantId, quantity: item.qty })
+        if (variantId) {
+          merchItems.push({ variantId, quantity: item.qty })
+          merchSkus.push(item.sku)
+        }
       }
 
       if (merchItems.length === 0) {
@@ -352,9 +428,38 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      if (await printfulOrderAlreadyExists(orderRef)) {
-        console.log(`[printful-webhook] Ordine Printful già esistente per ${orderRef}, skip (redelivery Stripe)`)
-        return NextResponse.json({ received: true })
+      // La verifica di esistenza e' una CHIAMATA a Printful: puo' fallire anche quando
+      // la create sarebbe andata bene. Senza un ramo esplicito l'errore finiva nel catch
+      // generico (200 + "fulfillment_failed") e l'ordine pagato restava senza stampa e
+      // senza retry. Qui si distingue: retryable -> 503 (Stripe riconsegna l'evento e la
+      // verifica viene rifatta), permanente -> avviso e 200.
+      try {
+        if (await printfulOrderAlreadyExists(orderRef)) {
+          console.log(`[printful-webhook] Ordine Printful già esistente per ${orderRef}, skip (redelivery Stripe)`)
+          return NextResponse.json({ received: true })
+        }
+      } catch (lookupError) {
+        if (!(lookupError instanceof PrintfulApiError)) throw lookupError
+        console.error(
+          `[printful-webhook] PRINTFUL LOOKUP FAILED ${orderRef}:`,
+          `${lookupError.message} — ${lookupError.detail}`,
+        )
+        await alertFulfillmentIssue({
+          eventType: 'printful_fulfillment_alert',
+          orderRef,
+          reason: 'fulfillment_failed',
+          missingFields: [],
+          skus: merchSkus,
+          ...(lookupError.status !== null ? { printfulStatus: lookupError.status } : {}),
+        })
+        if (lookupError.retryable) {
+          return NextResponse.json(
+            { error: 'printful_order_lookup_failed', code: 'printful_order_lookup_retryable', orderRef },
+            { status: 503 },
+          )
+        }
+        // 401/403 sulla chiave: nessun retry puo' rimediare, serve un intervento.
+        return NextResponse.json({ received: true, code: 'printful_order_lookup_permanent', orderRef })
       }
 
       const customerName = meta.customer_name ?? session.customer_details?.name ?? ''
@@ -392,14 +497,38 @@ export async function POST(req: NextRequest) {
       // messaggi per lo stesso ordine (incompleto + rifiutato) dicono la stessa
       // cosa due volte. Emetterlo dopo tiene anche la latenza dell'avviso fuori
       // dal percorso che crea l'ordine di stampa.
-      let printfulFailure: PrintfulCreateError | null = null
+      let printfulFailure: PrintfulApiError | null = null
       try {
         await createPrintfulOrder({ orderRef, items: merchItems, shipping })
         console.log(`[printful-webhook] Ordine Printful creato per ${orderRef} (${merchItems.length} righe)`)
       } catch (createError) {
-        if (!(createError instanceof PrintfulCreateError)) throw createError
+        if (!(createError instanceof PrintfulApiError)) throw createError
         console.error('[printful-webhook] Printful create order failed:', `${createError.message} — ${createError.detail}`)
         printfulFailure = createError
+      }
+
+      // DOPPIO INVIO: un timeout o un 5xx ambiguo possono significare che Printful ha
+      // gia' creato l'ordine (la POST e' arrivata, la risposta no). Prima di dichiarare
+      // fallita la stampa si CERCA l'ordine con lo stesso `external_id`; se c'e', il
+      // pacco e' partito e un secondo invio sarebbe un secondo pacco a pagamento.
+      // Non si ritenta la POST dentro questa richiesta: se l'ordine non c'e', si
+      // risponde non-2xx ed e' Stripe a riconsegnare l'evento, cosi' lo stato resta
+      // coerente per chi guarda.
+      if (printfulFailure?.retryable) {
+        try {
+          if (await printfulOrderAlreadyExists(orderRef)) {
+            console.log(
+              `[printful-webhook] already_created_after_error ${orderRef}: la create ha risposto con errore`
+              + ` (${printfulFailure.status ?? 'nessuna risposta'}) ma l'ordine di stampa esiste. Nessun nuovo invio.`,
+            )
+            printfulFailure = null
+          }
+        } catch (verifyError) {
+          // Se anche la verifica fallisce non si sa se il pacco c'e': resta un
+          // fallimento retryable, e il tentativo successivo rifa' la verifica PRIMA
+          // di creare (la create non parte mai senza il controllo di esistenza).
+          console.error(`[printful-webhook] VERIFY AFTER CREATE ERROR FAILED ${orderRef}:`, verifyError)
+        }
       }
 
       if (printfulFailure || !shippingComplete) {
@@ -409,7 +538,37 @@ export async function POST(req: NextRequest) {
           source: shippingSource,
           reason: printfulFailure ? 'printful_create_failed' : 'indirizzo_incompleto',
           missingFields: missingShippingFields(shipping),
-          ...(printfulFailure ? { printfulStatus: printfulFailure.status } : {}),
+          skus: merchSkus,
+          ...(printfulFailure && printfulFailure.status !== null ? { printfulStatus: printfulFailure.status } : {}),
+        })
+      }
+
+      if (printfulFailure) {
+        // Politica di retry (decisione, non dettaglio): un ordine PAGATO con la stampa
+        // non partita va recuperato, e l'unico attore che ritenta e' Stripe.
+        //  - retryable (5xx / timeout / rete): 503. Stripe riconsegna l'evento e il
+        //    tentativo successivo rifa' prima la verifica `external_id`, quindi il
+        //    caso ambiguo non produce un doppione.
+        //  - permanente (4xx di validazione: indirizzo rifiutato, 422): 200 con un
+        //    `code` esplicito. La stessa richiesta verrebbe rifiutata allo stesso modo
+        //    per i tre giorni di retry di Stripe, che quindi non aggiungerebbe nulla;
+        //    il caso resta visibile perche' l'avviso e' gia' partito sopra.
+        if (printfulFailure.retryable) {
+          return NextResponse.json(
+            {
+              error: 'printful_create_failed',
+              code: 'printful_create_retryable',
+              orderRef,
+              ...(printfulFailure.status !== null ? { printfulStatus: printfulFailure.status } : {}),
+            },
+            { status: 503 },
+          )
+        }
+        return NextResponse.json({
+          received: true,
+          code: 'printful_create_permanent',
+          orderRef,
+          ...(printfulFailure.status !== null ? { printfulStatus: printfulFailure.status } : {}),
         })
       }
     } catch (err) {

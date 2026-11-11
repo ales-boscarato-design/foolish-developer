@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { readdirSync, readFileSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
 import test from 'node:test'
 
 /**
@@ -25,15 +25,30 @@ import test from 'node:test'
  * Il vecchio personaggio, per **nome di file** (un import puo' essere `@/…` senza la barra).
  *
  * Il prefisso `/pellaio/` da solo non e' piu' un token vietato: la stessa cartella ospita ora i
- * **sei ritagli approvati dei ruoli**, sotto `personaggi/` (card t_3458967b). A distinguerli dai
- * vecchi file e' `pellaioReferences()`, che accetta solo quella sottocartella: un riferimento a
- * qualunque altro file di `public/pellaio/` continua a far fallire la guardia.
+ * **sei ritagli approvati dei ruoli** (sotto `personaggi/`, card t_3458967b) e i **due ritagli
+ * dell'immagine di testa** di `/laboratorio` (card t_a27df990). A distinguerli dai vecchi file e'
+ * `pellaioReferences()`, che accetta solo quelle due destinazioni: un riferimento a qualunque
+ * altro file di `public/pellaio/` continua a far fallire la guardia.
  */
 const FORBIDDEN_TOKENS = ['pellaio-01', 'pellaio-02', 'pellaio-03', 'pellaio-lab', 'pellaio.png']
 /** L'unica sottocartella di `public/pellaio/` che il prodotto puo' servire: i sei ruoli. */
 const ALLOWED_PELLAIO_DIR = '/pellaio/personaggi'
+/**
+ * I due file approvati dell'immagine di testa di `/laboratorio`, elencati per nome esatto: il
+ * permesso vale per questi due, non per la cartella. Le due immagini sono i ritagli definitivi
+ * del Pellaio (desktop 1600x900, mobile 752x941) forniti da Alessandro.
+ */
+const APPROVED_PELLAIO_FILES = ['/pellaio/hero-pellaio-desktop.webp', '/pellaio/hero-pellaio-mobile.webp']
 /** Il vecchio personaggio ha anche una cartella gemella, mai referenziata: stessa regola. */
 const FORBIDDEN_FRANK = ['/frank/', 'frank-01', 'frank-02', 'frank-03', 'frank-lab']
+
+/**
+ * Un percorso `/pellaio/...` e' ammesso se sta sotto la sottocartella dei ruoli o se e' uno dei
+ * due file dell'immagine di testa.
+ */
+function pellaioRefAllowed(ref: string): boolean {
+  return ref === ALLOWED_PELLAIO_DIR || ref.startsWith(`${ALLOWED_PELLAIO_DIR}/`) || APPROVED_PELLAIO_FILES.includes(ref)
+}
 
 /**
  * Ogni percorso `/pellaio/...` presente in un sorgente. Serve a vietare la cartella intera tranne
@@ -110,12 +125,28 @@ test('nessun file del prodotto referenzia gli asset del vecchio personaggio', ()
       if (source.includes(token)) offenders.push(`${rel} → ${token}`)
     }
     for (const ref of pellaioReferences(source)) {
-      if (ref !== ALLOWED_PELLAIO_DIR && !ref.startsWith(`${ALLOWED_PELLAIO_DIR}/`)) {
-        offenders.push(`${rel} → ${ref}`)
-      }
+      if (!pellaioRefAllowed(ref)) offenders.push(`${rel} → ${ref}`)
     }
   }
   assert.deepEqual(offenders, [], 'nessun file servito deve referenziare le immagini del vecchio personaggio')
+})
+
+test('il permesso sui file dell immagine di testa vale per i due approvati, che esistono davvero', () => {
+  // L'allow-list non e' una scorciatoia: due soli file, presenti su disco, ognuno con la sua
+  // immagine sotto la soglia dichiarata. Un terzo file in `public/pellaio/` resta non referenziabile.
+  assert.equal(APPROVED_PELLAIO_FILES.length, 2, 'due file approvati attesi')
+  const publicRoot = new URL('../../public/', import.meta.url)
+  for (const ref of APPROVED_PELLAIO_FILES) {
+    const info = statSync(new URL(ref.replace(/^\//, ''), publicRoot))
+    assert.ok(info.isFile(), `${ref}: file approvato mancante in public/`)
+    assert.ok(info.size > 0 && info.size < 200 * 1024, `${ref}: ${info.size} byte, fuori dai limiti attesi`)
+  }
+  // Le guardie sui vecchi nomi non si sono allentate.
+  for (const name of ['pellaio-01', 'pellaio-02', 'pellaio-03', 'pellaio-lab']) {
+    assert.ok(!APPROVED_PELLAIO_FILES.some((ref) => ref.includes(name)), `${name} non e' un file approvato`)
+    assert.ok(pellaioRefAllowed(`/pellaio/${name}.png`) === false, `${name} non deve essere referenziabile`)
+  }
+  assert.equal(pellaioRefAllowed('/pellaio/personaggi/pellaio-ceo.webp'), true, 'i sei ruoli restano ammessi')
 })
 
 test('il teaser tiene lo slot predisposto e vuoto, senza immagine ne` alt inventati', () => {

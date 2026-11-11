@@ -184,6 +184,10 @@ test('la sessione pagata del riordino crea un ordine CMS con righe, totale e spe
     assert.equal(persisted.shippingCost, 7.65)
     assert.deepEqual(persisted.shippingAddress, {
       name: 'Mario Rossi',
+      // L'ordine di partenza ha il solo nome completo: nome e cognome vengono
+      // derivati, e la provincia non esiste (non si inventa).
+      firstName: 'Mario',
+      lastName: 'Rossi',
       address1: 'Via Test 1',
       address2: '',
       city: 'Torino',
