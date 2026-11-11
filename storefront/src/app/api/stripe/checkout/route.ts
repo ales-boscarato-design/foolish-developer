@@ -26,6 +26,7 @@ import {
   buildExtraEuShippingMetadata,
   buildStripeLineItems,
 } from '@/lib/checkout-session'
+import { generateOrderRef } from '@/lib/order-ref'
 
 type StripeAllowedCountry = NonNullable<
   Stripe.Checkout.SessionCreateParams['shipping_address_collection']
@@ -248,7 +249,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Sconto non valido' }, { status: 400 })
   }
 
-  const orderRef = `FOOLISH-${Date.now()}`
+  // Il numero d'ordine identifica il documento: due checkout nello stesso
+  // millisecondo devono restare due ordini. Niente tempo, niente contatore.
+  const orderRef = generateOrderRef()
   const shippingCostCents = serverShippingCostCents
 
   const lineItems = buildStripeLineItems(chargedProductLines, shippingCostCents)

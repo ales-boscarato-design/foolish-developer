@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Package, ArrowRight, CheckCircle } from 'lucide-react'
 import { Suspense } from 'react'
 import { OrderCompletedTracker } from '@/components/OrderCompletedTracker'
+import { telegramOrderLink } from '@/lib/order-ref'
 
 interface GraziePageProps {
   searchParams: Promise<{ session_id?: string }>
@@ -61,9 +62,11 @@ async function OrderVerifier({ sessionId }: { sessionId: string }) {
     // Stripe verify failed — still show generic success
   }
 
-  const telegramHref = orderRef
-    ? `https://t.me/the_foolish_butcher_bot?start=order_${orderRef}`
-    : 'https://t.me/the_foolish_butcher_bot'
+  // Il numero d'ordine viaggia nel parametro `start`, che Telegram limita a 64
+  // caratteri: oltre il limite viene scartato in silenzio e il cliente finirebbe
+  // su una chat che non conosce il suo ordine. `telegramOrderLink` degrada al link
+  // nudo della chat invece di emettere un deep link che non funziona.
+  const telegramHref = telegramOrderLink(orderRef)
 
   if (!verified) {
     return (

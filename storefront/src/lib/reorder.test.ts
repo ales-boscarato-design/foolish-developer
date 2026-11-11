@@ -108,12 +108,13 @@ test('prezzi uguali: ok con metadata canonici, items_json e riga Spedizione', as
     order: order(),
     sessionEmail: SESSION_EMAIL,
     fetchProduct: catalogFetcher(),
-    now: new Date(1_700_000_000_000),
   })
 
   assert.equal(plan.status, 'ok')
   if (plan.status !== 'ok') return
-  assert.equal(plan.orderRef, 'FOOLISH-1700000000000')
+  // Il numero d'ordine non deriva piu' dal tempo: e' generato (40 caratteri).
+  assert.match(plan.orderRef, /^FOOLISH-[0-9a-f]{32}$/)
+  assert.equal(plan.orderRef.length, 40)
   assert.equal(plan.sessionParams.mode, 'payment')
   assert.equal(plan.sessionParams.customer_email, SESSION_EMAIL)
   assert.deepEqual(plan.sessionParams.shipping_address_collection, {
@@ -132,7 +133,7 @@ test('prezzi uguali: ok con metadata canonici, items_json e riga Spedizione', as
   ]) {
     assert.ok(key in metadata, `manca la chiave metadata ${key}`)
   }
-  assert.equal(metadata.order_ref, 'FOOLISH-1700000000000')
+  assert.equal(metadata.order_ref, plan.orderRef)
   assert.equal(metadata.shipping_source, 'carrier_flat')
 
   assert.deepEqual(JSON.parse(metadata.items_json), [{

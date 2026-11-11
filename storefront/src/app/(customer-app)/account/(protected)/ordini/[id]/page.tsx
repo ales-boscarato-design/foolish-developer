@@ -3,6 +3,7 @@ import { getSession } from '@/lib/account-auth'
 import { getAccountLocale, getT } from '@/lib/account-i18n'
 import Link from 'next/link'
 import { ReorderButton } from '../../_components/ReorderButton'
+import { telegramOrderLink } from '@/lib/order-ref'
 
 const PIPELINE_STEPS = ['received','in_production','shipped','delivered']
 
@@ -98,7 +99,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       {isDelivered && <ReorderButton orderId={order.orderNumber} label={t('reorder')} locale={locale} />}
 
       <a
-        href={`https://t.me/the_foolish_butcher_bot?start=order_${order.orderNumber}`}
+        href={telegramOrderLink(order.orderNumber)}
         target="_blank"
         rel="noopener noreferrer"
         style={{
