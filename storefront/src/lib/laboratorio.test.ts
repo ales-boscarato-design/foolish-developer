@@ -269,13 +269,18 @@ test('nessuna parola vietata nei testi pubblici', () => {
   }
 })
 
+/** I due ritagli approvati dell'immagine di testa, gli unici file di `public/pellaio/` fuori da `personaggi/`. */
+const HERO_FILES = ['/pellaio/hero-pellaio-desktop.webp', '/pellaio/hero-pellaio-mobile.webp']
+const heroFile = (ref: string) => new URL(`public${ref}`, new URL('../../', import.meta.url))
+
 test('la pagina non usa le immagini del vecchio Pellaio ne rimanda a /sebo', () => {
   for (const source of [pageSource, libSource]) {
-    // Le uniche immagini ammesse sono i sei ritagli approvati, sotto /pellaio/personaggi/.
     assert.ok(!/\/pellaio\/pellaio-(?:0[1-3]|lab)/.test(source), 'nessun riferimento ai file del vecchio Pellaio')
     for (const ref of source.match(/\/pellaio\/[^'"`\s]*/g) ?? []) {
       assert.ok(
-        ref === '/pellaio/personaggi' || ref.startsWith('/pellaio/personaggi/'),
+        ref === '/pellaio/personaggi' ||
+          ref.startsWith('/pellaio/personaggi/') ||
+          HERO_FILES.includes(ref),
         `immagine fuori dalla cartella approvata: ${ref}`,
       )
     }
@@ -286,13 +291,91 @@ test('la pagina non usa le immagini del vecchio Pellaio ne rimanda a /sebo', () 
       assert.ok(!/sebo/i.test(value), `${lang}: il namespace laboratorio nomina ancora SEBO in «${value}»`)
     }
   }
-  // Gli slot restano per le immagini non ancora approvate (hero e laboratorio): non si inventano.
-  assert.match(pageSource, /data-image-slot/, 'gli slot immagine devono essere predisposti')
-  assert.match(pageSource, /<ImageSlot slot="hero" \/>/, 'lo slot dell hero resta vuoto finche non c e l immagine')
+  // Lo slot del laboratorio resta predisposto e vuoto finche' non arriva il suo asset.
+  assert.match(pageSource, /data-image-slot/, 'lo slot immagine deve essere predisposto')
   assert.match(pageSource, /<ImageSlot slot="lab" \/>/, 'lo slot del laboratorio resta vuoto')
   // Il solo recapito esterno della pagina e` il bot del laboratorio.
   assert.ok(pageSource.includes('href={TELEGRAM_BOT_URL}'), 'il CTA deve puntare al bot del laboratorio')
   assert.ok(TELEGRAM_BOT_URL.startsWith('https://t.me/'), 'il recapito del bot deve essere il canale Telegram')
+})
+
+// ── L'immagine di testa (t_a27df990) ─────────────────────────────────────────────────────
+
+test('la pagina rende l immagine di testa con i due ritagli approvati, dentro un <picture>', () => {
+  for (const ref of HERO_FILES) {
+    assert.ok(pageSource.includes(ref), `la pagina non referenzia ${ref}`)
+  }
+  // Art direction: il verticale entra sotto i 640px, il paesaggio resta il fallback dell'img.
+  assert.match(
+    pageSource,
+    /<picture>[\s\S]*?<source media="\(max-width: 640px\)" srcSet="\/pellaio\/hero-pellaio-mobile\.webp"[\s\S]*?<img[\s\S]*?src="\/pellaio\/hero-pellaio-desktop\.webp"/,
+    'picture/source/img non sono agganciati ai due file approvati',
+  )
+  // L'immagine sta sopra il blocco eyebrow + H1, non dentro e non dopo.
+  const picture = pageSource.indexOf('<picture>')
+  assert.ok(picture >= 0, 'picture assente')
+  assert.ok(picture < pageSource.indexOf("t('hero.eyebrow')"), 'l immagine non precede l eyebrow')
+  assert.ok(picture < pageSource.indexOf("t('hero.title')"), 'l immagine non precede l H1')
+  // Niente testo sopra l immagine: il blocco hero e` immagine, poi eyebrow, H1 e sottotitolo.
+  assert.ok(!pageSource.includes('<ImageSlot slot="hero" />'), 'lo slot vuoto dell hero non serve piu`')
+})
+
+test('l immagine di testa non ha CLS: width/height espliciti, eager e prioritaria', () => {
+  const img = /<img[\s\S]*?\/>/.exec(pageSource)
+  assert.ok(img, 'img dell hero assente')
+  const tag = img[0]
+  const width = /width=\{(\d+)\}/.exec(tag)
+  const height = /height=\{(\d+)\}/.exec(tag)
+  assert.ok(width, 'width esplicito assente sull img')
+  assert.ok(height, 'height esplicito assente sull img')
+  assert.equal(Number(width[1]), 1600, 'larghezza intrinseca del ritaglio desktop')
+  assert.equal(Number(height[1]), 900, 'altezza intrinseca del ritaglio desktop')
+  // Lo spazio riservato segue il file che il browser sceglie: stesso rapporto, stessa soglia.
+  assert.match(tag, /aspect-\[752\/941\]/, 'rapporto del ritaglio verticale non riservato')
+  assert.match(tag, /min-\[641px\]:aspect-\[1600\/900\]/, 'rapporto del ritaglio desktop non riservato')
+  // Above the fold: caricamento immediato e alta priorita`, non lazy.
+  assert.match(tag, /loading="eager"/, 'l immagine di testa non deve essere lazy')
+  assert.match(tag, /fetchPriority="high"/, 'priorita` alta attesa sull immagine di testa')
+  assert.match(tag, /decoding="async"/, 'decoding async atteso')
+  assert.match(tag, /sizes="100vw"/, 'sizes atteso')
+  // L alt viene dalle traduzioni: nessuna descrizione scritta a mano nel componente.
+  assert.match(tag, /alt=\{t\('hero\.alt'\)\}/, 'alt non legato alla chiave hero.alt')
+  assert.ok(!/object-(cover|contain)/.test(pageSource), 'nessun ritaglio: i rapporti riservati coincidono con i file')
+  // Il <source> verticale dichiara le sue dimensioni intrinseche.
+  const source = /<source[^>]*\/>/.exec(pageSource)
+  assert.ok(source, 'source del ritaglio verticale assente')
+  assert.match(source[0], /width=\{752\}/, 'larghezza del ritaglio verticale assente sul source')
+  assert.match(source[0], /height=\{941\}/, 'altezza del ritaglio verticale assente sul source')
+})
+
+test('i due ritagli dell immagine di testa pesano meno di 200 KB in due e sono WebP validi', () => {
+  let total = 0
+  for (const ref of HERO_FILES) {
+    const buffer = readFileSync(heroFile(ref))
+    assert.equal(buffer.toString('ascii', 0, 4), 'RIFF', `${ref}: non e un contenitore RIFF`)
+    assert.equal(buffer.toString('ascii', 8, 12), 'WEBP', `${ref}: non e un WebP`)
+    total += buffer.length
+  }
+  assert.ok(total < 200 * 1024, `i due ritagli pesano ${total} byte: il tetto e 200 KB`)
+})
+
+test('l alt dell immagine di testa esiste in tutte e cinque le lingue e non e quello inglese', () => {
+  const alts = new Map<Lang, string>()
+  for (const lang of LANGS) {
+    const alt = str((laboratorio(lang).hero as Tree).alt).trim()
+    assert.ok(alt.length >= 40, `${lang}: alt troppo corto: «${alt}»`)
+    // L alt nomina il personaggio e il monocolo: la stessa scena, non una descrizione generica.
+    assert.ok(/monocol|monocle|monokel|monóculo/i.test(alt), `${lang}: l alt non nomina il monocolo`)
+    assert.ok(/Chieri/.test(alt), `${lang}: l alt non nomina il luogo`)
+    alts.set(lang, alt)
+  }
+  const english = alts.get('en')
+  assert.ok(english, 'alt inglese mancante')
+  for (const lang of LANGS) {
+    if (lang === 'en') continue
+    assert.notEqual(alts.get(lang), english, `${lang}: alt rimasto in inglese`)
+    assert.ok(!/\bthe\b|\bwith a\b|\bin the\b/i.test(alts.get(lang) as string), `${lang}: alt con testo inglese`)
+  }
 })
 
 // ── Le sei figure dei ruoli ──────────────────────────────────────────────────────────────

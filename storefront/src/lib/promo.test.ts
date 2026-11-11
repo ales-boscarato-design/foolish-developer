@@ -187,18 +187,191 @@ test('normalizes only plain, bounded customer fields and two-letter countries', 
   })
   assert.deepEqual(valid, {
     email: 'test@example.com',
+    // Nome e cognome arrivano dal nome completo: e' il percorso storico, dove
+    // il cliente ha scritto una sola stringa.
+    firstName: 'Test',
+    lastName: 'Customer',
     name: 'Test Customer',
     country: 'IT',
     address: 'Via Test 1',
     city: 'Torino',
     postalCode: '10100',
+    province: null,
     phone: '',
+    nameDerived: true,
   })
   assert.equal(normalizeCheckoutCustomer({ ...valid, name: 123 }), null)
   assert.equal(normalizeCheckoutCustomer({ ...valid, country: 'ITA' }), null)
   assert.equal(normalizeCheckoutCustomer({ ...valid, country: 'XX' }), null)
   assert.equal(normalizeCheckoutCustomer([]), null)
   assert.equal(normalizeCheckoutCustomer({ ...valid, name: 'x'.repeat(121) }), null)
+})
+
+test('solo il nome completo: nome e cognome derivati, nessun 409 in coda (fallback del riordino)', () => {
+  const customer = normalizeCheckoutCustomer({
+    email: 'cliente@example.test',
+    name: 'Mario Rossi',
+    country: 'IT',
+    address: 'Via Test 1',
+    city: 'Torino',
+    postalCode: '10100',
+  })
+
+  assert.ok(customer)
+  if (!customer) return
+  assert.equal(customer.firstName, 'Mario')
+  assert.equal(customer.lastName, 'Rossi')
+  assert.equal(customer.name, 'Mario Rossi')
+  assert.equal(customer.nameDerived, true)
+  assert.equal(customer.province, null)
+})
+
+test('nome di una parola sola: il cognome resta vuoto invece di essere duplicato', () => {
+  const customer = normalizeCheckoutCustomer({
+    email: 'cliente@example.test',
+    name: 'Madonna',
+    country: 'IT',
+    address: 'Via Test 1',
+    city: 'Torino',
+    postalCode: '10100',
+  })
+
+  assert.ok(customer)
+  if (!customer) return
+  assert.equal(customer.firstName, 'Madonna')
+  assert.equal(customer.lastName, '')
+  assert.equal(customer.name, 'Madonna')
+})
+
+test('checkout italiano con campi separati: nome composto e sigla normalizzata', () => {
+  const customer = normalizeCheckoutCustomer({
+    email: 'cliente@example.test',
+    firstName: ' Mario ',
+    lastName: 'De Rossi',
+    country: 'it',
+    address: 'Via Test 1',
+    city: 'Torino',
+    postalCode: '10100',
+    province: 'to',
+  }, { structuredAddressCollected: true })
+
+  assert.ok(customer)
+  if (!customer) return
+  assert.equal(customer.firstName, 'Mario')
+  assert.equal(customer.lastName, 'De Rossi')
+  assert.equal(customer.name, 'Mario De Rossi')
+  assert.equal(customer.province, 'TO')
+  assert.equal(customer.nameDerived, false)
+})
+
+test('checkout italiano senza provincia: accettato, provincia null', () => {
+  const customer = normalizeCheckoutCustomer({
+    email: 'cliente@example.test',
+    firstName: 'Mario',
+    lastName: 'Rossi',
+    country: 'IT',
+    address: 'Via Test 1',
+    city: 'Torino',
+    postalCode: '10100',
+    province: '',
+  }, { structuredAddressCollected: true })
+
+  assert.ok(customer)
+  assert.equal(customer?.province, null)
+})
+
+test('checkout non italiano: nessun obbligo dei campi italiani', () => {
+  const customer = normalizeCheckoutCustomer({
+    email: 'cliente@example.fr',
+    name: 'Jean Dupont',
+    country: 'FR',
+    address: '1 Rue de Test',
+    city: 'Paris',
+    postalCode: '75001',
+  }, { structuredAddressCollected: true })
+
+  assert.ok(customer)
+  if (!customer) return
+  assert.equal(customer.firstName, 'Jean')
+  assert.equal(customer.lastName, 'Dupont')
+  assert.equal(customer.province, null)
+})
+
+test('provincia malformata: rifiutata dove viene raccolta, scartata dove non lo e', () => {
+  const base = {
+    email: 'cliente@example.test',
+    firstName: 'Mario',
+    lastName: 'Rossi',
+    country: 'IT',
+    address: 'Via Test 1',
+    city: 'Torino',
+    postalCode: '10100',
+    province: 'Torino',
+  }
+
+  // Pagina checkout: il campo c'e' ed e' sbagliato, quindi e' un errore del client.
+  assert.equal(normalizeCheckoutCustomer(base, { structuredAddressCollected: true }), null)
+
+  // Riordino di un ordine storico con un valore legacy: la sigla si perde, il
+  // riordino no.
+  const legacy = normalizeCheckoutCustomer(base)
+  assert.ok(legacy)
+  assert.equal(legacy?.province, null)
+})
+
+test('metadata Stripe: nome e cognome separati, provincia solo se presente', () => {
+  const lines = allocateProductDiscount([{
+    price: 10,
+    quantity: 1,
+    productName: 'Test',
+    variantLabel: 'A',
+    sku: 'TEST',
+  }], 0)
+  assert.ok(lines)
+
+  const withProvince = normalizeCheckoutCustomer({
+    email: 'cliente@example.test',
+    firstName: 'Mario',
+    lastName: 'Rossi',
+    country: 'IT',
+    address: 'Via Test 1',
+    city: 'Torino',
+    postalCode: '10100',
+    province: 'TO',
+  }, { structuredAddressCollected: true })
+  assert.ok(withProvince)
+
+  const metadata = buildCheckoutMetadata({
+    orderRef: 'FOOLISH-TEST',
+    customer: withProvince!,
+    chargedProductLines: lines!,
+  })
+  assert.ok(metadata)
+  assert.equal(metadata.customer_first_name, 'Mario')
+  assert.equal(metadata.customer_last_name, 'Rossi')
+  assert.equal(metadata.customer_name, 'Mario Rossi')
+  assert.equal(metadata.customer_province, 'TO')
+
+  // Senza provincia la chiave non esiste: una stringa vuota sarebbe un valore
+  // che Stripe conserva e che il CMS leggerebbe come dato.
+  const withoutProvince = normalizeCheckoutCustomer({
+    email: 'cliente@example.test',
+    name: 'Mario Rossi',
+    country: 'IT',
+    address: 'Via Test 1',
+    city: 'Torino',
+    postalCode: '10100',
+  })
+  assert.ok(withoutProvince)
+  const metadataWithout = buildCheckoutMetadata({
+    orderRef: 'FOOLISH-TEST-2',
+    customer: withoutProvince!,
+    chargedProductLines: lines!,
+  })
+  assert.ok(metadataWithout)
+  assert.equal('customer_province' in metadataWithout, false)
+  assert.equal(metadataWithout.customer_first_name, 'Mario')
+  assert.equal(metadataWithout.customer_last_name, 'Rossi')
 })
 
 test('server shipping uses the normalized subtotal and preserves free-above-threshold behavior', () => {
@@ -439,12 +612,16 @@ test('bounds cart payloads and rejects metadata that exceeds Stripe limits', () 
     orderRef: 'FOOLISH-TEST',
     customer: {
       email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'Customer',
       name: 'Test Customer',
       country: 'IT',
       address: 'Via Test 1',
       city: 'Torino',
       postalCode: '10100',
+      province: null,
       phone: '',
+      nameDerived: true,
     },
     chargedProductLines: chargedLines,
   })

@@ -259,9 +259,18 @@ export async function planReorder(args: {
   }
 
   const rawPhone = order.customerPhone
+  // I campi strutturati esistono solo sugli ordini creati dopo il checkout
+  // italiano: si passano quando ci sono, senza renderli obbligatori. Un ordine
+  // storico ha il solo nome completo, e `normalizeCheckoutCustomer` lo divide.
+  const rawFirstName = shippingAddress?.firstName
+  const rawLastName = shippingAddress?.lastName
+  const rawProvince = shippingAddress?.province
   const customer = normalizeCheckoutCustomer({
     email: sessionEmail,
     name: shippingAddress?.name,
+    firstName: typeof rawFirstName === 'string' ? rawFirstName : undefined,
+    lastName: typeof rawLastName === 'string' ? rawLastName : undefined,
+    province: typeof rawProvince === 'string' ? rawProvince : undefined,
     country,
     address: shippingAddress?.address1,
     city: shippingAddress?.city,
