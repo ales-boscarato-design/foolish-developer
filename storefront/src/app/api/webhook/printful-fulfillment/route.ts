@@ -223,11 +223,21 @@ async function createPrintfulOrder(params: {
     // non e' un duplicato, e trattarlo come successo riporta l'ordine al caso "pagato,
     // non stampato, nessun avviso" che questa rotta deve rendere impossibile. Lo stato
     // HTTP decide, non il testo.
+    //
+    // E il testo da solo non basta nemmeno quando dice "duplicate": un 4xx di validazione
+    // puo' usare la stessa parola per un'altra ragione (`duplicate entries in items
+    // array`). Prima di dichiarare evasa la stampa si CONFERMA con la stessa GET usata
+    // dalla deduplica; se l'ordine non c'e', resta un rifiuto e finisce nel ramo
+    // permanente, con l'avviso. Il 409 e' l'unico segnale che si prende per buono da
+    // solo (e' lo status con cui si risponde a un conflitto di unicita').
     const explicitDuplicate =
-      res.status === 409 || (res.status < 500 && /already\s+(?:exists|used)|duplicate/i.test(text))
+      res.status === 409 || (res.status < 500 && /already\s+(?:exists|used|taken)|duplicate/i.test(text))
     if (explicitDuplicate) {
-      console.warn(`[printful-webhook] Ordine ${params.orderRef} risulta già presente su Printful (create ha risposto ${res.status}): ${text}`)
-      return
+      const confirmed = res.status === 409 || (await printfulOrderAlreadyExists(params.orderRef))
+      if (confirmed) {
+        console.warn(`[printful-webhook] Ordine ${params.orderRef} risulta già presente su Printful (create ha risposto ${res.status}): ${text}`)
+        return
+      }
     }
     throw new PrintfulApiError({ status: res.status, detail: text })
   }

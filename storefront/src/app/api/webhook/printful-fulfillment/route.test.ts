@@ -722,11 +722,16 @@ test('create 409 (external_id già in uso): trattata come già evasa, nessun avv
 })
 
 test('create 4xx con corpo che dichiara il duplicato: trattata come già evasa', async () => {
+  // Il duplicato testuale si CONFERMA con la GET `external_id`: se l'ordine c'e', la
+  // stampa e' gia' partita e non si avvisa.
   const res = await deliver(
     {},
     {
       createStatus: 400,
       createBody: JSON.stringify({ error: { message: 'This external_id is already used by another order' } }),
+      // Prima della create l'ordine non c'è (404), poi la conferma lo trova (200):
+      // il duplicato testuale è vero, la stampa è già partita.
+      printfulLookupStatuses: [404, 200],
       expectedStatus: 200,
     },
   )
@@ -734,6 +739,32 @@ test('create 4xx con corpo che dichiara il duplicato: trattata come già evasa',
 
   assert.equal(body.received, true)
   assert.equal(alerts.length, 0)
+  // Due lookup: quello di prima della create e quello di conferma.
+  assert.deepEqual(printfulLookups(), [ORDER_REF, ORDER_REF])
+})
+
+test('4xx di validazione che usa la parola "duplicate" per altro: avviso, non successo', async () => {
+  // Regressione della review round 2: "duplicate entries in items array" è un errore di
+  // validazione, non un ordine già creato. Senza la conferma via `external_id` la rotta
+  // tornava 200 in silenzio (ordine pagato, non stampato, nessun avviso). Con la conferma
+  // l'ordine non esiste → resta un rifiuto permanente, con l'avviso.
+  const res = await deliver(
+    {},
+    {
+      createStatus: 400,
+      createBody: JSON.stringify({ error: { message: 'Validation failed: duplicate entries in items array' } }),
+      expectedStatus: 200,
+    },
+  )
+  const body = await res.json()
+
+  assert.equal(body.code, 'printful_create_permanent')
+  assert.equal(body.printfulStatus, 400)
+  const found = fulfillmentAlerts()
+  assert.equal(found.length, 1, `atteso un avviso, ricevuti ${alerts.length}: ${JSON.stringify(alerts)}`)
+  assert.equal(found[0].body.reason, 'printful_create_failed')
+  assert.equal(found[0].body.printfulStatus, 400)
+  assertNoPersonalData(found[0])
 })
 
 test('destinatario senza nome: l avviso dice che manca il nome', async () => {
