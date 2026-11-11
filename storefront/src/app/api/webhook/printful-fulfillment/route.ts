@@ -233,7 +233,18 @@ async function createPrintfulOrder(params: {
     const explicitDuplicate =
       res.status === 409 || (res.status < 500 && /already\s+(?:exists|used|taken)|duplicate/i.test(text))
     if (explicitDuplicate) {
-      const confirmed = res.status === 409 || (await printfulOrderAlreadyExists(params.orderRef))
+      // Se la conferma non risponde non si sa se l'ordine c'e': si resta sull'esito
+      // della CREATE (status e corpo suoi), perche' una diagnostica che riporta lo
+      // status della GET al posto di quello del rifiuto manda chi interviene a
+      // guardare la cosa sbagliata. In ogni caso non si crea una seconda volta.
+      let confirmed = res.status === 409
+      if (!confirmed) {
+        try {
+          confirmed = await printfulOrderAlreadyExists(params.orderRef)
+        } catch (confirmError) {
+          console.warn(`[printful-webhook] CONFIRM DUPLICATE FAILED ${params.orderRef}:`, confirmError)
+        }
+      }
       if (confirmed) {
         console.warn(`[printful-webhook] Ordine ${params.orderRef} risulta già presente su Printful (create ha risposto ${res.status}): ${text}`)
         return
