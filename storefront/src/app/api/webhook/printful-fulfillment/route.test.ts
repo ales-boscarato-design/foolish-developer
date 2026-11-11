@@ -53,6 +53,8 @@ let cmsOrders: Array<{ orderNumber: string; stripeSessionId?: string }> = []
 /** Se valorizzato, la ricerca ordini sul CMS fallisce con questo status. */
 let cmsOrdersFailure: number | null = null
 let printfulCreateStatus = 200
+/** Corpo grezzo della risposta di errore della create (default: il corpo con PII). */
+let printfulCreateBody: string | null = null
 let nanobotFails = false
 let catalogFails = false
 let createNetworkError = false
@@ -121,6 +123,12 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   if (url === PRINTFUL_CREATE_URL && method === 'POST') {
     if (createNetworkError) throw new Error('ECONNRESET (test)')
     if (printfulCreateStatus !== 200) {
+      if (printfulCreateBody !== null) {
+        return new Response(printfulCreateBody, {
+          status: printfulCreateStatus,
+          headers: { 'content-type': 'application/json' },
+        })
+      }
       // Il corpo dell'errore contiene il destinatario: e' il caso peggiore per
       // l'avviso, che deve restare pulito anche quando Printful rimanda i dati.
       return new Response(
@@ -191,6 +199,8 @@ function sessionEvent(overrides: SessionOverrides = {}): Record<string, unknown>
 
 interface DeliverOptions {
   createStatus?: number
+  /** Corpo grezzo della risposta di errore della create (per i casi che citano `external_id`). */
+  createBody?: string
   nanobotDown?: boolean
   catalogDown?: boolean
   createNetworkDown?: boolean
@@ -214,6 +224,7 @@ async function deliver(overrides: SessionOverrides = {}, opts: DeliverOptions = 
   cmsOrders = opts.cmsOrders ?? []
   cmsOrdersFailure = opts.cmsOrdersFailure ?? null
   printfulCreateStatus = opts.createStatus ?? 200
+  printfulCreateBody = opts.createBody ?? null
   nanobotFails = opts.nanobotDown ?? false
   catalogFails = opts.catalogDown ?? false
   createNetworkError = opts.createNetworkDown ?? false
@@ -649,6 +660,80 @@ test('create 422 di validazione: 200 e code permanente, nessun retry atteso', as
   // Nessuna verifica di esistenza: un rifiuto di validazione non crea nulla.
   assert.deepEqual(printfulLookups(), [ORDER_REF])
   assertNoPersonalData(found[0])
+})
+
+test('500 il cui corpo nomina external_id NON è un duplicato: 503 e avviso', async () => {
+  // Regressione misurata in review: l'euristica legacy `/external_id/i` sul corpo
+  // trasformava qualunque errore che citasse quel campo in "già creato" (200, zero
+  // avvisi, zero retry). Un 5xx che parla di `external_id` nei dettagli non prova che
+  // l'ordine esista: lo stato HTTP decide.
+  const res = await deliver(
+    {},
+    {
+      createStatus: 500,
+      createBody: JSON.stringify({ error: { message: 'internal: external_id lookup failed' } }),
+      expectedStatus: 503,
+    },
+  )
+  const body = await res.json()
+
+  assert.equal(body.code, 'printful_create_retryable')
+  const found = fulfillmentAlerts()
+  assert.equal(found.length, 1, `atteso un avviso, ricevuti ${alerts.length}: ${JSON.stringify(alerts)}`)
+  assert.equal(found[0].body.reason, 'printful_create_failed')
+  assert.equal(found[0].body.printfulStatus, 500)
+  assertNoPersonalData(found[0])
+})
+
+test('422 che nomina external_id resta un rifiuto permanente, non un successo', async () => {
+  // Stessa euristica, lato 4xx: "external_id is invalid" è un errore di validazione,
+  // non un duplicato. Deve produrre l'avviso e il `code` permanente.
+  const res = await deliver(
+    {},
+    {
+      createStatus: 422,
+      createBody: JSON.stringify({ error: { message: 'external_id is invalid: too long' } }),
+      expectedStatus: 200,
+    },
+  )
+  const body = await res.json()
+
+  assert.equal(body.code, 'printful_create_permanent')
+  assert.equal(fulfillmentAlerts().length, 1)
+  assert.equal(fulfillmentAlerts()[0]!.body.reason, 'printful_create_failed')
+})
+
+test('create 409 (external_id già in uso): trattata come già evasa, nessun avviso', async () => {
+  // Il segnale ESPLICITO di duplicato resta un successo: la corsa finita male tra
+  // verifica e create non deve produrre un secondo pacco né un allarme.
+  const res = await deliver(
+    {},
+    {
+      createStatus: 409,
+      createBody: JSON.stringify({ error: { message: 'Order with this external_id already exists' } }),
+      expectedStatus: 200,
+    },
+  )
+  const body = await res.json()
+
+  assert.equal(body.received, true)
+  assert.equal(alerts.length, 0, `nessun avviso atteso, ricevuti: ${JSON.stringify(alerts)}`)
+  assert.equal(printfulCreateRequests().length, 1)
+})
+
+test('create 4xx con corpo che dichiara il duplicato: trattata come già evasa', async () => {
+  const res = await deliver(
+    {},
+    {
+      createStatus: 400,
+      createBody: JSON.stringify({ error: { message: 'This external_id is already used by another order' } }),
+      expectedStatus: 200,
+    },
+  )
+  const body = await res.json()
+
+  assert.equal(body.received, true)
+  assert.equal(alerts.length, 0)
 })
 
 test('destinatario senza nome: l avviso dice che manca il nome', async () => {

@@ -213,10 +213,19 @@ async function createPrintfulOrder(params: {
   }
   if (!res.ok) {
     const text = await res.text()
-    // Rete di sicurezza: se Printful segnala che l'external_id è già in uso,
-    // trattiamo la richiesta come già evasa (non un errore) — vedi nota di
-    // idempotenza sopra sulla finestra di razza check-then-create.
-    if (res.status === 409 || /external_id/i.test(text)) {
+    // Rete di sicurezza: se Printful segnala ESPLICITAMENTE che l'ordine esiste gia'
+    // (`external_id` in uso), la richiesta e' gia' evasa — vedi nota di idempotenza
+    // sopra sulla finestra di razza check-then-create.
+    //
+    // Il segnale e' lo STATUS (409) o un 4xx che DICE "duplicato" (`already exists`,
+    // `already used`, `duplicate`). NON basta che il corpo nomini `external_id`: un 5xx
+    // che cita quel campo nei dettagli d'errore (`internal: external_id lookup failed`)
+    // non e' un duplicato, e trattarlo come successo riporta l'ordine al caso "pagato,
+    // non stampato, nessun avviso" che questa rotta deve rendere impossibile. Lo stato
+    // HTTP decide, non il testo.
+    const explicitDuplicate =
+      res.status === 409 || (res.status < 500 && /already\s+(?:exists|used)|duplicate/i.test(text))
+    if (explicitDuplicate) {
       console.warn(`[printful-webhook] Ordine ${params.orderRef} risulta già presente su Printful (create ha risposto ${res.status}): ${text}`)
       return
     }
