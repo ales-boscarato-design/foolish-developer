@@ -608,3 +608,101 @@ test('handleReorder: 502 su errore Stripe senza far trapelare il messaggio', asy
   assert.equal(body.error, 'pagamento_non_disponibile')
   assert.doesNotMatch(body.message, /dettagli-interni/)
 })
+
+// ── Indirizzo strutturato: fallback, non obbligo ────────────────────────────
+//
+// Il riordino parte da un ordine che il cliente ha gia' ricevuto. Quell'ordine
+// puo' essere storico (solo `name`, nessun campo strutturato) e deve restare
+// riordinabile: la pagina checkout raccoglie nome, cognome e provincia, ma chi
+// non li ha non deve incontrare un 409.
+
+test('riordino di un ordine con il solo nome: 200, campi derivati, nessun 409', async () => {
+  const legacyOrder = order()
+
+  const plan = await planReorder({
+    order: legacyOrder,
+    sessionEmail: SESSION_EMAIL,
+    fetchProduct: catalogFetcher(),
+  })
+
+  assert.equal(plan.status, 'ok')
+  if (plan.status !== 'ok') return
+  const metadata = plan.sessionParams.metadata as Record<string, string>
+  assert.equal(metadata.customer_name, 'Mario Rossi')
+  assert.equal(metadata.customer_first_name, 'Mario')
+  assert.equal(metadata.customer_last_name, 'Rossi')
+  // Nessuna provincia: non c'era e non si inventa.
+  assert.equal('customer_province' in metadata, false)
+
+  let created = 0
+  const response = await handleReorder({
+    orderId: 'ORD-1',
+    sessionEmail: SESSION_EMAIL,
+    findOrder: async () => legacyOrder,
+    fetchProduct: catalogFetcher(),
+    createCheckoutSession: async () => {
+      created += 1
+      return { url: 'https://stripe.test/session' }
+    },
+  })
+
+  assert.equal(response.status, 200)
+  assert.equal(created, 1)
+  assert.deepEqual(await response.json(), { url: 'https://stripe.test/session' })
+})
+
+test('riordino di un ordine con indirizzo strutturato: nome, cognome e provincia restano', async () => {
+  const structuredOrder = order({
+    shippingAddress: {
+      name: 'Mario Rossi',
+      firstName: 'Mario',
+      lastName: 'Rossi',
+      address1: 'Via Test 1',
+      city: 'Torino',
+      postalCode: '10100',
+      province: 'TO',
+      country: 'IT',
+    },
+  })
+
+  const plan = await planReorder({
+    order: structuredOrder,
+    sessionEmail: SESSION_EMAIL,
+    fetchProduct: catalogFetcher(),
+  })
+
+  assert.equal(plan.status, 'ok')
+  if (plan.status !== 'ok') return
+  const metadata = plan.sessionParams.metadata as Record<string, string>
+  assert.equal(metadata.customer_first_name, 'Mario')
+  assert.equal(metadata.customer_last_name, 'Rossi')
+  assert.equal(metadata.customer_province, 'TO')
+})
+
+test('ordine storico senza alcun campo strutturato: nessun rifiuto per dati mancanti', async () => {
+  // Cliente non italiano, nessuna provincia possibile: il percorso non deve
+  // introdurre obblighi che il paese non conosce.
+  const foreignOrder = order({
+    customerCountry: 'FR',
+    shippingAddress: {
+      name: 'Jean Dupont',
+      address1: '1 Rue de Test',
+      city: 'Paris',
+      postalCode: '75001',
+      country: 'FR',
+    },
+  })
+
+  const plan = await planReorder({
+    order: foreignOrder,
+    sessionEmail: SESSION_EMAIL,
+    fetchProduct: catalogFetcher(),
+  })
+
+  assert.equal(plan.status, 'ok')
+  if (plan.status !== 'ok') return
+  const metadata = plan.sessionParams.metadata as Record<string, string>
+  assert.equal(metadata.customer_first_name, 'Jean')
+  assert.equal(metadata.customer_last_name, 'Dupont')
+  assert.equal('customer_province' in metadata, false)
+})

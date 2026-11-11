@@ -827,3 +827,120 @@ test('riconciliazione: una sessione senza riferimento finisce fra gli errori, co
     globalThis.fetch = originalFetch
   }
 })
+
+// ── Indirizzo strutturato: dal checkout al CMS ──────────────────────────────
+
+test('checkout italiano: nome, cognome e provincia finiscono nell ordine CMS', async () => {
+  const originalFetch = globalThis.fetch
+  let createBody: Record<string, unknown> | null = null
+  globalThis.fetch = async (_input, init) => {
+    if (init?.method === 'POST') {
+      createBody = JSON.parse(String(init.body)) as Record<string, unknown>
+      return jsonResponse({ id: 707, orderNumber: 'FOOLISH-STRUCTURED' }, 201)
+    }
+    return jsonResponse({ docs: [] })
+  }
+
+  try {
+    const session = checkoutSession({
+      metadata: {
+        order_ref: 'FOOLISH-STRUCTURED',
+        customer_name: 'Mario Rossi',
+        customer_first_name: 'Mario',
+        customer_last_name: 'Rossi',
+        customer_country: 'IT',
+        customer_province: 'to',
+        customer_address: 'Via Test 1|Torino|10100',
+        customer_phone: '+39 011 0000000',
+        items_json: JSON.stringify([
+          { sku: 'TEST-SKU', qty: 1, name: 'Test', variantLabel: 'A', price: 30 },
+        ]),
+      },
+    })
+
+    const result = await createOrderInCMS(session)
+    assert.equal(result.created, true)
+    assert.ok(createBody, 'payload CMS non catturato')
+
+    const persisted = createBody as Record<string, unknown>
+    assert.deepEqual(persisted.shippingAddress, {
+      name: 'Mario Rossi',
+      firstName: 'Mario',
+      lastName: 'Rossi',
+      address1: 'Via Test 1',
+      address2: '',
+      city: 'Torino',
+      postalCode: '10100',
+      province: 'TO',
+      country: 'IT',
+    })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('ordine storico senza i nuovi metadata: ordine creato, nome derivato, provincia assente', async () => {
+  const originalFetch = globalThis.fetch
+  let createBody: Record<string, unknown> | null = null
+  globalThis.fetch = async (_input, init) => {
+    if (init?.method === 'POST') {
+      createBody = JSON.parse(String(init.body)) as Record<string, unknown>
+      return jsonResponse({ id: 708, orderNumber: 'FOOLISH-ORDER-TEST' }, 201)
+    }
+    return jsonResponse({ docs: [] })
+  }
+
+  try {
+    // Sessione con il solo `customer_name`: nessun campo strutturato, nessuna
+    // provincia. Creare l'ordine non deve fallire e non deve inventare la sigla.
+    const result = await createOrderInCMS(checkoutSession())
+    assert.equal(result.created, true)
+    assert.ok(createBody, 'payload CMS non catturato')
+
+    const persisted = createBody as Record<string, unknown>
+    const address = persisted.shippingAddress as Record<string, unknown>
+    assert.equal(address.name, 'Order Test')
+    assert.equal(address.firstName, 'Order')
+    assert.equal(address.lastName, 'Test')
+    assert.equal('province' in address, false)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('checkout italiano senza provincia: ordine creato, provincia non scritta', async () => {
+  const originalFetch = globalThis.fetch
+  let createBody: Record<string, unknown> | null = null
+  globalThis.fetch = async (_input, init) => {
+    if (init?.method === 'POST') {
+      createBody = JSON.parse(String(init.body)) as Record<string, unknown>
+      return jsonResponse({ id: 709, orderNumber: 'FOOLISH-NO-PROVINCE' }, 201)
+    }
+    return jsonResponse({ docs: [] })
+  }
+
+  try {
+    const session = checkoutSession({
+      metadata: {
+        order_ref: 'FOOLISH-NO-PROVINCE',
+        customer_name: 'Mario Rossi',
+        customer_first_name: 'Mario',
+        customer_last_name: 'Rossi',
+        customer_country: 'IT',
+        customer_address: 'Via Test 1|Torino|10100',
+        items_json: JSON.stringify([
+          { sku: 'TEST-SKU', qty: 1, name: 'Test', variantLabel: 'A', price: 30 },
+        ]),
+      },
+    })
+
+    const result = await createOrderInCMS(session)
+    assert.equal(result.created, true)
+    const address = (createBody as Record<string, unknown> | null)?.shippingAddress as Record<string, unknown>
+    assert.equal(address.firstName, 'Mario')
+    assert.equal(address.lastName, 'Rossi')
+    assert.equal('province' in address, false)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
