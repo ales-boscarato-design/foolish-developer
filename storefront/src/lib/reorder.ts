@@ -35,6 +35,7 @@ import {
   buildExtraEuShippingMetadata,
   buildStripeLineItems,
 } from '@/lib/checkout-session'
+import { generateOrderRef } from '@/lib/order-ref'
 
 export type ReorderCode =
   | 'order_not_found'
@@ -176,7 +177,6 @@ export async function planReorder(args: {
   sessionEmail: string
   fetchProduct?: CatalogProductFetcher
   resolveExtraEu?: ExtraEuResolver
-  now?: Date
 }): Promise<ReorderPlan> {
   const { order, sessionEmail } = args
 
@@ -317,7 +317,11 @@ export async function planReorder(args: {
     return refuse('dati_ordine_non_validi')
   }
 
-  const orderRef = `FOOLISH-${args.now?.getTime() ?? Date.now()}`
+  // Stesso schema del checkout: il numero d'ordine non deriva dal tempo, cosi'
+  // due riordini nello stesso millisecondo non collidono (il numero e' la chiave
+  // di idempotenza dell'ordine: una collisione significa un cliente addebitato
+  // senza ordine).
+  const orderRef = generateOrderRef()
   const metadata = buildCheckoutMetadata({
     orderRef,
     customer,

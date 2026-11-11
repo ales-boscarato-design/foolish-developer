@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
+import { telegramOrderLink } from '@/lib/order-ref'
 
 // ── Types ─────────────────────────────────────────────────
 type PipelineState =
@@ -317,7 +318,7 @@ export default async function OrderPage({
         */}
         <section style={{ marginBottom: '48px' }}>
           <a
-            href={`https://t.me/the_foolish_butcher_bot?start=order_${order.orderNumber}`}
+            href={telegramOrderLink(order.orderNumber)}
             target="_blank"
             rel="noopener noreferrer"
             style={{

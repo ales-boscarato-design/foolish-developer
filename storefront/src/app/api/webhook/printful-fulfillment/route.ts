@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
 import { notifyNanobot } from '@/lib/nanobot'
+import { ORDER_REF_PREFIX } from '@/lib/order-ref'
 import {
   resolvePrintfulShipping,
   type PrintfulRecipient,
   type ResolvedPrintfulShipping,
   type ShippingAddressSource,
 } from '@/lib/printful-shipping'
+import { findCmsOrder, findCmsOrderBySessionId, getSessionOrderRef } from '@/lib/stripe-orders'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,7 +29,11 @@ export const dynamic = 'force-dynamic'
  */
 const FULFILLMENT_ALERT_HOOK = '/hooks/foolish-printful-fulfillment'
 
-type FulfillmentAlertReason = 'indirizzo_incompleto' | 'printful_create_failed' | 'fulfillment_failed'
+type FulfillmentAlertReason =
+  | 'indirizzo_incompleto'
+  | 'printful_create_failed'
+  | 'fulfillment_failed'
+  | 'order_ref_unresolved'
 
 interface FulfillmentAlert {
   eventType: 'printful_fulfillment_alert'
@@ -38,6 +44,10 @@ interface FulfillmentAlert {
   missingFields: string[]
   /** Stato HTTP restituito da Printful, quando ce n'e' uno. */
   printfulStatus?: number
+  /** Solo per `order_ref_unresolved`: la sessione Stripe senza numero d'ordine. */
+  stripeSessionId?: string
+  /** Solo per `order_ref_unresolved`: un pacco col riferimento legacy esiste gia'. */
+  legacyPrintfulOrderExists?: boolean
 }
 
 /**
@@ -174,6 +184,57 @@ async function createPrintfulOrder(params: {
   }
 }
 
+/**
+ * Il riferimento con cui identificare l'ordine di stampa, oppure `null` quando non
+ * ne esiste uno.
+ *
+ * PERCHE' NON SI INVENTA PIU'. Il codice faceva `meta.order_ref ?? \`FOOLISH-${session.id}\``:
+ * un riferimento che nessun ordine del CMS portava. La stampa partiva per un pagamento
+ * che nel CMS non esisteva (e le email di tracking partono dall'ordine CMS), e la chiave
+ * di deduplicazione sul lato Printful non coincideva con quella dell'ordine reale.
+ *
+ * Qui, quando il checkout non ha dichiarato un numero d'ordine, si cercano solo ordini
+ * che ESISTONO: prima per la chiave di sessione (`stripeSessionId`, unica sull'ordine),
+ * poi per il numero legacy `FOOLISH-<session.id>` che il codice vecchio scriveva. Sono
+ * letture: nessun documento viene creato. `null` significa "non risolvibile" e chi chiama
+ * si ferma.
+ */
+async function resolveOrderRefForSession(session: Stripe.Checkout.Session): Promise<string | null> {
+  const declared = getSessionOrderRef(session)
+  if (declared) return declared
+
+  const bySession = await findCmsOrderBySessionId(session.id)
+  if (bySession?.orderNumber) return bySession.orderNumber
+
+  // Ordini creati prima di `stripeSessionId`: il numero e' `FOOLISH-<session.id>` e la
+  // colonna di sessione e' vuota, quindi la chiave e' il numero stesso.
+  const legacy = await findCmsOrder(`${ORDER_REF_PREFIX}${session.id}`)
+  return legacy?.orderNumber ?? null
+}
+
+/**
+ * Avviso operativo quando una riga merch resta senza un ordine di stampa perche' il
+ * pagamento non dichiara (e non ha) un numero d'ordine.
+ *
+ * Il canale e' lo stesso delle altre segnalazioni operative dello storefront
+ * (`alertFulfillmentIssue`), cosi' c'e' un punto solo che invia, con timeout e
+ * log dell'errore. Contenuto: solo riferimenti, mai nome, indirizzo o email.
+ */
+async function alertOrderReferenceUnresolved(params: {
+  orderRef: string
+  stripeSessionId: string
+  legacyPrintfulOrderExists: boolean
+}): Promise<void> {
+  await alertFulfillmentIssue({
+    eventType: 'printful_fulfillment_alert',
+    orderRef: params.orderRef,
+    reason: 'order_ref_unresolved',
+    missingFields: [],
+    stripeSessionId: params.stripeSessionId,
+    legacyPrintfulOrderExists: params.legacyPrintfulOrderExists,
+  })
+}
+
 export async function POST(req: NextRequest) {
   const secret = process.env.STRIPE_PRINTFUL_WEBHOOK_SECRET
   if (!secret) {
@@ -212,10 +273,13 @@ export async function POST(req: NextRequest) {
     // scelta e quali campi mancavano — senza, un errore generico cancella la
     // causa piu' probabile.
     let resolvedShipping: ResolvedPrintfulShipping | null = null
+    // Riferimento per l'avviso: il numero DICHIARATO dal checkout (letto dai metadata,
+    // nessuna chiamata), poi quello risolto sul CMS. Se nessuno dei due esiste resta
+    // `null` e l'avviso nomina la SESSIONE, mai un numero d'ordine inventato.
+    let resolvedOrderRef: string | null = getSessionOrderRef(session)
 
     try {
       const meta = session.metadata ?? {}
-      const orderRef = meta.order_ref ?? `FOOLISH-${session.id}`
 
       let parsedItems: ParsedItem[] = []
       try {
@@ -232,6 +296,60 @@ export async function POST(req: NextRequest) {
 
       if (merchItems.length === 0) {
         return NextResponse.json({ received: true }) // nessuna riga merch in questo ordine
+      }
+
+      // Il riferimento si risolve SOLO dopo aver accertato che c'e' merce da stampare:
+      // una sessione senza righe merch non deve produrre un allarme di riferimento.
+      let orderRef: string | null
+      try {
+        orderRef = await resolveOrderRefForSession(session)
+        resolvedOrderRef = orderRef
+      } catch (err) {
+        // Il CMS non risponde: non si conosce il riferimento e non si inventa. 503 perche'
+        // l'errore e' transitorio e il retry di Stripe e' la strada giusta.
+        console.error(`[printful-webhook] ORDER REF LOOKUP FAILED session=${session.id}:`, err)
+        return NextResponse.json(
+          { error: 'order_reference_lookup_failed', stripeSessionId: session.id },
+          { status: 503 },
+        )
+      }
+
+      if (orderRef === null) {
+        // Deduplicazione dei pacchi gia' creati col riferimento inventato dal codice
+        // vecchio (`FOOLISH-<session.id>`): si CERCA, non si crea. Se esiste, il pacco e'
+        // partito e l'unica azione utile e' segnalarlo — non crearne un secondo.
+        const legacyRef = `${ORDER_REF_PREFIX}${session.id}`
+        let legacyPrintfulOrderExists = false
+        try {
+          legacyPrintfulOrderExists = await printfulOrderAlreadyExists(legacyRef)
+        } catch (err) {
+          console.error(`[printful-webhook] ORDER REF LOOKUP FAILED session=${session.id} legacyRef=${legacyRef}:`, err)
+          return NextResponse.json(
+            { error: 'order_reference_lookup_failed', stripeSessionId: session.id },
+            { status: 503 },
+          )
+        }
+
+        console.error(
+          `[printful-webhook] ORDER REF UNRESOLVED session=${session.id}: nessun order_ref nei metadata e nessun ordine CMS per questa sessione. Nessun ordine di stampa creato.`
+          + (legacyPrintfulOrderExists ? ` Ordine di stampa gia' presente col riferimento legacy ${legacyRef}.` : ''),
+        )
+        await alertOrderReferenceUnresolved({
+          orderRef: legacyPrintfulOrderExists ? legacyRef : session.id,
+          stripeSessionId: session.id,
+          legacyPrintfulOrderExists,
+        })
+
+        if (legacyPrintfulOrderExists) {
+          // Nulla da creare: il pacco esiste gia' e un retry non cambierebbe niente.
+          return NextResponse.json({ received: true, legacyOrderRef: legacyRef })
+        }
+        // NON-2xx: l'evento resta visibile nella dashboard Stripe (e viene ritentato), invece
+        // di sparire dentro un 200 con un ordine di stampa inventato.
+        return NextResponse.json(
+          { error: 'order_reference_unresolved', code: 'order_ref_unresolved', stripeSessionId: session.id },
+          { status: 503 },
+        )
       }
 
       if (await printfulOrderAlreadyExists(orderRef)) {
@@ -298,7 +416,7 @@ export async function POST(req: NextRequest) {
       console.error('[printful-webhook] Fulfillment failed:', err)
       await alertFulfillmentIssue({
         eventType: 'printful_fulfillment_alert',
-        orderRef: session.metadata?.order_ref ?? `FOOLISH-${session.id}`,
+        orderRef: resolvedOrderRef ?? session.id,
         ...(resolvedShipping ? { source: resolvedShipping.source } : {}),
         reason: 'fulfillment_failed',
         missingFields: resolvedShipping ? missingShippingFields(resolvedShipping.recipient) : [],

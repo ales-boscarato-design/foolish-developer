@@ -116,7 +116,6 @@ async function plannedSession(): Promise<Stripe.Checkout.Session> {
     order: SOURCE_ORDER,
     sessionEmail: SESSION_EMAIL,
     fetchProduct: CATALOG,
-    now: new Date(1_700_000_000_000),
   })
   assert.equal(plan.status, 'ok')
   if (plan.status !== 'ok') throw new Error('il piano di riordino non e` ok')

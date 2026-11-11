@@ -46,6 +46,12 @@ interface CapturedAlert {
 let captured: Captured[] = []
 let alerts: CapturedAlert[] = []
 let printfulOrderExists = false
+/** Riferimenti per cui Printful considera gia' esistente l'ordine (GET /orders/@ref). */
+let printfulExistingRefs: string[] = []
+/** Ordini presenti nel CMS finto, interrogabili per `orderNumber` o `stripeSessionId`. */
+let cmsOrders: Array<{ orderNumber: string; stripeSessionId?: string }> = []
+/** Se valorizzato, la ricerca ordini sul CMS fallisce con questo status. */
+let cmsOrdersFailure: number | null = null
 let printfulCreateStatus = 200
 let nanobotFails = false
 let catalogFails = false
@@ -77,9 +83,29 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     )
   }
 
+  // Ricerca dell'ordine nel CMS: `findCmsOrder` (orderNumber) e
+  // `findCmsOrderBySessionId` (stripeSessionId).
+  if (url.startsWith('https://cms.test/api/orders')) {
+    if (cmsOrdersFailure !== null) {
+      return new Response('cms orders unavailable', { status: cmsOrdersFailure })
+    }
+    const parsed = new URL(url)
+    const orderNumber = parsed.searchParams.get('where[orderNumber][equals]')
+    const stripeSessionId = parsed.searchParams.get('where[stripeSessionId][equals]')
+    const docs = cmsOrders.filter((order) =>
+      orderNumber ? order.orderNumber === orderNumber : order.stripeSessionId === stripeSessionId,
+    )
+    return new Response(JSON.stringify({ docs }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    })
+  }
+
   // Idempotenza: GET /orders/@<external_id>.
   if (url.startsWith(`${PRINTFUL_CREATE_URL}/@`)) {
-    return new Response('{}', { status: printfulOrderExists ? 200 : 404 })
+    const ref = decodeURIComponent(url.slice(`${PRINTFUL_CREATE_URL}/@`.length))
+    const exists = printfulOrderExists || printfulExistingRefs.includes(ref)
+    return new Response('{}', { status: exists ? 200 : 404 })
   }
   if (url === PRINTFUL_CREATE_URL && method === 'POST') {
     if (createNetworkError) throw new Error('ECONNRESET (test)')
@@ -115,6 +141,12 @@ interface SessionOverrides {
   collected?: unknown
   legacy?: unknown
   metadata?: Record<string, string>
+  /** Sessione il cui checkout NON ha dichiarato `order_ref` nei metadata. */
+  omitOrderRef?: boolean
+  /** `checkout.session.mode` (default: pagamento singolo). */
+  mode?: string
+  /** `checkout.session.payment_status` (default: paid). */
+  paymentStatus?: string
 }
 
 function sessionEvent(overrides: SessionOverrides = {}): Record<string, unknown> {
@@ -140,16 +172,34 @@ function sessionEvent(overrides: SessionOverrides = {}): Record<string, unknown>
   }
   if (overrides.collected !== undefined) session.collected_information = overrides.collected
   if (overrides.legacy !== undefined) session.shipping_details = overrides.legacy
+  if (overrides.omitOrderRef) delete (session.metadata as Record<string, string>).order_ref
+  if (overrides.mode !== undefined) session.mode = overrides.mode
+  if (overrides.paymentStatus !== undefined) session.payment_status = overrides.paymentStatus
   return session
 }
 
-async function deliver(
-  overrides: SessionOverrides = {},
-  opts: { createStatus?: number; nanobotDown?: boolean; catalogDown?: boolean; createNetworkDown?: boolean } = {},
-): Promise<void> {
+interface DeliverOptions {
+  createStatus?: number
+  nanobotDown?: boolean
+  catalogDown?: boolean
+  createNetworkDown?: boolean
+  /** Ordini presenti nel CMS finto, interrogabili per `orderNumber` o `stripeSessionId`. */
+  cmsOrders?: Array<{ orderNumber: string; stripeSessionId?: string }>
+  /** Se valorizzato, la ricerca ordini sul CMS fallisce con questo status. */
+  cmsOrdersFailure?: number
+  /** Riferimenti per cui Printful considera gia' esistente l'ordine. */
+  printfulExistingRefs?: string[]
+  /** Status atteso della rotta (default 200: il percorso che gia' funziona). */
+  expectedStatus?: number
+}
+
+async function deliver(overrides: SessionOverrides = {}, opts: DeliverOptions = {}): Promise<Response> {
   captured = []
   alerts = []
   printfulOrderExists = false
+  printfulExistingRefs = opts.printfulExistingRefs ?? []
+  cmsOrders = opts.cmsOrders ?? []
+  cmsOrdersFailure = opts.cmsOrdersFailure ?? null
   printfulCreateStatus = opts.createStatus ?? 200
   nanobotFails = opts.nanobotDown ?? false
   catalogFails = opts.catalogDown ?? false
@@ -170,7 +220,8 @@ async function deliver(
     headers: { 'stripe-signature': signature },
   })
   const res = await POST(req)
-  assert.equal(res.status, 200)
+  assert.equal(res.status, opts.expectedStatus ?? 200)
+  return res
 }
 
 function printfulRecipient(): Record<string, string | undefined> {
@@ -493,4 +544,136 @@ test('destinatario senza nome: l avviso dice che manca il nome', async () => {
   assert.equal(found.length, 1, `atteso un avviso, ricevuti ${alerts.length}: ${JSON.stringify(alerts)}`)
   assert.deepEqual(found[0].body.missingFields, ['name'])
   assert.equal(found[0].body.printfulStatus, 422)
+})
+
+// ── Riferimento dell'ordine: non si inventa ────────────────────────────────────
+//
+// Il codice vecchio faceva `meta.order_ref ?? \`FOOLISH-${session.id}\``. Il riferimento
+// inventato non corrispondeva a nessun ordine del CMS: il pacco partiva per un pagamento
+// che nel CMS non esisteva (senza tracking ne' email) e la chiave di deduplicazione non
+// era quella dell'ordine reale. I test qui sotto coprono il confine HTTP: con un ordine
+// CMS raggiungibile si usa il SUO numero, senza ordine si risponde NON-2xx e si avvisa,
+// e i pacchi gia' creati col riferimento legacy vengono ritrovati invece che duplicati.
+
+const CMS_ORDER_NUMBER = 'FOOLISH-0123456789abcdef0123456789abcdef'
+
+function printfulCreateRequest(): Captured | undefined {
+  return captured.find((c) => c.url === PRINTFUL_CREATE_URL && c.method === 'POST')
+}
+
+function printfulLookups(): string[] {
+  return captured
+    .filter((c) => c.url.startsWith(`${PRINTFUL_CREATE_URL}/@`))
+    .map((c) => decodeURIComponent(c.url.slice(`${PRINTFUL_CREATE_URL}/@`.length)))
+}
+
+test('sessione senza order_ref con ordine CMS esistente: usa il numero dell ordine, non l id di sessione', async () => {
+  await deliver(
+    { omitOrderRef: true },
+    { cmsOrders: [{ orderNumber: CMS_ORDER_NUMBER, stripeSessionId: 'cs_test_printful_1' }] },
+  )
+
+  const create = printfulCreateRequest()
+  assert.ok(create, "nessuna POST a Printful: l'ordine di stampa non e' stato creato")
+  assert.equal(create.body?.external_id, CMS_ORDER_NUMBER)
+  // La ricerca avviene sulla chiave di sessione, non su un numero inventato.
+  assert.ok(captured.some((c) => c.url.includes('where[stripeSessionId][equals]=cs_test_printful_1')))
+  assert.deepEqual(printfulLookups(), [CMS_ORDER_NUMBER])
+  assert.ok(!captured.some((c) => c.url.includes('FOOLISH-cs_test_printful_1')))
+  assert.equal(alerts.length, 0)
+})
+
+test('sessione senza order_ref e senza ordine CMS: nessun ordine di stampa, 503 e avviso', async () => {
+  const res = await deliver({ omitOrderRef: true }, { cmsOrders: [], expectedStatus: 503 })
+  const body = await res.json()
+
+  assert.equal(body.error, 'order_reference_unresolved')
+  assert.equal(body.code, 'order_ref_unresolved')
+  assert.equal(printfulCreateRequest(), undefined, 'nessun ordine di stampa senza un riferimento risolto')
+  // L'unica chiamata a Printful e' la ricerca del riferimento legacy: nessuna create.
+  assert.deepEqual(printfulLookups(), ['FOOLISH-cs_test_printful_1'])
+  assert.equal(alerts.length, 1)
+  assert.equal(alerts[0]!.path, '/hooks/foolish-printful-fulfillment')
+  assert.equal(alerts[0]!.body.eventType, 'printful_fulfillment_alert')
+  assert.equal(alerts[0]!.body.reason, 'order_ref_unresolved')
+  assert.equal(alerts[0]!.body.stripeSessionId, 'cs_test_printful_1')
+  assert.equal(alerts[0]!.body.legacyPrintfulOrderExists, false)
+})
+
+test('legacy: un pacco gia creato con FOOLISH-<session.id> viene ritrovato, non duplicato', async () => {
+  const res = await deliver(
+    { omitOrderRef: true },
+    { cmsOrders: [], printfulExistingRefs: ['FOOLISH-cs_test_printful_1'] },
+  )
+  const body = await res.json()
+
+  assert.equal(res.status, 200)
+  assert.equal(body.legacyOrderRef, 'FOOLISH-cs_test_printful_1')
+  assert.equal(printfulCreateRequest(), undefined, 'nessun secondo ordine di stampa')
+  assert.equal(alerts.length, 1)
+  assert.equal(alerts[0]!.body.legacyPrintfulOrderExists, true)
+  assert.equal(alerts[0]!.body.orderRef, 'FOOLISH-cs_test_printful_1')
+})
+
+test('ordine CMS legacy senza stripeSessionId: ritrovato per numero, stessa chiave di stampa', async () => {
+  await deliver({ omitOrderRef: true }, { cmsOrders: [{ orderNumber: 'FOOLISH-cs_test_printful_1' }] })
+
+  const create = printfulCreateRequest()
+  assert.ok(create, "nessuna POST a Printful: l'ordine di stampa non e' stato creato")
+  assert.equal(create.body?.external_id, 'FOOLISH-cs_test_printful_1')
+  // Il numero arriva dalla lettura del CMS, non da una stringa costruita a mano.
+  assert.ok(captured.some((c) => c.url.includes('where[orderNumber][equals]=FOOLISH-cs_test_printful_1')))
+})
+
+test('order_ref dichiarato: nessuna ricerca sul CMS, la POST usa il numero dichiarato', async () => {
+  await deliver({}, { cmsOrders: [{ orderNumber: 'altro-ordine' }] })
+
+  const create = printfulCreateRequest()
+  assert.ok(create, "nessuna POST a Printful: l'ordine di stampa non e' stato creato")
+  assert.equal(create.body?.external_id, ORDER_REF)
+  assert.equal(captured.filter((c) => c.url.startsWith('https://cms.test/api/orders')).length, 0)
+})
+
+test('CMS non disponibile durante la risoluzione: 503 e nessun ordine di stampa', async () => {
+  const res = await deliver({ omitOrderRef: true }, { cmsOrdersFailure: 500, expectedStatus: 503 })
+  const body = await res.json()
+
+  assert.equal(body.error, 'order_reference_lookup_failed')
+  assert.equal(printfulCreateRequest(), undefined)
+})
+
+test('sessione senza order_ref e senza righe merch: nessun allarme, 200', async () => {
+  await deliver({ omitOrderRef: true, metadata: { items_json: '[]' } })
+
+  assert.equal(alerts.length, 0)
+  assert.equal(printfulLookups().length, 0)
+})
+
+test('ordine CMS legacy e pacco legacy entrambi presenti: nessun secondo pacco', async () => {
+  await deliver(
+    { omitOrderRef: true },
+    {
+      cmsOrders: [{ orderNumber: 'FOOLISH-cs_test_printful_1' }],
+      printfulExistingRefs: ['FOOLISH-cs_test_printful_1'],
+    },
+  )
+
+  assert.equal(printfulCreateRequest(), undefined, 'nessun secondo ordine di stampa')
+  assert.ok(printfulLookups().includes('FOOLISH-cs_test_printful_1'))
+  assert.equal(alerts.length, 0)
+})
+
+test('sessione abbonamento: nessuna stampa e nessun allarme', async () => {
+  await deliver({ mode: 'subscription', omitOrderRef: true })
+
+  assert.equal(printfulCreateRequest(), undefined)
+  assert.equal(alerts.length, 0)
+})
+
+test('sessione non pagata: nessuna stampa e nessun allarme', async () => {
+  await deliver({ paymentStatus: 'unpaid', omitOrderRef: true })
+
+  assert.equal(printfulCreateRequest(), undefined)
+  assert.equal(printfulLookups().length, 0)
+  assert.equal(alerts.length, 0)
 })

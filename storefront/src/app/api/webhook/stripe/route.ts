@@ -5,7 +5,7 @@ import { createCustomerOffer } from '@/lib/account-db'
 import { sendWelcomeEmail, countryToLocale } from '@/lib/resend'
 import { notifyNanobot } from '@/lib/nanobot'
 import { resolvePrintfulShipping } from '@/lib/printful-shipping'
-import { createOrderInCMSWithRetry } from '@/lib/stripe-orders'
+import { createOrderInCMSWithRetry, getSessionOrderRef, OrderReferenceUnresolvedError } from '@/lib/stripe-orders'
 import {
   AffiliateAttributionError,
   attributePaidCheckout,
@@ -245,18 +245,55 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true })
     }
 
-    const orderRef = session.metadata?.order_ref ?? `FOOLISH-${session.id}`
+    // Unico punto in cui si legge il riferimento dell'ordine: la funzione condivisa
+    // restituisce `null` quando il metadata manca o e' vuoto, invece di sostituirlo
+    // con l'id di sessione.
+    const declaredOrderRef = getSessionOrderRef(session)
     const customerEmail = session.customer_email ?? session.customer_details?.email ?? ''
     const total = ((session.amount_total ?? 0) / 100).toFixed(2)
-    console.log(`[webhook] ORDER RECEIVED ${orderRef} | ${customerEmail} | €${total} | event=${event.id} session=${session.id}`)
+    // Riga di log: si nomina il riferimento DICHIARATO quando c'e', altrimenti la
+    // sessione. Non si stampa un numero d'ordine che non esiste ancora.
+    console.log(`[webhook] ORDER RECEIVED ${declaredOrderRef ?? session.id} | ${customerEmail} | €${total} | event=${event.id} session=${session.id}`)
 
-    // Crea ordine in Payload CMS — retry automatico fino a 4 tentativi
+    // Crea ordine in Payload CMS — retry automatico fino a 4 tentativi.
+    // Il riferimento restituito e' quello del documento CMS: se il metadata
+    // `order_ref` mancava, l'ordine e' stato risolto per `stripeSessionId`.
+    let persistedOrderRef: string
     try {
-      await createOrderInCMSWithRetry(session)
-      console.log(`[webhook] CMS order created OK ${orderRef}`)
+      const persistence = await createOrderInCMSWithRetry(session)
+      persistedOrderRef = persistence.orderRef
+      console.log(`[webhook] CMS order created OK ${persistence.orderRef} session=${session.id}`)
     } catch (err) {
       const cmsError = err instanceof Error ? err.message : String(err)
-      console.error(`[webhook] CMS order FAILED ${orderRef}:`, cmsError)
+      console.error(`[webhook] CMS order FAILED ${declaredOrderRef ?? session.id}:`, cmsError)
+
+      // Un pagamento senza riferimento risolvibile e' un caso esplicito, non una
+      // quarantena silenziosa: nessun ordine creato, log riconoscibile, e una
+      // risposta NON-2xx cosi' l'evento resta visibile (Stripe lo riprova e la
+      // dashboard degli webhook falliti lo mostra).
+      if (err instanceof OrderReferenceUnresolvedError) {
+        console.error(`[webhook] ORDER REF UNRESOLVED code=${err.code} session=${session.id}: nessun order_ref nei metadata e nessun ordine per questa sessione. Nessun ordine creato.`)
+        try {
+          await notifyNanobot('/hooks/foolish-storefront-order', {
+            source: 'storefront',
+            stripeSessionId: session.id,
+            externalRef: null,
+            amount: (session.amount_total ?? 0) / 100,
+            currency: session.currency?.toUpperCase(),
+            customerEmail: session.customer_email,
+            customerName: session.metadata?.customer_name,
+            itemsJson: session.metadata?.items_json,
+            cmsError,
+            code: err.code,
+          })
+        } catch (notifyError) {
+          console.error(`[webhook] emergency notification FAILED ${session.id}:`, notifyError)
+        }
+        return NextResponse.json(
+          { error: 'order_reference_unresolved', code: err.code, stripeSessionId: session.id },
+          { status: 503 },
+        )
+      }
 
       // Alert fuori dal CMS: gli hook Payload non possono partire se la create
       // viene rifiutata. L'errore di alert non deve nascondere quello primario.
@@ -264,7 +301,7 @@ export async function POST(req: NextRequest) {
         await notifyNanobot('/hooks/foolish-storefront-order', {
           source: 'storefront',
           stripeSessionId: session.id,
-          externalRef: orderRef,
+          externalRef: declaredOrderRef,
           amount: (session.amount_total ?? 0) / 100,
           currency: session.currency?.toUpperCase(),
           customerEmail: session.customer_email,
@@ -273,14 +310,14 @@ export async function POST(req: NextRequest) {
           cmsError,
         })
       } catch (notifyError) {
-        console.error(`[webhook] emergency notification FAILED ${orderRef}:`, notifyError)
+        console.error(`[webhook] emergency notification FAILED ${declaredOrderRef ?? session.id}:`, notifyError)
       }
 
       // Fondamentale: un 2xx farebbe considerare l'evento consegnato a Stripe.
       // Il 503 mantiene attivi i retry automatici finche' l'ordine non e'
-      // persistito; createOrderInCMS e' idempotente su orderNumber.
+      // persistito; createOrderInCMS e' idempotente su orderNumber e su stripeSessionId.
       return NextResponse.json(
-        { error: 'CMS order persistence failed', orderRef },
+        { error: 'CMS order persistence failed', orderRef: declaredOrderRef },
         { status: 503 },
       )
     }
@@ -291,21 +328,21 @@ export async function POST(req: NextRequest) {
     try {
       await attributePaidCheckout({
         session,
-        orderNumber: orderRef,
+        orderNumber: persistedOrderRef,
         cms: createAffiliateAttributionCms(),
       })
     } catch (err) {
       const code = err instanceof AffiliateAttributionError ? err.code : 'order_patch_failed'
-      console.error(`[webhook] affiliate attribution failed ${orderRef}: ${code}`)
+      console.error(`[webhook] affiliate attribution failed ${persistedOrderRef}: ${code}`)
       try {
         await notifyNanobot('/hooks/foolish-storefront-order', {
           source: 'storefront',
           stripeSessionId: session.id,
-          externalRef: orderRef,
+          externalRef: persistedOrderRef,
           affiliateAttributionError: code,
         })
       } catch (notifyError) {
-        console.error(`[webhook] affiliate attribution alert FAILED ${orderRef}:`, notifyError)
+        console.error(`[webhook] affiliate attribution alert FAILED ${persistedOrderRef}:`, notifyError)
       }
     }
 
@@ -353,7 +390,7 @@ export async function POST(req: NextRequest) {
             const discount = orderTotal < config.threshold ? config.discountBelow : config.discountAbove
             const email = (session.customer_email ?? session.customer_details?.email ?? '').toLowerCase()
             if (email) {
-              await createCustomerOffer(email, orderRef, productSlug, discount, config.validityHours)
+              await createCustomerOffer(email, persistedOrderRef, productSlug, discount, config.validityHours)
               console.log(`[webhook] Offer created for ${email}: ${discount}% on ${productSlug}`)
             }
           }
@@ -367,7 +404,7 @@ export async function POST(req: NextRequest) {
     await notifyNanobot('/hooks/foolish-storefront-order', {
       source: 'storefront',
       stripeSessionId: session.id,
-      externalRef: session.metadata?.order_ref,
+      externalRef: persistedOrderRef,
       amount: (session.amount_total ?? 0) / 100,
       currency: session.currency?.toUpperCase(),
       customerEmail: session.customer_email,
