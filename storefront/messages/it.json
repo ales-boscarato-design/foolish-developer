@@ -210,8 +210,8 @@
         "body": "Risponde Alessandro — non un bot"
       },
       "freeShipping": {
-        "title": "Gratis sopra {amount}€",
-        "body": "Spedizione gratuita sul valore merce dell'ordine",
+        "title": "Gratis sopra {amount}€ in Italia",
+        "body": "Spedizione gratuita in Italia sul valore merce dell'ordine",
         "titleExtraEu": "Spedizione calcolata per destinazione",
         "bodyExtraEu": "Dazi e IVA all'importazione inclusi nel prezzo di spedizione"
       }

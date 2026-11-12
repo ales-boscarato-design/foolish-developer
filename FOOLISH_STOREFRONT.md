@@ -328,8 +328,11 @@ STOREFRONT_URL=https://thefoolishbutcher.com
 - [x] **Dominio:** thefoolishbutcher.com — stesso dominio, DNS switch al lancio
 - [x] **Foto:** sito attuale come base, nuove foto integrate durante produzione
 - [x] **Spedizione:**
-  - Italia: 7,65€ (gratis sopra 50€)
+  - Italia: 7,65€ (gratis sopra 60€)
   - Europa (territorio doganale UE): 14,99€ (gratis sopra 150€)
+  - Canale rivenditori (`b2b/src/lib/shipping.ts`): stesse tariffe del retail ma **soglia italiana ancora a
+    50€** — differenza dichiarata e non ancora allineata, è una decisione commerciale (un ordine rivenditore
+    fra 50 e 60€ oggi non paga spedizione, sul retail sì).
   - Extra-UE (fuori dal territorio doganale: **Svizzera e Norvegia comprese**): costo sdoganato + 10% di
     margine, mai gratuita, con un pavimento di 48,00€ sulla spedizione addebitata.
     Profilo CH misurato (47,72€ di costo sull'ordine 31, merce 99€ → 52,49€ addebitati); gli altri paesi

@@ -9,7 +9,7 @@ import {
   calculateShipping,
   freeShippingRemaining,
 } from '@/lib/shipping'
-import { freeShippingBadgeCopy } from '@/lib/free-shipping-badge'
+import { freeShippingBadgeCopy, checkoutImportDutiesBadgeVisible } from '@/lib/free-shipping-badge'
 import { extraEuDisplayedPriceCents } from '@/lib/landed-cost-price'
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import Image from 'next/image'
@@ -150,6 +150,16 @@ export default function CheckoutPage() {
   // mostrata e quella applicata non possono divergere. Su extra-UE la copy
   // cambia e non promette niente.
   const freeShippingBadge = freeShippingBadgeCopy(locale, baseShipping.zone)
+  // Il badge «dazi e IVA inclusi» descrive un prezzo: dove il prezzo non esiste
+  // (destinazione da quotare) non si mostra. La regola sta in un solo posto,
+  // `checkoutImportDutiesBadgeVisible`, e non e' ricopiata qui: la condizione
+  // scritta a mano nel JSX copriva due terzi dei termini e lasciava il badge
+  // acceso su BR, dove la riga spedizione diceva «Da quotare».
+  const showImportDutiesBadge = checkoutImportDutiesBadgeVisible({
+    zone: baseShipping.zone,
+    isFree: shipping.isFree,
+    requiresQuote: baseShipping.requiresQuote,
+  })
   // Quello che il cliente vede e' quello che paga. Sulle destinazioni extra-UE
   // il prezzo lo decide il negozio: se il server ha risposto si mostra QUEL
   // prezzo (e' lo stesso che il gettone firmato fa incassare); se la risposta
@@ -893,7 +903,7 @@ export default function CheckoutPage() {
                 </span>
               </div>
 
-              {isExtraEuDestination && !shipping.isFree && (
+              {showImportDutiesBadge && (
                 <>
                   <p className="text-xs font-medium pb-1" style={{ color: 'var(--foreground)' }}>
                     {tFreeShippingBadge(freeShippingBadge.titleKey)}
@@ -907,6 +917,14 @@ export default function CheckoutPage() {
                       : t('shippingPrudentialNote')}
                   </p>
                 </>
+              )}
+
+              {/* Destinazione da quotare: nessun prezzo esiste, quindi niente badge
+                  «dazi e IVA inclusi». La riga che lo sostituisce dice cosa manca. */}
+              {isExtraEuDestination && baseShipping.requiresQuote && (
+                <p className="text-xs pb-2" style={{ color: 'var(--muted-fg)' }}>
+                  {t('shippingQuoteRequiredNote')}
+                </p>
               )}
 
               {proDiscount > 0 && (

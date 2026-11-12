@@ -119,3 +119,30 @@ export function freeShippingBadgeCopy(locale: string, zone: ShippingZone): FreeS
 export function homeFreeShippingBadge(locale: string): FreeShippingBadgeCopy {
   return freeShippingBadgeCopy(locale, badgeZoneForLocale(locale))
 }
+
+/**
+ * Il badge «dazi e IVA inclusi» del checkout descrive un PREZZO — quindi si
+ * mostra solo dove quel prezzo esiste.
+ *
+ * Il difetto che questa guardia chiude (misurato su BR il 12/11/2026): per una
+ * destinazione non quotabile la riga spedizione diceva «Da quotare» ma il badge
+ * affermava «Dazi e IVA all'importazione inclusi nel prezzo di spedizione» e il
+ * riepilogo mostrava comunque un totale. Una frase vera su CH (dove il prezzo
+ * landed esiste, DDP) diventa falsa su un paese che si quota a mano: li' non
+ * c'e' nessun prezzo che includa qualcosa.
+ *
+ * Le tre condizioni sono tutte necessarie e sono le stesse che il checkout usa
+ * per decidere: zona extra-UE (fuori, la promessa e' la soglia), non gratuita
+ * (una spedizione a 0 non "include" oneri), non da quotare (il prezzo non
+ * esiste). Chi rende il badge chiede a questa funzione, non ricopia la
+ * condizione: `checkout/page.tsx` la chiamava a mano con due terzi dei termini.
+ */
+export function checkoutImportDutiesBadgeVisible(args: {
+  zone: ShippingZone
+  isFree: boolean
+  requiresQuote: boolean
+}): boolean {
+  if (args.zone !== 'EXTRA_EU') return false
+  if (args.isFree) return false
+  return !args.requiresQuote
+}
