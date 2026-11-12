@@ -380,9 +380,28 @@ test('Telegram: POST firmato sulla rotta dedicata, con il payload del segnale', 
     return new Response('{"ok":true}', { status: 200 })
   }) as typeof fetch
 
+  // Il timeout va asserito nel VALORE, non solo nel tipo: un `new
+  // AbortController().signal` (che non scade mai) passerebbe un controllo di
+  // sola istanza e lascerebbe il webhook Stripe appeso a un ricevitore muto.
+  const realTimeout = AbortSignal.timeout
+  const timeouts: number[] = []
+  Object.defineProperty(AbortSignal, 'timeout', {
+    configurable: true,
+    writable: true,
+    value: (ms: number) => {
+      timeouts.push(ms)
+      return realTimeout(ms)
+    },
+  })
+
   try {
     await sendRenewalZoneAlertTelegram(payload)
   } finally {
+    Object.defineProperty(AbortSignal, 'timeout', {
+      configurable: true,
+      writable: true,
+      value: realTimeout,
+    })
     globalThis.fetch = realFetch
     for (const [key, value] of [
       ['NANOBOT_WEBHOOK_URL', previous.url],
@@ -392,6 +411,8 @@ test('Telegram: POST firmato sulla rotta dedicata, con il payload del segnale', 
       else process.env[key] = value
     }
   }
+
+  assert.deepEqual(timeouts, [3000], 'la richiesta deve avere il timeout di 3 s')
 
   assert.equal(requests.length, 1)
   const [{ url, init }] = requests
