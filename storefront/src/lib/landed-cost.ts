@@ -77,6 +77,36 @@ export interface LandedCostQuoteParcel {
   packages: number
 }
 
+/**
+ * Copertura assicurativa DICHIARATA dal servizio (`insurance_coverage`).
+ *
+ * Decisione di Alessandro (21/09/2026), in esercizio sul servizio:
+ * `goods_plus_shipping` — la base assicurata e' valore merce + costo di
+ * spedizione sostenuto, premio escluso. Il negozio non deduce la copertura da
+ * una differenza fra due campi: la legge dal blocco che il servizio dichiara
+ * (base, aliquota, premio, e se il premio quotato segue la propria regola).
+ */
+export interface LandedCostInsuranceCoverage {
+  policy: string
+  /** Base assicurata dichiarata, in centesimi (merce + spedizione, premio escluso). */
+  baseCents: number
+  declaredGoodsValueCents: number | null
+  shippingCostExcludingPremiumCents: number | null
+  rate: number | null
+  premiumCents: number
+  premiumQuotedCents: number | null
+  /** false = il premio quotato non segue la regola dichiarata: non e' un prezzo. */
+  premiumAgrees: boolean | null
+  /**
+   * Differenza DICHIARATA fra la stima e la quota (`extra_cost`): e' il premio
+   * che si paghera' all'acquisto se la quota e' stata fatta su una base
+   * assicurata piu' bassa di quella che compreremo. Zero quando la quota e' gia'
+   * sulla base giusta (il caso in esercizio). In centesimi.
+   */
+  extraCostCents: number
+  baseSetAt: string | null
+}
+
 export interface LandedCostQuote {
   serviceId: number
   carrier: string
@@ -88,13 +118,17 @@ export interface LandedCostQuote {
   /** Oneri import (dazi + IVA all'importazione) della quota, in centesimi. */
   importChargesCents: number
   /**
-   * Costo reale stimato dalla quota: `shipping_and_import` + differenza
-   * dichiarata di riconciliazione. In centesimi. Usato come limite PRUDENTE
-   * della base di prezzo, non come sovrapprezzo nascosto: la differenza e'
-   * dichiarata dal servizio, non inventata qui (evidenza 21/09/2026: la
-   * differenza di assicurazione dipende dal `contentvalue` dichiarato).
+   * Costo che il servizio dichiara per la copertura approvata
+   * (`landed_cost_estimate`), in centesimi. Sul servizio in esercizio dal
+   * 21/09/2026 coincide con `shipping_and_import`: il +1,52 che stava qui dentro
+   * era la costante di riconciliazione di un'assicurazione su una base diversa,
+   * smentita dalla diagnosi — la quota della copertura approvata e' una sola.
+   * L'invariante non e' una speranza: se i due numeri divergono senza che la
+   * copertura dichiari la differenza, la quota non si usa (`parseQuoteResponse`).
    */
   landedCostCents: number
+  /** Copertura assicurativa dichiarata dal servizio, se presente. */
+  insuranceCoverage: LandedCostInsuranceCoverage | null
   checkoutInvoiceNumber: string | null
   parcel: LandedCostQuoteParcel | null
   /** Scadenza della quota (epoch secondi), se dichiarata. */
@@ -320,11 +354,50 @@ function parseParcel(value: unknown): LandedCostQuoteParcel | null {
   }
 }
 
+function parseInsuranceCoverage(value: unknown): LandedCostInsuranceCoverage | null {
+  if (!value || typeof value !== 'object') return null
+  const coverage = value as Record<string, unknown>
+  const policy = boundedString(coverage.policy, 40)
+  const baseCents = positiveCents(coverage.base)
+  const premiumCents = positiveCents(coverage.premium)
+  // Una copertura senza base o senza premio non e' una copertura dichiarata:
+  // vale come assente, e una stima sopra la quota senza copertura e' un margine
+  // non dichiarato (vedi `parseQuoteResponse`).
+  if (!policy || baseCents === null || premiumCents === null) return null
+  const rate = Number(coverage.rate)
+  return {
+    policy,
+    baseCents,
+    declaredGoodsValueCents: toCents(coverage.declared_goods_value),
+    shippingCostExcludingPremiumCents: toCents(coverage.shipping_cost_excluding_premium),
+    rate: Number.isFinite(rate) && rate >= 0 && rate <= 1 ? rate : null,
+    premiumCents,
+    premiumQuotedCents: toCents(coverage.premium_quoted),
+    premiumAgrees: typeof coverage.premium_agrees === 'boolean' ? coverage.premium_agrees : null,
+    // `extra_cost` puo' valere zero (quota gia' sulla base che compreremo): e'
+    // un valore, non un'assenza. Assente = il servizio non dichiara nulla.
+    extraCostCents: toCents(coverage.extra_cost) ?? 0,
+    baseSetAt: boundedString(coverage.base_set_at, 40),
+  }
+}
+
 /**
  * Legge la risposta del servizio di quota con la stessa severita' del servizio
  * stesso: una quota senza dazi/IVA, senza fee DDP o senza collo NON e' una
  * quota. Meglio nessun prezzo che un prezzo falso (trappola misurata il
  * 21/09/2026: senza fattura doganale Packlink risponde 200 con dazi a 0,00).
+ *
+ * Sulla copertura assicurata la regola e' la stessa, ed e' un'INVARIANTE:
+ *
+ *   landed_cost_estimate == shipping_and_import == base di prezzo
+ *
+ * I due numeri sono la stessa quota sulla copertura APPROVATA
+ * (`goods_plus_shipping`): il premio e' dentro `shipping_and_import`. Una
+ * stima piu' alta senza che la copertura dichiari la differenza (`extra_cost`)
+ * e' il +1,52 hardcoded del 21/09/2026, che ha smentito la propria motivazione:
+ * quel margine non deve arrivare al prezzo del cliente passando da qui. Una
+ * stima piu' bassa della quota e' incoerente allo stesso modo. In entrambi i
+ * casi la quota non si usa (fail-prudenziale: tabella in casa -> profilo).
  */
 export function parseQuoteResponse(value: unknown): LandedCostQuote | null {
   if (!value || typeof value !== 'object') return null
@@ -332,6 +405,7 @@ export function parseQuoteResponse(value: unknown): LandedCostQuote | null {
   if (body.status !== 'ok') return null
   const services = body.services
   if (!Array.isArray(services) || services.length === 0) return null
+  const goodsValueCents = toCents(body.goods_value)
 
   const candidates: LandedCostQuote[] = []
   for (const entry of services) {
@@ -347,6 +421,23 @@ export function parseQuoteResponse(value: unknown): LandedCostQuote | null {
     if (importChargesCents <= 0 || ddpFeeCents <= 0) continue
     if (landedCostCents === null || landedCostCents < shippingAndImportCents) continue
 
+    const insuranceCoverage = parseInsuranceCoverage(service.insurance_coverage)
+    // Copertura che contraddice la propria regola: non e' un prezzo.
+    if (insuranceCoverage?.premiumAgrees === false) continue
+    // Base assicurata che non copre nemmeno la merce: non e' la copertura
+    // approvata (merce + spedizione), quindi il costo che ne deriva non e' il
+    // costo della copertura che compriamo.
+    if (insuranceCoverage && goodsValueCents !== null && insuranceCoverage.baseCents < goodsValueCents) continue
+    // L'invariante: fra stima e quota non c'e' spazio per un numero che nessuno
+    // dichiara. Se il servizio stima di piu', deve dire quanto e perche'
+    // (`insurance_coverage.extra_cost`); una differenza non dichiarata — o
+    // dichiarata con un importo diverso — e' un margine nascosto.
+    const estimateDeltaCents = landedCostCents - shippingAndImportCents
+    if (estimateDeltaCents > 0) {
+      if (!insuranceCoverage) continue
+      if (insuranceCoverage.extraCostCents !== estimateDeltaCents) continue
+    }
+
     const expiresAt = Number(service.expires_at)
     candidates.push({
       serviceId: Number.isSafeInteger(service.service_id) ? service.service_id as number : 0,
@@ -356,10 +447,11 @@ export function parseQuoteResponse(value: unknown): LandedCostQuote | null {
       transportCents,
       importChargesCents,
       landedCostCents,
+      insuranceCoverage,
       checkoutInvoiceNumber: boundedString(service.checkout_invoice_number, 64),
       parcel: parseParcel(body.parcel),
       expiresAt: Number.isFinite(expiresAt) && expiresAt > 0 ? Math.floor(expiresAt) : null,
-      goodsValueCents: toCents(body.goods_value),
+      goodsValueCents,
     })
   }
   if (candidates.length === 0) return null
@@ -528,8 +620,12 @@ export async function resolveExtraEuShipping(args: {
   let basisCostCents: number
   let source: ShippingPriceSource
   if (quote) {
-    // Base = costo documentato dalla quota, con il limite prudente dichiarato
-    // dal servizio (`landed_cost_estimate`). Mai sotto `shipping_and_import`.
+    // Base = la quota del servizio sulla copertura APPROVATA
+    // (`goods_plus_shipping`): `shipping_and_import` contiene gia' il premio
+    // calcolato su merce + costo di spedizione sostenuto. `landed_cost_estimate`
+    // e' lo stesso numero: un delta non dichiarato dalla copertura non arriva
+    // qui, e' scartato in `parseQuoteResponse`. Il `max` resta come presa
+    // prudente sull'unica differenza ammessa (delta dichiarato in `extra_cost`).
     basisCostCents = Math.max(quote.shippingAndImportCents, quote.landedCostCents)
     source = 'live_quote'
   } else if (profileCost === null && tableCost === null) {

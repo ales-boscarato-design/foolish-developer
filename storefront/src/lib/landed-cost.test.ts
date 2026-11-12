@@ -1,8 +1,10 @@
 /**
  * Test della catena di prezzo extra-UE (quota live + tabella in casa + profilo).
  *
- * I numeri usati qui vengono dalle quote REALI misurate il 21/09/2026 su
- * `POST /landed-cost/v1/quote` (fatture TFC-WEB-000xx), non da stime di comodo.
+ * I numeri usati qui vengono dalle quote REALI del servizio: la tabella in casa
+ * e' quella rigenerata l'11/11/2026 da `POST /landed-cost/v1/quote` (fatture
+ * TFC-WEB-016xx) e le fixture copiano la forma di quella risposta, non una
+ * forma comoda.
  */
 
 import test from 'node:test'
@@ -24,13 +26,26 @@ import {
   verifyQuoteToken,
 } from './landed-cost'
 import { EXTRA_EU_MINIMUM_SHIPPING, calculateShipping } from './shipping'
+import { prudentialExtraEuPriceCents } from './landed-cost-price'
+import landedCostTable from './landed-cost-table.json'
+
+/** Il documento della tabella come sta su disco (per camminare le bande generate). */
+function landedCostTableDocument(): Record<string, unknown> {
+  return landedCostTable as unknown as Record<string, unknown>
+}
 
 const TOKEN_SECRET = 'test-only-token-secret'
 process.env.SHIPPING_QUOTE_TOKEN_SECRET = TOKEN_SECRET
 
 const QUOTE_CONFIG = { url: 'https://quote.test/landed-cost/v1/quote', secret: 'test-shared-secret', enabled: true }
 
-/** Risposta del servizio di quota con la forma REALE (CH, Basel, merce 99). */
+/**
+ * Risposta del servizio di quota con la forma REALE (CH, Basel, merce 99),
+ * copiata dalla quota dell'11/11/2026 (fattura TFC-WEB-01642): la copertura
+ * assicurata e' dichiarata (`goods_plus_shipping`) e `landed_cost_estimate`
+ * coincide con `shipping_and_import`, perche' il premio della base approvata e'
+ * gia' dentro la quota. E' la forma che il servizio in esercizio produce.
+ */
 function quoteResponse(serviceOverrides: Record<string, unknown> = {}, bodyOverrides: Record<string, unknown> = {}) {
   return {
     status: 'ok',
@@ -42,12 +57,29 @@ function quoteResponse(serviceOverrides: Record<string, unknown> = {}, bodyOverr
         carrier: 'UPS',
         service_name: 'Standard Access Point',
         transport: 23,
-        insurance: 2.48,
-        import_charges: 14.77,
-        ddp_fee: 4.96,
-        shipping_and_import: 46.2,
-        landed_cost_estimate: 47.72,
-        checkout_invoice_number: 'TFC-WEB-00011',
+        management_fee: 0.99,
+        insurance: 3.57,
+        import_charges: 14.93,
+        ddp_fee: 5.0,
+        shipping_and_import: 47.49,
+        landed_cost_estimate: 47.49,
+        insurance_coverage: {
+          policy: 'goods_plus_shipping',
+          base: 142.92,
+          base_source: 'goods_value_plus_shipping_cost',
+          declared_goods_value: 99,
+          shipping_cost_excluding_premium: 43.92,
+          rate: 0.025,
+          premium: 3.57,
+          premium_quoted: 3.57,
+          premium_agrees: true,
+          premium_delta: 0,
+          minimum_premium: 0.99,
+          extra_cost: 0,
+          extra_cost_vs_goods_value: 1.09,
+          base_set_at: 'purchase',
+        },
+        checkout_invoice_number: 'TFC-WEB-01642',
         expires_at: 1_800_000_000,
         ...serviceOverrides,
       },
@@ -79,13 +111,45 @@ function httpError(status: number) {
 test('parseQuoteResponse legge una quota reale in centesimi', () => {
   const quote = parseQuoteResponse(quoteResponse())
   assert.ok(quote)
-  assert.equal(quote.shippingAndImportCents, 4620)
-  assert.equal(quote.landedCostCents, 4772)
+  assert.equal(quote.shippingAndImportCents, 4749)
+  // l'invariante vale anche sul dato reale: stima e quota sono lo stesso numero
+  assert.equal(quote.landedCostCents, 4749)
   assert.equal(quote.transportCents, 2300)
-  assert.equal(quote.importChargesCents, 1477)
-  assert.equal(quote.checkoutInvoiceNumber, 'TFC-WEB-00011')
+  assert.equal(quote.importChargesCents, 1493)
+  assert.equal(quote.checkoutInvoiceNumber, 'TFC-WEB-01642')
   assert.equal(quote.serviceId, 22131)
+  assert.equal(quote.goodsValueCents, 9900)
   assert.deepEqual(quote.parcel, { weightKg: 2, widthCm: 40, heightCm: 10, lengthCm: 40, packages: 1 })
+})
+
+test('parseQuoteResponse espone insurance_coverage: presente, assente, a zero', () => {
+  // PRESENTE: la copertura dichiarata si legge per intero, non si deduce da una
+  // differenza fra due campi.
+  const present = parseQuoteResponse(quoteResponse())
+  assert.ok(present?.insuranceCoverage)
+  assert.equal(present.insuranceCoverage.policy, 'goods_plus_shipping')
+  assert.equal(present.insuranceCoverage.baseCents, 14292)
+  assert.equal(present.insuranceCoverage.declaredGoodsValueCents, 9900)
+  assert.equal(present.insuranceCoverage.shippingCostExcludingPremiumCents, 4392)
+  assert.equal(present.insuranceCoverage.rate, 0.025)
+  assert.equal(present.insuranceCoverage.premiumCents, 357)
+  assert.equal(present.insuranceCoverage.premiumQuotedCents, 357)
+  assert.equal(present.insuranceCoverage.premiumAgrees, true)
+  assert.equal(present.insuranceCoverage.extraCostCents, 0)
+  assert.equal(present.insuranceCoverage.baseSetAt, 'purchase')
+
+  // ASSENTE: la quota resta valida (e' la forma dei servizi che non dichiarano
+  // la copertura), ma la copertura e' null e non si inventa.
+  const absent = parseQuoteResponse(quoteResponse({ insurance_coverage: undefined }))
+  assert.ok(absent)
+  assert.equal(absent.insuranceCoverage, null)
+
+  // A ZERO: `extra_cost: 0` e' un valore dichiarato ("nessuna differenza"), non
+  // un'assenza — a zero non si legge come "copertura non dichiarata".
+  const zero = parseQuoteResponse(quoteResponse())
+  assert.equal(zero?.insuranceCoverage?.extraCostCents, 0)
+  // una copertura SENZA base o SENZA premio non e' una copertura dichiarata
+  assert.equal(parseQuoteResponse(quoteResponse({ insurance_coverage: { policy: 'goods_plus_shipping', base: 0, premium: 0 } }))?.insuranceCoverage, null)
 })
 
 test('parseQuoteResponse scarta le quote senza dazi, senza fee DDP o senza forma', () => {
@@ -95,9 +159,41 @@ test('parseQuoteResponse scarta le quote senza dazi, senza fee DDP o senza forma
   // trappola misurata: 200 con dazi a 0,00 quando manca la fattura doganale
   assert.equal(parseQuoteResponse(quoteResponse({ import_charges: 0 })), null)
   assert.equal(parseQuoteResponse(quoteResponse({ ddp_fee: 0 })), null)
-  assert.equal(parseQuoteResponse(quoteResponse({ shipping_and_import: '46.20' })), null)
+  assert.equal(parseQuoteResponse(quoteResponse({ shipping_and_import: '47.49' })), null)
   // landed_cost_estimate sotto shipping_and_import non e' una quota coerente
   assert.equal(parseQuoteResponse(quoteResponse({ landed_cost_estimate: 40 })), null)
+})
+
+test('l invariante morde: una stima diversa dalla quota non e un prezzo', () => {
+  // Il caso che ha aperto la card: la stima +1,52 sopra la quota, senza che la
+  // copertura dichiari niente. Era il margine nascosto del 21/09/2026.
+  assert.equal(parseQuoteResponse(quoteResponse({ landed_cost_estimate: 49.01 })), null)
+  // Stessa differenza con una copertura che dichiara un extra DIVERSO: non torna.
+  assert.equal(
+    parseQuoteResponse(
+      quoteResponse({
+        landed_cost_estimate: 49.01,
+        insurance_coverage: { ...(quoteResponse().services[0]!.insurance_coverage as Record<string, unknown>), extra_cost: 1.0 },
+      }),
+    ),
+    null,
+  )
+  // Differenza dichiarata e coerente con `extra_cost`: la quota e' un prezzo —
+  // e la base prudente e' la stima, non la quota.
+  const declared = parseQuoteResponse(
+    quoteResponse({
+      landed_cost_estimate: 48.58,
+      insurance_coverage: { ...(quoteResponse().services[0]!.insurance_coverage as Record<string, unknown>), extra_cost: 1.09 },
+    }),
+  )
+  assert.ok(declared)
+  assert.equal(declared.shippingAndImportCents, 4749)
+  assert.equal(declared.landedCostCents, 4858)
+  assert.equal(declared.insuranceCoverage?.extraCostCents, 109)
+  // Copertura che contraddice la propria regola: non e' un prezzo.
+  assert.equal(parseQuoteResponse(quoteResponse({ insurance_coverage: { ...(quoteResponse().services[0]!.insurance_coverage as Record<string, unknown>), premium_agrees: false } })), null)
+  // Copertura che non copre nemmeno la merce: non e' la copertura approvata.
+  assert.equal(parseQuoteResponse(quoteResponse({ insurance_coverage: { ...(quoteResponse().services[0]!.insurance_coverage as Record<string, unknown>), base: 50 } })), null)
 })
 
 test('parseQuoteResponse prende il servizio DDP piu economico', () => {
@@ -106,7 +202,7 @@ test('parseQuoteResponse prende il servizio DDP piu economico', () => {
     ...body.services[0]!,
     service_id: 999,
     shipping_and_import: 41.5,
-    landed_cost_estimate: 43.02,
+    landed_cost_estimate: 41.5,
   })
   const quote = parseQuoteResponse(body)
   assert.ok(quote)
@@ -122,10 +218,10 @@ test('la tabella in casa ha le bande reali e scarta le voci malformate', () => {
 
   const malformed = loadLandedCostTable({
     countries: {
-      CH: { bands: [{ goods_value_cents: 0, cost_basis_cents: 4772, shipping_and_import_cents: 4620 }] },
-      GB: { bands: [{ goods_value_cents: 9900, cost_basis_cents: 'x', shipping_and_import_cents: 4620 }] },
-      zzz: { bands: [{ goods_value_cents: 9900, cost_basis_cents: 4772, shipping_and_import_cents: 4620 }] },
-      NO: { bands: [{ goods_value_cents: 9900, cost_basis_cents: 7384, shipping_and_import_cents: 7232 }] },
+      CH: { bands: [{ goods_value_cents: 0, cost_basis_cents: 4749, shipping_and_import_cents: 4749 }] },
+      GB: { bands: [{ goods_value_cents: 9900, cost_basis_cents: 'x', shipping_and_import_cents: 4749 }] },
+      zzz: { bands: [{ goods_value_cents: 9900, cost_basis_cents: 4749, shipping_and_import_cents: 4749 }] },
+      NO: { bands: [{ goods_value_cents: 9900, cost_basis_cents: 7427, shipping_and_import_cents: 7427 }] },
     },
   })
   assert.equal(malformed.get('CH'), undefined)
@@ -134,13 +230,53 @@ test('la tabella in casa ha le bande reali e scarta le voci malformate', () => {
   assert.equal(malformed.get('NO')?.length, 1)
 })
 
+test('ogni banda della tabella rispetta l invariante e dichiara la copertura', () => {
+  // La tabella nasce da quote reali: se una banda porta una stima diversa dalla
+  // quota, il prezzo in casa e' un margine che nessuno ha approvato. Il test
+  // cammina la tabella GENERATA, non una fixture: una rigenerazione che porta
+  // dentro il +1,52 lo fa fallire qui.
+  const table = loadLandedCostTable()
+  const raw = landedCostTableDocument()
+  let bands = 0
+  for (const [country, entries] of Object.entries(raw.countries as Record<string, { bands: Record<string, unknown>[] }>)) {
+    for (const band of entries.bands) {
+      bands += 1
+      const label = `${country} ${band.goods_value_cents}`
+      assert.equal(band.landed_cost_cents, band.shipping_and_import_cents, label)
+      assert.equal(band.cost_basis_cents, band.shipping_and_import_cents, label)
+      // la copertura approvata e' dichiarata, e il premio e' 2,5% della base
+      assert.equal(band.insurance_coverage_policy, 'goods_plus_shipping', label)
+      const base = Number(band.insurance_base_cents)
+      const premium = Number(band.insurance_premium_cents)
+      assert.ok(Number.isSafeInteger(base) && base > 0, label)
+      assert.ok(Number.isSafeInteger(premium) && premium > 0, label)
+      // premio = 2,5% della base dichiarata. Il servizio arrotonda a due decimali
+      // con la sua regola (half-even): si pretende il centesimo, non il bit.
+      assert.ok(Math.abs(premium - base * 0.025) <= 1, `${label}: premio ${premium} su base ${base}`)
+      // la base assicurata copre almeno la merce della banda
+      assert.ok(base >= Number(band.goods_value_cents), label)
+      // le componenti ci sono: senza trasporto e oneri import un aumento di
+      // banda non si puo' spiegare
+      assert.ok(Number.isSafeInteger(band.transport_cents), label)
+      assert.ok(Number.isSafeInteger(band.import_charges_cents), label)
+    }
+  }
+  assert.ok(bands >= 10, `bande lette: ${bands}`)
+  // e la tabella che il negozio legge davvero ha le stesse bande
+  const read = [...table.values()].reduce((sum, list) => sum + list.length, 0)
+  assert.equal(read, bands)
+  // la tabella dichiara da dove viene
+  assert.ok(typeof raw.generated_at === 'string' && raw.generated_at.length > 0)
+  assert.match(String(raw.generator_script_sha256), /^[0-9a-f]{64}$/)
+})
+
 test('tableCostCents prende la banda piu piccola che copre il carrello', () => {
-  assert.equal(tableCostCents('ch', 1000), 4772)
-  assert.equal(tableCostCents('CH', 9900), 4772)
+  assert.equal(tableCostCents('ch', 1000), 4749)
+  assert.equal(tableCostCents('CH', 9900), 4749)
   // sopra l'ultima banda resta l'ultima misura: e' un pavimento, non una stima
-  assert.equal(tableCostCents('CH', 500_000), 4772)
-  assert.equal(tableCostCents('GB', 1000), 3997)
-  assert.equal(tableCostCents('GB', 9900), 6046)
+  assert.equal(tableCostCents('CH', 500_000), 4749)
+  assert.equal(tableCostCents('GB', 1000), 3918)
+  assert.equal(tableCostCents('GB', 9900), 6055)
   assert.equal(tableCostCents('AU', 9900), null)
   assert.equal(tableCostCents('ZZ', 9900), null)
 })
@@ -157,9 +293,9 @@ test('cartFingerprint lega il prezzo al carrello', () => {
 test('gettone del prezzo: firma, verifica, scadenza e manomissione', () => {
   const fingerprint = cartFingerprint([{ sku: 'TS-A4', quantity: 1 }], 'CH')
   const now = new Date('2026-09-21T15:00:00Z')
-  const token = signQuoteToken({ countryCode: 'CH', fingerprint, costCents: 5249, now })
+  const token = signQuoteToken({ countryCode: 'CH', fingerprint, costCents: 5224, now })
   assert.ok(token)
-  assert.equal(verifyQuoteToken(token, { countryCode: 'ch', fingerprint, now }), 5249)
+  assert.equal(verifyQuoteToken(token, { countryCode: 'ch', fingerprint, now }), 5224)
   // paese diverso, carrello diverso, gettone manomesso: tutti rifiutati
   assert.equal(verifyQuoteToken(token, { countryCode: 'GB', fingerprint, now }), null)
   assert.equal(verifyQuoteToken(token, { countryCode: 'CH', fingerprint: 'altro', now }), null)
@@ -172,7 +308,7 @@ test('gettone del prezzo: firma, verifica, scadenza e manomissione', () => {
 
   const previous = process.env.SHIPPING_QUOTE_TOKEN_SECRET
   delete process.env.SHIPPING_QUOTE_TOKEN_SECRET
-  assert.equal(signQuoteToken({ countryCode: 'CH', fingerprint, costCents: 5249, now }), null)
+  assert.equal(signQuoteToken({ countryCode: 'CH', fingerprint, costCents: 5224, now }), null)
   assert.equal(verifyQuoteToken(token, { countryCode: 'CH', fingerprint, now }), null)
   process.env.SHIPPING_QUOTE_TOKEN_SECRET = previous
 })
@@ -191,7 +327,7 @@ test('guardia sugli oneri import: una quota a un pezzo passa, una gonfiata dalla
         import_charges: 25.45,
         ddp_fee: 10.71,
         shipping_and_import: 84.9,
-        landed_cost_estimate: 86.42,
+        landed_cost_estimate: 84.9,
       },
       { goods_value: 50 },
     ),
@@ -203,7 +339,7 @@ test('guardia sugli oneri import: una quota a un pezzo passa, una gonfiata dalla
 
   // ceil assoluto: nessuna destinazione ammessa ha dazi+IVA oltre il 60%
   const absurd = parseQuoteResponse(
-    quoteResponse({ import_charges: 400, shipping_and_import: 423.2, landed_cost_estimate: 424.72 }),
+    quoteResponse({ import_charges: 400, shipping_and_import: 423.2, landed_cost_estimate: 423.2 }),
   )
   assert.ok(absurd)
   assert.equal(quoteImportChargesImplausible(absurd, { countryCode: 'CH', totalQuantity: 1 }), true)
@@ -294,12 +430,12 @@ test('resolveExtraEuShipping: con la quota live il prezzo nasce dal costo docume
   assert.ok(resolution)
   assert.equal(resolution.source, 'live_quote')
   assert.equal(resolution.verified, true)
-  // base 47,72 (il maggiore fra quota 46,20 e costo stimato 47,72), +10% = 52,49
-  assert.equal(resolution.basisCostCents, 4772)
-  assert.equal(resolution.marginCents, 477)
-  assert.equal(resolution.costCents, 5249)
+  // base 47,49 (la quota del servizio: stima e quota sono lo stesso numero), +10% = 52,24
+  assert.equal(resolution.basisCostCents, 4749)
+  assert.equal(resolution.marginCents, 475)
+  assert.equal(resolution.costCents, 5224)
   assert.equal(resolution.minimumChargeApplied, false)
-  assert.equal(resolution.quote?.checkoutInvoiceNumber, 'TFC-WEB-00011')
+  assert.equal(resolution.quote?.checkoutInvoiceNumber, 'TFC-WEB-01642')
 })
 
 test('resolveExtraEuShipping: sotto il pavimento vince il pavimento', async () => {
@@ -310,7 +446,7 @@ test('resolveExtraEuShipping: sotto il pavimento vince il pavimento', async () =
     items: [{ sku: 'TS-A4', quantity: 1 }],
     quoteConfig: QUOTE_CONFIG,
     fetchImpl: stubFetch(() =>
-      quoteResponse({ transport: 18.5, import_charges: 13.3, shipping_and_import: 38.45, landed_cost_estimate: 39.97, checkout_invoice_number: 'TFC-WEB-00069' }),
+      quoteResponse({ transport: 18.5, import_charges: 13.3, shipping_and_import: 38.45, landed_cost_estimate: 38.45, checkout_invoice_number: 'TFC-WEB-00069' }),
     ),
   })
   assert.ok(resolution)
@@ -329,9 +465,15 @@ test('resolveExtraEuShipping: senza quota live il prezzo e quello prudenziale di
   assert.equal(resolution.quote, null)
   assert.equal(resolution.quoteFailure, 'disabled')
   assert.equal(resolution.verified, false)
-  // parita' con la tariffa prudenziale gia' in produzione (52,49 sul caso misurato)
-  const deployed = Math.round(calculateShipping(99, 'CH').cost * 100)
-  assert.equal(resolution.costCents, deployed)
+  // La regola prudenziale e' `max(profilo di paese, tabella in casa)` + margine
+  // + pavimento: sul caso misurato la tabella (47,49, quota dell'11/11/2026)
+  // vince sul profilo (47,29, misura del 21/09) e il prezzo e' 52,24.
+  assert.equal(resolution.basisCostCents, 4749)
+  assert.equal(resolution.profileCostCents, 4729)
+  assert.equal(resolution.tableCostCents, 4749)
+  assert.equal(resolution.costCents, prudentialExtraEuPriceCents('CH', 9900))
+  // e non e' mai sotto quello che il profilo da solo addebiterebbe
+  assert.ok(resolution.costCents >= Math.round(calculateShipping(99, 'CH').cost * 100))
 })
 
 test('resolveExtraEuShipping: la quota gonfiata dalla quantita non si incassa', async () => {
@@ -342,7 +484,7 @@ test('resolveExtraEuShipping: la quota gonfiata dalla quantita non si incassa', 
     quoteConfig: QUOTE_CONFIG,
     fetchImpl: stubFetch(() =>
       quoteResponse(
-        { transport: 42.75, import_charges: 25.45, ddp_fee: 10.71, shipping_and_import: 84.9, landed_cost_estimate: 86.42 },
+        { transport: 42.75, import_charges: 25.45, ddp_fee: 10.71, shipping_and_import: 84.9, landed_cost_estimate: 84.9 },
         { goods_value: 50 },
       ),
     ),
@@ -351,10 +493,10 @@ test('resolveExtraEuShipping: la quota gonfiata dalla quantita non si incassa', 
   assert.equal(resolution.quote, null)
   assert.equal(resolution.quoteFailure, 'inconsistent_import_charges')
   assert.equal(resolution.source, 'price_table')
-  // base = max(profilo, banda reale 76,49) e mai sotto la banda misurata
-  assert.equal(resolution.tableCostCents, 7649)
-  assert.equal(resolution.basisCostCents, Math.max(7649, profileCostCents('US', 5000) ?? 0))
-  assert.ok(resolution.costCents >= 7649 + Math.round(7649 * 0.1))
+  // base = max(profilo, banda reale 79,52) e mai sotto la banda misurata
+  assert.equal(resolution.tableCostCents, 7952)
+  assert.equal(resolution.basisCostCents, Math.max(7952, profileCostCents('US', 5000) ?? 0))
+  assert.ok(resolution.costCents >= 7952 + Math.round(7952 * 0.1))
 })
 
 test('resolveExtraEuShipping: il gettone incassa ESATTAMENTE il prezzo mostrato', async () => {
@@ -380,7 +522,7 @@ test('resolveExtraEuShipping: il gettone incassa ESATTAMENTE il prezzo mostrato'
     }
     const shown = await resolveExtraEuShipping(options)
     assert.ok(shown, scenario.nome)
-    assert.equal(shown.costCents, 5249, scenario.nome)
+    assert.equal(shown.costCents, 5224, scenario.nome)
     const token = signQuoteToken({ countryCode: 'CH', fingerprint, costCents: shown.costCents })
     assert.ok(token, scenario.nome)
     const charged = await resolveExtraEuShipping({ ...options, quoteToken: token })
@@ -403,20 +545,20 @@ test('resolveExtraEuShipping: il gettone non abbassa il prezzo (e non lo gonfia)
     quoteConfig: QUOTE_CONFIG,
     fetchImpl: stubFetch(() => quoteResponse()),
   }
-  // gettone SOTTO la base fresca (4.000 < 4.772): vince la base fresca
+  // gettone SOTTO la base fresca (4.000 < 4.749): vince la base fresca
   const lower = signQuoteToken({ countryCode: 'CH', fingerprint, costCents: 4000 })
   assert.ok(lower)
   const withLower = await resolveExtraEuShipping({ ...options, quoteToken: lower })
   assert.ok(withLower)
-  assert.equal(withLower.costCents, 5249)
-  // gettone FRA la base e il prezzo (4.772 < 5.000 < 5.249): vince il prezzo
+  assert.equal(withLower.costCents, 5224)
+  // gettone FRA la base e il prezzo (4.749 < 5.000 < 5.224): vince il prezzo
   // fresco, non `gettone + 10%` (che sarebbe 5.500)
   const middle = signQuoteToken({ countryCode: 'CH', fingerprint, costCents: 5000 })
   assert.ok(middle)
   const withMiddle = await resolveExtraEuShipping({ ...options, quoteToken: middle })
   assert.ok(withMiddle)
-  assert.equal(withMiddle.costCents, 5249)
-  assert.equal(withMiddle.basisCostCents, 4772)
+  assert.equal(withMiddle.costCents, 5224)
+  assert.equal(withMiddle.basisCostCents, 4749)
   assert.equal(withMiddle.minimumChargeApplied, false)
 })
 

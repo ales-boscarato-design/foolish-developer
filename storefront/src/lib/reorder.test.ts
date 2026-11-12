@@ -72,17 +72,17 @@ function withVariantPrice(price: number) {
 }
 
 const SHIPPING_RESOLUTION: ExtraEuShippingResolution = {
-  costCents: 5_249,
-  source: 'profile',
-  basisCostCents: 4_772,
-  marginCents: 477,
+  costCents: 5_224,
+  source: 'price_table',
+  basisCostCents: 4_749,
+  marginCents: 475,
   minChargeCents: 4_800,
   minimumChargeApplied: false,
   quote: null,
   verified: false,
   quoteFailure: 'disabled',
-  profileCostCents: 4_772,
-  tableCostCents: null,
+  profileCostCents: 4_729,
+  tableCostCents: 4_749,
 }
 
 test('listino corrente diverso dallo storico: prezzo_cambiato con le due cifre', async () => {
@@ -228,13 +228,13 @@ test('extra-UE senza base di prezzo: spedizione_da_quotare, con base: ok e metad
   assert.equal(plan.status, 'ok')
   if (plan.status !== 'ok') return
   const metadata = plan.sessionParams.metadata as Record<string, string>
-  assert.equal(metadata.shipping_source, 'profile')
-  assert.equal(metadata.shipping_basis_cents, '4772')
+  assert.equal(metadata.shipping_source, 'price_table')
+  assert.equal(metadata.shipping_basis_cents, '4749')
   const lineItems = plan.sessionParams.line_items as Array<{
     price_data: { unit_amount: number; product_data: { name: string } }
   }>
   const shipping = lineItems.find((line) => line.price_data.product_data.name === 'Spedizione')
-  assert.equal(shipping?.price_data.unit_amount, 5_249)
+  assert.equal(shipping?.price_data.unit_amount, 5_224)
 })
 
 // ------------------------------------------------------- guardia preventivo BR
