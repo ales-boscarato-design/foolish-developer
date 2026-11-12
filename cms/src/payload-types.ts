@@ -500,6 +500,17 @@ export interface Order {
   promoCode?: string | null;
   promoType?: ('free_shipping' | 'percent_pro' | 'percent' | 'amount' | 'percent_tiered') | null;
   promoDiscountCents?: number | null;
+  attribution?: {
+    landingPath?: string | null;
+    referrerHost?: string | null;
+    utmSource?: string | null;
+    utmMedium?: string | null;
+    utmCampaign?: string | null;
+    utmTerm?: string | null;
+    utmContent?: string | null;
+    refSlug?: string | null;
+    sourceClass?: ('direct' | 'organicSearch' | 'paidAds' | 'organicSocial' | 'referral' | 'llm' | 'unknown') | null;
+  };
   lineItems:
     | {
         [k: string]: unknown;
@@ -1192,6 +1203,19 @@ export interface OrdersSelect<T extends boolean = true> {
   promoCode?: T;
   promoType?: T;
   promoDiscountCents?: T;
+  attribution?:
+    | T
+    | {
+        landingPath?: T;
+        referrerHost?: T;
+        utmSource?: T;
+        utmMedium?: T;
+        utmCampaign?: T;
+        utmTerm?: T;
+        utmContent?: T;
+        refSlug?: T;
+        sourceClass?: T;
+      };
   lineItems?: T;
   trackingNumber?: T;
   trackingCarrier?: T;

@@ -15,6 +15,7 @@ import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { cmsImageUrl } from '@/lib/cms'
+import { readAttribution } from '@/lib/attribution-client'
 
 // Postal code format per country
 const POSTAL_CODE_RE: Record<string, RegExp> = {
@@ -352,6 +353,7 @@ export default function CheckoutPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items,
+          attribution: readAttribution() ?? undefined,
           shippingCost: displayShippingCost,
           total: grandTotal,
           customer: {

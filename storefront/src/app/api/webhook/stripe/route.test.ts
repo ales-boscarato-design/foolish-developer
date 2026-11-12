@@ -239,3 +239,20 @@ test('con order_ref nei metadata l ordine nuovo si crea con numero e chiave di s
   assert.equal(persisted.stripeSessionId, 'cs_test_webhook_session')
   assert.match(lines.join('\n'), new RegExp(`CMS order created OK ${orderRef}`))
 })
+
+test('attribuzione Stripe valida viene persistita nel gruppo CMS', async () => {
+  const attribution = JSON.stringify({ landingPath: '/it/', referrerHost: null, utmSource: 'google', utmMedium: 'cpc', utmCampaign: null, utmTerm: null, utmContent: null, refSlug: null, sourceClass: 'paidAds' })
+  const { payload, signature } = sessionEvent({ metadata: { order_ref: RESOLVED_ORDER_NUMBER, items_json: '[]', customer_name: 'Webhook Test', customer_country: 'IT', attribution_json: attribution } })
+  const result = await POST(webhookRequest(payload, signature))
+  assert.equal(result.status, 200)
+  assert.equal(state.posts.length, 1)
+  assert.deepEqual(state.posts[0]?.attribution, JSON.parse(attribution))
+})
+
+test('attribuzione illeggibile produce snapshot unknown ma l ordine viene creato', async () => {
+  const { payload, signature } = sessionEvent({ metadata: { order_ref: RESOLVED_ORDER_NUMBER, items_json: '[]', customer_name: 'Webhook Test', customer_country: 'IT', attribution_json: 'not json' } })
+  const result = await POST(webhookRequest(payload, signature))
+  assert.equal(result.status, 200)
+  assert.equal(state.posts.length, 1)
+  assert.deepEqual(state.posts[0]?.attribution, { landingPath: null, referrerHost: null, utmSource: null, utmMedium: null, utmCampaign: null, utmTerm: null, utmContent: null, refSlug: null, sourceClass: 'unknown' })
+})
