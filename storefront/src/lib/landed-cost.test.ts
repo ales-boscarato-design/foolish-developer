@@ -260,7 +260,10 @@ test('ogni banda della tabella rispetta l invariante e dichiara la copertura', (
         base < INSURANCE_RULE.threshold * 100, // base in centesimi, soglia in euro
         `${label}: banda sopra la soglia del 3%, rileggi la regola`,
       )
-      assert.ok(Math.abs(premium - base * 0.025) <= 1, `${label}: premio ${premium} su base ${base}`)
+      assert.ok(
+        Math.abs(premium - base * INSURANCE_RULE.rateBelowThreshold) <= 1,
+        `${label}: premio ${premium} su base ${base}`,
+      )
       // la base assicurata copre almeno la merce della banda
       assert.ok(base >= Number(band.goods_value_cents), label)
       // le componenti ci sono: senza trasporto e oneri import un aumento di

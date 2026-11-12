@@ -302,14 +302,21 @@ export interface DutyAboveThreshold {
  * profilo portava 0,025 **piatto e senza minimo**, il servizio 2,5%/3% + 0,99.
  * Finche' la quota live risponde il profilo non conta (il prezzo usa
  * `insurance_coverage` del servizio), ma quando la quota non e' disponibile si
- * ricade sul profilo: li il premio era sottostimato (CH base 500,00: 14,41
- * contro 17,29; base 50.000: 270,43 in meno) e il margine si assottigliava da
- * solo quanto piu' alta era la merce.
+ * ricade sul profilo: li il premio era sottostimato e il margine si assottigliava
+ * da solo quanto piu' alta era la merce. Su CH: merce 500,00 (base assicurata
+ * 576,20) premio 14,41 contro 17,29, quindi 2,88 di costo sdoganato mancanti;
+ * merce 50.000 (base 54.085,70) 1.352,14 contro 1.622,57, cioe' 270,43.
  *
  * Il servizio e' Python e questo pacchetto TypeScript: non esiste un modulo da
  * importare in comune, quindi la regola e' replicata UNA volta sola, con la
  * fonte sopra. Se Packlink la cambia, i due punti da aggiornare sono
  * `insurance_premium` nel servizio e questo blocco.
+ *
+ * ARROTONDAMENTO — qui si arrotonda al centesimo mezzo-per-eccesso (`roundCents`),
+ * il servizio usa il `round()` di Python (meta'-all pari sul valore binario).
+ * Confrontate 220.005 basi, 1.181 divergono di +0,01 e **nessuna** va a nostro
+ * sfavore: la parita' «al centesimo» vale sui punti misurati, e dove non vale
+ * l'errore e' un centesimo in piu' addebitato a noi, non in meno.
  */
 export const INSURANCE_RULE = {
   /** Aliquota sotto la soglia di base assicurata. */
@@ -353,8 +360,9 @@ export function insuranceRateForBase(base: number): number {
 
 /**
  * Il premio che Packlink applica su una base assicurata: la regola, mai un
- * numero fisso. Base zero o non finita → nessun premio inventato (0,00); ogni
- * base positiva paga almeno `minimumPremium`.
+ * numero fisso. Base che, arrotondata al centesimo, e' zero (o non finita,
+ * o negativa) → nessun premio inventato (0,00): e' la stessa condizione del
+ * servizio. Ogni base che resta positiva paga almeno `minimumPremium`.
  */
 export function insurancePremium(base: number): number {
   const normalized = payableAmount(base)
@@ -833,7 +841,7 @@ export function calculateLandedCost(
   // `insurancePremium`, non nei parametri del profilo: e' una regola di
   // Packlink uguale per ogni destinazione, e la copia per paese era proprio
   // quella che era rimasta a 2,5% piatto sottostimando il ripiego sui valori
-  // alti (CH base 500,00: 14,41 contro 17,29).
+  // alti (CH merce 500,00, base 576,20: 14,41 contro 17,29).
   const insuranceBase = profile.insuranceOnShippingCost
     ? roundCents(goods + shippingCostExclPremium)
     : goods
