@@ -114,15 +114,23 @@ export function extractCheckoutBaseMetadataKeys(promoSource) {
   return [...new Set([...literal, ...conditional])].sort()
 }
 
-/** Chiavi che la route di checkout aggiunge ai metadata di sessione (es. affiliate_*). */
+/**
+ * Chiavi che la route di checkout aggiunge ai metadata di sessione (es. affiliate_*).
+ * Riconosce le proprietà letterali solo nella regione dell'oggetto `sessionMetadata`,
+ * e le assegnazioni esplicite `orderMetadata.chiave = ...`,
+ * `sessionMetadata.chiave = ...` (o `metadata.chiave = ...`) in tutto il sorgente.
+ */
 export function extractCheckoutRouteMetadataKeys(checkoutSource) {
   const start = checkoutSource.indexOf('const sessionMetadata')
-  if (start === -1) return []
+  const explicitAssignments = [...checkoutSource.matchAll(/\b(?:orderMetadata|sessionMetadata|metadata)\.([a-z_]+)\s*=/g)]
+    .map((m) => m[1])
+  if (start === -1) return [...new Set(explicitAssignments)].sort()
   const rest = checkoutSource.slice(start)
   // La regione e' il solo oggetto del ramo `? { ... }`, non tutta la chiamata a Stripe.
-  const elseBranch = rest.match(/\n\s*:\s*metadata\b/)
+  const elseBranch = rest.match(/\n\s*:\s*(?:metadata|orderMetadata)\b/)
   const region = elseBranch ? rest.slice(0, elseBranch.index) : rest
-  return [...new Set([...region.matchAll(/^\s*([a-z_]+):\s/gm)].map((m) => m[1]))].sort()
+  const literalKeys = [...region.matchAll(/(?:^|[,{]\s*)([a-z_]+):\s/gm)].map((m) => m[1])
+  return [...new Set([...literalKeys, ...explicitAssignments])].sort()
 }
 
 /**

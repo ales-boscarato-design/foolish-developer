@@ -27,6 +27,7 @@ import {
   buildStripeLineItems,
 } from '@/lib/checkout-session'
 import { generateOrderRef } from '@/lib/order-ref'
+import { buildAttributionMetadata } from '@/lib/attribution'
 
 type StripeAllowedCountry = NonNullable<
   Stripe.Checkout.SessionCreateParams['shipping_address_collection']
@@ -116,6 +117,7 @@ export async function POST(req: NextRequest) {
     customer?: unknown
     promoCode?: unknown
     quoteToken?: unknown
+    attribution?: unknown
   }
   const items = request.items
   if (!Array.isArray(items) || items.length === 0) {
@@ -282,6 +284,8 @@ export async function POST(req: NextRequest) {
   // doganale di checkout e il collo quotato, cosi' la spedizione vera usa lo
   // stesso collo che ha prodotto il prezzo.
   const orderMetadata = { ...metadata, ...shippingMetadata }
+  const attributionJson = buildAttributionMetadata(request.attribution)
+  if (attributionJson) orderMetadata.attribution_json = attributionJson
   const sessionMetadata = shouldMarkAffiliate && promo
     ? {
         ...orderMetadata,

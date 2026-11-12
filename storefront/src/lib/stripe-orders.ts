@@ -2,6 +2,7 @@ import Stripe from 'stripe'
 import { countryToLocale } from '@/lib/resend'
 import { ORDER_REF_PREFIX } from '@/lib/order-ref'
 import { splitFullName } from '@/lib/promo'
+import { parseAttributionMetadata } from '@/lib/attribution'
 
 interface ParsedItem {
   sku: string
@@ -349,6 +350,17 @@ export async function createOrderInCMS(session: Stripe.Checkout.Session): Promis
   // Snapshot del promo: e' la traccia che il vecchio flusso perdeva (lo sconto viveva
   // solo come prezzo netto per riga). Assente o illeggibile => campi omessi, ordine creato.
   const promoSnapshot = parsePromoSnapshot(meta)
+  const rawAttribution = meta.attribution_json
+  const attribution = parseAttributionMetadata(rawAttribution)
+  if (rawAttribution == null || rawAttribution === '') {
+    console.warn('[stripe-order] attribution unavailable: missing')
+  } else if (attribution.sourceClass === 'unknown' && Object.values(attribution).every((value) => value === null || value === 'unknown')) {
+    let parsedAttribution: unknown
+    try { parsedAttribution = JSON.parse(rawAttribution) } catch {
+      console.warn('[stripe-order] attribution unavailable: invalid_json')
+    }
+    if (parsedAttribution !== undefined) console.warn('[stripe-order] attribution unavailable: invalid_shape')
+  }
 
   // Nome e cognome separati: li scrive il checkout quando il cliente li ha
   // dati. Per una sessione storica (o per un nome raccolto come unica stringa)
@@ -421,6 +433,7 @@ export async function createOrderInCMS(session: Stripe.Checkout.Session): Promis
       total,
       shippingCost,
       ...promoSnapshot,
+      attribution,
       shippingAddress,
       customerLocale: countryToLocale(shippingAddress.country),
       pipelineState: 'received',

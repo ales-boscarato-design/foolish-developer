@@ -896,6 +896,34 @@ export const Orders: CollectionConfig = {
       ],
     },
 
+    // ── Attribuzione marketing (snapshot senza dati personali) ────
+    {
+      name: 'attribution',
+      type: 'group',
+      label: 'Sorgente (attribution)',
+      fields: [
+        { name: 'landingPath', type: 'text', maxLength: 200 },
+        { name: 'referrerHost', type: 'text', maxLength: 100 },
+        { name: 'utmSource', type: 'text', maxLength: 100 },
+        { name: 'utmMedium', type: 'text', maxLength: 100 },
+        { name: 'utmCampaign', type: 'text', maxLength: 100 },
+        { name: 'utmTerm', type: 'text', maxLength: 100 },
+        { name: 'utmContent', type: 'text', maxLength: 100 },
+        {
+          name: 'refSlug', type: 'text', maxLength: 63,
+          validate: (value: unknown) => value == null || (typeof value === 'string' && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(value)) || 'Lo slug affiliato non è valido',
+        },
+        {
+          name: 'sourceClass', type: 'select', defaultValue: 'unknown',
+          options: [
+            { label: 'Direct', value: 'direct' }, { label: 'Organic search', value: 'organicSearch' },
+            { label: 'Paid ads', value: 'paidAds' }, { label: 'Organic social', value: 'organicSocial' },
+            { label: 'Referral', value: 'referral' }, { label: 'LLM', value: 'llm' }, { label: 'Unknown', value: 'unknown' },
+          ],
+        },
+      ],
+    },
+
     // ── Prodotti ordinati ─────────────────────────────────────────
     {
       name: 'lineItems',

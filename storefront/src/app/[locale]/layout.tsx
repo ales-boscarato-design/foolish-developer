@@ -11,6 +11,7 @@ import { getMessages } from 'next-intl/server'
 import { routing } from '@/i18n/routing'
 import { notFound } from 'next/navigation'
 import { Footer } from '@/components/Footer'
+import AttributionCapture from '@/components/AttributionCapture'
 
 const BASE_URL = 'https://thefoolishbutcher.com'
 
@@ -83,6 +84,7 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} className={`${outfit.variable} ${cormorant.variable}`} suppressHydrationWarning>
       <body className="min-h-screen flex flex-col" suppressHydrationWarning>
+        <AttributionCapture />
         {process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID && (
           <Script
             src={`${process.env.NEXT_PUBLIC_UMAMI_URL ?? 'https://analytics.thefoolishbutcher.com'}/script.js`}
