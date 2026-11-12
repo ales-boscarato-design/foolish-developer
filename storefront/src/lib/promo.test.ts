@@ -454,13 +454,38 @@ test('extra-UE: la funzione sincrona e il checkout danno lo STESSO prezzo, oppur
     }
   }
 
-  // 2. Il numero e' quello del PROFILO DEL PAESE. AU su 99,00 vale 105,30
-  //    (trasporto UPS misurato 64,54 + GST 10% + fee DDP + margine), non 52,49
-  //    (il costo sdoganato svizzero che il vecchio `DEFAULT_EXTRA_EU_PROFILE`
-  //    applicava a ogni paese non mappato). La promo non entra in questo prezzo:
-  //    azzererebbe anche dazi, IVA all'importazione e fee DDP.
-  assert.equal(calculateServerShippingCostCents(cart99, 'AU', false), 10_530)
-  assert.equal(calculateServerShippingCostCents(cart99, 'AU', true), 10_530)
+  // 2. I numeri sono quelli post-merge con la tabella rigenerata dalla quota
+  //    dell'11/11/2026 (#54): base = max(profilo del PAESE, banda in casa), poi
+  //    +10% di margine e pavimento a 48,00. Ogni riga dichiara da quale lato
+  //    viene la base: la tabella in casa e' la prima fonte di ripiego e vince
+  //    quando supera il profilo; il profilo vince dove la tabella non ha banda
+  //    (AU) o resta sotto. Valori misurati sul carrello da 99,00 dopo il merge
+  //    con `main` 337b3c4, non copiati: vedi `landed-cost-price.ts`.
+  //    La promo "spedizione gratuita" non entra in questo prezzo: azzererebbe
+  //    anche dazi, IVA all'importazione e fee DDP, che non sono sconto.
+  const casi: [string, number | null, string][] = [
+    ['CH', 5224, 'tabella 47,49 > profilo 47,29'],
+    ['GB', 6661, 'tabella 60,55 > profilo 57,86'],
+    ['NO', 8170, 'tabella 74,27 > profilo 69,69'],
+    ['US', 10_007, 'profilo 90,97 > tabella 79,52'],
+    ['CA', 9656, 'tabella 87,78 > profilo 79,82'],
+    ['AU', 10_615, 'profilo 96,50, la tabella non ha una banda per AU'],
+    ['JP', 11_287, 'tabella 102,61 > profilo 96,26'],
+    ['BR', null, 'nessuna linea DDP: nessuna base di prezzo, nessun prezzo'],
+  ]
+  for (const [country, atteso, perche] of casi) {
+    assert.equal(
+      calculateServerShippingCostCents(cart99, country, false),
+      atteso,
+      `${country} merce 99,00 (${perche})`,
+    )
+    assert.equal(
+      calculateServerShippingCostCents(cart99, country, true),
+      atteso,
+      `${country} merce 99,00 con promo spedizione gratuita (${perche})`,
+    )
+  }
+
   const au = await resolveExtraEuShipping({
     countryCode: 'AU',
     goodsCents: 9900,
@@ -469,7 +494,7 @@ test('extra-UE: la funzione sincrona e il checkout danno lo STESSO prezzo, oppur
   })
   assert.ok(au)
   assert.notEqual(au.costCents, 5249, 'AU non si prezza col profilo di un altro paese')
-  assert.equal(au.costCents, 10_530)
+  assert.equal(au.costCents, 10_615)
 
   // 3. Paese senza profilo (nessuna linea DDP: oggi il Brasile): NESSUNO dei due
   //    percorsi inventa un prezzo. Il rifiuto e' dichiarato, non un 48,00.

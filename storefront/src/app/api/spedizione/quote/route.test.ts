@@ -28,7 +28,9 @@ const PRICES: Record<string, number> = {
   'TS-A5': 12.5,
 }
 
-/** Risposta del servizio di quota con la forma reale (CH, Basel, merce 99). */
+/** Risposta del servizio di quota con la forma reale (CH, Basel, merce 99),
+ * copiata dalla quota dell'11/11/2026 (fattura TFC-WEB-01642): copertura
+ * `goods_plus_shipping` dichiarata e stima == quota. */
 function quoteBody() {
   return {
     status: 'ok',
@@ -40,12 +42,26 @@ function quoteBody() {
         carrier: 'UPS',
         service_name: 'Standard Access Point',
         transport: 23,
-        insurance: 2.48,
-        import_charges: 14.77,
-        ddp_fee: 4.96,
-        shipping_and_import: 46.2,
-        landed_cost_estimate: 47.72,
-        checkout_invoice_number: 'TFC-WEB-00011',
+        management_fee: 0.99,
+        insurance: 3.57,
+        import_charges: 14.93,
+        ddp_fee: 5.0,
+        shipping_and_import: 47.49,
+        landed_cost_estimate: 47.49,
+        insurance_coverage: {
+          policy: 'goods_plus_shipping',
+          base: 142.92,
+          declared_goods_value: 99,
+          shipping_cost_excluding_premium: 43.92,
+          rate: 0.025,
+          premium: 3.57,
+          premium_quoted: 3.57,
+          premium_agrees: true,
+          minimum_premium: 0.99,
+          extra_cost: 0,
+          base_set_at: 'purchase',
+        },
+        checkout_invoice_number: 'TFC-WEB-01642',
         expires_at: 1_800_000_000,
       },
     ],
@@ -109,10 +125,10 @@ test('destinazione extra-UE: risponde il prezzo della quota, senza segreti', asy
   assert.equal(response.status, 200)
   const body = await response.json()
   assert.equal(body.country, 'CH')
-  assert.equal(body.costCents, 5249)
+  assert.equal(body.costCents, 5224)
   assert.equal(body.source, 'live_quote')
   assert.equal(body.verified, true)
-  assert.equal(body.checkoutInvoiceNumber, 'TFC-WEB-00011')
+  assert.equal(body.checkoutInvoiceNumber, 'TFC-WEB-01642')
   // il browser riceve il prezzo, non la composizione del nostro margine
   assert.equal(body.basisCostCents, undefined)
   assert.equal(body.quoteFailure, undefined)
@@ -122,7 +138,7 @@ test('destinazione extra-UE: risponde il prezzo della quota, senza segreti', asy
 
   // il gettone congela ESATTAMENTE quel prezzo per quel carrello
   const fingerprint = cartFingerprint([{ sku: 'T-3D-WMN-BCK', quantity: 1 }], 'CH')
-  assert.equal(verifyQuoteToken(body.quoteToken, { countryCode: 'CH', fingerprint }), 5249)
+  assert.equal(verifyQuoteToken(body.quoteToken, { countryCode: 'CH', fingerprint }), 5224)
   assert.equal(verifyQuoteToken(body.quoteToken, { countryCode: 'CH', fingerprint: 'altro' }), null)
 
   // ACCETTAZIONE: quello che il carrello ha mostrato e' quello che il checkout
