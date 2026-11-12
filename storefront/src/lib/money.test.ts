@@ -54,24 +54,6 @@ function readMessages(locale: string): Record<string, unknown> {
   return JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, unknown>
 }
 
-/**
- * Il sorgente senza le righe di commento.
- *
- * La prosa di un commento puo' nominare `Intl` — questi file lo fanno, per
- * spiegare il difetto che chiudono — senza costruirne uno, e una guardia che
- * leggesse i commenti come codice segnalerebbe se stessa. Il filtro toglie solo
- * le righe che iniziano con `//`, `/*` o `*`: in TS una di quelle righe non puo'
- * contenere codice eseguibile, quindi non nasconde nulla (un commento in coda a
- * una riga di codice resta nel testo, e fa fallire la guardia — direzione
- * giusta).
- */
-function codeLines(source: string): string {
-  return source
-    .split('\n')
-    .filter((line) => !/^\s*(\/\/|\/\*|\*)/.test(line))
-    .join('\n')
-}
-
 function flatten(node: unknown, prefix = '', out: Record<string, string> = {}): Record<string, string> {
   if (node && typeof node === 'object') {
     for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
@@ -280,7 +262,7 @@ test('i formattatori si costruiscono dal tag esplicito, mai dalla lingua nuda', 
   // stringhe puo' accorgersi che i tag espliciti sono spariti: la regressione
   // che questa PR chiude si vede solo sul sorgente. Questo test la chiude nel
   // file che ora e' l'unica autorita' del formato.
-  const source = codeLines(fs.readFileSync(path.join(process.cwd(), 'src', 'lib', 'money.ts'), 'utf8'))
+  const source = fs.readFileSync(path.join(process.cwd(), 'src', 'lib', 'money.ts'), 'utf8')
 
   const tagged = source.match(/new Intl\.NumberFormat\(MONEY_LOCALE_TAGS\[locale\],/g) ?? []
   assert.equal(
@@ -288,8 +270,11 @@ test('i formattatori si costruiscono dal tag esplicito, mai dalla lingua nuda', 
     2,
     'i due formattatori (2 decimali e importo tondo) devono costruirsi dal tag esplicito',
   )
-  // Nessuna terza strada, e nessuna chiamata senza `new` (ammessa da ES2020):
-  // entrambe costruirebbero un formattatore che il conteggio qui sopra non vede.
+  // Nessuna terza strada: il file costruisce esattamente due formattatori, e
+  // ogni menzione di `Intl.NumberFormat(` e' una di quelle due costruzioni
+  // (quindi nessuna chiamata senza `new`, ammessa da ES2020). Il sorgente e'
+  // letto GREZZO, commenti compresi: un filtro che scarta righe puo' nascondere
+  // codice vero (una riga `*` e' un metodo generatore valido).
   const constructed = source.match(/new Intl\.NumberFormat\(/g) ?? []
   const mentioned = source.match(/Intl\.NumberFormat\(/g) ?? []
   assert.equal(
@@ -301,6 +286,18 @@ test('i formattatori si costruiscono dal tag esplicito, mai dalla lingua nuda', 
     mentioned.length,
     constructed.length,
     'nessun `Intl.NumberFormat(...)` chiamato senza `new`: sarebbe un terzo formattatore invisibile',
+  )
+  // Nessun `NumberFormat` fuori da `Intl.NumberFormat`: blocks destructuring e
+  // alias (`const { NumberFormat } = Intl`), che il conteggio qui sopra non vede.
+  const bareNumberFormat = source.match(/(?<!Intl\.)\bNumberFormat\b/g) ?? []
+  assert.equal(
+    bareNumberFormat.length,
+    0,
+    'nessun `NumberFormat` fuori da `Intl.NumberFormat`: niente destrutturazione, niente alias',
+  )
+  assert.ok(
+    !/globalThis|\bIntl\s*\[/.test(source),
+    'il formattatore non si raggiunge per vie indirette (`globalThis`, accesso con parentesi quadre)',
   )
 })
 

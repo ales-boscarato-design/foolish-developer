@@ -26,11 +26,11 @@
  * 2. La lingua non si deduce dal sistema: ogni lingua pubblicata ha il suo
  *    locale esplicito (`MONEY_LOCALE_TAGS`: it -> `it-IT`, en -> `en-GB`,
  *    fr -> `fr-FR`, es -> `es-ES`, de -> `de-DE`) e si passa quello a `Intl`.
- *    `Intl.NumberFormat(undefined, ...)` prenderebbe la lingua della
- *    macchina, che in SSR e nel browser puo' essere diversa: due rese dello
- *    stesso prezzo, cioe' un hydration mismatch. Un tag esplicito toglie
- *    anche la dipendenza dalla regione di default che CLDR sceglie per una
- *    lingua nuda (`en` -> `en-US`, oggi innocuo per i numeri, domani no).
+ *    `undefined` prenderebbe la lingua della macchina, che in SSR e nel browser
+ *    puo' essere diversa: due rese dello stesso prezzo, cioe' un hydration
+ *    mismatch. Un tag esplicito toglie anche la dipendenza dalla regione di
+ *    default che CLDR sceglie per una lingua nuda (`en` -> `en-US`, oggi
+ *    innocuo per i numeri, domani no).
  *
  * 3. L'unita' di misura del TESTO sono i centesimi interi, come per Stripe.
  *    `formatMoneyCents(locale, cents)` e `formatEuroCents(locale, cents)`
@@ -220,10 +220,10 @@ export function formatEuro(locale: string | null | undefined, amount: number): s
  * 60»). Le soglie non sono dati di CMS ma costanti di codice
  * (`FLAT_ZONE_CONFIG` in `shipping.ts`), quindi un valore frazionario richiede
  * un commit, e i test che pinnano l'interezza delle soglie
- * (`free-shipping-badge.test.ts`, `shipping.test.ts`, `money.test.ts`) lo
- * fermano prima del deploy: la pagina non puo' cadere in produzione per un
- * valore che solo una modifica al codice puo' introdurre. Chi ha importi con
- * centesimi usa `formatMoney`.
+ * (`shipping.test.ts` sui valori di zona, `free-shipping-badge.test.ts` sulla
+ * soglia che il badge promette) lo fermano prima del deploy: la pagina non puo'
+ * cadere in produzione per un valore che solo una modifica al codice puo'
+ * introdurre. Chi ha importi con centesimi usa `formatMoney`.
  */
 export function formatWholeMoney(locale: string | null | undefined, amount: number): string {
   // `eurosToDisplayCents` arrotonderebbe ai centesimi (`59.999` -> `60,00`):

@@ -41,24 +41,6 @@ function readMessages(locale: string): Messages {
   return JSON.parse(fs.readFileSync(file, 'utf8')) as Messages
 }
 
-/**
- * Il sorgente senza le righe di commento.
- *
- * La prosa di un commento puo' nominare `Intl` — questi file lo fanno, per
- * spiegare il difetto che chiudono — senza costruirne uno, e una guardia che
- * leggesse i commenti come codice segnalerebbe se stessa. Il filtro toglie solo
- * le righe che iniziano con `//`, `/*` o `*`: in TS una di quelle righe non puo'
- * contenere codice eseguibile, quindi non nasconde nulla (un commento in coda a
- * una riga di codice resta nel testo, e fa fallire la guardia — direzione
- * giusta).
- */
-function codeLines(source: string): string {
-  return source
-    .split('\n')
-    .filter((line) => !/^\s*(\/\/|\/\*|\*)/.test(line))
-    .join('\n')
-}
-
 function namespace(messages: Messages, dotted: string): Record<string, unknown> {
   let node: unknown = messages
   for (const part of dotted.split('.')) {
@@ -466,20 +448,31 @@ test('la guardia sul sorgente: il badge non torna a un Intl con la lingua nuda',
   // o ricostruendo un formattatore locale che oggi rende uguale. Questo test
   // chiude il secondo.
   //
-  // La guardia non cerca `new Intl.NumberFormat`: `Intl.NumberFormat` si puo'
-  // chiamare anche SENZA `new` (ES2020), e un helper importato con un alias
-  // lascerebbe libero il nome per una funzione locale con lo stesso nome —
-  // entrambe le forme reintroducevano il difetto con la suite verde (misurato
-  // dalla review indipendente di questa PR). Qui il file del badge non deve
-  // nominare `Intl` affatto, ne' ridefinire l'helper, ne' portarsi una seconda
-  // strada di formattazione (`toFixed`, `toLocaleString`).
-  const source = codeLines(
-    fs.readFileSync(path.join(process.cwd(), 'src', 'lib', 'free-shipping-badge.ts'), 'utf8'),
+  // La guardia legge il sorgente GREZZO, commenti compresi: nessun filtro che
+  // scarti righe. Un filtro del genere sembra comodo (i commenti di questi file
+  // parlano del difetto) ma fallisce aperto: in TS una riga di codice puo'
+  // iniziare con `*` (un metodo generatore, o la continuazione di una
+  // moltiplicazione) e diventerebbe invisibile alla guardia. Misurato da una
+  // review indipendente: con quel filtro una riga `*` costruiva il
+  // formattatore e la suite restava 17/17 verde. Quindi: qui non si nomina il
+  // formattatore nemmeno in prosa, e la guardia vieta i token, non le forme.
+  //
+  // Non basta cercare `new Intl.NumberFormat`: si chiama anche SENZA `new`
+  // (ES2020), si puo' destrutturare (`const { NumberFormat } = Intl`), e un
+  // import con alias lascerebbe libero il nome per una funzione locale: tutte
+  // forme che reintroducevano il difetto con la suite verde.
+  const source = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'lib', 'free-shipping-badge.ts'),
+    'utf8',
   )
 
   assert.ok(
     !/\bIntl\b/.test(source),
-    'free-shipping-badge.ts non deve nominare Intl (con o senza `new`, `globalThis` compreso): i tag di lingua stanno in money.ts',
+    'free-shipping-badge.ts non deve nominare Intl (con o senza `new`, in un commento o in `globalThis`): i tag di lingua stanno in money.ts',
+  )
+  assert.ok(
+    !/\bNumberFormat\b/.test(source),
+    'free-shipping-badge.ts non deve nominare NumberFormat: ne\' per costruirlo, ne\' per destrutturarlo o dargli un alias',
   )
   assert.ok(
     !/toFixed|toLocaleString|globalThis/.test(source),
@@ -507,8 +500,9 @@ test('la guardia sul sorgente: il badge non torna a un Intl con la lingua nuda',
 
   // La pagina dei termini (l'altro consumatore) formatta con `money.ts`: la
   // tariffa a due decimali e la soglia tonda.
-  const termini = codeLines(
-    fs.readFileSync(path.join(process.cwd(), 'src', 'app', '[locale]', 'termini', 'page.tsx'), 'utf8'),
+  const termini = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'app', '[locale]', 'termini', 'page.tsx'),
+    'utf8',
   )
   assert.ok(
     /cost:\s*formatMoney\(locale,\s*flatShippingCostEuros\('IT'\)\)/.test(termini) &&
