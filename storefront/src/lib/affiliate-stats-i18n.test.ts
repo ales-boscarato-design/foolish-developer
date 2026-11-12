@@ -2,6 +2,10 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { test } from 'node:test'
+import { createTranslator } from 'next-intl'
+
+import { MONEY_LOCALES, MONEY_LOCALE_TAGS, formatEuroCents, formatPercentBps } from './money'
+import { formatLongDate } from './date-format'
 
 /**
  * The affiliate statistics page is the one page of the shop read by people who
@@ -9,6 +13,14 @@ import { test } from 'node:test'
  * and forgotten in another would not fail the build: the page would simply show
  * the raw key, or throw at render time, in one language only. This pins the
  * parity of the namespace across every published locale.
+ *
+ * Il secondo difetto che questo file chiude (12/11/2026): la pagina costruiva i
+ * propri formattatori con il locale di ROUTING (`it`, `en`, …) invece dei tag
+ * espliciti di `money.ts` (`it-IT`, `en-GB`, …), e con `style: 'currency'`
+ * metteva il simbolo euro DENTRO il valore, con lo spazio deciso dal locale.
+ * Il resto del negozio scrive `1.234,56€`: simbolo fuori, attaccato. Qui si
+ * pinna la resa nelle cinque lingue, il simbolo una volta sola, e il fatto che
+ * la pagina non abbia piu' un formattatore proprio.
  */
 
 const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
@@ -35,6 +47,34 @@ function readNamespace(locale: string): Record<string, unknown> {
   assert.ok(namespace && typeof namespace === 'object', `${locale}.json non ha affiliateStats`)
   return namespace as Record<string, unknown>
 }
+
+/**
+ * Il traduttore vero di next-intl: i messaggi si leggono da disco a runtime,
+ * quindi il tipo delle chiavi non puo' essere quello statico. La resa e' quella
+ * di produzione (ICU), non una sostituzione artigianale che potrebbe divergere
+ * dal sito.
+ */
+type Translate = (key: string, values?: Record<string, string>) => string
+
+function translator(locale: string): Translate {
+  const build = createTranslator as unknown as (options: {
+    locale: string
+    messages: unknown
+    namespace: string
+  }) => Translate
+  return build({ locale, messages: JSON.parse(fs.readFileSync(path.join(process.cwd(), 'messages', `${locale}.json`), 'utf8')) as unknown, namespace: 'affiliateStats' })
+}
+
+/** Le righe di importo della pagina, con i valori come li legge il lettore. */
+function moneyRows(locale: string): { revenue: string; commission: string } {
+  return {
+    revenue: formatEuroCents(locale, 123456),
+    commission: formatEuroCents(locale, 3333),
+  }
+}
+
+const STATS_PAGE = path.join(process.cwd(), 'src', 'app', '[locale]', 'a', '[slug]', 'stats', 'page.tsx')
+const DATE_FORMAT = path.join(process.cwd(), 'src', 'lib', 'date-format.ts')
 
 test('every locale carries the whole affiliateStats namespace', () => {
   for (const locale of LOCALES) {
@@ -72,4 +112,179 @@ test('the italian strings match the page that was already published', () => {
   assert.equal(italian.commission, 'Commissione maturata')
   assert.equal(italian.rate, 'Aliquota attuale')
   assert.equal(italian.lastSale, 'Ultima vendita')
+})
+
+// -------------------------------------------------- importi e percentuali
+
+test('gli importi della pagina sono quelli di money.ts: simbolo fuori, una volta sola', () => {
+  // La resa che il lettore vede, nelle cinque lingue. Il simbolo sta dopo il
+  // numero e attaccato: `1.234,56€`, non `1.234,56 €` (currency style italiano)
+  // e non `€1,234.56` (currency style inglese).
+  const expected: Record<string, { revenue: string; commission: string }> = {
+    it: { revenue: '1.234,56€', commission: '33,33€' },
+    en: { revenue: '1,234.56€', commission: '33.33€' },
+    // Il francese raggruppa con lo spazio fine insecabile (U+202F), non con lo
+    // spazio normale: e' il separatore che Intl produce e che il lettore vede.
+    fr: { revenue: '1\u202f234,56€', commission: '33,33€' },
+    es: { revenue: '1.234,56€', commission: '33,33€' },
+    de: { revenue: '1.234,56€', commission: '33,33€' },
+  }
+  for (const locale of LOCALES) {
+    const rows = moneyRows(locale)
+    assert.deepEqual(rows, expected[locale], `${locale}: la resa dell'importo non e' quella attesa`)
+    for (const value of Object.values(rows)) {
+      assert.equal(value.match(/€/g)?.length, 1, `${locale}: il simbolo euro compare ${value}`)
+      assert.ok(!/\s€/.test(value), `${locale}: il simbolo e' staccato dal numero — «${value}»`)
+      assert.ok(/\d€$/.test(value), `${locale}: il simbolo non e' attaccato al numero — «${value}»`)
+    }
+  }
+})
+
+test('le aliquote si leggono nella lingua, con i tag espliciti e due decimali solo se servono', () => {
+  const expected: Record<string, { whole: string; fractional: string }> = {
+    it: { whole: '5%', fractional: '12,5%' },
+    en: { whole: '5%', fractional: '12.5%' },
+    fr: { whole: '5%', fractional: '12,5%' },
+    es: { whole: '5%', fractional: '12,5%' },
+    de: { whole: '5%', fractional: '12,5%' },
+  }
+  for (const locale of LOCALES) {
+    assert.equal(formatPercentBps(locale, 500), expected[locale].whole, `${locale}: 5%`)
+    assert.equal(formatPercentBps(locale, 1250), expected[locale].fractional, `${locale}: 12,5%`)
+  }
+  // Un terzo di punto percentuale (333 punti base) e' la forma piu' lunga che
+  // questa pagina puo' mostrare: due decimali, non uno arrotondato.
+  assert.equal(formatPercentBps('it', 333), '3,33%')
+  assert.equal(formatPercentBps('en', 333), '3.33%')
+})
+
+test('la frase del prossimo livello non raddoppia il simbolo euro', () => {
+  // La frase approvata nei `messages` scrive `{threshold}` e `{missing}` senza
+  // `€`: il simbolo arriva solo dal formattatore. Se la pagina aggiungesse il
+  // simbolo (o usasse `style: 'currency'`), il lettore vedrebbe `1.234,56 €€`.
+  for (const locale of LOCALES) {
+    const namespace = readNamespace(locale)
+    for (const key of EXPECTED_KEYS) {
+      assert.ok(
+        !String(namespace[key]).includes('€'),
+        `${locale}.${key} scrive il simbolo euro nella traduzione: il simbolo lo mette money.ts — «${namespace[key]}»`,
+      )
+    }
+
+    const t = translator(locale)
+    const sentence = t('nextTier', {
+      threshold: formatEuroCents(locale, 150000),
+      missing: formatEuroCents(locale, 26544),
+    })
+    const euro = sentence.match(/€/g)?.length ?? 0
+    assert.equal(euro, 2, `${locale}: «${sentence}» deve mostrare il simbolo una volta per importo`)
+    assert.ok(!sentence.includes('€€'), `${locale}: simbolo raddoppiato — «${sentence}»`)
+    assert.ok(!/\s€/.test(sentence), `${locale}: simbolo staccato dal numero — «${sentence}»`)
+    assert.ok(!/\d+\.\d{2}€/.test(sentence) || locale === 'en', `${locale}: separatore decimale sbagliato — «${sentence}»`)
+  }
+})
+
+test('la data si legge nella lingua della pagina, con i tag espliciti', () => {
+  // Mezzogiorno locale: nessun fuso orario del sistema puo' spostare il giorno.
+  const date = new Date(2026, 10, 12, 12, 0, 0)
+  assert.equal(formatLongDate('it', date), '12 novembre 2026')
+  assert.equal(formatLongDate('en', date), '12 November 2026')
+  for (const locale of LOCALES) {
+    const reference = new Intl.DateTimeFormat(MONEY_LOCALE_TAGS[locale], {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    }).format(date)
+    assert.equal(
+      formatLongDate(locale, date),
+      reference,
+      `${locale}: la data non e' quella di ${MONEY_LOCALE_TAGS[locale]}`,
+    )
+    assert.ok(!/Invalid/i.test(formatLongDate(locale, date)), `${locale}: data non valida in pagina`)
+  }
+  // Una data che non esiste e' un errore di programmazione, non un testo.
+  assert.throws(() => formatLongDate('it', 'non-una-data'), /data non valida/)
+})
+
+// --------------------------------------------------------- guardie sorgente
+
+test('la pagina non ha un formattatore proprio: importi, aliquote e date vengono da lib', () => {
+  // Il difetto che questo test chiude si vede solo sul sorgente: le cinque
+  // lingue rendono uguale con la lingua nuda e con il tag esplicito su questi
+  // valori, quindi nessun confronto di stringhe puo' accorgersi che i tag
+  // espliciti sono spariti. Il sorgente si legge GREZZO, commenti compresi: un
+  // filtro che scarta righe fallisce aperto (una riga `*` e' codice valido) —
+  // lezione della review della card madre.
+  const source = fs.readFileSync(STATS_PAGE, 'utf8')
+
+  for (const forbidden of ['Intl', 'NumberFormat', 'DateTimeFormat', 'toFixed', 'toLocaleString', 'globalThis']) {
+    assert.ok(
+      !source.includes(forbidden),
+      `la pagina statistica non deve nominare ${forbidden}: formatta chi possiede la decisione (money.ts, date-format.ts)`,
+    )
+  }
+  assert.ok(!/style:\s*'currency'|currency(Display)?:/.test(source), 'la pagina non deve decidere la forma del simbolo')
+  assert.ok(!/formattersFor/.test(source), 'il formattatore locale della pagina non deve tornare')
+
+  assert.ok(
+    /import\s*\{\s*formatEuroCents\s*,\s*formatPercentBps\s*\}\s*from\s*'@\/lib\/money'/.test(source),
+    'la pagina deve importare formatEuroCents e formatPercentBps da @/lib/money, senza alias',
+  )
+  assert.ok(
+    /import\s*\{\s*formatLongDate\s*\}\s*from\s*'@\/lib\/date-format'/.test(source),
+    'la pagina deve importare formatLongDate da @/lib/date-format',
+  )
+
+  // Le tre funzioni USATE, non solo gli import: una sostituzione di corpo lascia
+  // gli import al loro posto con la suite verde. Ancorate a inizio riga con
+  // l'indentazione esatta, cosi' una riga di commento che riporta il codice di
+  // prima non soddisfa la guardia.
+  assert.ok(
+    /^ {2}const formatEuro = \(cents: number\): string => formatEuroCents\(locale, cents\)$/m.test(source),
+    'gli importi devono passare per formatEuroCents con il locale della pagina',
+  )
+  assert.ok(
+    /^ {2}const formatRate = \(bps: number\): string => formatPercentBps\(locale, bps\)$/m.test(source),
+    'le aliquote devono passare per formatPercentBps con il locale della pagina',
+  )
+  assert.ok(
+    /^ {2}const formatDate = \(value: string \| null\): string => \(value === null \? '—' : formatLongDate\(locale, value\)\)$/m.test(source),
+    'le date devono passare per formatLongDate con il locale della pagina',
+  )
+  // Nessuna conversione di unita' fatta a mano: i centesimi arrivano interi e i
+  // punti base pure, la divisione per 100 la fa money.ts.
+  assert.ok(!/\/ 100|cents \/$/.test(source), 'la pagina non deve convertire centesimi o punti base da sola')
+})
+
+test('le date hanno un solo formattatore, costruito sul tag esplicito', () => {
+  const source = fs.readFileSync(DATE_FORMAT, 'utf8')
+  const tagged = source.match(/new Intl\.DateTimeFormat\(MONEY_LOCALE_TAGS\[locale\],/g) ?? []
+  assert.equal(tagged.length, 1, 'date-format.ts deve costruire il formattatore dal tag esplicito di money.ts')
+  assert.equal(
+    (source.match(/DateTimeFormat\(/g) ?? []).length,
+    tagged.length,
+    'nessun formattatore di data costruito senza `new` o fuori dal tag esplicito',
+  )
+  assert.ok(
+    !/toLocaleString|toLocaleDateString/.test(source),
+    'date-format.ts non deve formattare con `toLocaleDateString`: il tag esplicito e\' la sola strada',
+  )
+  const imports = [...source.matchAll(/^import\s.*$/gm)].map((m) => m[0])
+  assert.deepEqual(
+    imports,
+    ["import { MONEY_LOCALE_TAGS, normalizeMoneyLocale, type MoneyLocale } from './money'"],
+    'date-format.ts deve prendere i tag da money.ts: una seconda lista di lingue e\' la deriva che questa card chiude',
+  )
+  // Il fuso orario non si fissa: la resa resta quella della pagina di prima
+  // (istante formattato nel fuso del server). Pinnarlo qui impedisce che un
+  // refactor successivo sposti di un giorno le date vicine alla mezzanotte
+  // credendo di fare chiarezza.
+  assert.ok(!/timeZone/.test(source), 'date-format.ts non deve fissare un fuso orario: cambierebbe la data mostrata')
+})
+
+test('le lingue della pagina statistica sono quelle pubblicate dal negozio', () => {
+  assert.deepEqual([...LOCALES], [...MONEY_LOCALES])
+  for (const locale of LOCALES) {
+    assert.ok(MONEY_LOCALE_TAGS[locale], `${locale}: manca il tag esplicito in money.ts`)
+  }
 })

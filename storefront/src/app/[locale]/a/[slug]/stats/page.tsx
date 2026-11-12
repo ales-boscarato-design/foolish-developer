@@ -10,6 +10,9 @@ import {
   verifyAffiliateStatsToken,
 } from '@/lib/affiliate-referral'
 
+import { formatLongDate } from '@/lib/date-format'
+import { formatEuroCents, formatPercentBps } from '@/lib/money'
+
 export const dynamic = 'force-dynamic'
 
 type PageProps = {
@@ -17,18 +20,24 @@ type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-/**
- * Formatters follow the page language, not the shop's default one: a Spanish
- * affiliate reads "1.234,56 €" and a date in Spanish, exactly as the rest of the
- * site does in its own locale.
+/*
+ * Formattazione: nessun formattatore proprio in questa pagina.
+ *
+ * La pagina costruiva due formattatori numerici e uno di data sul locale di
+ * ROUTING (`it`, `en`, …) invece dei tag espliciti del negozio, e chiedeva alla
+ * formattazione di valuta di comporre il simbolo euro DENTRO il valore, con lo
+ * spazio che decide il locale: `1.234,56 €` in italiano, `€1,234.56` in
+ * inglese. Il resto del sito scrive `1.234,56€` (simbolo fuori, attaccato)
+ * perche' le frasi approvate nei `messages` scrivono `{amount}€`: qui il simbolo
+ * poteva comparire staccato o nel posto sbagliato, due forme per lo stesso
+ * importo.
+ *
+ * Ora le tre funzioni vengono da chi possiede la decisione: gli importi e le
+ * aliquote da `@/lib/money`, le date da `@/lib/date-format` — che eredita gli
+ * stessi tag di `money.ts` invece di riscriverli. La guardia di
+ * `affiliate-stats-i18n.test.ts` lo tiene fermo sul sorgente: in questo file
+ * nessuna costruzione di formattatori.
  */
-function formattersFor(locale: string) {
-  return {
-    euro: new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }),
-    percent: new Intl.NumberFormat(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 }),
-    date: new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'long', year: 'numeric' }),
-  }
-}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params
@@ -50,10 +59,14 @@ export default async function AffiliateStatsPage({ params, searchParams }: PageP
   }
 
   const t = await getTranslations({ locale, namespace: 'affiliateStats' })
-  const format = formattersFor(locale)
-  const formatEuro = (cents: number): string => format.euro.format(cents / 100)
-  const formatRate = (bps: number): string => `${format.percent.format(bps / 100)}%`
-  const formatDate = (value: string | null): string => (value === null ? '—' : format.date.format(new Date(value)))
+  // Gli importi arrivano in centesimi interi e le aliquote in punti base
+  // interi: qui si sceglie solo la lingua, il formato lo decide `money.ts`.
+  // Nessuna frase attorno aggiunge il simbolo euro (`nextTier` scrive
+  // `{threshold}` e `{missing}` senza `€`), quindi il simbolo compare una volta,
+  // attaccato al numero.
+  const formatEuro = (cents: number): string => formatEuroCents(locale, cents)
+  const formatRate = (bps: number): string => formatPercentBps(locale, bps)
+  const formatDate = (value: string | null): string => (value === null ? '—' : formatLongDate(locale, value))
 
   // Reporting uses the reporting resolver: pausing or archiving an affiliate
   // stops the discount but must not erase the figures it already earned.
