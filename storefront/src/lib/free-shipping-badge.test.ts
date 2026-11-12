@@ -486,16 +486,33 @@ test('la guardia sul sorgente: il badge non torna a un Intl con la lingua nuda',
     !/formatBadgeAmount/.test(source),
     'il badge non deve riesportare un formattatore proprio: gli importi si chiedono a ./money',
   )
+  // La superficie di import si pinna INTERA, non solo la riga di `./money`: una
+  // guardia che vieta `Intl` in questo file non vede un formattatore portato da
+  // un altro modulo (misurato da una review indipendente: un `./badge-nude`
+  // importato e usato lasciava la suite verde). Il badge importa la zona e la
+  // soglia da `./shipping` e UNA funzione da `./money`: nient'altro.
+  const imports = [...source.matchAll(/^import\s.*$/gm)].map((m) => m[0]).sort()
+  assert.deepEqual(
+    imports,
+    [
+      "import { FLAT_ZONE_CONFIG, type ShippingZone } from './shipping'",
+      "import { formatWholeMoney } from './money'",
+    ],
+    'il badge deve importare solo ./shipping e formatWholeMoney da ./money',
+  )
   // L'import si pinna nella forma esatta (niente alias, che libererebbe il nome).
   assert.ok(
     /import\s*\{\s*formatWholeMoney\s*\}\s*from\s*'\.\/money'/.test(source),
     'il badge deve importare formatWholeMoney da ./money con il suo nome, senza alias',
   )
   // Gli argomenti si pinnano: la soglia deve venire da `shipping.ts` e il locale
-  // dalla pagina, non da una costante o da un `Intl` che indovina.
+  // dalla pagina, non da una costante o da un formattatore che indovina. Il pin
+  // e' ancorato a inizio riga con l'indentazione esatta: cosi' una riga di
+  // commento che riporta la chiamata di prima («forma precedente: amount: …»)
+  // non soddisfa la guardia — una forma misurata da una review indipendente.
   assert.ok(
-    /amount:\s*formatWholeMoney\(locale,\s*freeShippingThresholdEuros\(zone\)\)/.test(source),
-    'la soglia deve passare per formatWholeMoney con la soglia di shipping.ts',
+    /^ {4}amount: formatWholeMoney\(locale, freeShippingThresholdEuros\(zone\)\),$/m.test(source),
+    'la soglia deve passare per formatWholeMoney con la soglia di shipping.ts (riga vera, non un commento)',
   )
 
   // La pagina dei termini (l'altro consumatore) formatta con `money.ts`: la
