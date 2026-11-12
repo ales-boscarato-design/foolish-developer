@@ -8,6 +8,11 @@
  *   EU        14,99 EUR → gratis sopra 150 EUR     (tariffa corriere)
  *   EXTRA_EU  costo sdoganato (landed cost)        (mai sotto il costo stimato)
  *
+ * Il canale rivenditori (pacchetto `b2b/`) applica le stesse tariffe e le stesse
+ * soglie per IT e EU, in un file proprio (`b2b/src/lib/shipping.ts`, allineato a
+ * queste soglie il 12/11/2026): i due pacchetti non si importano a vicenda,
+ * quindi una modifica qui va replicata li' — e viceversa.
+ *
  * Perche' EXTRA_EU esiste separata da EU: Svizzera, Norvegia, Regno Unito e
  * resto del mondo NON sono nel territorio doganale dell'Unione. Una spedizione
  * li' paga dazi, IVA all'importazione, la fee DDP e l'assicurazione: voci che
