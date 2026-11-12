@@ -210,8 +210,10 @@
         "body": "Alessandro antwortet – kein Bot"
       },
       "freeShipping": {
-        "title": "Gratis ab €60",
-        "body": "Kostenloser Versand für qualifizierte Bestellungen"
+        "title": "Gratis ab {amount}€",
+        "body": "Kostenloser Versand ab dem Warenwert der Bestellung",
+        "titleExtraEu": "Versand je nach Zielort berechnet",
+        "bodyExtraEu": "Zölle und Einfuhrumsatzsteuer im Versandpreis enthalten"
       }
     },
     "cards": {
@@ -344,8 +346,8 @@
     "shipping": "4. Versand",
     "shippingText": "Der Versand erfolgt aus Italien innerhalb von 3–5 Werktagen nach Bestellbestätigung, außer in Zeiten hoher Nachfrage, die ausdrücklich kommuniziert werden.",
     "shippingRates": {
-      "italy": "Italien: 7,65€ · kostenlos ab 50€",
-      "europe": "Europäische Union: 14,99€ · kostenlos ab 150€",
+      "italy": "Italien: {cost}€ · kostenlos ab {amount}€",
+      "europe": "Europäische Union: {cost}€ · kostenlos ab {amount}€",
       "extraEu": "Außerhalb der EU (Schweiz, Norwegen, Vereinigtes Königreich, …): Versand wird an der Kasse berechnet, inklusive Transport, Zollabfertigung und Einfuhrumsatzsteuer; für noch nicht kalkulierbare Ziele auf Anfrage"
     },
     "withdrawal": "5. Widerrufsrecht",

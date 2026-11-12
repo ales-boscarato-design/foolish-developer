@@ -210,8 +210,10 @@
         "body": "Risponde Alessandro — non un bot"
       },
       "freeShipping": {
-        "title": "Gratis sopra €60",
-        "body": "Spedizione gratuita per ordini qualificati"
+        "title": "Gratis sopra {amount}€",
+        "body": "Spedizione gratuita sul valore merce dell'ordine",
+        "titleExtraEu": "Spedizione calcolata per destinazione",
+        "bodyExtraEu": "Dazi e IVA all'importazione inclusi nel prezzo di spedizione"
       }
     },
     "cards": {
@@ -344,8 +346,8 @@
     "shipping": "4. Spedizione",
     "shippingText": "Le spedizioni avvengono dall'Italia entro 3–5 giorni lavorativi dalla conferma dell'ordine, salvo periodi di alta domanda comunicati esplicitamente.",
     "shippingRates": {
-      "italy": "Italia: 7,65€ · gratuita sopra 50€",
-      "europe": "Unione Europea: 14,99€ · gratuita sopra 150€",
+      "italy": "Italia: {cost}€ · gratuita sopra {amount}€",
+      "europe": "Unione Europea: {cost}€ · gratuita sopra {amount}€",
       "extraEu": "Extra-UE (Svizzera, Norvegia, Regno Unito, …): spedizione calcolata al checkout, comprende trasporto, sdoganamento e IVA all'importazione; per le destinazioni non ancora quotabili la spedizione si calcola su richiesta"
     },
     "withdrawal": "5. Diritto di recesso",

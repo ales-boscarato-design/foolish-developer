@@ -569,14 +569,14 @@ test('il profilo di un paese non misurato dichiara la base dei parametri tecnici
   assert.equal(calculateShipping(99, 'ZZ').landedCost, null)
 })
 
-test('Italia e Unione Europea restano come erano', () => {
-  const italy = calculateShipping(49.99, 'IT')
+test('Italia e Unione Europea: tariffe piatte con le soglie della promessa', () => {
+  const italy = calculateShipping(59.99, 'IT')
   assert.equal(italy.zone, 'IT')
   assert.equal(italy.cost, 7.65)
   assert.equal(italy.landedCost, null)
-  assert.equal(italy.freeAbove, 50)
+  assert.equal(italy.freeAbove, 60)
   assert.equal(italy.minimumCharge, null)
-  assert.equal(calculateShipping(50, 'IT').cost, 0)
+  assert.equal(calculateShipping(60, 'IT').cost, 0)
 
   const germany = calculateShipping(99, 'DE')
   assert.equal(germany.zone, 'EU')
@@ -588,7 +588,7 @@ test('Italia e Unione Europea restano come erano', () => {
 })
 
 test('la barra della spedizione gratuita non esiste su extra-UE', () => {
-  assert.equal(freeShippingRemaining(20, 'IT'), 30)
+  assert.equal(freeShippingRemaining(20, 'IT'), 40)
   assert.equal(freeShippingRemaining(60, 'IT'), 0)
   assert.equal(freeShippingRemaining(20, 'DE'), 130)
   assert.equal(freeShippingRemaining(20, 'CH'), 0)

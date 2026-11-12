@@ -17,6 +17,7 @@
     "test:legacy-slugs": "tsx --test src/lib/legacy-slugs.test.ts",
     "test:promo": "tsx --test src/lib/promo.test.ts",
     "test:shipping": "tsx --test src/lib/shipping.test.ts",
+    "test:free-shipping-badge": "tsx --test src/lib/free-shipping-badge.test.ts",
     "test:subscription": "tsx --test src/lib/subscription-plans.test.ts",
     "test:subscription-zone": "tsx --test src/lib/subscription-zone-change.test.ts && tsx --test src/lib/subscription-renewal-zone.test.ts",
     "test:affiliate-referral": "tsx --test src/lib/affiliate-referral.test.ts",
