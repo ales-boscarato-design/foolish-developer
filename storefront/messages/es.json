@@ -210,8 +210,10 @@
         "body": "Alessandro responde — no un bot"
       },
       "freeShipping": {
-        "title": "Gratis sobre €60",
-        "body": "Envío gratuito en pedidos cualificados"
+        "title": "Gratis sobre {amount}€",
+        "body": "Envío gratis sobre el valor de los artículos del pedido",
+        "titleExtraEu": "Envío calculado según el destino",
+        "bodyExtraEu": "Aranceles e IVA de importación incluidos en el precio del envío"
       }
     },
     "cards": {
@@ -344,8 +346,8 @@
     "shipping": "4. Envío",
     "shippingText": "Los envíos se realizan desde Italia en un plazo de 3 a 5 días laborables desde la confirmación del pedido, excepto en períodos de alta demanda comunicados explícitamente.",
     "shippingRates": {
-      "italy": "Italia: 7,65€ · gratis a partir de 50€",
-      "europe": "Unión Europea: 14,99€ · gratis a partir de 150€",
+      "italy": "Italia: {cost}€ · gratis a partir de {amount}€",
+      "europe": "Unión Europea: {cost}€ · gratis a partir de {amount}€",
       "extraEu": "Fuera de la UE (Suiza, Noruega, Reino Unido, …): envío calculado al pagar, incluye transporte, despacho de aduanas e IVA de importación; para los destinos aún no presupuestables, el envío se calcula a petición"
     },
     "withdrawal": "5. Derecho de desistimiento",

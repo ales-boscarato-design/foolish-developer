@@ -13,6 +13,7 @@ import { ManifestoPinned } from '@/components/ManifestoPinned'
 import { SplitText } from '@/components/SplitText'
 import { BentoGrid, BentoItem } from '@/components/BentoGrid'
 import { TrustBadge } from '@/components/TrustBadge'
+import { homeFreeShippingBadge } from '@/lib/free-shipping-badge'
 import { SubscriptionBanner } from '@/components/SubscriptionBanner'
 
 const BASE = 'https://thefoolishbutcher.com'
@@ -143,6 +144,10 @@ export default async function HomePage() {
   const t = await getTranslations('home')
   const tBanner = await getTranslations('subscription.banner')
   const locale = await getLocale()
+  // Il badge della spedizione gratuita non porta un numero scritto a mano: la
+  // soglia della lingua sta in `shipping.ts`, e qui si inietta nel testo.
+  const freeShippingBadge = homeFreeShippingBadge(locale)
+  const tFreeShippingBadge = await getTranslations('home.badges.freeShipping')
   const [tattooProducts, pmuProducts, limitedProducts, homepageReviews] = await Promise.all([
     getProducts('tattoo', locale),
     getProducts('pmu', locale),
@@ -355,7 +360,12 @@ export default async function HomePage() {
         <TrustBadge title={t('badges.payments.title')}     body={t('badges.payments.body')}    ><ShieldCheck   size={16} strokeWidth={1.5} /></TrustBadge>
         <TrustBadge title={t('badges.shippingSpeed.title')} body={t('badges.shippingSpeed.body')}><Package       size={16} strokeWidth={1.5} /></TrustBadge>
         <TrustBadge title={t('badges.support.title')}       body={t('badges.support.body')}     ><MessageSquare size={16} strokeWidth={1.5} /></TrustBadge>
-        <TrustBadge title={t('badges.freeShipping.title')}  body={t('badges.freeShipping.body')} ><Truck         size={16} strokeWidth={1.5} /></TrustBadge>
+        <TrustBadge
+          title={freeShippingBadge.amount !== null
+            ? tFreeShippingBadge(freeShippingBadge.titleKey, { amount: freeShippingBadge.amount })
+            : tFreeShippingBadge(freeShippingBadge.titleKey)}
+          body={tFreeShippingBadge(freeShippingBadge.bodyKey)}
+        ><Truck         size={16} strokeWidth={1.5} /></TrustBadge>
       </section>
 
 {/* ════════════════════════════════════════════════

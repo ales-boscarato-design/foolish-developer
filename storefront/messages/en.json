@@ -210,8 +210,10 @@
         "body": "Alessandro answers — not a bot"
       },
       "freeShipping": {
-        "title": "Free over €60",
-        "body": "Free shipping on qualifying orders"
+        "title": "Free over {amount}€",
+        "body": "Free shipping on the goods value of your order",
+        "titleExtraEu": "Shipping calculated for your destination",
+        "bodyExtraEu": "Import duties and VAT included in the shipping price"
       }
     },
     "cards": {
@@ -344,8 +346,8 @@
     "shipping": "4. Shipping",
     "shippingText": "Shipments are made from Italy within 3–5 working days from order confirmation, except during high-demand periods communicated explicitly.",
     "shippingRates": {
-      "italy": "Italy: 7.65€ · free over 50€",
-      "europe": "European Union: 14.99€ · free over 150€",
+      "italy": "Italy: {cost}€ · free over {amount}€",
+      "europe": "European Union: {cost}€ · free over {amount}€",
       "extraEu": "Outside the EU (Switzerland, Norway, United Kingdom, …): shipping calculated at checkout, includes carriage, customs clearance and import VAT; for destinations we cannot quote yet, shipping is quoted on request"
     },
     "withdrawal": "5. Right of withdrawal",
