@@ -6,10 +6,22 @@ import { test } from 'node:test'
 import {
   EURO_SIGN,
   MONEY_LOCALES,
+  MONEY_LOCALE_TAGS,
+  eurosToDisplayCents,
   formatEuro,
+  formatEuroCents,
   formatMoney,
+  formatMoneyCents,
   normalizeMoneyLocale,
 } from './money'
+import { resolveCheckoutCatalog } from './catalog'
+import { buildStripeLineItems } from './checkout-session'
+import {
+  allocateProductDiscount,
+  cartSubtotalCents,
+  calculateServerShippingCostCents,
+  moneyToCents,
+} from './promo'
 import { routing } from '../i18n/routing'
 
 /**
@@ -164,6 +176,214 @@ test('un importo non finito si ferma invece di mostrare un numero inventato', ()
   assert.throws(() => formatEuro('en', Number.NEGATIVE_INFINITY), TypeError)
   // Il tipo sbagliato (stringa da un JSON non validato) non deve formattare.
   assert.throws(() => formatMoney('it', '30' as unknown as number), TypeError)
+})
+
+// ---------------------------------------------------- locale esplicito, non di sistema
+
+test('ogni lingua ha il suo locale esplicito: nessun Intl che indovina la macchina', () => {
+  // La decisione, pinnata: it -> it-IT, en -> en-GB, fr -> fr-FR, es -> es-ES,
+  // de -> de-DE. `Intl.NumberFormat(undefined, ...)` prenderebbe la lingua del
+  // sistema e in SSR potrebbe dare un risultato diverso dal browser (hydration
+  // mismatch); una lingua nuda (`en`) lascerebbe a CLDR la scelta della regione.
+  assert.deepEqual(MONEY_LOCALE_TAGS, {
+    it: 'it-IT',
+    en: 'en-GB',
+    fr: 'fr-FR',
+    es: 'es-ES',
+    de: 'de-DE',
+  })
+  // Le lingue del negozio e i tag non possono divergere: una lingua aggiunta a
+  // `routing.locales` senza tag mostrerebbe importi in formato italiano.
+  assert.deepEqual(Object.keys(MONEY_LOCALE_TAGS).sort(), [...MONEY_LOCALES].sort())
+  // La resa e' quella del tag esplicito, non quella che `Intl` sceglierebbe da
+  // solo: si confronta con un formattatore costruito sul tag.
+  for (const locale of MONEY_LOCALES) {
+    const reference: Intl.NumberFormat = new Intl.NumberFormat(MONEY_LOCALE_TAGS[locale], {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+      useGrouping: true,
+    })
+    assert.equal(
+      formatMoneyCents(locale, 123456),
+      reference.format(1234.56),
+      `${locale}: la resa non e' quella di ${MONEY_LOCALE_TAGS[locale]}`,
+    )
+  }
+})
+
+// ------------------------------------------------------- centesimi interi
+
+test('l importo mostrato nasce da centesimi interi', () => {
+  // La conversione euro -> centesimi del testo, agli stessi confini del resto
+  // della suite: zero, mezzo euro, mille, un valore gia' a due decimali.
+  assert.equal(eurosToDisplayCents(0), 0)
+  assert.equal(eurosToDisplayCents(0.5), 50)
+  assert.equal(eurosToDisplayCents(30), 3000)
+  assert.equal(eurosToDisplayCents(1000), 100000)
+  assert.equal(eurosToDisplayCents(1234.56), 123456)
+  assert.equal(eurosToDisplayCents(-7.65), -765)
+
+  assert.equal(formatMoneyCents('it', 0), '0,00')
+  assert.equal(formatMoneyCents('en', 0), '0.00')
+  assert.equal(formatMoneyCents('it', 50), '0,50')
+  assert.equal(formatMoneyCents('en', 50), '0.50')
+  assert.equal(formatMoneyCents('it', 100000), '1.000,00')
+  assert.equal(formatMoneyCents('en', 100000), '1,000.00')
+  assert.equal(formatMoneyCents('de', 100000), '1.000,00')
+  assert.equal(formatMoneyCents('it', 123456), '1.234,56')
+  assert.equal(formatEuroCents('it', 123456), '1.234,56€')
+  assert.equal(formatEuroCents('en', 123456), '1,234.56€')
+})
+
+test('euro e centesimi sono la stessa autorita: due strade, la stessa stringa', () => {
+  const corpus = [0, 0.5, 7.65, 14.99, 30, 37.65, 99, 106.65, 999.99, 1000, 1234.56, 2.675, 1.005]
+  for (const amount of corpus) {
+    for (const locale of MONEY_LOCALES) {
+      assert.equal(
+        formatEuroCents(locale, eurosToDisplayCents(amount)),
+        formatEuro(locale, amount),
+        `${locale} ${amount}: le due strade divergono`,
+      )
+      assert.equal(
+        formatMoneyCents(locale, eurosToDisplayCents(amount)),
+        formatMoney(locale, amount),
+        `${locale} ${amount}: le due strade divergono`,
+      )
+    }
+  }
+  // Un centesimo frazionario e' un errore di programmazione, non un prezzo:
+  // `Intl` non deve decidere una cifra che il calcolo non ha prodotto.
+  assert.throws(() => formatMoneyCents('it', 30.5), TypeError)
+  assert.throws(() => formatEuroCents('it', Number.NaN), TypeError)
+  assert.throws(() => formatEuroCents('it', '3000' as unknown as number), TypeError)
+  assert.throws(() => eurosToDisplayCents(Number.POSITIVE_INFINITY), TypeError)
+})
+
+// ------------------------------------------------------- confine con Stripe
+
+const CHECKOUT_SESSION_SOURCE = path.join(process.cwd(), 'src', 'lib', 'checkout-session.ts')
+const STRIPE_CHECKOUT_ROUTE_SOURCE = path.join(
+  process.cwd(),
+  'src',
+  'app',
+  'api',
+  'stripe',
+  'checkout',
+  'route.ts',
+)
+const MONEY_SOURCE = path.join(process.cwd(), 'src', 'lib', 'money.ts')
+
+test('1.234,56 scritto in pagina e 123456 centesimi verso Stripe: lo stesso numero', async () => {
+  // Il percorso vero, non una fixture: il catalogo risolve il prezzo del CMS in
+  // centesimi (`resolveCheckoutCatalog`), lo sconto si alloca e la spedizione
+  // si calcola con le funzioni che il checkout chiama davvero, e le righe si
+  // costruiscono con il builder che finisce in `line_items`.
+  const resolved = await resolveCheckoutCatalog(
+    [{ productId: 'product-1234', sku: 'SKU-1234', quantity: 1 }],
+    {
+      fetchProduct: async () => ({
+        status: 'found' as const,
+        product: {
+          id: 'product-1234',
+          name: 'Braccio iperrealistico',
+          active: true,
+          variants: [{ sku: 'SKU-1234', label: 'XS', price: 1234.56, stockStatus: 'available' }],
+        },
+      }),
+    },
+  )
+  assert.equal(resolved.status, 'ok')
+  if (resolved.status !== 'ok') return
+
+  const subtotalCents = cartSubtotalCents(resolved.items)
+  assert.ok(subtotalCents !== null, 'il subtotale in centesimi non e stato calcolato')
+  assert.equal(subtotalCents, 123456)
+  assert.ok(Number.isSafeInteger(subtotalCents))
+
+  // Lo STESSO intero che il cliente legge, nelle due lingue.
+  assert.equal(formatEuroCents('it', subtotalCents), '1.234,56€')
+  assert.equal(formatEuroCents('en', subtotalCents), '1,234.56€')
+
+  // Lo sconto (123,45 €) si alloca sulle righe prodotto, la spedizione e' la
+  // tariffa del corriere: entrambe in centesimi interi.
+  const discountCents = 12345
+  const chargedLines = allocateProductDiscount(resolved.items, discountCents)
+  assert.ok(chargedLines !== null, 'lo sconto non si alloca')
+  const shippingCents = calculateServerShippingCostCents(resolved.items, 'IT', false)
+  assert.ok(shippingCents !== null, 'la spedizione non si calcola')
+
+  const lineItems = buildStripeLineItems(chargedLines, shippingCents)
+  for (const line of lineItems) {
+    assert.ok(
+      Number.isInteger(line.price_data.unit_amount) && line.price_data.unit_amount > 0,
+      `unit_amount non intero verso Stripe: ${String(line.price_data.unit_amount)}`,
+    )
+  }
+  const chargedCents = lineItems.reduce((sum, line) => sum + line.price_data.unit_amount * line.quantity, 0)
+  assert.ok(Number.isSafeInteger(chargedCents))
+  assert.equal(chargedCents, subtotalCents - discountCents + shippingCents)
+  // Il pagamento arrotonda con la regola del server (`Math.round`), non con
+  // quella del testo: sul valore a due decimali le due coincidono, ed e' per
+  // questo che il numero mostrato e quello incassato sono lo stesso.
+  assert.equal(moneyToCents(1234.56), 123456)
+})
+
+test('le righe Stripe si costruiscono dai centesimi, mai da una stringa formattata', () => {
+  const builder = fs.readFileSync(CHECKOUT_SESSION_SOURCE, 'utf8')
+  const unitAmounts = builder
+    .split('\n')
+    .map((line) => line.trim())
+    // Le assegnazioni: la dichiarazione di tipo (`unit_amount: number` nella
+    // `interface`) non e' un valore inviato.
+    .filter((line) => line.startsWith('unit_amount:') && line.endsWith(','))
+  // Una sola forma ammessa: il campo in centesimi che il calcolo produce. Se
+  // comparisse `Math.round(total * 100)` su un totale del browser, o
+  // `Number(formatEuro(...))`, questa lista cambierebbe e il test lo dice.
+  assert.deepEqual(unitAmounts, [
+    'unit_amount: item.unitAmountCents,',
+    'unit_amount: shippingCostCents,',
+  ])
+  for (const forbidden of ['parseFloat', 'parseInt', 'toFixed', 'formatEuro', 'formatMoney']) {
+    assert.ok(
+      !builder.includes(forbidden),
+      `checkout-session.ts contiene ${forbidden}: il payload nasce dai centesimi, non dal testo`,
+    )
+  }
+
+  const route = fs.readFileSync(STRIPE_CHECKOUT_ROUTE_SOURCE, 'utf8')
+  assert.ok(
+    route.includes('buildStripeLineItems(chargedProductLines, shippingCostCents)'),
+    'la rotta non costruisce piu le righe dal builder condiviso: la guardia non coprirebbe il payload',
+  )
+  for (const forbidden of ['parseFloat', 'toFixed', 'formatEuro', 'formatMoney']) {
+    assert.ok(!route.includes(forbidden), `stripe/checkout/route.ts contiene ${forbidden}`)
+  }
+})
+
+test('nessun importo formattato torna a essere un numero', () => {
+  // La ragione, misurata: la virgola non e' un separatore decimale per JS.
+  assert.ok(Number.isNaN(Number('30,00')))
+  assert.ok(Number.isNaN(Number('1.234,56')))
+  assert.equal(Number('30.00'), 30)
+
+  // E la regola nel codice: l'helper non espone nessun lettore di stringhe, e
+  // la pagina non ri-analizza cio' che ha formattato (un `parseFloat` o un
+  // `Number(formatEuro(...))` sarebbero il bug servito con un'altra faccia).
+  const moneySource = fs.readFileSync(MONEY_SOURCE, 'utf8')
+  assert.ok(
+    !/parseFloat|parseInt/.test(moneySource),
+    'money.ts legge stringhe: un importo formattato non e una fonte',
+  )
+  const page = fs.readFileSync(CHECKOUT_SOURCE, 'utf8')
+  assert.ok(!/parseFloat\s*\(/.test(page), 'checkout/page.tsx rilegge un importo: il testo non e una fonte')
+  assert.ok(
+    !/Number\s*\(\s*(?:formatMoney|formatEuro)/.test(page),
+    'checkout/page.tsx converte un importo formattato con Number()',
+  )
+  // Il corpo che il checkout manda al server porta i numeri con cui la pagina
+  // calcola (il server li ignora e ricalcola dal catalogo), non stringhe.
+  assert.match(page, /shippingCost: displayShippingCost,/)
+  assert.match(page, /total: grandTotal,/)
 })
 
 // --------------------------------------------------- messaggi: nessun importo

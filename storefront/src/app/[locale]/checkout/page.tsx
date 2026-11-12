@@ -10,7 +10,7 @@ import {
   freeShippingRemaining,
 } from '@/lib/shipping'
 import { freeShippingBadgeCopy, checkoutImportDutiesBadgeVisible } from '@/lib/free-shipping-badge'
-import { formatEuro, formatMoney } from '@/lib/money'
+import { eurosToDisplayCents, formatEuro, formatEuroCents, formatMoneyCents } from '@/lib/money'
 import { extraEuDisplayedPriceCents } from '@/lib/landed-cost-price'
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import Image from 'next/image'
@@ -185,6 +185,17 @@ export default function CheckoutPage() {
   const shippingPriceVerified = activeQuote?.verified === true
   const grandTotal = cartTotal + displayShippingCost - proDiscount
   const remaining = freeShippingByPromo ? 0 : freeShippingRemaining(cartTotal, country)
+  // Il testo nasce da centesimi INTERI; l'euro resta il numero con cui la
+  // pagina calcola (e che manda al server, che lo ignora e ricalcola dal
+  // catalogo). Le due cose non si leggono a vicenda: nessun importo formattato
+  // rientra in un calcolo. La spedizione usa i centesimi che il negozio ha
+  // gia' prodotto quando il prezzo e' suo (extra-UE), altrimenti converte una
+  // volta con la regola di sempre.
+  const remainingCents = eurosToDisplayCents(remaining)
+  const cartTotalCents = eurosToDisplayCents(cartTotal)
+  const shippingDisplayCents = displayShippingCostCents ?? eurosToDisplayCents(shipping.cost)
+  const proDiscountCents = eurosToDisplayCents(proDiscount)
+  const grandTotalCents = eurosToDisplayCents(grandTotal)
 
   // Chiede al negozio il prezzo extra-UE della destinazione: la risposta e' la
   // stessa che il checkout ricalcola (o il gettone firmato di quel prezzo).
@@ -458,7 +469,7 @@ export default function CheckoutPage() {
                 <p className="text-sm" style={{ color: 'var(--muted-fg)' }}>
                   Aggiungi{' '}
                   <span className="font-medium" style={{ color: 'var(--accent)' }}>
-                    {formatEuro(locale, remaining)}
+                    {formatEuroCents(locale, remainingCents)}
                   </span>{' '}
                   per la spedizione gratuita
                 </p>
@@ -892,7 +903,7 @@ export default function CheckoutPage() {
 
               <div className="flex justify-between py-2" style={{ borderBottom: '1px solid var(--surface-3)' }}>
                 <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>Subtotale</span>
-                <span className="text-mono text-sm">{formatEuro(locale, cartTotal)}</span>
+                <span className="text-mono text-sm">{formatEuroCents(locale, cartTotalCents)}</span>
               </div>
 
               <div className="flex justify-between py-2" style={{ borderBottom: '1px solid var(--surface-3)' }}>
@@ -900,7 +911,7 @@ export default function CheckoutPage() {
                 <span className="text-mono text-sm" style={{ color: shipping.isFree ? '#5a9c52' : 'var(--foreground)' }}>
                   {baseShipping.requiresQuote
                     ? t('shippingQuoteRequired')
-                    : shipping.isFree ? 'Gratuita' : formatEuro(locale, displayShippingCost)}
+                    : shipping.isFree ? 'Gratuita' : formatEuroCents(locale, shippingDisplayCents)}
                 </span>
               </div>
 
@@ -930,7 +941,7 @@ export default function CheckoutPage() {
                   <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>
                     {promoData?.discountPercent ? `Sconto ${promoData.discountPercent}%` : 'Sconto'}
                   </span>
-                  <span className="text-mono text-sm" style={{ color: '#5a9c52' }}>−{formatEuro(locale, proDiscount)}</span>
+                  <span className="text-mono text-sm" style={{ color: '#5a9c52' }}>−{formatEuroCents(locale, proDiscountCents)}</span>
                 </div>
               )}
             </div>
@@ -942,7 +953,7 @@ export default function CheckoutPage() {
             <div className="flex justify-between items-baseline mb-4">
               <span className="text-sm font-medium">Totale IVA inc.</span>
               <span className="text-mono font-bold" style={{ fontSize: 22, color: 'var(--accent)', letterSpacing: '-0.01em' }}>
-                {formatEuro(locale, grandTotal)}
+                {formatEuroCents(locale, grandTotalCents)}
               </span>
             </div>
 
@@ -1018,7 +1029,7 @@ export default function CheckoutPage() {
               />
               {loading
                 ? <Loader2 size={18} className="animate-spin" />
-                : <>{t('pay', { amount: formatMoney(locale, grandTotal) })}</>
+                : <>{t('pay', { amount: formatMoneyCents(locale, grandTotalCents) })}</>
               }
             </button>
             <p className="text-center mt-2.5 text-xs" style={{ color: 'var(--muted-fg)' }}>
