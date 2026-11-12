@@ -42,11 +42,15 @@
       "address": "Adresse",
       "city": "Ville",
       "postalCode": "Code postal",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "province": "Province (code à 2 lettres)",
       "fiscalCode": "N° fiscal / TVA intracommunautaire",
       "phone": "Numéro de téléphone"
     },
     "emailInvalid": "Email invalide ou inexistante — vérifiez le domaine",
     "postalCodeInvalid": "Code postal invalide pour le pays sélectionné",
+    "provinceInvalid": "Indiquez le code de la province (2 lettres)",
     "billingTitle": "Adresse de facturation",
     "billingSameAsShipping": "L'adresse de facturation est identique à l'adresse de livraison",
     "countries": {
@@ -438,7 +442,8 @@
     "hero": {
       "eyebrow": "FOOLISH LAB · CHIERI (TO)",
       "title": "Une entreprise. Six services. Un seul employé.",
-      "sub": "Le Peaussier. Soixante-quinze centimètres. Personne ne l'a embauché : il s'est nommé lui-même."
+      "sub": "Le Peaussier. Soixante-quinze centimètres. Personne ne l'a embauché : il s'est nommé lui-même.",
+      "alt": "Le Tanneur, créature de soixante-quinze centimètres au monocle de laiton, examine une feuille de peau synthétique dans l'atelier FOOLISH de Chieri."
     },
     "intro": {
       "eyebrow": "Qui il est",

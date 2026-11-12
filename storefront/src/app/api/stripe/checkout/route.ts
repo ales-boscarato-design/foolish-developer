@@ -136,7 +136,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Carrello non valido' }, { status: 400 })
   }
 
-  const customer = normalizeCheckoutCustomer(request.customer)
+  // La pagina checkout raccoglie nome, cognome e provincia: qui un valore
+  // presente ma malformato e' un errore del client. Negli altri percorsi (il
+  // riordino di un ordine storico) gli stessi campi si derivano o si scartano.
+  const customer = normalizeCheckoutCustomer(request.customer, { structuredAddressCollected: true })
   if (!customer) {
     return NextResponse.json({ error: 'Dati cliente non validi' }, { status: 400 })
   }

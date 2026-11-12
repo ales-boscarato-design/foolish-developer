@@ -1,6 +1,7 @@
 import Stripe from 'stripe'
 import { countryToLocale } from '@/lib/resend'
 import { ORDER_REF_PREFIX } from '@/lib/order-ref'
+import { splitFullName } from '@/lib/promo'
 
 interface ParsedItem {
   sku: string
@@ -326,7 +327,7 @@ export async function createOrderInCMS(session: Stripe.Checkout.Session): Promis
   }
   const orderRef = declaredOrderRef
 
-  const customerName = meta.customer_name ?? session.customer_details?.name ?? ''
+  const customerName = (meta.customer_name ?? session.customer_details?.name ?? '').trim()
   const customerPhone = meta.customer_phone ?? ''
   const customerEmail = session.customer_email ?? session.customer_details?.email ?? ''
   const total = (session.amount_total ?? 0) / 100
@@ -349,6 +350,22 @@ export async function createOrderInCMS(session: Stripe.Checkout.Session): Promis
   // solo come prezzo netto per riga). Assente o illeggibile => campi omessi, ordine creato.
   const promoSnapshot = parsePromoSnapshot(meta)
 
+  // Nome e cognome separati: li scrive il checkout quando il cliente li ha
+  // dati. Per una sessione storica (o per un nome raccolto come unica stringa)
+  // si derivano dal nome completo, e un nome di una parola sola lascia il
+  // cognome vuoto invece di duplicarlo. Mai un errore: l'ordine e' gia' pagato.
+  const declaredFirstName = (meta.customer_first_name ?? '').trim()
+  const declaredLastName = (meta.customer_last_name ?? '').trim()
+  const derivedNameParts = splitFullName(customerName)
+  const firstName = declaredFirstName || derivedNameParts.firstName
+  const lastName = declaredLastName || derivedNameParts.lastName
+  // Sigla di provincia: solo nella forma a due lettere. Stripe non espone un
+  // campo provincia affidabile, quindi non si ricava ne' dal CAP ne' dalla
+  // citta': senza il dato la colonna resta vuota.
+  const declaredProvince = (meta.customer_province ?? '').trim().toUpperCase()
+  const province = /^[A-Z]{2}$/.test(declaredProvince) ? declaredProvince : null
+  const recipientName = customerName || [firstName, lastName].filter(Boolean).join(' ')
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const legacyShipping = (session as any).shipping_details as {
     address?: { line1?: string; line2?: string; city?: string; postal_code?: string; country?: string }
@@ -356,21 +373,27 @@ export async function createOrderInCMS(session: Stripe.Checkout.Session): Promis
   const shipping = session.collected_information?.shipping_details ?? legacyShipping
   const shippingAddress = shipping
     ? {
-        name: customerName,
+        name: recipientName,
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
         address1: shipping.address?.line1 ?? '',
         address2: shipping.address?.line2 ?? '',
         city: shipping.address?.city ?? '',
         postalCode: shipping.address?.postal_code ?? '',
+        province: province ?? undefined,
         country: shipping.address?.country ?? meta.customer_country ?? '',
       }
     : (() => {
         const parts = (meta.customer_address ?? '').split('|')
         return {
-          name: customerName,
+          name: recipientName,
+          firstName: firstName || undefined,
+          lastName: lastName || undefined,
           address1: parts[0] ?? '',
           address2: '',
           city: parts[1] ?? '',
           postalCode: parts[2] ?? '',
+          province: province ?? undefined,
           country: meta.customer_country ?? '',
         }
       })()
@@ -386,7 +409,7 @@ export async function createOrderInCMS(session: Stripe.Checkout.Session): Promis
       stripeSessionId: session.id,
       source: 'storefront',
       customerEmail,
-      customerName,
+      customerName: recipientName,
       customerPhone: customerPhone || undefined,
       lineItems: parsedItems.map((item) => ({
         sku: item.sku,
