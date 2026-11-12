@@ -1,20 +1,18 @@
 /**
  * Calcolo spedizione rivenditori.
  *
- * Sotto i 500€ di ordine: stesse TARIFFE del sito retail, soglie diverse — e
- * questa differenza e' dichiarata qui apposta, non e' una svista.
- *   Italia:        7,65€  → gratis sopra 50€   (retail: gratis sopra 60€)
+ * Sotto i 500€ di ordine: stesse TARIFFE e stesse SOGLIE del sito retail, in un
+ * file proprio — i due pacchetti non si importano a vicenda, quindi la stessa
+ * regola vive anche in `storefront/src/lib/shipping.ts` e una modifica qui va
+ * replicata li' (e viceversa).
+ *   Italia:        7,65€  → gratis sopra 60€   (retail: identico dal 12/11/2026)
  *   Unione Europea:14,99€  → gratis sopra 150€ (retail: identico)
  *
- * Perche' la soglia italiana del canale rivenditori resta 50: e' una scelta
- * commerciale, non un riflesso del codice. Il retail ha spostato la soglia
- * italiana a 60 il 12/11/2026 (`storefront/src/lib/shipping.ts`, voce di
- * prezzo decisa da Alessandro); allineare il B2B cambierebbe il costo di
- * spedizione che un rivenditore paga su un ordine fra 50 e 60€, e quella
- * decisione non e' stata presa. Finche' non lo e', il valore resta 50 e questa
- * riga lo dice: il commento precedente («stesse fasce del sito retail»)
- * affermava il falso e faceva sembrare le due configurazioni allineate.
- * Allineare = portare `freeAbove` a 60 e aggiornare questa nota e il test.
+ * La soglia italiana del canale rivenditori era 50 mentre il retail era gia' a
+ * 60: un disallineamento dichiarato, in attesa di una decisione commerciale.
+ * Il 12/11/2026 Alessandro l'ha presa — il B2B si allinea al retail — quindi la
+ * nota sul disallineamento non serve piu'. `shipping.test.ts` fissa i confini
+ * 59,99 / 60,00 / 60,01: se il valore cambia di nuovo, il test lo dice.
  *
  * Extra-UE (Svizzera, Norvegia, Regno Unito, resto del mondo): la tariffa
  * piatta non copre lo sdoganamento — dazi, IVA all'importazione, fee DDP,
@@ -56,9 +54,9 @@ export function calculateResellerShipping(cartTotal: number, countryCode: string
   }
 
   const config: Record<'IT' | 'EU', { cost: number; freeAbove: number }> = {
-    // Soglia B2B italiana diversa dal retail (50 vs 60): differenza dichiarata,
-    // non allineata — vedi la nota in testa al file.
-    IT: { cost: 7.65, freeAbove: 50 },
+    // Stesse soglie del retail (`storefront/src/lib/shipping.ts`): IT 60 dal
+    // 12/11/2026, EU 150. Non importare dall'altro pacchetto: si replica.
+    IT: { cost: 7.65, freeAbove: 60 },
     EU: { cost: 14.99, freeAbove: 150 },
   }
 
