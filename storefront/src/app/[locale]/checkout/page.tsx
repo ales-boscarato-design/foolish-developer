@@ -10,6 +10,7 @@ import {
   freeShippingRemaining,
 } from '@/lib/shipping'
 import { freeShippingBadgeCopy, checkoutImportDutiesBadgeVisible } from '@/lib/free-shipping-badge'
+import { formatEuro, formatMoney } from '@/lib/money'
 import { extraEuDisplayedPriceCents } from '@/lib/landed-cost-price'
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import Image from 'next/image'
@@ -457,7 +458,7 @@ export default function CheckoutPage() {
                 <p className="text-sm" style={{ color: 'var(--muted-fg)' }}>
                   Aggiungi{' '}
                   <span className="font-medium" style={{ color: 'var(--accent)' }}>
-                    €{remaining.toFixed(2)}
+                    {formatEuro(locale, remaining)}
                   </span>{' '}
                   per la spedizione gratuita
                 </p>
@@ -564,11 +565,11 @@ export default function CheckoutPage() {
                 <div className="text-right flex-shrink-0 flex flex-col justify-start gap-0.5">
                   {item.originalUnitPrice && (
                     <span className="text-xs line-through" style={{ color: 'var(--muted-fg)', opacity: 0.5 }}>
-                      €{(item.originalUnitPrice * item.quantity).toFixed(2)}
+                      {formatEuro(locale, item.originalUnitPrice * item.quantity)}
                     </span>
                   )}
                   <span className="text-mono font-semibold text-sm">
-                    €{(item.price * item.quantity).toFixed(2)}
+                    {formatEuro(locale, item.price * item.quantity)}
                   </span>
                 </div>
               </div>
@@ -891,7 +892,7 @@ export default function CheckoutPage() {
 
               <div className="flex justify-between py-2" style={{ borderBottom: '1px solid var(--surface-3)' }}>
                 <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>Subtotale</span>
-                <span className="text-mono text-sm">€{cartTotal.toFixed(2)}</span>
+                <span className="text-mono text-sm">{formatEuro(locale, cartTotal)}</span>
               </div>
 
               <div className="flex justify-between py-2" style={{ borderBottom: '1px solid var(--surface-3)' }}>
@@ -899,7 +900,7 @@ export default function CheckoutPage() {
                 <span className="text-mono text-sm" style={{ color: shipping.isFree ? '#5a9c52' : 'var(--foreground)' }}>
                   {baseShipping.requiresQuote
                     ? t('shippingQuoteRequired')
-                    : shipping.isFree ? 'Gratuita' : `€${displayShippingCost.toFixed(2)}`}
+                    : shipping.isFree ? 'Gratuita' : formatEuro(locale, displayShippingCost)}
                 </span>
               </div>
 
@@ -929,7 +930,7 @@ export default function CheckoutPage() {
                   <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>
                     {promoData?.discountPercent ? `Sconto ${promoData.discountPercent}%` : 'Sconto'}
                   </span>
-                  <span className="text-mono text-sm" style={{ color: '#5a9c52' }}>−€{proDiscount.toFixed(2)}</span>
+                  <span className="text-mono text-sm" style={{ color: '#5a9c52' }}>−{formatEuro(locale, proDiscount)}</span>
                 </div>
               )}
             </div>
@@ -941,7 +942,7 @@ export default function CheckoutPage() {
             <div className="flex justify-between items-baseline mb-4">
               <span className="text-sm font-medium">Totale IVA inc.</span>
               <span className="text-mono font-bold" style={{ fontSize: 22, color: 'var(--accent)', letterSpacing: '-0.01em' }}>
-                €{grandTotal.toFixed(2)}
+                {formatEuro(locale, grandTotal)}
               </span>
             </div>
 
@@ -986,7 +987,7 @@ export default function CheckoutPage() {
                       promoData?.discountPercent
                         ? `−${promoData.discountPercent}%`
                         : promoType === 'amount' && promoData?.discountAmount
-                        ? `−€${promoData.discountAmount.toFixed(2)}`
+                        ? `−${formatEuro(locale, promoData.discountAmount)}`
                         : freeShippingByPromo
                         ? t('promoFreeShippingShort')
                         : t('promoFreeShippingNotApplicable')
@@ -1017,7 +1018,7 @@ export default function CheckoutPage() {
               />
               {loading
                 ? <Loader2 size={18} className="animate-spin" />
-                : <>{t('pay', { amount: grandTotal.toFixed(2) })}</>
+                : <>{t('pay', { amount: formatMoney(locale, grandTotal) })}</>
               }
             </button>
             <p className="text-center mt-2.5 text-xs" style={{ color: 'var(--muted-fg)' }}>
