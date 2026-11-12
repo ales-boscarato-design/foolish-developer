@@ -7,10 +7,10 @@ import {
   EURO_SIGN,
   MONEY_LOCALES,
   formatEuro,
-  formatEuroCents,
   formatMoney,
   normalizeMoneyLocale,
 } from './money'
+import { routing } from '../i18n/routing'
 
 /**
  * Il difetto che questi test difendono (misurato il 12/11/2026 su `next start`
@@ -97,12 +97,15 @@ test('importi di confine: zero, mezzo euro, valori gia arrotondati, negativo', (
 test('la formattazione non sposta di un centesimo cio che il cliente pagava ieri', () => {
   // La prova e' il confronto con la vecchia resa: si tolgono i separatori di
   // gruppo dal valore formattato e si pretende la STESSA sequenza di cifre che
-  // dava `toFixed(2)`. Vale per i valori che il catalogo produce — prezzi a due
-  // decimali moltiplicati per quantita' intere — dove l'arrotondamento dei
-  // centesimi e quello del decimale coincidono per costruzione.
+  // dava `toFixed(2)` — su OGNI valore, mezzi centesimi compresi: il numero in
+  // pagina non si muove di un centesimo, cambiano solo i separatori.
   const corpus = [
     0, 0.5, 1, 7.65, 14.99, 30, 37.65, 99, 106.65, 999.99, 1234.5,
     8.125 * 50, 0.1 + 0.2, 30.000000000000004, 0.07 * 3,
+    // mezzi centesimi: qui `Intl` da solo arrotonderebbe diversamente da
+    // `toFixed` (2.675 -> 2,68 contro 2.67), e la pagina non deve cambiare
+    // numero mentre cambia lingua.
+    1.005, 2.675, 1.335, 0.105, 2.625,
   ]
   for (const amount of corpus) {
     const expectedDigits = amount.toFixed(2).replace(/\D/g, '')
@@ -115,31 +118,10 @@ test('la formattazione non sposta di un centesimo cio che il cliente pagava ieri
       )
     }
   }
-})
-
-test('sui valori a mezzo centesimo mostra i centesimi che il checkout incassa', () => {
-  // `toFixed(2)` arrotonda il decimale, il checkout incassa
-  // `Math.round(price * quantity * 100)`: sui mezzi centesimi le due strade
-  // divergono di un centesimo, e il numero che deve stare in pagina e' quello
-  // dei centesimi. Sono valori che il catalogo a due decimali non produce
-  // (restano irraggiungibili oggi): il test pinna la regola, non un caso vivo.
-  const halfCent = [1.005, 2.675, 1.335, 0.105, 2.625]
-  for (const amount of halfCent) {
-    const chargedCents = Math.round(amount * 100)
-    const expectedDigits = (chargedCents / 100).toFixed(2).replace(/\D/g, '')
-    for (const locale of MONEY_LOCALES) {
-      const actualDigits = formatMoney(locale, amount).replace(/\D/g, '')
-      assert.equal(
-        actualDigits,
-        expectedDigits,
-        `${locale} ${amount}: mostra ${formatMoney(locale, amount)}, il checkout incassa ${chargedCents} centesimi`,
-      )
-    }
-  }
-  // La divergenza dal vecchio `toFixed` esiste ed e' quella attesa: se un
-  // giorno sparisse, questo test lo dice invece di lasciar credere che le due
-  // regole siano la stessa.
-  assert.notEqual(formatMoney('it', 2.675).replace(/\D/g, ''), (2.675).toFixed(2).replace(/\D/g, ''))
+  // Il caso che discrimina: se qualcuno affidasse l'arrotondamento a `Intl`
+  // invece che a `toFixed`, questo valore diventerebbe `2,68` e il test
+  // rosseggia.
+  assert.equal(formatMoney('it', 2.675), '2,67')
 })
 
 // ------------------------------------------------------------- simbolo euro
@@ -158,12 +140,11 @@ test('il simbolo sta dopo il numero, senza spazio, in tutte e cinque le lingue',
   }
 })
 
-test('dai centesimi, dove il valore nasce in centesimi', () => {
-  assert.equal(formatEuroCents('it', 3000), '30,00€')
-  assert.equal(formatEuroCents('en', 10665), '106.65€')
-  assert.equal(formatEuroCents('it', 0), '0,00€')
-  // Un valore non intero in centesimi e' un errore di chiamata, non un prezzo.
-  assert.throws(() => formatEuroCents('it', 30.5), TypeError)
+test('le lingue dell helper sono quelle pubblicate dal routing', () => {
+  // Se una lingua entra in `src/i18n/routing.ts` e non qui, il suo checkout
+  // mostrerebbe importi in formato italiano senza che nulla fallisca: la
+  // lista non si ricopia, si confronta.
+  assert.deepEqual([...MONEY_LOCALES], [...routing.locales])
 })
 
 // ------------------------------------------------------------- locale e NaN
@@ -188,18 +169,24 @@ test('un importo non finito si ferma invece di mostrare un numero inventato', ()
 // --------------------------------------------------- messaggi: nessun importo
 
 /**
- * Due chiavi della pagina Pro scrivono ancora la soglia a mano («20% da 400€»).
- * NON sono il checkout e non si correggono qui: sono elencate per nome, cosi'
- * un importo scritto a mano che comparisse ALTROVE fa fallire il test, e
- * quando la pagina Pro verra' sistemata queste due righe si tolgono.
+ * Due chiavi della pagina Pro scrivono ancora la soglia a mano («20% da 400€»,
+ * e in inglese «€400» col simbolo in testa). NON sono il checkout e non si
+ * correggono qui: sono elencate per nome, cosi' un importo scritto a mano che
+ * comparisse ALTROVE fa fallire il test, e quando la pagina Pro verra'
+ * sistemata queste due righe si tolgono. L'eccezione e' per chiave e vale in
+ * tutte le lingue: dentro queste due il test non guarda.
  */
 const KNOWN_HAND_WRITTEN_AMOUNTS = new Set([
   'pro.benefit1.title',
   'pro.card.benefit2',
 ])
 
-/** Un importo in chiaro: cifre attaccate al simbolo, in testa o in coda. */
-const HAND_WRITTEN_AMOUNT = /(?:\d[\d.,]*\s*€)|(?:€\s*\d)/
+/**
+ * Un importo in chiaro: cifre attaccate al simbolo (in testa o in coda) oppure
+ * la parola, nelle due forme che una traduzione usa davvero — «30 euro» e
+ * «EUR 30». Il posto di un importo e' `{amount}`, non una cifra.
+ */
+const HAND_WRITTEN_AMOUNT = /(?:\d[\d.,]*\s*€)|(?:€\s*\d)|(?:\d[\d.,]*\s*euros?\b)|(?:\bEUR\s*\d)/i
 
 test('nessun importo scritto a mano nei messaggi, fuori dalle due chiavi note', () => {
   const offenders: string[] = []
@@ -245,15 +232,59 @@ test('il checkout non formatta piu gli importi con toFixed', () => {
     source.includes("from '@/lib/money'"),
     'checkout/page.tsx non importa l\'helper condiviso @/lib/money',
   )
-  // Ogni riga che rende euro deve passare dall'helper, non da una stringa
-  // costruita a mano: il simbolo in pagina lo aggiunge `formatEuro`.
-  const manualEuro = source
-    .split('\n')
+})
+
+test('il checkout non compone euro a mano e non formatta da solo', () => {
+  const lines = fs.readFileSync(CHECKOUT_SOURCE, 'utf8').split('\n')
+
+  // 1. Il simbolo: nella pagina non c'e' NESSUN `€` letterale — lo aggiunge
+  // `formatEuro` (o arriva dalla frase approvata nei messaggi). Questa forma
+  // prende anche le scritture che una guardia sui prefissi lascerebbe passare:
+  // `'€' + formatMoney(...)`, `{'€'}{formatMoney(...)}`, `<span>€</span>{...}`.
+  const euroLines = lines
     .map((line, index) => ({ line, number: index + 1 }))
-    .filter(({ line }) => /€\$\{/.test(line) || /`?€\{/.test(line))
+    .filter(({ line }) => line.includes('€'))
   assert.deepEqual(
-    manualEuro,
+    euroLines.map((l) => `${l.number}: ${l.line.trim()}`),
     [],
-    `euro composti a mano nel checkout: ${manualEuro.map((l) => `riga ${l.number}: ${l.line.trim()}`).join(' | ')}`,
+    'euro composti a mano nel checkout: il simbolo lo mette formatEuro, o e\' gia\' nella frase',
   )
+
+  // 2. Nessun formattatore locale scritto in pagina: la formattazione sta in
+  // un posto solo, altrimenti il prossimo importo nasce con `de-DE` fisso.
+  const localFormatters = lines
+    .map((line, index) => ({ line, number: index + 1 }))
+    .filter(({ line }) => /Intl\.NumberFormat|toLocaleString\s*\(/.test(line))
+  assert.deepEqual(
+    localFormatters.map((l) => `${l.number}: ${l.line.trim()}`),
+    [],
+    'formattazione di numeri scritta in pagina: usare @/lib/money',
+  )
+
+  // 3. `formatEuro` mai passato a una frase che ha gia' il suo `€`: il
+  // messaggio e' `... {amount}€`, quindi li' va `formatMoney`, altrimenti il
+  // cliente legge `106,65€€`. E' esattamente l'incidente che il merge con
+  // #62 puo' produrre, e nessun altro test lo vedrebbe.
+  const doubleSymbol = lines
+    .map((line, index) => ({ line, number: index + 1 }))
+    .filter(({ line }) => /\bt\s*\(/.test(line) && line.includes('formatEuro('))
+  assert.deepEqual(
+    doubleSymbol.map((l) => `${l.number}: ${l.line.trim()}`),
+    [],
+    'formatEuro dentro una chiamata t(): la frase ha gia\' il simbolo, usare formatMoney',
+  )
+})
+
+test('ogni frase di soldi ha il simbolo una volta sola', () => {
+  // `{amount}€` = un simbolo. Due significherebbero `106,65€€` in pagina;
+  // zero, un importo senza valuta. Vale anche dopo che la frase diventa
+  // `<b>{amount}€</b>` (PR #62).
+  for (const locale of MONEY_LOCALES) {
+    const flat = flatten(readMessages(locale))
+    for (const key of ['freeShippingAdd', 'labelFreeAbove', 'pay']) {
+      const value = flat[`checkout.${key}`] ?? ''
+      const count = (value.match(/€/g) ?? []).length
+      assert.equal(count, 1, `${locale}.checkout.${key}: ${count} simboli € in «${value}»`)
+    }
+  }
 })

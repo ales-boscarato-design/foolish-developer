@@ -25,19 +25,29 @@
  *
  * 2. L'arrotondamento non introduce un numero nuovo, ma non e' nemmeno quello
  *    di `toFixed` — e la differenza va nella direzione giusta. `toFixed(2)`
- *    arrotonda la rappresentazione decimale del double, `Math.round(x * 100)`
- *    arrotonda i centesimi: sui valori a mezzo centesimo le due strade
- *    divergono (`2.675` → `2.67` contro `2.68`) e il checkout incassa i
- *    centesimi, cioe' `Math.round(price * quantity * 100)` — quindi il
- *    centesimo giusto e' quello dei centesimi. Il valore passa percio' da
- *    `Math.round(x * 100) / 100` prima di essere reso: la pagina mostra quello
- *    che il negozio addebita, invece del numero che `toFixed` produceva.
- *    Prezzi, soglie, zone e sconti non cambiano: nessuno di quei valori e'
- *    deciso qui, e sui prezzi a due decimali del catalogo le due strade
- *    coincidono (il test lo pinna).
+ * 2. Le cifre mostrate sono ESATTAMENTE quelle di ieri: il numero passa da
+ *    `amount.toFixed(2)` — l'arrotondamento che la pagina usava — e solo dopo
+ *    dai separatori della lingua, rileggendo il decimale per non perdere il
+ *    lavoro fatto (`Number(fixed)` e' esatto per qualunque valore a due
+ *    decimali). Nessun centesimo si muove, ne' in piu' ne' in meno, e nessun
+ *    prezzo, soglia, zona o sconto e' deciso qui: questo file riceve un numero
+ *    in euro e lo rende leggibile.
  *
- * Nessun prezzo, soglia, zona, sconto o arrotondamento e' deciso in questo
- * file: riceve un numero in euro e lo rende leggibile.
+ *    Perche' non affidare l'arrotondamento a `Intl`: `Intl` arrotonda la
+ *    rappresentazione decimale del double (`2.675` -> `2,68`) mentre `toFixed`
+ *    la tronca al valore binario (`2.67`), e `Math.round(x * 100)` arrotonda i
+ *    centesimi. Tre regole diverse per la stessa cifra, e la pagina non deve
+ *    cambiare numero mentre cambia lingua: la regola resta quella che il
+ *    cliente vedeva, i separatori diventano quelli giusti.
+ *
+ *    Resta fuori da qui, ed e' DICHIARATA nel PR, una divergenza preesistente
+ *    fra il numero mostrato e quello addebitato sulle righe con `pack`: il
+ *    carrello calcola il prezzo unitario scontato come double e arrotonda la
+ *    RIGA, il server arrotonda l'UNITA' e poi moltiplica (`catalog.ts`,
+ *    `promo.ts`). Misurato: 14 combinazioni su 30 divergono di 1-5 centesimi,
+ *    identiche prima e dopo questa PR. Chiuderla vuol dire toccare il calcolo
+ *    (fuori perimetro di questa card) o far portare `lineTotalCents` alle
+ *    righe del carrello.
  */
 
 /** Le lingue pubblicate dal negozio (`src/i18n/routing.ts`). */
@@ -82,6 +92,11 @@ function formatterFor(locale: MoneyLocale): Intl.NumberFormat {
  * L'importo in euro come lo scrive quella lingua, senza simbolo: `30,00` in
  * it/fr/es/de, `30.00` in inglese, `1.234,50` sopra il migliaio.
  *
+ * Le cifre vengono da `toFixed(2)` — la stessa regola che la pagina usava
+ * prima di questa funzione — e solo i separatori cambiano: e' cosi' che
+ * «nessun arrotondamento cambia» e' una proprieta' verificabile invece di una
+ * promessa (il test la misura su un corpus, mezzi centesimi inclusi).
+ *
  * Un valore non finito e' un errore di programmazione, non un prezzo: si
  * ferma qui invece di mostrare `0,00` (un numero inventato che nessuno
  * ricalcolerebbe) o `NaN` in pagina.
@@ -90,25 +105,12 @@ export function formatMoney(locale: string | null | undefined, amount: number): 
   if (typeof amount !== 'number' || !Number.isFinite(amount)) {
     throw new TypeError(`formatMoney: importo non finito (${String(amount)})`)
   }
-  // Stessa regola dei centesimi che il checkout incassa
-  // (`Math.round(price * quantity * 100)`): si formatta il valore che il
-  // calcolo produce, non se ne introduce uno nuovo.
-  const rounded = Math.round(amount * 100) / 100
-  return formatterFor(normalizeMoneyLocale(locale)).format(rounded)
+  // `Number('1234.56')` torna al double piu' vicino a quel decimale, quindi il
+  // formattatore non puo' arrotondare diversamente: le cifre sono quelle.
+  return formatterFor(normalizeMoneyLocale(locale)).format(Number(amount.toFixed(2)))
 }
 
 /** `30,00€` — il simbolo dopo il numero, senza spazio, come nelle frasi. */
 export function formatEuro(locale: string | null | undefined, amount: number): string {
   return `${formatMoney(locale, amount)}${EURO_SIGN}`
-}
-
-/**
- * La stessa cosa partendo dai centesimi, dove il valore nasce in centesimi
- * (`extraEuDisplayedPriceCents`): la divisione avviene qui una volta sola.
- */
-export function formatEuroCents(locale: string | null | undefined, cents: number): string {
-  if (typeof cents !== 'number' || !Number.isInteger(cents)) {
-    throw new TypeError(`formatEuroCents: centesimi non interi (${String(cents)})`)
-  }
-  return formatEuro(locale, cents / 100)
 }
