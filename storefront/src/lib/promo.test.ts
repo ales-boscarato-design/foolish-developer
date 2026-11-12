@@ -10,6 +10,8 @@ import {
   normalizeCheckoutItems,
   parsePromoCodes,
 } from './promo'
+import { ALLOWED_SHIPPING_COUNTRIES, getShippingZone, shippingRequiresQuote } from './shipping'
+import { resolveExtraEuShipping } from './landed-cost'
 
 const items = [{ price: 100, quantity: 1, productName: 'Test', variantLabel: 'A', sku: 'TEST' }]
 const now = new Date('2026-09-11T12:00:00.000Z')
@@ -402,68 +404,117 @@ test('server shipping uses the normalized subtotal and preserves free-above-thre
   assert.equal(calculateServerShippingCostCents(thresholdItems, 'XX', false), null)
 })
 
-test('la promo "spedizione gratuita" non azzera una tariffa extra-UE', () => {
-  const items = normalizeCheckoutItems([{
+test('extra-UE: la funzione sincrona e il checkout danno lo STESSO prezzo, oppure rifiutano entrambi', async () => {
+  const cart99 = normalizeCheckoutItems([{
     price: 99,
     quantity: 1,
     productName: 'Test',
     variantLabel: 'A',
     sku: 'TEST',
   }])
-  assert.ok(items)
-  if (!items) return
+  assert.ok(cart99)
+  if (!cart99) return
 
-  // Svizzera: il costo sdoganato del profilo misurato (47,29 EUR: premio 2,5%
-  // sulla base approvata) + il margine deciso da Alessandro (10%) = 52,02 resta
-  // intero. La promo non deve regalare dazi, IVA all'importazione e fee DDP.
-  //
-  // Nota: questa funzione e' il ripiego del PROFILO (la usano i percorsi non
-  // extra-UE); il prezzo che il checkout incassa su una destinazione extra-UE
-  // nasce da `resolveExtraEuShipping`, cioe' `max(profilo, tabella in casa)` =
-  // 52,24 sul caso misurato. La differenza di 22 centesimi non tocca un
-  // addebito, perche' su extra-UE questa funzione non viene usata.
-  assert.equal(calculateServerShippingCostCents(items, 'CH', true), 5202)
-  assert.equal(calculateServerShippingCostCents(items, 'CH', false), 5202)
+  const extraEuCountries = ALLOWED_SHIPPING_COUNTRIES
+    .filter((country) => getShippingZone(country) === 'EXTRA_EU')
+  assert.ok(
+    extraEuCountries.length >= 8,
+    `elenco delle destinazioni extra-UE inatteso: ${extraEuCountries.join(',')}`,
+  )
 
-  // Paese extra-UE senza misura: dal 21/09/2026 si vende, con l'aliquota IVA del
-  // paese di destinazione, gli oneri misurati su CH, il trasporto della linea
-  // DDP-capace e il pavimento di 48,00 EUR. La promo non deve MAI azzerare quella
-  // tariffa: zero qui vorrebbe dire regalare anche dazi, IVA all'importazione e
-  // fee DDP.
-  assert.equal(calculateServerShippingCostCents(items, 'US', true), 10007)
-  assert.equal(calculateServerShippingCostCents(items, 'US', false), 10007)
-  assert.equal(calculateServerShippingCostCents(items, 'GB', true), 6365)
-  assert.equal(calculateServerShippingCostCents(items, 'NO', true), 7666)
-  assert.equal(calculateServerShippingCostCents(items, 'CA', true), 8780)
-  assert.equal(calculateServerShippingCostCents(items, 'AU', true), 10615)
-  assert.equal(calculateServerShippingCostCents(items, 'JP', true), 10589)
+  const cart146 = normalizeCheckoutItems([
+    { price: 99, quantity: 1, productName: 'Test', variantLabel: 'A', sku: 'TEST' },
+    { price: 23.9, quantity: 2, productName: 'Test 2', variantLabel: 'B', sku: 'TEST-2' },
+  ])
+  assert.ok(cart146)
+  if (!cart146) return
+  const carts = [cart99, cart146]
+  const noQuote = { url: 'http://127.0.0.1:9/quote', secret: '', enabled: false }
 
-  // Il Brasile non ha una linea DDP: la spedizione si quota, non si incassa
-  // nulla. null (e non 0) e' l'unica risposta che non regala la spedizione.
-  assert.equal(calculateServerShippingCostCents(items, 'BR', true), null)
-  assert.equal(calculateServerShippingCostCents(items, 'BR', false), null)
-
-  // Proprieta' strutturale (era di main, in versione piu' debole: una lista
-  // fissa di paesi): ogni destinazione extra-UE o si quota (null), o produce una
-  // riga Stripe che non sta mai sotto il pavimento — promo o non promo. Cosi'
-  // l'aggiunta di un paese nuovo non puo' passare sotto silenzio.
-  for (const country of ['CH', 'NO', 'US', 'GB', 'CA', 'AU', 'JP', 'BR'] as const) {
-    for (const promo of [true, false]) {
-      const cents = calculateServerShippingCostCents(items, country, promo)
-      if (country === 'BR') {
-        assert.equal(cents, null, 'BR: la spedizione si quota, non si incassa')
-        continue
+  // 1. Stesso numero, o stesso rifiuto. Due percorsi che prezzano la stessa
+  //    destinazione con due aritmetiche diverse divergono in qualche
+  //    combinazione: e' la classe di difetto misurata l'11/11/2026 (AU 99,00:
+  //    105,30 dal profilo del paese contro 52,49 incassati col profilo
+  //    svizzero). Qui la funzione sincrona CHIAMA la stessa aritmetica del
+  //    checkout, quindi il confronto non puo' passare per caso.
+  for (const cart of carts) {
+    const subtotal = cartSubtotalCents(cart) ?? 0
+    const items = cart.map((item) => ({ sku: item.sku, quantity: item.quantity }))
+    for (const country of extraEuCountries) {
+      for (const promo of [true, false]) {
+        const sync = calculateServerShippingCostCents(cart, country, promo)
+        const resolution = await resolveExtraEuShipping({
+          countryCode: country,
+          goodsCents: subtotal,
+          items,
+          quoteConfig: noQuote,
+        })
+        assert.equal(sync, resolution?.costCents ?? null, `${country} merce ${subtotal} (promo=${promo})`)
       }
-      assert.ok(
-        cents !== null && cents >= 4800,
-        `${country} (promo=${promo}): riga Stripe sotto il pavimento (${cents})`,
-      )
     }
   }
 
-  // Unione Europea: il comportamento di prima non cambia.
-  assert.equal(calculateServerShippingCostCents(items, 'DE', true), 0)
-  assert.equal(calculateServerShippingCostCents(items, 'DE', false), 1499)
+  // 2. I numeri sono quelli post-merge con la tabella rigenerata dalla quota
+  //    dell'11/11/2026 (#54): base = max(profilo del PAESE, banda in casa), poi
+  //    +10% di margine e pavimento a 48,00. Ogni riga dichiara da quale lato
+  //    viene la base: la tabella in casa e' la prima fonte di ripiego e vince
+  //    quando supera il profilo; il profilo vince dove la tabella non ha banda
+  //    (AU) o resta sotto. Valori misurati sul carrello da 99,00 dopo il merge
+  //    con `main` 337b3c4, non copiati: vedi `landed-cost-price.ts`.
+  //    La promo "spedizione gratuita" non entra in questo prezzo: azzererebbe
+  //    anche dazi, IVA all'importazione e fee DDP, che non sono sconto.
+  const casi: [string, number | null, string][] = [
+    ['CH', 5224, 'tabella 47,49 > profilo 47,29'],
+    ['GB', 6661, 'tabella 60,55 > profilo 57,86'],
+    ['NO', 8170, 'tabella 74,27 > profilo 69,69'],
+    ['US', 10_007, 'profilo 90,97 > tabella 79,52'],
+    ['CA', 9656, 'tabella 87,78 > profilo 79,82'],
+    ['AU', 10_615, 'profilo 96,50, la tabella non ha una banda per AU'],
+    ['JP', 11_287, 'tabella 102,61 > profilo 96,26'],
+    ['BR', null, 'nessuna linea DDP: nessuna base di prezzo, nessun prezzo'],
+  ]
+  for (const [country, atteso, perche] of casi) {
+    assert.equal(
+      calculateServerShippingCostCents(cart99, country, false),
+      atteso,
+      `${country} merce 99,00 (${perche})`,
+    )
+    assert.equal(
+      calculateServerShippingCostCents(cart99, country, true),
+      atteso,
+      `${country} merce 99,00 con promo spedizione gratuita (${perche})`,
+    )
+  }
+
+  const au = await resolveExtraEuShipping({
+    countryCode: 'AU',
+    goodsCents: 9900,
+    items: cart99.map((item) => ({ sku: item.sku, quantity: item.quantity })),
+    quoteConfig: noQuote,
+  })
+  assert.ok(au)
+  assert.notEqual(au.costCents, 5249, 'AU non si prezza col profilo di un altro paese')
+  assert.equal(au.costCents, 10_615)
+
+  // 3. Paese senza profilo (nessuna linea DDP: oggi il Brasile): NESSUNO dei due
+  //    percorsi inventa un prezzo. Il rifiuto e' dichiarato, non un 48,00.
+  assert.equal(shippingRequiresQuote('BR'), true)
+  assert.equal(calculateServerShippingCostCents(cart99, 'BR', false), null)
+  assert.equal(calculateServerShippingCostCents(cart99, 'BR', true), null)
+  assert.equal(
+    await resolveExtraEuShipping({
+      countryCode: 'BR',
+      goodsCents: 9900,
+      items: cart99.map((item) => ({ sku: item.sku, quantity: item.quantity })),
+      quoteConfig: noQuote,
+    }),
+    null,
+  )
+
+  // 4. Unione Europea: il comportamento di prima non cambia (tariffa corriere,
+  //    azzerata dalla promo solo dove la tariffa e' il solo trasporto).
+  assert.equal(calculateServerShippingCostCents(cart99, 'DE', true), 0)
+  assert.equal(calculateServerShippingCostCents(cart99, 'DE', false), 1499)
 })
 
 test('allocates a discount across non-negative product prices with at most two lines per item', () => {
