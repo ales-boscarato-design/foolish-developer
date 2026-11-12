@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 import { getTranslations, getLocale } from 'next-intl/server'
 import {
   flatShippingCostEuros,
-  formatBadgeAmount,
   freeShippingThresholdEuros,
 } from '@/lib/free-shipping-badge'
+import { formatMoney, formatWholeMoney } from '@/lib/money'
 
 const BASE = 'https://thefoolishbutcher.com'
 const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
@@ -31,12 +31,12 @@ export default async function TerminiPage() {
   // 50€» mentre il codice applicava un'altra soglia.
   const shippingRates = {
     italy: {
-      cost: formatBadgeAmount(locale, flatShippingCostEuros('IT'), 2),
-      amount: formatBadgeAmount(locale, freeShippingThresholdEuros('IT')),
+      cost: formatMoney(locale, flatShippingCostEuros('IT')),
+      amount: formatWholeMoney(locale, freeShippingThresholdEuros('IT')),
     },
     europe: {
-      cost: formatBadgeAmount(locale, flatShippingCostEuros('EU'), 2),
-      amount: formatBadgeAmount(locale, freeShippingThresholdEuros('EU')),
+      cost: formatMoney(locale, flatShippingCostEuros('EU')),
+      amount: formatWholeMoney(locale, freeShippingThresholdEuros('EU')),
     },
   }
 

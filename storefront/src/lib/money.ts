@@ -26,11 +26,11 @@
  * 2. La lingua non si deduce dal sistema: ogni lingua pubblicata ha il suo
  *    locale esplicito (`MONEY_LOCALE_TAGS`: it -> `it-IT`, en -> `en-GB`,
  *    fr -> `fr-FR`, es -> `es-ES`, de -> `de-DE`) e si passa quello a `Intl`.
- *    `Intl.NumberFormat(undefined, ...)` prenderebbe la lingua della
- *    macchina, che in SSR e nel browser puo' essere diversa: due rese dello
- *    stesso prezzo, cioe' un hydration mismatch. Un tag esplicito toglie
- *    anche la dipendenza dalla regione di default che CLDR sceglie per una
- *    lingua nuda (`en` -> `en-US`, oggi innocuo per i numeri, domani no).
+ *    `undefined` prenderebbe la lingua della macchina, che in SSR e nel browser
+ *    puo' essere diversa: due rese dello stesso prezzo, cioe' un hydration
+ *    mismatch. Un tag esplicito toglie anche la dipendenza dalla regione di
+ *    default che CLDR sceglie per una lingua nuda (`en` -> `en-US`, oggi
+ *    innocuo per i numeri, domani no).
  *
  * 3. L'unita' di misura del TESTO sono i centesimi interi, come per Stripe.
  *    `formatMoneyCents(locale, cents)` e `formatEuroCents(locale, cents)`
@@ -114,6 +114,31 @@ function formatterFor(locale: MoneyLocale): Intl.NumberFormat {
 }
 
 /**
+ * La stessa lingua, senza decimali: serve a un importo che e' una promessa
+ * tonda (`60`, `150`), non a un prezzo.
+ *
+ * Perche' non riusare `formatterFor` e togliere `,00` dalla stringa: la stringa
+ * formattata dipende dal locale (`60,00` / `60.00`) e ritagliarla a mano
+ * significa ri-analizzare un formato che questo file produce: la prima lingua
+ * con un formato diverso (arabo, indiano, un separatore di gruppo) romperebbe
+ * il taglio senza che nessun test se ne accorga. Il tag resta lo stesso
+ * (`MONEY_LOCALE_TAGS`), cambia solo quante cifre dopo la virgola si scrivono.
+ */
+const wholeFormatters = new Map<MoneyLocale, Intl.NumberFormat>()
+
+function wholeFormatterFor(locale: MoneyLocale): Intl.NumberFormat {
+  const cached = wholeFormatters.get(locale)
+  if (cached) return cached
+  const formatter = new Intl.NumberFormat(MONEY_LOCALE_TAGS[locale], {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+    useGrouping: true,
+  })
+  wholeFormatters.set(locale, formatter)
+  return formatter
+}
+
+/**
  * L'unica conversione euro -> centesimi che serve al testo: riproduce
  * l'arrotondamento che la pagina mostrava ieri (`toFixed(2)`) e restituisce un
  * intero.
@@ -176,4 +201,39 @@ export function formatMoney(locale: string | null | undefined, amount: number): 
 /** `30,00€` partendo da euro; equivalente a `formatEuroCents` sui centesimi. */
 export function formatEuro(locale: string | null | undefined, amount: number): string {
   return formatEuroCents(locale, eurosToDisplayCents(amount))
+}
+
+/**
+ * Un importo TONDO in euro come lo scrive quella lingua: `60`, `150`, `1.234`
+ * in italiano (il raggruppamento e' quello di `MONEY_LOCALE_TAGS`, non quello
+ * del sistema).
+ *
+ * Serve alla soglia della spedizione gratuita: la frase approvata dice «Gratis
+ * sopra 60€», e `60,00€` non e' quella frase. La soglia resta un importo in
+ * euro e non un prezzo a listino, quindi il formato a due decimali non le
+ * appartiene — ma i separatori (e la lingua) sono gli stessi del resto della
+ * pagina, perche' li decide questo file e nessun altro.
+ *
+ * Un importo con centesimi e' un errore di programmazione e si ferma qui
+ * (fail-closed): arrotondarlo a un euro intero scriverebbe in pagina una
+ * promessa diversa da quella del codice (`59,90` diventerebbe «gratis sopra
+ * 60»). Le soglie non sono dati di CMS ma costanti di codice
+ * (`FLAT_ZONE_CONFIG` in `shipping.ts`), quindi un valore frazionario richiede
+ * un commit, e i test che pinnano l'interezza delle soglie
+ * (`shipping.test.ts` sui valori di zona, `free-shipping-badge.test.ts` sulla
+ * soglia che il badge promette) lo fermano prima del deploy: la pagina non puo'
+ * cadere in produzione per un valore che solo una modifica al codice puo'
+ * introdurre. Chi ha importi con centesimi usa `formatMoney`.
+ */
+export function formatWholeMoney(locale: string | null | undefined, amount: number): string {
+  // `eurosToDisplayCents` arrotonderebbe ai centesimi (`59.999` -> `60,00`) e
+  // poi `Intl` arrotonderebbe ancora: qui la promessa e' «niente
+  // arrotondamenti», quindi si controlla il valore in ingresso. `isSafeInteger`
+  // copre in un colpo i non-numeri, i non finiti, i frazionari e i valori che
+  // non sono rappresentabili esattamente (2**53), invece di lasciarli arrivare
+  // a un errore di centesimi che non spiega niente.
+  if (typeof amount !== 'number' || !Number.isSafeInteger(amount)) {
+    throw new TypeError(`formatWholeMoney: importo non intero (${String(amount)})`)
+  }
+  return wholeFormatterFor(normalizeMoneyLocale(locale)).format(eurosToDisplayCents(amount) / 100)
 }
