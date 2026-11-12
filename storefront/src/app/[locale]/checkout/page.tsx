@@ -10,6 +10,7 @@ import {
   freeShippingRemaining,
 } from '@/lib/shipping'
 import { freeShippingBadgeCopy, checkoutImportDutiesBadgeVisible } from '@/lib/free-shipping-badge'
+import { eurosToDisplayCents, formatEuro, formatEuroCents, formatMoneyCents } from '@/lib/money'
 import { extraEuDisplayedPriceCents } from '@/lib/landed-cost-price'
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import Image from 'next/image'
@@ -184,6 +185,17 @@ export default function CheckoutPage() {
   const shippingPriceVerified = activeQuote?.verified === true
   const grandTotal = cartTotal + displayShippingCost - proDiscount
   const remaining = freeShippingByPromo ? 0 : freeShippingRemaining(cartTotal, country)
+  // Il testo nasce da centesimi INTERI; l'euro resta il numero con cui la
+  // pagina calcola (e che manda al server, che lo ignora e ricalcola dal
+  // catalogo). Le due cose non si leggono a vicenda: nessun importo formattato
+  // rientra in un calcolo. La spedizione usa i centesimi che il negozio ha
+  // gia' prodotto quando il prezzo e' suo (extra-UE), altrimenti converte una
+  // volta con la regola di sempre.
+  const remainingCents = eurosToDisplayCents(remaining)
+  const cartTotalCents = eurosToDisplayCents(cartTotal)
+  const shippingDisplayCents = displayShippingCostCents ?? eurosToDisplayCents(shipping.cost)
+  const proDiscountCents = eurosToDisplayCents(proDiscount)
+  const grandTotalCents = eurosToDisplayCents(grandTotal)
 
   // Chiede al negozio il prezzo extra-UE della destinazione: la risposta e' la
   // stessa che il checkout ricalcola (o il gettone firmato di quel prezzo).
@@ -456,7 +468,10 @@ export default function CheckoutPage() {
               <div className="flex justify-between items-center mb-3">
                 <p className="text-sm" style={{ color: 'var(--muted-fg)' }}>
                   {t.rich('freeShippingAdd', {
-                    amount: remaining.toFixed(2),
+                    // La chiave porta gia' il simbolo dopo il numero (la frase e'
+                    // `Aggiungi <b>{amount}</b>` + simbolo): qui si formatta solo il
+                    // numero, nella lingua della pagina.
+                    amount: formatMoneyCents(locale, remainingCents),
                     b: (chunks) => (
                       <span className="font-medium" style={{ color: 'var(--accent)' }}>{chunks}</span>
                     ),
@@ -565,11 +580,11 @@ export default function CheckoutPage() {
                 <div className="text-right flex-shrink-0 flex flex-col justify-start gap-0.5">
                   {item.originalUnitPrice && (
                     <span className="text-xs line-through" style={{ color: 'var(--muted-fg)', opacity: 0.5 }}>
-                      €{(item.originalUnitPrice * item.quantity).toFixed(2)}
+                      {formatEuro(locale, item.originalUnitPrice * item.quantity)}
                     </span>
                   )}
                   <span className="text-mono font-semibold text-sm">
-                    €{(item.price * item.quantity).toFixed(2)}
+                    {formatEuro(locale, item.price * item.quantity)}
                   </span>
                 </div>
               </div>
@@ -892,7 +907,7 @@ export default function CheckoutPage() {
 
               <div className="flex justify-between py-2" style={{ borderBottom: '1px solid var(--surface-3)' }}>
                 <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>{t('labelSubtotal')}</span>
-                <span className="text-mono text-sm">€{cartTotal.toFixed(2)}</span>
+                <span className="text-mono text-sm">{formatEuroCents(locale, cartTotalCents)}</span>
               </div>
 
               <div className="flex justify-between py-2" style={{ borderBottom: '1px solid var(--surface-3)' }}>
@@ -900,7 +915,7 @@ export default function CheckoutPage() {
                 <span className="text-mono text-sm" style={{ color: shipping.isFree ? '#5a9c52' : 'var(--foreground)' }}>
                   {baseShipping.requiresQuote
                     ? t('shippingQuoteRequired')
-                    : shipping.isFree ? t('labelFree') : `€${displayShippingCost.toFixed(2)}`}
+                    : shipping.isFree ? t('labelFree') : formatEuroCents(locale, shippingDisplayCents)}
                 </span>
               </div>
 
@@ -932,7 +947,7 @@ export default function CheckoutPage() {
                       ? t('labelDiscountPercent', { percent: promoData.discountPercent })
                       : t('labelDiscount')}
                   </span>
-                  <span className="text-mono text-sm" style={{ color: '#5a9c52' }}>−€{proDiscount.toFixed(2)}</span>
+                  <span className="text-mono text-sm" style={{ color: '#5a9c52' }}>−{formatEuroCents(locale, proDiscountCents)}</span>
                 </div>
               )}
             </div>
@@ -944,7 +959,7 @@ export default function CheckoutPage() {
             <div className="flex justify-between items-baseline mb-4">
               <span className="text-sm font-medium">{t('labelTotalVatIncluded')}</span>
               <span className="text-mono font-bold" style={{ fontSize: 22, color: 'var(--accent)', letterSpacing: '-0.01em' }}>
-                €{grandTotal.toFixed(2)}
+                {formatEuroCents(locale, grandTotalCents)}
               </span>
             </div>
 
@@ -989,7 +1004,7 @@ export default function CheckoutPage() {
                       promoData?.discountPercent
                         ? `−${promoData.discountPercent}%`
                         : promoType === 'amount' && promoData?.discountAmount
-                        ? `−€${promoData.discountAmount.toFixed(2)}`
+                        ? `−${formatEuro(locale, promoData.discountAmount)}`
                         : freeShippingByPromo
                         ? t('promoFreeShippingShort')
                         : t('promoFreeShippingNotApplicable')
@@ -1020,7 +1035,7 @@ export default function CheckoutPage() {
               />
               {loading
                 ? <Loader2 size={18} className="animate-spin" />
-                : <>{t('pay', { amount: grandTotal.toFixed(2) })}</>
+                : <>{t('pay', { amount: formatMoneyCents(locale, grandTotalCents) })}</>
               }
             </button>
             <p className="text-center mt-2.5 text-xs" style={{ color: 'var(--muted-fg)' }}>
