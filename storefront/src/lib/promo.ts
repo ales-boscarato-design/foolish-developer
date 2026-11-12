@@ -1,8 +1,10 @@
 import {
   calculateShipping,
+  getShippingZone,
   isAllowedShippingCountry,
   type AllowedShippingCountry,
 } from './shipping'
+import { prudentialExtraEuPriceCents } from './landed-cost-price'
 
 export type PromoType = 'free_shipping' | 'percent_pro' | 'percent' | 'amount' | 'percent_tiered'
 
@@ -322,20 +324,37 @@ export function calculateServerShippingCostCents(
   const subtotalCents = cartSubtotalCents(normalizedItems)
   if (subtotalCents === null) return null
 
+  // Extra-UE: UN SOLO prezzo, e non e' questo modulo a deciderlo. La catena
+  // (quota live -> tabella in casa -> profilo del PAESE, poi margine e
+  // pavimento) vive in `landed-cost-price.ts`, che e' la stessa aritmetica usata
+  // da `resolveExtraEuShipping` nel checkout: qui si CHIAMA quella funzione,
+  // cosi' i due percorsi non possono piu' divergere. Una seconda autorita' di
+  // prezzo — come la stima sincrona del solo profilo che stava qui prima — sta
+  // sotto il prezzo incassato ogni volta che la tabella o la quota lo superano
+  // (misurato l'11/11/2026 su un carrello da 99,00: NO 76,54 contro 81,22,
+  // GB 63,83 contro 66,51, JP 105,05 contro 111,65).
+  //
+  // La promo "spedizione gratuita" qui non entra: su extra-UE azzererebbe anche
+  // dazi, IVA all'importazione e fee DDP, che non sono sconto.
+  if (getShippingZone(uppercaseCountry) === 'EXTRA_EU') {
+    return prudentialExtraEuPriceCents(uppercaseCountry, subtotalCents)
+  }
+
   const baseShipping = calculateShipping(subtotalCents / 100, uppercaseCountry)
 
-  // Destinazione senza misura: non esiste un prezzo da addebitare. Mai 0 —
-  // zero vorrebbe dire velocizzare a spese di Foolish. Il chiamante la tratta
-  // come preventivo (vedi shippingRequiresQuote).
+  // Rete di sicurezza: una destinazione che va quotata a mano non deve mai
+  // uscire da qui con un numero. Oggi tutte le destinazioni con
+  // `requiresQuote` sono extra-UE (gestite sopra); il controllo resta perche'
+  // una zona nuova non passi muta.
   if (baseShipping.requiresQuote) return null
 
   const baseShippingCostCents = moneyToCents(baseShipping.cost)
   if (baseShippingCostCents === null) return null
 
-  // La promo "spedizione gratuita" azzera la tariffa solo dove la tariffa e'
-  // il solo trasporto. Su una destinazione extra-UE azzererebbe anche dazi,
-  // IVA all'importazione e fee DDP: li' la promo non si applica e il costo
-  // sdoganato resta intero.
+  // La promo "spedizione gratuita" azzera la tariffa solo dove la tariffa e' il
+  // solo trasporto (`freeShippingPromoAllowed`, vera per IT/EU e falsa per
+  // extra-UE): quello che il cliente paga per dazi, IVA all'importazione e fee
+  // DDP non e' sconto.
   const freeShippingApplied = freeShipping && baseShipping.freeShippingPromoAllowed
   return freeShippingApplied ? 0 : baseShippingCostCents
 }

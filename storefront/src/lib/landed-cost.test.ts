@@ -492,10 +492,15 @@ test('resolveExtraEuShipping: la quota gonfiata dalla quantita non si incassa', 
   assert.ok(resolution)
   assert.equal(resolution.quote, null)
   assert.equal(resolution.quoteFailure, 'inconsistent_import_charges')
-  assert.equal(resolution.source, 'price_table')
-  // base = max(profilo, banda reale 79,52) e mai sotto la banda misurata
+  // Base = il MAGGIORE fra profilo del paese e banda misurata: sulla merce di
+  // 50,00 vince il profilo USA (82,21) sulla banda rigenerata (79,52), e il
+  // test segue il lato che vince invece di fissarlo.
+  // Il punto del test resta che una quota scartata non si incassa e che il
+  // prezzo non scende sotto la banda.
+  const profilo = profileCostCents('US', 5000) ?? 0
+  assert.equal(resolution.source, profilo > 7952 ? 'profile' : 'price_table')
   assert.equal(resolution.tableCostCents, 7952)
-  assert.equal(resolution.basisCostCents, Math.max(7952, profileCostCents('US', 5000) ?? 0))
+  assert.equal(resolution.basisCostCents, Math.max(7952, profilo))
   assert.ok(resolution.costCents >= 7952 + Math.round(7952 * 0.1))
 })
 
@@ -509,8 +514,20 @@ test('resolveExtraEuShipping: il gettone incassa ESATTAMENTE il prezzo mostrato'
   const items = [{ sku: 'T-3D-WMN-BCK', quantity: 1 }]
   const fingerprint = cartFingerprint(items, 'CH')
   const cases = [
-    { nome: 'quota live', extra: { quoteConfig: QUOTE_CONFIG, fetchImpl: stubFetch(() => quoteResponse()) } },
-    { nome: 'base prudenziale', extra: { quoteConfig: { ...QUOTE_CONFIG, enabled: false } } },
+    {
+      nome: 'quota live',
+      // La quota live e la banda in casa danno lo stesso numero su CH 99,00
+      // (52,24): senza questa asserzione una quota scartata dal parser severo
+      // di #54 cadrebbe sulla tabella e il test resterebbe verde misurando il
+      // percorso sbagliato. Qui si pretende che la quota sia stata DAVVERO usata.
+      source: 'live_quote',
+      extra: { quoteConfig: QUOTE_CONFIG, fetchImpl: stubFetch(() => quoteResponse()) },
+    },
+    {
+      nome: 'base prudenziale',
+      source: 'price_table',
+      extra: { quoteConfig: { ...QUOTE_CONFIG, enabled: false } },
+    },
   ]
   for (const scenario of cases) {
     const options = {
@@ -522,6 +539,7 @@ test('resolveExtraEuShipping: il gettone incassa ESATTAMENTE il prezzo mostrato'
     }
     const shown = await resolveExtraEuShipping(options)
     assert.ok(shown, scenario.nome)
+    assert.equal(shown.source, scenario.source, `${scenario.nome}: percorso di prezzo`)
     assert.equal(shown.costCents, 5224, scenario.nome)
     const token = signQuoteToken({ countryCode: 'CH', fingerprint, costCents: shown.costCents })
     assert.ok(token, scenario.nome)
@@ -588,8 +606,8 @@ test('resolveExtraEuShipping: un carrello con pack non viene mai mandato alla qu
   assert.ok(resolution.costCents > 0)
 })
 
-test('su ogni destinazione extra-UE il prezzo e un intero di centesimi, mai zero', async () => {
-  for (const country of ['CH', 'GB', 'NO', 'CA', 'AU', 'JP', 'US', 'BR']) {
+test('su ogni destinazione extra-UE vendibile il prezzo e un intero di centesimi, mai zero', async () => {
+  for (const country of ['CH', 'GB', 'NO', 'CA', 'AU', 'JP', 'US']) {
     for (const goods of [0, 2390, 9900, 25_000, 500_000]) {
       const resolution = await resolveExtraEuShipping({
         countryCode: country,
@@ -602,5 +620,20 @@ test('su ogni destinazione extra-UE il prezzo e un intero di centesimi, mai zero
       assert.ok(resolution.costCents > 0, `${country} ${goods}`)
       assert.ok(resolution.costCents >= Math.round(EXTRA_EU_MINIMUM_SHIPPING * 100), `${country} ${goods}`)
     }
+  }
+})
+
+test('una destinazione senza profilo non viene prezzata: si quota a mano', async () => {
+  // BR non ha una linea DDP, quindi non esiste un costo sdoganato da stimare.
+  // Prima della correzione l'11/11/2026 usciva 52,49: il profilo svizzero
+  // applicato come default a un paese che non ha ne' trasporto ne' aliquote sue.
+  for (const goods of [0, 2390, 9900, 25_000]) {
+    const resolution = await resolveExtraEuShipping({
+      countryCode: 'BR',
+      goodsCents: goods,
+      items: [{ sku: 'TS-A4', quantity: 1 }],
+      quoteConfig: { ...QUOTE_CONFIG, enabled: false },
+    })
+    assert.equal(resolution, null, `BR ${goods}: nessun prezzo inventato`)
   }
 })
