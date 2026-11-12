@@ -226,11 +226,13 @@ export function formatEuro(locale: string | null | undefined, amount: number): s
  * introdurre. Chi ha importi con centesimi usa `formatMoney`.
  */
 export function formatWholeMoney(locale: string | null | undefined, amount: number): string {
-  // `eurosToDisplayCents` arrotonderebbe ai centesimi (`59.999` -> `60,00`):
-  // qui la promessa e' «niente arrotondamenti», quindi si controlla il valore
-  // in ingresso, non il centesimo. Un valore non numerico o non finito si ferma
-  // qui invece di entrare in pagina.
-  if (typeof amount !== 'number' || !Number.isInteger(amount)) {
+  // `eurosToDisplayCents` arrotonderebbe ai centesimi (`59.999` -> `60,00`) e
+  // poi `Intl` arrotonderebbe ancora: qui la promessa e' «niente
+  // arrotondamenti», quindi si controlla il valore in ingresso. `isSafeInteger`
+  // copre in un colpo i non-numeri, i non finiti, i frazionari e i valori che
+  // non sono rappresentabili esattamente (2**53), invece di lasciarli arrivare
+  // a un errore di centesimi che non spiega niente.
+  if (typeof amount !== 'number' || !Number.isSafeInteger(amount)) {
     throw new TypeError(`formatWholeMoney: importo non intero (${String(amount)})`)
   }
   return wholeFormatterFor(normalizeMoneyLocale(locale)).format(eurosToDisplayCents(amount) / 100)

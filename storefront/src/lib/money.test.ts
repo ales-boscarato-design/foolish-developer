@@ -254,6 +254,11 @@ test('un importo con centesimi si ferma: non si arrotonda a una promessa tonda',
   assert.throws(() => formatWholeMoney('it', 59.999), /non intero/)
   assert.throws(() => formatWholeMoney('it', Number.NaN), /non intero/)
   assert.throws(() => formatWholeMoney('it', Number.POSITIVE_INFINITY), /non intero/)
+  // Un intero che non e' rappresentabile esattamente (2**53) non e' un
+  // importo: si ferma con il messaggio di questa funzione, non con quello della
+  // conversione a centesimi (che direbbe «centesimi non interi» e non si capisce
+  // da dove arrivi).
+  assert.throws(() => formatWholeMoney('it', 2 ** 53), /formatWholeMoney: importo non intero/)
 })
 
 test('i formattatori si costruiscono dal tag esplicito, mai dalla lingua nuda', () => {
@@ -298,6 +303,24 @@ test('i formattatori si costruiscono dal tag esplicito, mai dalla lingua nuda', 
   assert.ok(
     !/globalThis|\bIntl\s*\[/.test(source),
     'il formattatore non si raggiunge per vie indirette (`globalThis`, accesso con parentesi quadre)',
+  )
+  // I due percorsi USATI, non solo le due costruzioni. Una sostituzione di corpo
+  // — `(cents / 100).toLocaleString(normalizeMoneyLocale(locale), …)` — lascia
+  // le due costruzioni al loro posto (e `wholeFormatterFor` inutilizzato) con la
+  // suite verde, perche' lingua nuda e tag esplicito rendono uguale su un
+  // importo tondo: misurato da una review indipendente. Quindi si pinna il
+  // ritorno delle due funzioni e si vieta la terza strada.
+  assert.ok(
+    /return formatterFor\(normalizeMoneyLocale\(locale\)\)\.format\(/.test(source),
+    'formatMoneyCents deve formattare con formatterFor sulla lingua normalizzata',
+  )
+  assert.ok(
+    /return wholeFormatterFor\(normalizeMoneyLocale\(locale\)\)\.format\(/.test(source),
+    'formatWholeMoney deve formattare con wholeFormatterFor sulla lingua normalizzata',
+  )
+  assert.ok(
+    !/toLocaleString/.test(source),
+    'money.ts non deve formattare con `toLocaleString`: i due formattatori cache-ati sul tag esplicito sono la sola strada',
   )
 })
 
