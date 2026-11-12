@@ -23,7 +23,14 @@ import {
   detectRenewalZoneMismatch,
   resolveDestinationZone,
 } from './subscription-renewal-zone'
-import { reportRenewalZoneMismatch } from './subscription-renewal-zone-alert'
+import {
+  RENEWAL_ZONE_ALERT_CHANNELS,
+  RENEWAL_ZONE_HOOK,
+  deliverRenewalZoneAlert,
+  reportRenewalZoneMismatch,
+  sendRenewalZoneAlertEmail,
+  sendRenewalZoneAlertTelegram,
+} from './subscription-renewal-zone-alert'
 
 const SUBSCRIPTION_ID = 'sub_1QExampleRenewal'
 const realFetch = globalThis.fetch
@@ -234,15 +241,230 @@ test('il canale di consegna non puo\' bloccare il rinnovo', async () => {
   assert.equal(failure.subscriptionId, SUBSCRIPTION_ID)
 })
 
-test('nessuna scrittura su Stripe: il percorso del segnale non ha SDK ne\' rete', () => {
-  for (const file of ['./subscription-renewal-zone.ts', './subscription-renewal-zone-alert.ts']) {
-    const source = readFileSync(new URL(file, import.meta.url), 'utf8')
-    // Il commento puo' nominare Stripe; il codice non deve importarlo ne'
-    // chiamarlo. E il rilevamento non fa richieste di rete.
-    assert.doesNotMatch(source, /from\s+['"]stripe['"]/, `${file} importa l'SDK Stripe`)
-    assert.doesNotMatch(source, /\bstripe\.(subscriptions|customers|invoices|paymentIntents)\b/, `${file} chiama Stripe`)
-    assert.doesNotMatch(source, /\bfetch\s*\(/, `${file} fa una richiesta di rete`)
+test('nessuna scrittura su Stripe: il rilevamento non fa rete, la consegna esce da notifyNanobot', () => {
+  const detector = readFileSync(new URL('./subscription-renewal-zone.ts', import.meta.url), 'utf8')
+  // Il commento puo' nominare Stripe; il codice non deve importarlo ne'
+  // chiamarlo. E il rilevamento non fa richieste di rete.
+  assert.doesNotMatch(detector, /from\s+['"]stripe['"]/, 'il rilevamento importa l\'SDK Stripe')
+  assert.doesNotMatch(
+    detector,
+    /\bstripe\.(subscriptions|customers|invoices|paymentIntents)\b/,
+    'il rilevamento chiama Stripe',
+  )
+  assert.doesNotMatch(detector, /\bfetch\s*\(/, 'il rilevamento fa una richiesta di rete')
+
+  // La consegna ha UN solo punto d'uscita verso la rete: `notifyNanobot`, che
+  // firma la richiesta. Niente fetch diretto, niente SDK Stripe.
+  const alert = readFileSync(new URL('./subscription-renewal-zone-alert.ts', import.meta.url), 'utf8')
+  assert.doesNotMatch(alert, /from\s+['"]stripe['"]/, 'la consegna importa l\'SDK Stripe')
+  assert.doesNotMatch(
+    alert,
+    /\bstripe\.(subscriptions|customers|invoices|paymentIntents)\b/,
+    'la consegna chiama Stripe',
+  )
+  assert.doesNotMatch(alert, /\bfetch\s*\(/, 'la consegna chiama fetch invece di notifyNanobot')
+  assert.match(alert, /notifyNanobot\(RENEWAL_ZONE_HOOK/, 'la consegna non usa la rotta dedicata')
+})
+
+test('canali: se l\'email cade, l\'avviso Telegram parte lo stesso', async () => {
+  const payload = buildRenewalZoneAlertPayload(
+    detectRenewalZoneMismatch({
+      subscriptionId: SUBSCRIPTION_ID,
+      plan: 'tattoo',
+      cycle: 1,
+      registeredZone: 'EU',
+      destinationCountry: 'CH',
+    })!,
+  )
+  const called: string[] = []
+  await assert.rejects(
+    () =>
+      deliverRenewalZoneAlert(payload, [
+        {
+          name: 'email',
+          send: async () => {
+            called.push('email')
+            throw new Error('RESEND giu')
+          },
+        },
+        {
+          name: 'telegram',
+          send: async () => {
+            called.push('telegram')
+          },
+        },
+      ]),
+    (err: Error) => {
+      assert.match(err.message, /email: RESEND giu/)
+      assert.doesNotMatch(err.message, /telegram:/)
+      return true
+    },
+  )
+  assert.deepEqual(called, ['email', 'telegram'])
+})
+
+test('canali: se Telegram cade, l\'email resta la traccia', async () => {
+  const payload = buildRenewalZoneAlertPayload(
+    detectRenewalZoneMismatch({
+      subscriptionId: SUBSCRIPTION_ID,
+      plan: 'pmu',
+      cycle: 2,
+      registeredZone: 'IT',
+      destinationCountry: 'FR',
+    })!,
+  )
+  const called: string[] = []
+  await assert.rejects(
+    () =>
+      deliverRenewalZoneAlert(payload, [
+        {
+          name: 'email',
+          send: async () => {
+            called.push('email')
+          },
+        },
+        {
+          name: 'telegram',
+          send: async () => {
+            called.push('telegram')
+            throw new Error('ricevitore muto')
+          },
+        },
+      ]),
+    (err: Error) => {
+      assert.match(err.message, /telegram: ricevitore muto/)
+      assert.doesNotMatch(err.message, /email:/)
+      return true
+    },
+  )
+  assert.deepEqual(called, ['email', 'telegram'])
+})
+
+test('consegna reale: email E Telegram, nessuno dei due tolto, sulla rotta dedicata', () => {
+  assert.equal(RENEWAL_ZONE_HOOK, '/hooks/foolish-subscription-zone')
+  assert.deepEqual(
+    RENEWAL_ZONE_ALERT_CHANNELS.map((channel) => channel.name),
+    ['email', 'telegram'],
+  )
+  assert.equal(
+    RENEWAL_ZONE_ALERT_CHANNELS.find((channel) => channel.name === 'email')?.send,
+    sendRenewalZoneAlertEmail,
+  )
+  assert.equal(
+    RENEWAL_ZONE_ALERT_CHANNELS.find((channel) => channel.name === 'telegram')?.send,
+    sendRenewalZoneAlertTelegram,
+  )
+})
+
+test('Telegram: POST firmato sulla rotta dedicata, con il payload del segnale', async () => {
+  const payload = buildRenewalZoneAlertPayload(
+    detectRenewalZoneMismatch({
+      subscriptionId: SUBSCRIPTION_ID,
+      plan: 'tattoo',
+      cycle: 1,
+      registeredZone: 'IT',
+      destinationCountry: 'FR',
+    })!,
+  )
+
+  const previous = {
+    url: process.env.NANOBOT_WEBHOOK_URL,
+    secret: process.env.NANOBOT_WEBHOOK_SECRET,
   }
+  process.env.NANOBOT_WEBHOOK_URL = 'https://ricevitore.test'
+  process.env.NANOBOT_WEBHOOK_SECRET = 'segreto-di-prova'
+
+  const requests: { url: string; init: RequestInit }[] = []
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    requests.push({ url: String(url), init: init ?? {} })
+    return new Response('{"ok":true}', { status: 200 })
+  }) as typeof fetch
+
+  try {
+    await sendRenewalZoneAlertTelegram(payload)
+  } finally {
+    globalThis.fetch = realFetch
+    for (const [key, value] of [
+      ['NANOBOT_WEBHOOK_URL', previous.url],
+      ['NANOBOT_WEBHOOK_SECRET', previous.secret],
+    ] as const) {
+      if (value === undefined) delete process.env[key]
+      else process.env[key] = value
+    }
+  }
+
+  assert.equal(requests.length, 1)
+  const [{ url, init }] = requests
+  assert.equal(url, 'https://ricevitore.test/hooks/foolish-subscription-zone')
+  assert.equal(init.method, 'POST')
+  const headers = init.headers as Record<string, string>
+  assert.match(headers['x-foolish-signature'], /^sha256=[0-9a-f]{64}$/)
+  assert.match(headers['x-foolish-timestamp'], /^\d+$/)
+  // Il corpo e' esattamente il payload del segnale: il ricevitore legge questi
+  // campi (subscriptionId, zone, motivo, delta) e nient'altro.
+  assert.deepEqual(JSON.parse(String(init.body)), payload)
+  assert.ok(init.signal instanceof AbortSignal, 'la richiesta deve avere il timeout')
+})
+
+test('Telegram senza configurazione: l\'errore esce (throwOnError), non viene ingoiato', async () => {
+  const payload = buildRenewalZoneAlertPayload(
+    detectRenewalZoneMismatch({
+      subscriptionId: SUBSCRIPTION_ID,
+      plan: 'tattoo',
+      cycle: 1,
+      registeredZone: 'IT',
+      destinationCountry: 'FR',
+    })!,
+  )
+  const previousUrl = process.env.NANOBOT_WEBHOOK_URL
+  delete process.env.NANOBOT_WEBHOOK_URL
+  globalThis.fetch = (async () => {
+    throw new Error('nessuna rete attesa')
+  }) as typeof fetch
+  try {
+    await assert.rejects(() => sendRenewalZoneAlertTelegram(payload), /NANOBOT_WEBHOOK_URL is not configured/)
+  } finally {
+    globalThis.fetch = realFetch
+    if (previousUrl !== undefined) process.env.NANOBOT_WEBHOOK_URL = previousUrl
+  }
+})
+
+test('consegna predefinita senza credenziali: fallisce dentro report, il rinnovo non si blocca', async () => {
+  const cleared = ['RESEND_API_KEY', 'ADMIN_EMAIL', 'NANOBOT_WEBHOOK_URL', 'NANOBOT_WEBHOOK_SECRET'] as const
+  const previous = Object.fromEntries(cleared.map((key) => [key, process.env[key]]))
+  for (const key of cleared) delete process.env[key]
+
+  const logs: string[] = []
+  globalThis.fetch = (async () => {
+    throw new Error('nessuna rete attesa con le credenziali assenti')
+  }) as typeof fetch
+  try {
+    await assert.doesNotReject(() =>
+      reportRenewalZoneMismatch(
+        detectRenewalZoneMismatch({
+          subscriptionId: SUBSCRIPTION_ID,
+          plan: 'tattoo',
+          cycle: 1,
+          registeredZone: 'EU',
+          destinationCountry: 'CH',
+        }),
+        { logger: (line) => logs.push(line) },
+      ),
+    )
+  } finally {
+    globalThis.fetch = realFetch
+    for (const key of cleared) {
+      const value = previous[key]
+      if (value === undefined) delete process.env[key]
+      else process.env[key] = value
+    }
+  }
+
+  assert.equal(logs.length, 2)
+  const failure = JSON.parse(logs[1])
+  assert.equal(failure.event, 'subscription_renewal_zone_alert_failed')
+  assert.match(failure.error, /email:/)
+  assert.match(failure.error, /telegram:/)
 })
 
 test('risoluzione della zona: il paese assente non e\' extra-UE', () => {

@@ -1,20 +1,29 @@
 // storefront/src/lib/subscription-renewal-zone-alert.ts
 //
-// Consegna del segnale di `subscription-renewal-zone.ts`: una riga JSON nel log
-// (strutturata, cosi' si filtra per `event`) piu' una email all'indirizzo
-// admin, con lo stesso schema gia' usato per l'audit Stripe→CMS.
+// Consegna del segnale di `subscription-renewal-zone.ts` su DUE canali
+// indipendenti, piu' la riga JSON nel log:
+//   - email all'indirizzo admin (traccia durevole, stesso schema gia' usato per
+//     l'audit Stripe→CMS);
+//   - avviso nel topic `payments` via `notifyNanobot`, sulla rotta dedicata
+//     `/hooks/foolish-subscription-zone` del ricevitore.
 //
-// Perche' non l'hook Telegram: il ricevitore degli avvisi non ha una rotta per
-// questo evento e `/hooks/foolish-storefront-order` interpreterebbe qualunque
-// payload non-reconciliation come un ordine nuovo (annunciando "ORDINE NUOVO —
-// N/A"). Un avviso sbagliato e' peggio di nessun avviso: la rotta dedicata e'
-// lavoro sul ricevitore, tracciato a parte.
+// Perche' la rotta dedicata e non `/hooks/foolish-storefront-order`: quel
+// handler interpreta qualunque payload non-reconciliation come un ordine nuovo
+// e annuncerebbe «ORDINE NUOVO — N/A». Un avviso sbagliato e' peggio di nessun
+// avviso.
+//
+// Due canali perche' cadono per motivi diversi: l'email e' la traccia che resta,
+// il topic Telegram e' quello che si legge subito. Se uno dei due e' giu',
+// l'altro deve partire lo stesso. La deduplica (un avviso al giorno per
+// abbonamento+motivo) sta nel ricevitore, non qui: il negozio puo' segnalare
+// ogni occorrenza senza allagare il topic.
 //
 // Questo modulo non deve MAI far fallire il rinnovo: ogni errore di consegna
 // resta nel log e il webhook prosegue.
 
 import { Resend } from 'resend'
 
+import { notifyNanobot } from './nanobot'
 import { PLAN_NAMES } from './subscription-plans'
 import {
   buildRenewalZoneAlertPayload,
@@ -22,8 +31,14 @@ import {
   type RenewalZoneMismatch,
 } from './subscription-renewal-zone'
 
+/** Rotta del ricevitore degli avvisi (`hermes-receiver/receiver.py`, ROUTES). */
+export const RENEWAL_ZONE_HOOK = '/hooks/foolish-subscription-zone'
+
+/** Un canale di consegna: riceve il payload gia' pronto e lancia se fallisce. */
+export type RenewalZoneAlertChannel = (payload: RenewalZoneAlertPayload) => Promise<void>
+
 export interface RenewalZoneAlertDeps {
-  /** Canale di consegna. Iniettabile: i test non mandano email. */
+  /** Canale di consegna. Iniettabile: i test non mandano email ne' Telegram. */
   notify?: (payload: RenewalZoneAlertPayload, mismatch: RenewalZoneMismatch) => Promise<void>
   /** Dove finisce la riga strutturata. Iniettabile per leggere il log nei test. */
   logger?: (line: string) => void
@@ -78,6 +93,50 @@ export async function sendRenewalZoneAlertEmail(payload: RenewalZoneAlertPayload
 }
 
 /**
+ * Avviso nel topic `payments` del bot Telegram, attraverso il ricevitore.
+ *
+ * `throwOnError` + timeout: `notifyNanobot` senza `throwOnError` ingoia l'errore
+ * e un try/catch attorno alla chiamata sarebbe codice morto. Il timeout (3 s)
+ * impedisce che un ricevitore appeso allunghi il webhook Stripe: il rinnovo e'
+ * gia' pagato e non aspetta un avviso.
+ */
+export async function sendRenewalZoneAlertTelegram(payload: RenewalZoneAlertPayload): Promise<void> {
+  await notifyNanobot(RENEWAL_ZONE_HOOK, payload, {
+    throwOnError: true,
+    signal: AbortSignal.timeout(3000),
+  })
+}
+
+/** I canali attivi in produzione, con il nome che finisce nel log di errore. */
+export const RENEWAL_ZONE_ALERT_CHANNELS: ReadonlyArray<{ name: string; send: RenewalZoneAlertChannel }> = [
+  { name: 'email', send: sendRenewalZoneAlertEmail },
+  { name: 'telegram', send: sendRenewalZoneAlertTelegram },
+]
+
+/**
+ * Consegna su tutti i canali senza che il primo che cade spenga gli altri.
+ * Lancia un solo errore che nomina i canali falliti; chi chiama lo logga.
+ */
+export async function deliverRenewalZoneAlert(
+  payload: RenewalZoneAlertPayload,
+  channels: ReadonlyArray<{ name: string; send: RenewalZoneAlertChannel }> = RENEWAL_ZONE_ALERT_CHANNELS,
+): Promise<void> {
+  const results = await Promise.allSettled(channels.map((channel) => channel.send(payload)))
+  const failures = results.flatMap((result, index) =>
+    result.status === 'rejected'
+      ? [
+          `${channels[index].name}: ${
+            result.reason instanceof Error ? result.reason.message : String(result.reason)
+          }`,
+        ]
+      : [],
+  )
+  if (failures.length > 0) {
+    throw new Error(`Renewal zone alert delivery failed (${failures.join('; ')})`)
+  }
+}
+
+/**
  * Segnala una divergenza di zona al rinnovo. `null` = zone coerenti, niente da
  * dire. Non lancia mai: il rinnovo gia' pagato non si blocca per un avviso.
  */
@@ -93,7 +152,7 @@ export async function reportRenewalZoneMismatch(
   log(JSON.stringify(payload))
 
   try {
-    await (deps.notify ?? sendRenewalZoneAlertEmail)(payload, mismatch)
+    await (deps.notify ?? ((alert: RenewalZoneAlertPayload) => deliverRenewalZoneAlert(alert)))(payload, mismatch)
   } catch (err) {
     log(JSON.stringify({
       event: 'subscription_renewal_zone_alert_failed',
