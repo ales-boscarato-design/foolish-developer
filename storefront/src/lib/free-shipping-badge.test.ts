@@ -7,6 +7,7 @@ import { createTranslator } from 'next-intl'
 import {
   FREE_SHIPPING_BADGE_LOCALES,
   badgeZoneForLocale,
+  checkoutImportDutiesBadgeVisible,
   flatShippingCostEuros,
   formatBadgeAmount,
   freeShippingBadgeCopy,
@@ -280,6 +281,115 @@ test('parita\' esatta delle chiavi e dei segnaposto fra le cinque lingue', () =>
       }
     }
   }
+})
+
+test('la promessa italiana nomina il paese: 60 vale in Italia, non fuori', () => {
+  // Il difetto misurato il 12/11/2026: la home italiana diceva «Gratis sopra
+  // 60€» senza dire dove. Un cliente italiano con indirizzo francese e carrello
+  // da 100,00 leggeva la promessa italiana e al checkout trovava «aggiungi
+  // 50,00 per la spedizione gratuita» con la spedizione a 14,99.
+  const it = renderBadge('it', 'IT')
+  assert.equal(it.amount, '60')
+  assert.match(it.title, /italia/i, `la promessa italiana deve dire dove vale — «${it.title}»`)
+  assert.match(it.body, /italia/i, `il corpo del badge deve dire dove vale — «${it.body}»`)
+
+  // Nessuna delle altre lingue promette l'Italia: la loro zona e' l'Unione.
+  for (const locale of ['en', 'fr', 'es', 'de']) {
+    const title = renderBadge(locale, 'EU').title
+    assert.ok(
+      !/italia|italy|italie|italien/i.test(title),
+      `${locale}: il badge europeo nomina l'Italia — «${title}»`,
+    )
+  }
+
+  // Il caso del cliente: la promessa — ora qualificata — e' coerente col
+  // checkout, che segue l'INDIRIZZO e non la lingua.
+  assert.equal(freeShippingRemaining(100, 'FR'), 50)
+  assert.equal(calculateShipping(100, 'FR').cost, 14.99)
+  assert.equal(calculateShipping(100, 'FR').isFree, false)
+
+  // Il caso opposto (inglese, indirizzo italiano): la soglia applicata e' 60,
+  // quindi non compare nessun 150 a schermo — la riga «aggiungi» non esiste
+  // perche' la spedizione e' gia' gratuita.
+  assert.equal(calculateShipping(100, 'IT').isFree, true)
+  assert.equal(freeShippingRemaining(100, 'IT'), 0)
+  assert.equal(freeShippingBadgeCopy('en', 'IT').amount, '60')
+})
+
+test('con destinazione da quotare il badge «dazi e IVA inclusi» non si mostra', () => {
+  // Il difetto misurato il 12/11/2026 su BR: la riga diceva «Spedizione — BR:
+  // To be quoted» mentre il badge affermava che dazi e IVA erano «inclusi nel
+  // prezzo di spedizione». Quel prezzo non esiste: la frase descriveva un
+  // prezzo che nessuno ha quotato.
+  const br = calculateShipping(12000, 'BR')
+  assert.equal(br.zone, 'EXTRA_EU')
+  assert.equal(br.requiresQuote, true, 'BR e\' una destinazione da quotare')
+  assert.equal(
+    checkoutImportDutiesBadgeVisible({ zone: br.zone, isFree: br.isFree, requiresQuote: br.requiresQuote }),
+    false,
+    'su una destinazione da quotare il badge non compare',
+  )
+
+  // Destinazione extra-UE con prezzo landed vero (CH): il badge resta, e dice
+  // il vero — li' dazi e IVA sono davvero inclusi nel prezzo incassato.
+  const ch = calculateShipping(10000, 'CH')
+  assert.equal(ch.requiresQuote, false)
+  assert.equal(
+    checkoutImportDutiesBadgeVisible({ zone: ch.zone, isFree: ch.isFree, requiresQuote: ch.requiresQuote }),
+    true,
+  )
+
+  // Fuori dall'extra-UE la promessa e' la soglia, non «dazi inclusi».
+  for (const country of ['IT', 'DE']) {
+    const rate = calculateShipping(10, country)
+    assert.equal(
+      checkoutImportDutiesBadgeVisible({ zone: rate.zone, isFree: rate.isFree, requiresQuote: rate.requiresQuote }),
+      false,
+      `${country}: il badge doganale non appartiene alle zone senza dogana`,
+    )
+  }
+
+  // Una spedizione gratis non «include» oneri: nessun badge nemmeno li'.
+  assert.equal(
+    checkoutImportDutiesBadgeVisible({ zone: 'EXTRA_EU', isFree: true, requiresQuote: false }),
+    false,
+  )
+
+  // Il testo «inclusi» esiste ancora (e' vero su CH): a nasconderlo su BR e'
+  // la guardia, non una riscrittura della copy. Se il badge ricomparisse, la
+  // frase tornerebbe a descrivere un prezzo inesistente.
+  assert.equal(freeShippingBadgeCopy('it', 'EXTRA_EU').bodyKey, 'bodyExtraEu')
+})
+
+test('la pagina di checkout usa la guardia, non una condizione scritta a mano', () => {
+  // Il test sopra prova la REGOLA; questo prova il CABLAGGIO. Sono due cose
+  // diverse: la condizione nel JSX era `isExtraEuDestination && !shipping.isFree`
+  // — due terzi dei termini — e nessun test della libreria poteva accorgersi che
+  // il terzo mancava, perche' la pagina non e' importabile in un test di node.
+  const page = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'app', '[locale]', 'checkout', 'page.tsx'),
+    'utf8',
+  )
+
+  assert.ok(
+    /import\s*\{[^}]*checkoutImportDutiesBadgeVisible[^}]*\}\s*from\s*'@\/lib\/free-shipping-badge'/.test(page),
+    'il checkout deve importare la guardia da @/lib/free-shipping-badge',
+  )
+  assert.ok(
+    page.includes('showImportDutiesBadge') && /\{showImportDutiesBadge && \(/.test(page),
+    'il blocco del badge deve essere condizionato a showImportDutiesBadge',
+  )
+  // Gli argomenti si passano dal valore vero, non da una costante: la mutazione
+  // `requiresQuote: false` lasciava il test verde finche' non si pinna anche la
+  // forma della chiamata.
+  assert.ok(
+    /const showImportDutiesBadge = checkoutImportDutiesBadgeVisible\(\{\s*zone: baseShipping\.zone,\s*isFree: shipping\.isFree,\s*requiresQuote: baseShipping\.requiresQuote,\s*\}\)/.test(page),
+    'la guardia deve ricevere zona, gratuita e requiresQuote dai valori calcolati dal checkout',
+  )
+  assert.ok(
+    !/isExtraEuDestination && !shipping\.isFree/.test(page),
+    'la vecchia condizione a due termini non deve piu\' decidere la visibilita\' del badge',
+  )
 })
 
 test('gli importi si formattano nella lingua della pagina', () => {
