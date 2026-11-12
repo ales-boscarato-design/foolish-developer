@@ -920,12 +920,9 @@ export default function CheckoutPage() {
               )}
 
               {/* Destinazione da quotare: nessun prezzo esiste, quindi niente badge
-                  «dazi e IVA inclusi». La riga che lo sostituisce dice cosa manca. */}
-              {isExtraEuDestination && baseShipping.requiresQuote && (
-                <p className="text-xs pb-2" style={{ color: 'var(--muted-fg)' }}>
-                  {t('shippingQuoteRequiredNote')}
-                </p>
-              )}
+                  «dazi e IVA inclusi». La spiegazione sta nel banner sopra il
+                  carrello (`shippingQuoteRequiredNote`), una volta sola: qui il
+                  riepilogo mostra gia' «Da quotare» nella riga spedizione. */}
 
               {proDiscount > 0 && (
                 <div className="flex justify-between py-2" style={{ borderBottom: '1px solid var(--surface-3)' }}>

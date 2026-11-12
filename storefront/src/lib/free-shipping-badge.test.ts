@@ -379,6 +379,13 @@ test('la pagina di checkout usa la guardia, non una condizione scritta a mano', 
     page.includes('showImportDutiesBadge') && /\{showImportDutiesBadge && \(/.test(page),
     'il blocco del badge deve essere condizionato a showImportDutiesBadge',
   )
+  // Gli argomenti si passano dal valore vero, non da una costante: la mutazione
+  // `requiresQuote: false` lasciava il test verde finche' non si pinna anche la
+  // forma della chiamata.
+  assert.ok(
+    /const showImportDutiesBadge = checkoutImportDutiesBadgeVisible\(\{\s*zone: baseShipping\.zone,\s*isFree: shipping\.isFree,\s*requiresQuote: baseShipping\.requiresQuote,\s*\}\)/.test(page),
+    'la guardia deve ricevere zona, gratuita e requiresQuote dai valori calcolati dal checkout',
+  )
   assert.ok(
     !/isExtraEuDestination && !shipping\.isFree/.test(page),
     'la vecchia condizione a due termini non deve piu\' decidere la visibilita\' del badge',
