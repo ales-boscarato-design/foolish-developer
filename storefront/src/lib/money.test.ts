@@ -12,6 +12,7 @@ import {
   formatEuroCents,
   formatMoney,
   formatMoneyCents,
+  formatWholeMoney,
   normalizeMoneyLocale,
 } from './money'
 import { resolveCheckoutCatalog } from './catalog'
@@ -209,6 +210,47 @@ test('ogni lingua ha il suo locale esplicito: nessun Intl che indovina la macchi
       `${locale}: la resa non e' quella di ${MONEY_LOCALE_TAGS[locale]}`,
     )
   }
+})
+
+// ------------------------------------------------------------ importi tondi
+
+test('un importo tondo si scrive senza decimali, con i tag espliciti della lingua', () => {
+  // La soglia della spedizione gratuita e' una promessa tonda: il badge dice
+  // «Gratis sopra 60€», non «60,00€». Ma il formato resta quello di questa
+  // autorita': stesso tag esplicito, stesso raggruppamento. La variante a zero
+  // decimali esiste perche' un importo che non e' un prezzo non deve leggersi
+  // come un prezzo.
+  for (const locale of MONEY_LOCALES) {
+    assert.equal(formatWholeMoney(locale, 60), '60', `${locale}: sessanta`)
+    assert.equal(formatWholeMoney(locale, 150), '150', `${locale}: centocinquanta`)
+    const reference: Intl.NumberFormat = new Intl.NumberFormat(MONEY_LOCALE_TAGS[locale], {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+      useGrouping: true,
+    })
+    assert.equal(
+      formatWholeMoney(locale, 1234),
+      reference.format(1234),
+      `${locale}: la resa tonda non e' quella di ${MONEY_LOCALE_TAGS[locale]}`,
+    )
+  }
+  // Il raggruppamento e' quello della lingua (non quello del sistema): lo stesso
+  // 1234 ha la stessa forma tonda e a due decimali.
+  assert.equal(formatWholeMoney('it', 1234), '1.234')
+  assert.equal(formatWholeMoney('en', 1234), '1,234')
+  assert.equal(formatWholeMoney('de', 1234), '1.234')
+  // Una lingua non pubblicata ricade sul default di routing, mai su `undefined`.
+  assert.equal(formatWholeMoney('xx', 60), '60')
+  assert.equal(formatWholeMoney(undefined, 60), '60')
+})
+
+test('un importo con centesimi si ferma: non si arrotonda a una promessa tonda', () => {
+  // Se una soglia diventasse 59,90 il badge non deve scrivere «60» (una promessa
+  // piu' larga di quella vera): chi ha centesimi usa `formatMoney`.
+  assert.throws(() => formatWholeMoney('it', 59.9), /centesimi/)
+  assert.throws(() => formatWholeMoney('it', 0.01), /centesimi/)
+  assert.throws(() => formatWholeMoney('it', Number.NaN), /non finito/)
+  assert.throws(() => formatWholeMoney('it', Number.POSITIVE_INFINITY), /non finito/)
 })
 
 // ------------------------------------------------------- centesimi interi

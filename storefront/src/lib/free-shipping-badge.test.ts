@@ -9,7 +9,6 @@ import {
   badgeZoneForLocale,
   checkoutImportDutiesBadgeVisible,
   flatShippingCostEuros,
-  formatBadgeAmount,
   freeShippingBadgeCopy,
   freeShippingThresholdEuros,
   homeFreeShippingBadge,
@@ -22,6 +21,7 @@ import {
   getShippingZone,
   type ShippingZone,
 } from './shipping'
+import { MONEY_LOCALES, formatMoney, formatWholeMoney } from './money'
 
 /**
  * Il badge «spedizione gratuita» prometteva «€60» in tutte e cinque le lingue
@@ -393,16 +393,103 @@ test('la pagina di checkout usa la guardia, non una condizione scritta a mano', 
 })
 
 test('gli importi si formattano nella lingua della pagina', () => {
-  assert.equal(formatBadgeAmount('it', 7.65, 2), '7,65')
-  assert.equal(formatBadgeAmount('en', 7.65, 2), '7.65')
-  assert.equal(formatBadgeAmount('fr', 14.99, 2), '14,99')
-  assert.equal(formatBadgeAmount('de', 14.99, 2), '14,99')
-  assert.equal(formatBadgeAmount('es', 7.65, 2), '7,65')
-  // La soglia e' tonda in tutte le lingue: nessun decimale da leggere.
-  assert.equal(formatBadgeAmount('it', 60), '60')
-  assert.equal(formatBadgeAmount('en', 150), '150')
+  // La resa di prima, che non deve cambiare: la soglia e' tonda (`60`, `150`),
+  // la tariffa ha i centesimi (`7,65` / `7.65`). Le due funzioni sono quelle di
+  // `money.ts`: questo file non ne ha piu' una propria.
+  assert.equal(formatWholeMoney('it', 60), '60')
+  assert.equal(formatWholeMoney('en', 150), '150')
+  assert.equal(formatMoney('it', 7.65), '7,65')
+  assert.equal(formatMoney('en', 7.65), '7.65')
+  assert.equal(formatMoney('fr', 14.99), '14,99')
+  assert.equal(formatMoney('de', 14.99), '14,99')
+  assert.equal(formatMoney('es', 7.65), '7,65')
   // Locale non prevista o con regione: si ricade sulla lingua, mai su undefined.
   assert.equal(normalizeBadgeLocale('it-IT'), 'it')
   assert.equal(normalizeBadgeLocale('PT'), 'it')
-  assert.equal(formatBadgeAmount('xx', 60), '60')
+})
+
+test('il badge non ha un formattatore proprio: la resa e\' quella di money.ts', () => {
+  // Il difetto che questo test chiude: `free-shipping-badge.ts` costruiva un
+  // `Intl.NumberFormat` con la lingua nuda (`it`, `en`, …) invece dei tag
+  // espliciti di `money.ts` (`it-IT`, `en-GB`, …). Due formattatori nella
+  // stessa pagina non si vedevano finche' la soglia resta un intero; la deriva
+  // si sarebbe vista con una lingua nuova o con una soglia decimale.
+  for (const locale of FREE_SHIPPING_BADGE_LOCALES) {
+    const zone = badgeZoneForLocale(locale)
+    const badge = freeShippingBadgeCopy(locale, zone)
+    assert.equal(
+      badge.amount,
+      formatWholeMoney(locale, freeShippingThresholdEuros(zone)),
+      `${locale}: la soglia del badge non e' la stringa di formatWholeMoney`,
+    )
+    // La promessa e' tonda: nessun decimale nel segnaposto, in nessuna lingua.
+    assert.ok(
+      !/[.,]\d/.test(String(badge.amount)),
+      `${locale}: la soglia promessa ha dei decimali — «${String(badge.amount)}»`,
+    )
+  }
+
+  // Una sola lista di lingue: quella di money.ts. Una lingua aggiunta al
+  // negozio non deve esistere per il badge e non per gli importi.
+  assert.deepEqual([...FREE_SHIPPING_BADGE_LOCALES], [...MONEY_LOCALES])
+
+  // Le soglie configurate sono importi tondi: `formatWholeMoney` si ferma su un
+  // valore con centesimi invece di arrotondarlo a una promessa piu' larga.
+  for (const zone of ['IT', 'EU'] as const) {
+    assert.ok(
+      Number.isInteger(freeShippingThresholdEuros(zone)),
+      `${zone}: la soglia deve essere un importo tondo, non ${freeShippingThresholdEuros(zone)}`,
+    )
+  }
+})
+
+test('la guardia sul sorgente: il badge non torna a un Intl con la lingua nuda', () => {
+  // La resa identica si puo' ottenere in due modi — chiamando l'helper condiviso
+  // o ricostruendo un formattatore locale che oggi rende uguale. Questo test
+  // chiude il secondo: nel file del badge nessun `Intl.NumberFormat` proprio, e
+  // la soglia passa per `money.ts` con gli argomenti veri.
+  const source = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'lib', 'free-shipping-badge.ts'),
+    'utf8',
+  )
+
+  assert.ok(
+    !/new\s+Intl\.NumberFormat/.test(source),
+    'free-shipping-badge.ts non deve costruire un Intl.NumberFormat: i tag di lingua stanno in money.ts',
+  )
+  assert.ok(
+    !/formatBadgeAmount/.test(source),
+    'il badge non deve riesportare un formattatore proprio: gli importi si chiedono a ./money',
+  )
+  assert.ok(
+    /import\s*\{[^}]*\bformatWholeMoney\b[^}]*\}\s*from\s*'\.\/money'/.test(source),
+    'il badge deve formattare con l\'helper condiviso di ./money',
+  )
+  // Gli argomenti si pinnano: la soglia deve venire da `shipping.ts` e il locale
+  // dalla pagina, non da una costante o da un `Intl` che indovina.
+  assert.ok(
+    /amount:\s*formatWholeMoney\(locale,\s*freeShippingThresholdEuros\(zone\)\)/.test(source),
+    'la soglia deve passare per formatWholeMoney con la soglia di shipping.ts',
+  )
+
+  // La pagina dei termini (l'altro consumatore) formatta con `money.ts`: la
+  // tariffa a due decimali e la soglia tonda.
+  const termini = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'app', '[locale]', 'termini', 'page.tsx'),
+    'utf8',
+  )
+  assert.ok(
+    /cost:\s*formatMoney\(locale,\s*flatShippingCostEuros\('IT'\)\)/.test(termini) &&
+      /cost:\s*formatMoney\(locale,\s*flatShippingCostEuros\('EU'\)\)/.test(termini),
+    'i termini devono formattare la tariffa con formatMoney di @/lib/money',
+  )
+  assert.ok(
+    /amount:\s*formatWholeMoney\(locale,\s*freeShippingThresholdEuros\('IT'\)\)/.test(termini) &&
+      /amount:\s*formatWholeMoney\(locale,\s*freeShippingThresholdEuros\('EU'\)\)/.test(termini),
+    'i termini devono formattare la soglia con formatWholeMoney di @/lib/money',
+  )
+  assert.ok(
+    !/formatBadgeAmount/.test(termini),
+    'i termini non devono usare un formattatore del badge: non esiste piu\'',
+  )
 })
