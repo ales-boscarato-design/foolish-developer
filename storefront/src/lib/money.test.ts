@@ -481,17 +481,37 @@ test('il checkout non compone euro a mano e non formatta da solo', () => {
     'formattazione di numeri scritta in pagina: usare @/lib/money',
   )
 
-  // 3. `formatEuro` mai passato a una frase che ha gia' il suo `€`: il
-  // messaggio e' `... {amount}€`, quindi li' va `formatMoney`, altrimenti il
-  // cliente legge `106,65€€`. E' esattamente l'incidente che il merge con
-  // #62 puo' produrre, e nessun altro test lo vedrebbe.
-  const doubleSymbol = lines
-    .map((line, index) => ({ line, number: index + 1 }))
-    .filter(({ line }) => /\bt\s*\(/.test(line) && line.includes('formatEuro('))
+  // 3. `formatEuro`/`formatEuroCents` mai passati a una frase che ha gia' il
+  // suo `€`: il messaggio e' `... {amount}€`, quindi li' va `formatMoney`, che
+  // restituisce il solo numero, altrimenti il cliente legge `106,65€€`. E'
+  // esattamente l'incidente che il merge con #62 puo' produrre, e nessun altro
+  // test lo vedrebbe.
+  //
+  // La guardia non guarda le righe: una chiamata `t(` su piu' righe
+  // (`t('pay', {\n  amount: ... })`) sfuggirebbe a un filtro per riga, e la
+  // forma `formatEuroCents(` non contiene la sottostringa `formatEuro(`. Si
+  // scansiona il sorgente intero, si prende ogni `t(`/`tFreeShippingBadge(` e
+  // si legge l'argomento fino alla parentesi che lo chiude.
+  const source = fs.readFileSync(CHECKOUT_SOURCE, 'utf8')
+  const doubleSymbol: string[] = []
+  for (const call of source.matchAll(/\b(?:t|tFreeShippingBadge)\s*\(/g)) {
+    const start = call.index! + call[0].length
+    let depth = 1
+    let end = start
+    for (; end < source.length && depth > 0; end += 1) {
+      const char = source[end]
+      if (char === '(') depth += 1
+      else if (char === ')') depth -= 1
+    }
+    const argument = source.slice(start, end - 1)
+    if (/format(?:Euro|EuroCents)\s*\(/.test(argument)) {
+      doubleSymbol.push(argument.replace(/\s+/g, ' ').slice(0, 120))
+    }
+  }
   assert.deepEqual(
-    doubleSymbol.map((l) => `${l.number}: ${l.line.trim()}`),
+    doubleSymbol,
     [],
-    'formatEuro dentro una chiamata t(): la frase ha gia\' il simbolo, usare formatMoney',
+    'formatEuro/formatEuroCents dentro una chiamata t(): la frase ha gia\' il simbolo, usare formatMoneyCents',
   )
 })
 
