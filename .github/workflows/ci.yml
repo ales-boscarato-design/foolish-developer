@@ -87,6 +87,7 @@ jobs:
           npm run test:legacy-slugs --silent
           npm run test:promo --silent
           npm run test:shipping --silent
+          npm run test:free-shipping-badge --silent
           npm run test:landed-cost --silent
           npm run test:landed-cost-display --silent
           npm run test:spedizione-quote --silent

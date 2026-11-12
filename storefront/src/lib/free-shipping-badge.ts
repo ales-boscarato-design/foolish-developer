@@ -1,0 +1,121 @@
+/**
+ * Il badge «spedizione gratuita» — una promessa, un numero, nessuna copia.
+ *
+ * Il difetto che questo file chiude: il badge della home diceva «Gratis sopra
+ * €60» in tutte e cinque le lingue, ed era testo scritto a mano nei
+ * `messages/*.json`, mentre il codice applicava 50 all'Italia e 150 all'Unione
+ * Europea (`FLAT_ZONE_CONFIG` in `shipping.ts`). Un cliente francese leggeva
+ * «gratuito sopra 60» e a 60 pagava 14,99; un cliente italiano leggeva 60 e
+ * pagava lo stesso 7,65, perche' la soglia vera era 50.
+ *
+ * Qui non c'e' nessun numero: la soglia si legge da `shipping.ts`, si formatta
+ * per la lingua e si inietta nel testo attraverso il segnaposto `{amount}`.
+ * Cambiare una tariffa in `shipping.ts` cambia il badge in tutte le lingue, e
+ * non e' piu' possibile che i due diverg.
+ *
+ * Due promesse diverse, non una promessa sola tradotta:
+ *
+ *   IT / EU    soglia in euro sul valore merce, uguale per tutti i clienti
+ *              della zona;
+ *   EXTRA_EU   nessuna spedizione gratuita: il costo e' calcolato sulla
+ *              destinazione e comprende dazi e IVA all'importazione. Il prezzo
+ *              landed li INCLUDE (DDP), quindi il testo dice «inclusi» — non
+ *              «dovuti alla consegna», che sarebbe una seconda promessa e
+ *              quella non e' vera per un ordine gia' sdoganato.
+ *
+ * La zona del badge e' quella della lingua (la promessa che il visitatore sta
+ * leggendo in home); al checkout il numero lo decide l'INDIRIZZO, e questo file
+ * non interviene li': `freeShippingRemaining(cartTotal, country)` in
+ * `shipping.ts` prende il paese e basta, quindi non puo' essere contraddetto
+ * dalla lingua con cui il cliente ha aperto il sito.
+ */
+
+import { FLAT_ZONE_CONFIG, type ShippingZone } from './shipping'
+
+/** Le lingue pubblicate dal negozio (`src/i18n/routing.ts`). */
+export const FREE_SHIPPING_BADGE_LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
+export type FreeShippingBadgeLocale = (typeof FREE_SHIPPING_BADGE_LOCALES)[number]
+
+/**
+ * La zona della promessa, per lingua.
+ *
+ * `it` promette l'Italia, che ha una tariffa sua; `en` promette il valore
+ * generale dell'Unione Europea, che e' quello che vale per un indirizzo
+ * europeo; `fr`, `es` e `de` promettono la stessa zona EU. Nessuna delle
+ * cinque promette la spedizione gratuita extra-UE, perche' non esiste.
+ */
+export const BADGE_ZONE_BY_LOCALE: Record<FreeShippingBadgeLocale, 'IT' | 'EU'> = {
+  it: 'IT',
+  en: 'EU',
+  fr: 'EU',
+  es: 'EU',
+  de: 'EU',
+}
+
+/** Locale pubblicata, o `it` (il default di routing) per un valore non previsto. */
+export function normalizeBadgeLocale(locale: string): FreeShippingBadgeLocale {
+  const base = String(locale ?? '').toLowerCase().split('-')[0]
+  return (FREE_SHIPPING_BADGE_LOCALES as readonly string[]).includes(base)
+    ? (base as FreeShippingBadgeLocale)
+    : 'it'
+}
+
+/** La zona promessa dalla lingua (non dall'indirizzo: quella la decide il checkout). */
+export function badgeZoneForLocale(locale: string): 'IT' | 'EU' {
+  return BADGE_ZONE_BY_LOCALE[normalizeBadgeLocale(locale)]
+}
+
+/** Soglia di spedizione gratuita della zona, in euro, dall'unica fonte. */
+export function freeShippingThresholdEuros(zone: 'IT' | 'EU'): number {
+  return FLAT_ZONE_CONFIG[zone].freeAbove
+}
+
+/** Tariffa piatta della zona, in euro, dall'unica fonte (la usano i termini). */
+export function flatShippingCostEuros(zone: 'IT' | 'EU'): number {
+  return FLAT_ZONE_CONFIG[zone].cost
+}
+
+/**
+ * Un importo come lo legge quella lingua: `60` in tutte e cinque (la soglia e'
+ * tonda), `7,65` in italiano e `7.65` in inglese per la tariffa. La formattazione
+ * sta qui e non nei JSON, altrimenti la virgola decimale cambierebbe da sola.
+ */
+export function formatBadgeAmount(locale: string, amount: number, fractionDigits = 0): string {
+  return new Intl.NumberFormat(normalizeBadgeLocale(locale), {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(amount)
+}
+
+/**
+ * Cosa mostrare nel badge: le chiavi del namespace `home.badges.freeShipping`
+ * e l'importo (gia' formattato) da passare al segnaposto `{amount}`.
+ *
+ * Le chiavi sono restituite invece del testo perche' il testo deve restare nei
+ * `messages/*.json` (una traduzione non si scrive nel codice) e perche' il
+ * chiamante lo rende con next-intl, che e' l'unico che sa interpolare.
+ */
+export type FreeShippingBadgeCopy = {
+  titleKey: 'title' | 'titleExtraEu'
+  bodyKey: 'body' | 'bodyExtraEu'
+  /** importo formattato per il segnaposto; `null` quando non c'e' una soglia. */
+  amount: string | null
+}
+
+export function freeShippingBadgeCopy(locale: string, zone: ShippingZone): FreeShippingBadgeCopy {
+  if (zone === 'EXTRA_EU') {
+    // Nessun importo: su extra-UE non esiste una soglia, e il testo non deve
+    // nemmeno suggerirla.
+    return { titleKey: 'titleExtraEu', bodyKey: 'bodyExtraEu', amount: null }
+  }
+  return {
+    titleKey: 'title',
+    bodyKey: 'body',
+    amount: formatBadgeAmount(locale, freeShippingThresholdEuros(zone)),
+  }
+}
+
+/** Il badge della home: la zona la decide la lingua con cui si sta leggendo. */
+export function homeFreeShippingBadge(locale: string): FreeShippingBadgeCopy {
+  return freeShippingBadgeCopy(locale, badgeZoneForLocale(locale))
+}

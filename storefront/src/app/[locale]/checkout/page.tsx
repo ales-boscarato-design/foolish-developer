@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { useCart } from '@/lib/cart'
 import { track } from '@/lib/analytics'
 import {
@@ -9,6 +9,7 @@ import {
   calculateShipping,
   freeShippingRemaining,
 } from '@/lib/shipping'
+import { freeShippingBadgeCopy } from '@/lib/free-shipping-badge'
 import { extraEuDisplayedPriceCents } from '@/lib/landed-cost-price'
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import Image from 'next/image'
@@ -49,6 +50,10 @@ interface AddressSuggestion {
 
 export default function CheckoutPage() {
   const t = useTranslations('checkout')
+  // Il badge della spedizione gratuita vive nel namespace della home: e' la
+  // stessa promessa, e nel checkout deve parlare della DESTINAZIONE.
+  const tFreeShippingBadge = useTranslations('home.badges.freeShipping')
+  const locale = useLocale()
   const { items, remove, updateQty, total } = useCart()
 
   // Shipping
@@ -140,6 +145,11 @@ export default function CheckoutPage() {
   ? (promoData?.discountAmount ?? 0)
   : 0
   const isExtraEuDestination = baseShipping.zone === 'EXTRA_EU'
+  // Il badge qui segue l'indirizzo, non la lingua con cui e' stato aperto il
+  // sito: `freeShippingRemaining` prende il paese e basta, quindi la soglia
+  // mostrata e quella applicata non possono divergere. Su extra-UE la copy
+  // cambia e non promette niente.
+  const freeShippingBadge = freeShippingBadgeCopy(locale, baseShipping.zone)
   // Quello che il cliente vede e' quello che paga. Sulle destinazioni extra-UE
   // il prezzo lo decide il negozio: se il server ha risposto si mostra QUEL
   // prezzo (e' lo stesso che il gettone firmato fa incassare); se la risposta
@@ -884,11 +894,19 @@ export default function CheckoutPage() {
               </div>
 
               {isExtraEuDestination && !shipping.isFree && (
-                <p className="text-xs pb-2" style={{ color: 'var(--muted-fg)' }}>
-                  {shippingPriceVerified
-                    ? t('shippingVerifiedNote')
-                    : t('shippingPrudentialNote')}
-                </p>
+                <>
+                  <p className="text-xs font-medium pb-1" style={{ color: 'var(--foreground)' }}>
+                    {tFreeShippingBadge(freeShippingBadge.titleKey)}
+                  </p>
+                  <p className="text-xs pb-1" style={{ color: 'var(--muted-fg)' }}>
+                    {tFreeShippingBadge(freeShippingBadge.bodyKey)}
+                  </p>
+                  <p className="text-xs pb-2" style={{ color: 'var(--muted-fg)' }}>
+                    {shippingPriceVerified
+                      ? t('shippingVerifiedNote')
+                      : t('shippingPrudentialNote')}
+                  </p>
+                </>
               )}
 
               {proDiscount > 0 && (

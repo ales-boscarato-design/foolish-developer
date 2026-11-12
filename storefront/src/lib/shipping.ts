@@ -4,7 +4,7 @@
  * Tre zone, definite da come si attraversa il confine doganale, non da come
  * si chiama il continente:
  *
- *   IT        7,65 EUR  → gratis sopra 50 EUR      (tariffa corriere)
+ *   IT        7,65 EUR  → gratis sopra 60 EUR      (tariffa corriere)
  *   EU        14,99 EUR → gratis sopra 150 EUR     (tariffa corriere)
  *   EXTRA_EU  costo sdoganato (landed cost)        (mai sotto il costo stimato)
  *
@@ -652,7 +652,7 @@ interface FlatZoneConfig {
 
 /** Zone senza dogana: nessun cambiamento rispetto alla tariffa corriere. */
 export const FLAT_ZONE_CONFIG: Record<'IT' | 'EU', FlatZoneConfig> = {
-  IT: { cost: 7.65, freeAbove: 50 },
+  IT: { cost: 7.65, freeAbove: 60 },
   EU: { cost: 14.99, freeAbove: 150 },
 }
 
