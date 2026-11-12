@@ -41,6 +41,24 @@ function readMessages(locale: string): Messages {
   return JSON.parse(fs.readFileSync(file, 'utf8')) as Messages
 }
 
+/**
+ * Il sorgente senza le righe di commento.
+ *
+ * La prosa di un commento puo' nominare `Intl` — questi file lo fanno, per
+ * spiegare il difetto che chiudono — senza costruirne uno, e una guardia che
+ * leggesse i commenti come codice segnalerebbe se stessa. Il filtro toglie solo
+ * le righe che iniziano con `//`, `/*` o `*`: in TS una di quelle righe non puo'
+ * contenere codice eseguibile, quindi non nasconde nulla (un commento in coda a
+ * una riga di codice resta nel testo, e fa fallire la guardia — direzione
+ * giusta).
+ */
+function codeLines(source: string): string {
+  return source
+    .split('\n')
+    .filter((line) => !/^\s*(\/\/|\/\*|\*)/.test(line))
+    .join('\n')
+}
+
 function namespace(messages: Messages, dotted: string): Record<string, unknown> {
   let node: unknown = messages
   for (const part of dotted.split('.')) {
@@ -446,24 +464,39 @@ test('il badge non ha un formattatore proprio: la resa e\' quella di money.ts', 
 test('la guardia sul sorgente: il badge non torna a un Intl con la lingua nuda', () => {
   // La resa identica si puo' ottenere in due modi — chiamando l'helper condiviso
   // o ricostruendo un formattatore locale che oggi rende uguale. Questo test
-  // chiude il secondo: nel file del badge nessun `Intl.NumberFormat` proprio, e
-  // la soglia passa per `money.ts` con gli argomenti veri.
-  const source = fs.readFileSync(
-    path.join(process.cwd(), 'src', 'lib', 'free-shipping-badge.ts'),
-    'utf8',
+  // chiude il secondo.
+  //
+  // La guardia non cerca `new Intl.NumberFormat`: `Intl.NumberFormat` si puo'
+  // chiamare anche SENZA `new` (ES2020), e un helper importato con un alias
+  // lascerebbe libero il nome per una funzione locale con lo stesso nome —
+  // entrambe le forme reintroducevano il difetto con la suite verde (misurato
+  // dalla review indipendente di questa PR). Qui il file del badge non deve
+  // nominare `Intl` affatto, ne' ridefinire l'helper, ne' portarsi una seconda
+  // strada di formattazione (`toFixed`, `toLocaleString`).
+  const source = codeLines(
+    fs.readFileSync(path.join(process.cwd(), 'src', 'lib', 'free-shipping-badge.ts'), 'utf8'),
   )
 
   assert.ok(
-    !/new\s+Intl\.NumberFormat/.test(source),
-    'free-shipping-badge.ts non deve costruire un Intl.NumberFormat: i tag di lingua stanno in money.ts',
+    !/\bIntl\b/.test(source),
+    'free-shipping-badge.ts non deve nominare Intl (con o senza `new`, `globalThis` compreso): i tag di lingua stanno in money.ts',
+  )
+  assert.ok(
+    !/toFixed|toLocaleString|globalThis/.test(source),
+    "il badge non deve formattare da se': ne' `toFixed`, ne' `toLocaleString`, ne' `globalThis`",
+  )
+  assert.ok(
+    !/(function|const|let|var)\s+formatWholeMoney\b/.test(source),
+    'il badge non deve ridefinire localmente formatWholeMoney: deve usare quello di ./money',
   )
   assert.ok(
     !/formatBadgeAmount/.test(source),
     'il badge non deve riesportare un formattatore proprio: gli importi si chiedono a ./money',
   )
+  // L'import si pinna nella forma esatta (niente alias, che libererebbe il nome).
   assert.ok(
-    /import\s*\{[^}]*\bformatWholeMoney\b[^}]*\}\s*from\s*'\.\/money'/.test(source),
-    'il badge deve formattare con l\'helper condiviso di ./money',
+    /import\s*\{\s*formatWholeMoney\s*\}\s*from\s*'\.\/money'/.test(source),
+    'il badge deve importare formatWholeMoney da ./money con il suo nome, senza alias',
   )
   // Gli argomenti si pinnano: la soglia deve venire da `shipping.ts` e il locale
   // dalla pagina, non da una costante o da un `Intl` che indovina.
@@ -474,9 +507,8 @@ test('la guardia sul sorgente: il badge non torna a un Intl con la lingua nuda',
 
   // La pagina dei termini (l'altro consumatore) formatta con `money.ts`: la
   // tariffa a due decimali e la soglia tonda.
-  const termini = fs.readFileSync(
-    path.join(process.cwd(), 'src', 'app', '[locale]', 'termini', 'page.tsx'),
-    'utf8',
+  const termini = codeLines(
+    fs.readFileSync(path.join(process.cwd(), 'src', 'app', '[locale]', 'termini', 'page.tsx'), 'utf8'),
   )
   assert.ok(
     /cost:\s*formatMoney\(locale,\s*flatShippingCostEuros\('IT'\)\)/.test(termini) &&

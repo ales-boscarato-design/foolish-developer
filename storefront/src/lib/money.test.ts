@@ -54,6 +54,24 @@ function readMessages(locale: string): Record<string, unknown> {
   return JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, unknown>
 }
 
+/**
+ * Il sorgente senza le righe di commento.
+ *
+ * La prosa di un commento puo' nominare `Intl` — questi file lo fanno, per
+ * spiegare il difetto che chiudono — senza costruirne uno, e una guardia che
+ * leggesse i commenti come codice segnalerebbe se stessa. Il filtro toglie solo
+ * le righe che iniziano con `//`, `/*` o `*`: in TS una di quelle righe non puo'
+ * contenere codice eseguibile, quindi non nasconde nulla (un commento in coda a
+ * una riga di codice resta nel testo, e fa fallire la guardia — direzione
+ * giusta).
+ */
+function codeLines(source: string): string {
+  return source
+    .split('\n')
+    .filter((line) => !/^\s*(\/\/|\/\*|\*)/.test(line))
+    .join('\n')
+}
+
 function flatten(node: unknown, prefix = '', out: Record<string, string> = {}): Record<string, string> {
   if (node && typeof node === 'object') {
     for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
@@ -246,11 +264,44 @@ test('un importo tondo si scrive senza decimali, con i tag espliciti della lingu
 
 test('un importo con centesimi si ferma: non si arrotonda a una promessa tonda', () => {
   // Se una soglia diventasse 59,90 il badge non deve scrivere «60» (una promessa
-  // piu' larga di quella vera): chi ha centesimi usa `formatMoney`.
-  assert.throws(() => formatWholeMoney('it', 59.9), /centesimi/)
-  assert.throws(() => formatWholeMoney('it', 0.01), /centesimi/)
-  assert.throws(() => formatWholeMoney('it', Number.NaN), /non finito/)
-  assert.throws(() => formatWholeMoney('it', Number.POSITIVE_INFINITY), /non finito/)
+  // piu' larga di quella vera): chi ha centesimi usa `formatMoney`. Il controllo
+  // e' sul valore in ingresso, quindi anche 59,999 si ferma invece di essere
+  // arrotondato ai centesimi e poi all'euro.
+  assert.throws(() => formatWholeMoney('it', 59.9), /non intero/)
+  assert.throws(() => formatWholeMoney('it', 0.01), /non intero/)
+  assert.throws(() => formatWholeMoney('it', 59.999), /non intero/)
+  assert.throws(() => formatWholeMoney('it', Number.NaN), /non intero/)
+  assert.throws(() => formatWholeMoney('it', Number.POSITIVE_INFINITY), /non intero/)
+})
+
+test('i formattatori si costruiscono dal tag esplicito, mai dalla lingua nuda', () => {
+  // Le cinque lingue rendono uguale con la lingua nuda e con il tag su un
+  // importo tondo (`it` e `it-IT` danno `60`), quindi nessun confronto di
+  // stringhe puo' accorgersi che i tag espliciti sono spariti: la regressione
+  // che questa PR chiude si vede solo sul sorgente. Questo test la chiude nel
+  // file che ora e' l'unica autorita' del formato.
+  const source = codeLines(fs.readFileSync(path.join(process.cwd(), 'src', 'lib', 'money.ts'), 'utf8'))
+
+  const tagged = source.match(/new Intl\.NumberFormat\(MONEY_LOCALE_TAGS\[locale\],/g) ?? []
+  assert.equal(
+    tagged.length,
+    2,
+    'i due formattatori (2 decimali e importo tondo) devono costruirsi dal tag esplicito',
+  )
+  // Nessuna terza strada, e nessuna chiamata senza `new` (ammessa da ES2020):
+  // entrambe costruirebbero un formattatore che il conteggio qui sopra non vede.
+  const constructed = source.match(/new Intl\.NumberFormat\(/g) ?? []
+  const mentioned = source.match(/Intl\.NumberFormat\(/g) ?? []
+  assert.equal(
+    constructed.length,
+    2,
+    'money.ts non deve costruire altri formattatori oltre ai due (2 decimali e importo tondo)',
+  )
+  assert.equal(
+    mentioned.length,
+    constructed.length,
+    'nessun `Intl.NumberFormat(...)` chiamato senza `new`: sarebbe un terzo formattatore invisibile',
+  )
 })
 
 // ------------------------------------------------------- centesimi interi

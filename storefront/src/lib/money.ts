@@ -214,16 +214,24 @@ export function formatEuro(locale: string | null | undefined, amount: number): s
  * appartiene — ma i separatori (e la lingua) sono gli stessi del resto della
  * pagina, perche' li decide questo file e nessun altro.
  *
- * Un importo con centesimi e' un errore di programmazione: arrotondarlo a un
- * euro intero scriverebbe in pagina una promessa diversa da quella del codice
- * (`59,90` diventerebbe «gratis sopra 60»), che e' esattamente la deriva che
- * questa funzione non deve permettere. Chi ha importi con centesimi usa
- * `formatMoney`.
+ * Un importo con centesimi e' un errore di programmazione e si ferma qui
+ * (fail-closed): arrotondarlo a un euro intero scriverebbe in pagina una
+ * promessa diversa da quella del codice (`59,90` diventerebbe «gratis sopra
+ * 60»). Le soglie non sono dati di CMS ma costanti di codice
+ * (`FLAT_ZONE_CONFIG` in `shipping.ts`), quindi un valore frazionario richiede
+ * un commit, e i test che pinnano l'interezza delle soglie
+ * (`free-shipping-badge.test.ts`, `shipping.test.ts`, `money.test.ts`) lo
+ * fermano prima del deploy: la pagina non puo' cadere in produzione per un
+ * valore che solo una modifica al codice puo' introdurre. Chi ha importi con
+ * centesimi usa `formatMoney`.
  */
 export function formatWholeMoney(locale: string | null | undefined, amount: number): string {
-  const cents = eurosToDisplayCents(amount)
-  if (cents % 100 !== 0) {
-    throw new TypeError(`formatWholeMoney: importo con centesimi (${String(amount)})`)
+  // `eurosToDisplayCents` arrotonderebbe ai centesimi (`59.999` -> `60,00`):
+  // qui la promessa e' «niente arrotondamenti», quindi si controlla il valore
+  // in ingresso, non il centesimo. Un valore non numerico o non finito si ferma
+  // qui invece di entrare in pagina.
+  if (typeof amount !== 'number' || !Number.isInteger(amount)) {
+    throw new TypeError(`formatWholeMoney: importo non intero (${String(amount)})`)
   }
-  return wholeFormatterFor(normalizeMoneyLocale(locale)).format(cents / 100)
+  return wholeFormatterFor(normalizeMoneyLocale(locale)).format(eurosToDisplayCents(amount) / 100)
 }
