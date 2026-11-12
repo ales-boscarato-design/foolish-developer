@@ -8,6 +8,7 @@ import {
   EXTRA_EU_MARGIN_RATE,
   EXTRA_EU_MINIMUM_SHIPPING,
   GBP_PER_EUR,
+  INSURANCE_RULE,
   LANDED_COST_COUNTRIES,
   SWITZERLAND_PROFILE,
   UNCALIBRATED_EXTRA_EU_POLICY,
@@ -15,6 +16,8 @@ import {
   calculateShipping,
   freeShippingRemaining,
   getShippingZone,
+  insurancePremium,
+  insuranceRateForBase,
   isFreeShippingPromoAllowed,
   shippingRequiresQuote,
   uncalibratedExtraEuProfile,
@@ -165,9 +168,15 @@ test('le regole misurate valgono fuori dal punto misurato (non e\' una compensaz
   // La formula indipendente, per ogni valore di merce g (centesimi esatti):
   //   iva   = round((g + 23,00) * 0,081)
   //   spese = 23,00 + 0,99 + iva + 4,89 + 4,96          (premio escluso)
-  //   premio= round((g + spese) * 0,025)
+  //   base  = g + spese                                  (base assicurata)
+  //   premio= max(0,99, round(base * (base >= 500 ? 0,03 : 0,025)))
   //   costo = spese + premio
   //   prezzo= max(costo + round(costo * 0,10), 48,00)
+  //
+  // Lo scatto e il minimo sono la regola misurata del servizio (11 punti su
+  // Packlink PRO, vedi `INSURANCE_RULE`): sulle ancore fino a 400 la base resta
+  // sotto 500 e il premio e' ancora 2,5%; da 500 di merce in su la base e' sopra
+  // la soglia e lo scatto si vede (era 90,61 col 2,5% piatto).
   const anchors: Array<[number, number, number]> = [
     [30, 39.83, 48.00], // 43,81 stimati: sotto il pavimento, quindi 48,00
     [50, 41.99, 48.00], // 46,19 stimati: sotto il pavimento
@@ -175,7 +184,8 @@ test('le regole misurate valgono fuori dal punto misurato (non e\' una compensaz
     [150, 52.80, 58.08],
     [200, 58.20, 64.02],
     [300, 69.00, 75.90],
-    [500, 90.61, 99.67],
+    [400, 79.80, 87.78], // base 468,10: ancora sotto la soglia, 2,5%
+    [500, 93.49, 102.84], // base 576,20: sopra 500, quindi 3% — premio 17,29
   ]
   for (const [goods, cost, price] of anchors) {
     const rate = calculateShipping(goods, 'CH')
@@ -187,6 +197,83 @@ test('le regole misurate valgono fuori dal punto misurato (non e\' una compensaz
     assert.equal(rate.cost, price, `${goods} EUR di merce: prezzo addebitato (costo + 10%, pavimento sotto)`)
     // Il prezzo non sta mai sotto il costo stimato.
     assert.ok(rate.cost >= (rate.landedCost?.estimatedCost ?? 0))
+  }
+})
+
+test('la regola dell\'assicurazione e\' quella del servizio: scatto al 3% da 500,00 e minimo 0,99', () => {
+  // Impronta della regola: gli 11 punti misurati su Packlink PRO (21/09/2026)
+  // che il servizio `hermes-landed-cost` riproduce al centesimo. Se la copia del
+  // negozio resta indietro, il primo punto fuori misura qui e' la prova — senza
+  // questi punti la divergenza (2,5% piatto contro 2,5%/3% + minimo) si vede
+  // solo come margine che sparisce sui carrelli alti.
+  for (const [base, expected] of INSURANCE_RULE.measuredPoints) {
+    assert.equal(insurancePremium(base), expected, `base ${base}: premio misurato ${expected}`)
+  }
+
+  // Il confine e' INCLUSIVO: 499,99 paga il 2,5%, 500,00 paga il 3% (misurato:
+  // 500,00 -> 15,00, cioe' 1500 / 50000 in proporzione).
+  assert.equal(insuranceRateForBase(499.99), 0.025)
+  assert.equal(insuranceRateForBase(500), 0.03)
+  assert.equal(insurancePremium(400), 10.0)
+  assert.equal(insurancePremium(499.99), 12.5)
+  assert.equal(insurancePremium(500), 15.0)
+  assert.equal(insurancePremium(600), 18.0)
+  assert.equal(insurancePremium(50_000), 1500.0)
+
+  // Il minimo morde dove il 2,5% scenderebbe sotto 0,99 (base < 39,60):
+  assert.equal(insurancePremium(10), 0.99)
+  assert.equal(insurancePremium(23.9), 0.99)
+  assert.equal(insurancePremium(39.59), 0.99)
+  assert.equal(insurancePremium(39.6), 0.99)
+
+  // Base nulla o non finita: nessun premio inventato.
+  for (const zero of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+    assert.equal(insurancePremium(zero), 0, String(zero))
+  }
+})
+
+test('sul ripiego del profilo il premio segue la regola del servizio e il prezzo resta sopra il costo', () => {
+  // Il difetto che questa prova blocca: il profilo portava il 2,5% PIATTO, senza
+  // scatto e senza minimo. Sopra 500,00 di base il premio era piu' basso del
+  // costo vero e il margine si assottigliava da solo quanto piu' alta era la
+  // merce (CH merce 500,00: premio 14,41 contro 17,29). Base, premio e costo qui
+  // sono RICALCOLATI dalla regola, non letti dal modulo: un test che ripete la
+  // formula del codice non dice se la formula e' quella giusta.
+  const cases: Array<[number, number, number]> = [
+    // merce, base assicurata (merce + spedizione sostenuta), premio
+    [400, 468.10, 11.70], // sotto la soglia: 2,5%
+    [499.99, 576.19, 17.29], // la base e' gia' sopra 500,00 grazie alla spedizione
+    [500, 576.20, 17.29],
+    [600, 684.30, 20.53],
+    [50_000, 54_085.70, 1622.57], // 3% di 54.085,70
+  ]
+  for (const [goods, base, premium] of cases) {
+    const landed = calculateLandedCost(goods, SWITZERLAND_PROFILE)
+    const shippingCostExclPremium =
+      Math.round(
+        (landed.carrier
+          + landed.duty
+          + landed.importVat
+          + landed.fixedImportFee
+          + landed.ddpFee
+          + landed.handlingFee) * 100,
+      ) / 100
+    assert.equal(
+      Math.round((goods + shippingCostExclPremium) * 100) / 100,
+      base,
+      `${goods}: base assicurata (merce + spedizione sostenuta)`,
+    )
+    assert.equal(landed.insurance, premium, `${goods}: premio sulla base ${base}`)
+    // L'invariante del profilo: il costo sdoganato e' la SOMMA delle voci (nessun
+    // premio contato due volte, nessuna voce invisibile) e la quota che il
+    // checkout usa non e' mai sotto il costo.
+    assert.equal(
+      Math.round((shippingCostExclPremium + landed.insurance) * 100) / 100,
+      landed.estimatedCost,
+      `${goods}: costo diverso dalla somma delle voci`,
+    )
+    assert.ok(landed.total >= landed.estimatedCost, `${goods}: prezzo sotto costo`)
+    assert.equal(calculateShipping(goods, 'CH').cost, landed.total, `${goods}: la tariffa e' il prezzo`)
   }
 })
 
@@ -503,11 +590,11 @@ test('un carrello non finito non diventa un prezzo NaN e il margine non puo\' es
     assert.ok(Number.isFinite(rate.cost), `${bad}: prezzo non finito`)
     // Senza merce restano il trasporto, gli oneri fissi, l'IVA minima e il
     // premio sulla base (che a merce zero e' la sola spedizione sostenuta):
-    // 23,00 + 0,99 + 4,89 + 4,96 + 1,86 (8,1% su 23,00) = 35,70, + 0,89 di
-    // premio (2,5% di 35,70) = 36,59 di costo, +10% = 40,25. Sotto il
-    // pavimento, quindi si addebitano 48,00.
-    assert.equal(rate.landedCost?.estimatedCost, 36.59)
-    assert.equal(rate.landedCost?.total, 40.25)
+    // 23,00 + 0,99 + 4,89 + 4,96 + 1,86 (8,1% su 23,00) = 35,70, + 0,99 di
+    // premio (qui morde il MINIMO della regola: il 2,5% di 35,70 sarebbe 0,89)
+    // = 36,69 di costo, +10% = 40,36. Sotto il pavimento, quindi si addebitano 48,00.
+    assert.equal(rate.landedCost?.estimatedCost, 36.69)
+    assert.equal(rate.landedCost?.total, 40.36)
     assert.equal(rate.cost, EXTRA_EU_MINIMUM_SHIPPING)
   }
 
@@ -527,8 +614,8 @@ test('un carrello negativo non produce una scomposizione negativa', () => {
     assert.ok(rate.landedCost, `${bad}: manca la scomposizione`)
     if (!rate.landedCost) continue
     assert.equal(rate.landedCost.importVat, 1.86, `${bad}: IVA negativa o diversa da quella a merce zero`)
-    assert.equal(rate.landedCost.insurance, 0.89, `${bad}: assicurazione negativa o diversa da quella a merce zero`)
-    assert.equal(rate.landedCost.estimatedCost, 36.59, `${bad}: costo diverso da quello a merce zero`)
+    assert.equal(rate.landedCost.insurance, 0.99, `${bad}: assicurazione negativa o diversa dal minimo di regola a merce zero`)
+    assert.equal(rate.landedCost.estimatedCost, 36.69, `${bad}: costo diverso da quello a merce zero`)
     assert.ok(rate.landedCost.duty >= 0, `${bad}: dazio negativo`)
     assert.equal(rate.cost, EXTRA_EU_MINIMUM_SHIPPING)
   }

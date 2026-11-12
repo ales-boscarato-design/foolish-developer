@@ -25,7 +25,7 @@ import {
   tableCostCents,
   verifyQuoteToken,
 } from './landed-cost'
-import { EXTRA_EU_MINIMUM_SHIPPING, calculateShipping } from './shipping'
+import { EXTRA_EU_MINIMUM_SHIPPING, INSURANCE_RULE, calculateShipping } from './shipping'
 import { prudentialExtraEuPriceCents } from './landed-cost-price'
 import landedCostTable from './landed-cost-table.json'
 
@@ -250,8 +250,16 @@ test('ogni banda della tabella rispetta l invariante e dichiara la copertura', (
       const premium = Number(band.insurance_premium_cents)
       assert.ok(Number.isSafeInteger(base) && base > 0, label)
       assert.ok(Number.isSafeInteger(premium) && premium > 0, label)
-      // premio = 2,5% della base dichiarata. Il servizio arrotonda a due decimali
-      // con la sua regola (half-even): si pretende il centesimo, non il bit.
+      // premio = 2,5% della base dichiarata SOTTO la soglia di scatto: da 500,00
+      // la regola di Packlink passa al 3% (`INSURANCE_RULE` in shipping.ts, 11
+      // punti misurati). Il servizio arrotonda a due decimali con la sua regola
+      // (half-even): si pretende il centesimo, non il bit. La soglia si controlla
+      // prima, cosi' una banda rigenerata oltre 500,00 dice cosa rileggere invece
+      // di far sembrare sbagliata la tabella.
+      assert.ok(
+        base < INSURANCE_RULE.threshold * 100, // base in centesimi, soglia in euro
+        `${label}: banda sopra la soglia del 3%, rileggi la regola`,
+      )
       assert.ok(Math.abs(premium - base * 0.025) <= 1, `${label}: premio ${premium} su base ${base}`)
       // la base assicurata copre almeno la merce della banda
       assert.ok(base >= Number(band.goods_value_cents), label)
