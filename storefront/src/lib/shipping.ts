@@ -163,23 +163,21 @@ export interface ExtraEuProfile {
   /** Trasporto per il collo di riferimento della zona (2,0 kg). */
   carrier: number
   /**
-   * Assicurazione: quota sulla BASE ASSICURATA dichiarata dal servizio di quota
+   * Assicurazione: true = il premio si calcola sulla BASE ASSICURATA approvata
    * (policy `goods_plus_shipping` — decisione di Alessandro, 21/09/2026):
-   * valore merce + costo di spedizione sostenuto, premio escluso. L'aliquota e'
-   * quella dichiarata dal servizio (`insurance_coverage.rate`, 0,025) e sul
-   * punto misurato da' 3,57 su una base di 142,72 (merce 99,00 + 43,72 di
-   * spedizione).
+   * valore merce + costo di spedizione sostenuto, premio escluso. false/assente
+   * = solo sul valore della merce.
    *
-   * Prima del 21/09/2026 qui stava 0,0404 "della merce": riscriveva sulla merce
-   * un premio calcolato su una base assicurata diversa (160,00), smentita dalla
-   * diagnosi (le due quote differiscono SOLO per la base assicurata). Con
-   * `insuranceOnShippingCost` il premio segue la base approvata invece di una
-   * costante derivata a un punto di misura.
-   */
-  insuranceRate: number
-  /**
-   * true = il premio si calcola sulla base approvata (merce + costo di
-   * spedizione sostenuto, premio escluso); false/assente = solo sulla merce.
+   * Prima del 21/09/2026 la base era il solo valore della merce, con 0,0404
+   * "della merce": riscriveva sulla merce un premio calcolato su una base
+   * assicurata diversa (160,00), smentita dalla diagnosi (le due quote
+   * differiscono SOLO per la base assicurata).
+   *
+   * L'ALIQUOTA e il MINIMO non stanno nel profilo: sono una regola di Packlink,
+   * uguale per ogni destinazione e a scatti, e vivono in `INSURANCE_RULE` con
+   * `insurancePremium` (vedi li' la fonte e i punti misurati). Tenerne una
+   * copia per paese e' esattamente il modo in cui le due regole sono divergute:
+   * il profilo portava 2,5% piatto e senza minimo, il servizio 2,5%/3% + 0,99.
    */
   insuranceOnShippingCost?: boolean
   /**
@@ -281,6 +279,99 @@ export interface DutyAboveThreshold {
 }
 
 /**
+ * REGOLA DELL'ASSICURAZIONE PACKLINK — una fonte sola, qui, con la sua impronta.
+ *
+ * FONTE: il servizio di quota `hermes-landed-cost` (`~/hermes-landed-cost`,
+ * `landed_cost_core.py` → `insurance_premium` / `insurance_rate`), che la tiene
+ * misurata su **11 risposte reali di Packlink PRO del 21/09/2026**:
+ *
+ *   base assicurata < 500,00  → 2,5%
+ *   base assicurata >= 500,00 → 3,0%   (lo scatto e' compreso: 500,00 paga 3%)
+ *   minimo 0,99 su ogni base positiva
+ *
+ * IMPRONTA (`measuredPoints`, base → premio): 23,90 → 0,99 · 50,00 → 1,25 ·
+ * 99,00 → 2,48 · 120,00 → 3,00 · 160,00 → 4,00 · 199,00 → 4,98 · 249,00 → 6,23 ·
+ * 400,00 → 10,00 · 499,00 → 12,48 · 500,00 → 15,00 · 5000,00 → 150,00. Il test
+ * `shipping.test.ts` li pretende al centesimo: se la regola cambia, la copia
+ * che e' rimasta indietro si vede subito invece di scavare in silenzio il
+ * margine sui valori alti.
+ *
+ * PERCHE' QUI E NON NEL PROFILO DI PAESE: l'aliquota non dipende dalla
+ * destinazione (e' il prezzo della copertura Packlink), quindi una copia per
+ * profilo e' una duplicazione che diverge. Ed e' quello che era successo: il
+ * profilo portava 0,025 **piatto e senza minimo**, il servizio 2,5%/3% + 0,99.
+ * Finche' la quota live risponde il profilo non conta (il prezzo usa
+ * `insurance_coverage` del servizio), ma quando la quota non e' disponibile si
+ * ricade sul profilo: li il premio era sottostimato e il margine si assottigliava
+ * da solo quanto piu' alta era la merce. Su CH: merce 500,00 (base assicurata
+ * 576,20) premio 14,41 contro 17,29, quindi 2,88 di costo sdoganato mancanti;
+ * merce 50.000 (base 54.085,70) 1.352,14 contro 1.622,57, cioe' 270,43.
+ *
+ * Il servizio e' Python e questo pacchetto TypeScript: non esiste un modulo da
+ * importare in comune, quindi la regola e' replicata UNA volta sola, con la
+ * fonte sopra. Se Packlink la cambia, i due punti da aggiornare sono
+ * `insurance_premium` nel servizio e questo blocco.
+ *
+ * ARROTONDAMENTO — qui si arrotonda al centesimo mezzo-per-eccesso (`roundCents`),
+ * il servizio usa il `round()` di Python (meta'-all pari sul valore binario).
+ * Confrontate 220.005 basi, 1.181 divergono di +0,01 e **nessuna** va a nostro
+ * sfavore: la parita' «al centesimo» vale sui punti misurati, e dove non vale
+ * l'errore e' un centesimo in piu' addebitato a noi, non in meno.
+ */
+export const INSURANCE_RULE = {
+  /** Aliquota sotto la soglia di base assicurata. */
+  rateBelowThreshold: 0.025,
+  /** Aliquota dalla soglia in su (scatto compreso: base >= soglia). */
+  rateFromThreshold: 0.03,
+  /** Base assicurata (merce + spedizione sostenuta) da cui scatta il 3%. */
+  threshold: 500.0,
+  /** Premio minimo su ogni base positiva. */
+  minimumPremium: 0.99,
+  /** Punti misurati su Packlink PRO (base assicurata → premio): l'impronta. */
+  measuredPoints: [
+    [23.9, 0.99],
+    [50.0, 1.25],
+    [99.0, 2.48],
+    [120.0, 3.0],
+    [160.0, 4.0],
+    [199.0, 4.98],
+    [249.0, 6.23],
+    [400.0, 10.0],
+    [499.0, 12.48],
+    [500.0, 15.0],
+    [5000.0, 150.0],
+  ] as ReadonlyArray<readonly [number, number]>,
+} as const
+
+/** Importo pagabile: numero finito, mai negativo, al centesimo. */
+function payableAmount(value: number): number {
+  return Number.isFinite(value) ? Math.max(0, roundCents(value)) : 0
+}
+
+/**
+ * Aliquota applicata a una base assicurata. Lo scatto e' INCLUSIVO: la soglia
+ * stessa paga l'aliquota alta (misurato: 500,00 → 15,00, cioe' 3%).
+ */
+export function insuranceRateForBase(base: number): number {
+  return payableAmount(base) >= INSURANCE_RULE.threshold
+    ? INSURANCE_RULE.rateFromThreshold
+    : INSURANCE_RULE.rateBelowThreshold
+}
+
+/**
+ * Il premio che Packlink applica su una base assicurata: la regola, mai un
+ * numero fisso. Base che, arrotondata al centesimo, e' zero (o non finita,
+ * o negativa) → nessun premio inventato (0,00): e' la stessa condizione del
+ * servizio. Ogni base che resta positiva paga almeno `minimumPremium`.
+ */
+export function insurancePremium(base: number): number {
+  const normalized = payableAmount(base)
+  if (normalized <= 0) return 0
+  const premium = roundCents(normalized * insuranceRateForBase(normalized))
+  return roundCents(Math.max(INSURANCE_RULE.minimumPremium, premium))
+}
+
+/**
  * Profilo Svizzera — MISURATO, non stimato.
  *
  * Ordine CMS 31 / FOOLISH-1788184527086, Basel 4058, collo 40x40x10 / 2,0 kg,
@@ -311,11 +402,12 @@ export interface DutyAboveThreshold {
  * Alessandro 21/09/2026): valore merce + costo di spedizione sostenuto, premio
  * escluso. Il 4,00 EUR che stava qui prima veniva da un'altra base assicurata
  * (160,00): la diagnosi del servizio ha mostrato che le due quote Packlink
- * differiscono SOLO per la base (premio = 2,5% x base: 99 -> 2,48 / 160 ->
- * 4,00), quindi il premio della copertura che compriamo e' 3,57 su base 142,72.
- * Il profilo segue la regola DICHIARATA dal servizio (`insurance_coverage`:
- * rate 0,025, base merce + spedizione) invece di una costante derivata a un
- * punto di misura, e sul caso misurato riproduce 47,29 (prima 47,72).
+ * differiscono SOLO per la base, quindi il premio della copertura che compriamo
+ * e' 3,57 su base 142,72 (che a quel punto di base e' 2,5%, sotto la soglia).
+ * L'ALIQUOTA non e' un campo del profilo: e' la regola di Packlink, uguale per
+ * ogni destinazione e a scatti, e vive in `INSURANCE_RULE`/`insurancePremium`
+ * (2,5% sotto 500,00 di base, 3% da 500,00, minimo 0,99). Sul caso misurato
+ * riproduce 47,29 (prima 47,72).
  *
  * QUOTA LIVE DELL'11/11/2026 — la stessa linea e lo stesso carrello danno
  * 47,49: `import_charges` 14,93 (misurati 14,77) e `ddp_fee` 5,00 (misurata
@@ -339,7 +431,6 @@ export interface DutyAboveThreshold {
  */
 export const SWITZERLAND_PROFILE: ExtraEuProfile = {
   carrier: 23.00,
-  insuranceRate: 0.025,
   insuranceOnShippingCost: true,
   dutyRate: 0,
   importVatRate: 0.081,
@@ -745,10 +836,16 @@ export function calculateLandedCost(
   // Premio assicurativo sulla base APPROVATA (merce + spedizione), mai su una
   // costante derivata da un punto di misura: il premio non entra nella propria
   // base, altrimenti si conterebbe da solo.
+  //
+  // La regola (2,5% sotto 500,00 di base, 3% da 500,00, minimo 0,99) sta in
+  // `insurancePremium`, non nei parametri del profilo: e' una regola di
+  // Packlink uguale per ogni destinazione, e la copia per paese era proprio
+  // quella che era rimasta a 2,5% piatto sottostimando il ripiego sui valori
+  // alti (CH merce 500,00, base 576,20: 14,41 contro 17,29).
   const insuranceBase = profile.insuranceOnShippingCost
     ? roundCents(goods + shippingCostExclPremium)
     : goods
-  const insurance = roundCents(insuranceBase * profile.insuranceRate)
+  const insurance = insurancePremium(insuranceBase)
 
   const estimatedCost = roundCents(shippingCostExclPremium + insurance)
   // Un margine negativo non e' un'opzione: la tariffa non parte mai sotto il
