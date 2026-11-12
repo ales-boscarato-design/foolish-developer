@@ -378,7 +378,7 @@ test('metadata Stripe: nome e cognome separati, provincia solo se presente', () 
 
 test('server shipping uses the normalized subtotal and preserves free-above-threshold behavior', () => {
   const belowThresholdItems = normalizeCheckoutItems([{
-    price: 49,
+    price: 59.99,
     quantity: 1,
     productName: 'Test',
     variantLabel: 'A',
@@ -391,7 +391,7 @@ test('server shipping uses the normalized subtotal and preserves free-above-thre
   assert.notEqual(calculateServerShippingCostCents(belowThresholdItems, 'IT', false), manipulatedShippingCost)
 
   const thresholdItems = normalizeCheckoutItems([{
-    price: 50,
+    price: 60,
     quantity: 1,
     productName: 'Test',
     variantLabel: 'A',

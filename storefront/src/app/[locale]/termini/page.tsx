@@ -1,5 +1,10 @@
 import type { Metadata } from 'next'
-import { getTranslations } from 'next-intl/server'
+import { getTranslations, getLocale } from 'next-intl/server'
+import {
+  flatShippingCostEuros,
+  formatBadgeAmount,
+  freeShippingThresholdEuros,
+} from '@/lib/free-shipping-badge'
 
 const BASE = 'https://thefoolishbutcher.com'
 const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
@@ -19,6 +24,21 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
 export default async function TerminiPage() {
   const t = await getTranslations('termini')
+  const locale = await getLocale()
+
+  // Le tariffe e le soglie della pagina termini si leggono da `shipping.ts`,
+  // non si scrivono a mano nel testo: la riga italiana diceva «gratuita sopra
+  // 50€» mentre il codice applicava un'altra soglia.
+  const shippingRates = {
+    italy: {
+      cost: formatBadgeAmount(locale, flatShippingCostEuros('IT'), 2),
+      amount: formatBadgeAmount(locale, freeShippingThresholdEuros('IT')),
+    },
+    europe: {
+      cost: formatBadgeAmount(locale, flatShippingCostEuros('EU'), 2),
+      amount: formatBadgeAmount(locale, freeShippingThresholdEuros('EU')),
+    },
+  }
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-16 space-y-8 text-sm leading-relaxed text-[var(--muted-fg)]">
@@ -47,8 +67,8 @@ export default async function TerminiPage() {
         <h2 className="text-base font-semibold text-[var(--fg)]">{t('shipping')}</h2>
         <p>{t('shippingText')}</p>
         <ul className="list-disc pl-5 space-y-1">
-          <li>{t('shippingRates.italy')}</li>
-          <li>{t('shippingRates.europe')}</li>
+          <li>{t('shippingRates.italy', shippingRates.italy)}</li>
+          <li>{t('shippingRates.europe', shippingRates.europe)}</li>
           <li>{t('shippingRates.extraEu')}</li>
         </ul>
       </section>
