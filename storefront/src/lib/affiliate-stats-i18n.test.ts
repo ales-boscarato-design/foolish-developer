@@ -251,6 +251,33 @@ test('la pagina non ha un formattatore proprio: importi, aliquote e date vengono
     /^ {2}const formatDate = \(value: string \| null\): string => \(value === null \? '—' : formatLongDate\(locale, value\)\)$/m.test(source),
     'le date devono passare per formatLongDate con il locale della pagina',
   )
+  // I PUNTI D'USO, non solo la definizione delle tre funzioni. Misurato da una
+  // review indipendente: scrivere `${formatEuro(cents)}€` nella riga del
+  // fatturato, o `formatEuro(currentRateBps)` al posto di `formatRate`,
+  // lasciava la suite verde — cioe' il simbolo doppio (il difetto che questa
+  // card chiude) poteva rientrare senza che nessun test se ne accorgesse. Si
+  // pinna il blocco delle righe per intero: ogni importo passa da `formatEuro`,
+  // ogni aliquota da `formatRate`, e nessuno aggiunge un simbolo.
+  const rowsBlock = source.match(/ {2}const rows: Array<\[string, string\]> = \[[\s\S]*?\n {2}\]/)
+  assert.ok(rowsBlock, 'la tabella delle statistiche deve esistere: blocco `rows` non trovato')
+  assert.equal(
+    rowsBlock[0],
+    [
+      '  const rows: Array<[string, string]> = [',
+      "    [t('sales'), String(stats.salesCount)],",
+      "    [t('revenue'), formatEuro(stats.eligibleAmountCents)],",
+      "    [t('commission'), formatEuro(stats.commissionAmountCents)],",
+      "    [t('rate'), formatRate(currentRateBps)],",
+      "    [t('lastSale'), formatDate(stats.lastPaidAt)],",
+      '  ]',
+    ].join('\n'),
+    'le righe della tabella devono essere quelle pinnate: nessun importo con un simbolo aggiunto a mano e nessuna aliquota formattata come importo',
+  )
+  assert.ok(
+    /^ {12}threshold: formatEuro\(nextThreshold\),$/m.test(source) &&
+      /^ {12}missing: formatEuro\(missingToNext\),$/m.test(source),
+    'la frase del prossimo livello deve ricevere i due importi da formatEuro (che porta il simbolo), non dalla frase',
+  )
   // Nessuna conversione di unita' fatta a mano: i centesimi arrivano interi e i
   // punti base pure, la divisione per 100 la fa money.ts.
   assert.ok(!/\/ 100|cents \/$/.test(source), 'la pagina non deve convertire centesimi o punti base da sola')
