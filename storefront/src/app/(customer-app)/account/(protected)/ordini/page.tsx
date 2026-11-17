@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/account-auth'
 import { getAccountLocale, getT } from '@/lib/account-i18n'
@@ -24,7 +25,7 @@ export default async function OrdiniPage() {
   const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL ?? process.env.PAYLOAD_PUBLIC_URL
   const res = await fetch(
     `${cmsUrl}/api/orders?where[customerEmail][equals]=${encodeURIComponent(session.email)}&sort=-createdAt&limit=50&depth=0`,
-    { headers: { 'x-storefront-secret': process.env.PAYLOAD_API_SECRET! }, cache: 'no-store' }
+    { headers: { 'x-storefront-secret': cmsServiceSecret() }, cache: 'no-store' }
   )
   const data = res.ok ? await res.json() : { docs: [] }
   const orders = data.docs ?? []

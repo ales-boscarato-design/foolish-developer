@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 // Server-only reorder planner. No `next/headers` here: the thin route
 // authenticates and delegates, so this module can be tested with injected
 // dependencies and no cookies, network, or Stripe.
@@ -381,7 +382,7 @@ async function findOrderInCms(orderNumber: string, email: string): Promise<unkno
   const query = `?where[orderNumber][equals]=${encodeURIComponent(orderNumber)}`
     + `&where[customerEmail][equals]=${encodeURIComponent(email)}&depth=0&limit=1`
   const response = await fetch(`${cmsUrl}/api/orders${query}`, {
-    headers: { 'x-storefront-secret': process.env.PAYLOAD_API_SECRET! },
+    headers: { 'x-storefront-secret': cmsServiceSecret() },
     cache: 'no-store',
   })
 

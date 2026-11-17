@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import crypto from 'node:crypto'
 
 type CmsId = string | number
@@ -287,7 +288,7 @@ async function resolveAffiliate(
   options: { fetcher?: Fetcher; allowInactive?: boolean; requirePromoCode?: boolean },
 ): Promise<ReferralAffiliateForReport | null> {
   const normalizedSlug = normalizeAffiliateSlug(slug)
-  const secret = process.env.PAYLOAD_API_SECRET
+  const secret = cmsServiceSecret()
   if (normalizedSlug === null || !secret) return null
 
   const fetcher = options.fetcher ?? defaultFetcher()
@@ -361,7 +362,7 @@ export async function fetchAffiliateConversions(
   affiliateId: CmsId,
   options: { fetcher?: Fetcher } = {},
 ): Promise<AffiliateStatsConversion[] | null> {
-  const secret = process.env.PAYLOAD_API_SECRET
+  const secret = cmsServiceSecret()
   const id = safeCmsId(affiliateId)
   if (id === null || !secret) return null
 

@@ -1,9 +1,5 @@
-import type { CollectionConfig, PayloadRequest } from 'payload'
-
-function hasStorefrontSecret(req: PayloadRequest): boolean {
-  const secret = req.headers?.get?.('x-storefront-secret') ?? (req.headers as unknown as Record<string, string>)?.['x-storefront-secret']
-  return !!secret && secret === process.env.PAYLOAD_API_SECRET
-}
+import type { CollectionConfig } from 'payload'
+import { hasServiceAccess } from '../lib/serviceAccess'
 
 export const Subscriptions: CollectionConfig = {
   slug: 'subscriptions',
@@ -13,9 +9,9 @@ export const Subscriptions: CollectionConfig = {
     group: 'Abbonamenti',
   },
   access: {
-    read: ({ req }) => !!req.user || hasStorefrontSecret(req),
-    create: ({ req }) => !!req.user || hasStorefrontSecret(req),
-    update: ({ req }) => !!req.user || hasStorefrontSecret(req),
+    read: ({ req }) => !!req.user || hasServiceAccess(req, 'subscriptions', 'read'),
+    create: ({ req }) => !!req.user || hasServiceAccess(req, 'subscriptions', 'create'),
+    update: ({ req }) => !!req.user || hasServiceAccess(req, 'subscriptions', 'update'),
     delete: ({ req }) => !!req.user,
   },
   fields: [

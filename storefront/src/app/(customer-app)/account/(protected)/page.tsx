@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/account-auth'
 import { getAccountSubscriber, getWishlist } from '@/lib/account-db'
@@ -22,7 +23,7 @@ export default async function AccountHome() {
   const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL ?? process.env.PAYLOAD_PUBLIC_URL
   const ordersRes = await fetch(
     `${cmsUrl}/api/orders?where[customerEmail][equals]=${encodeURIComponent(session.email)}&sort=-createdAt&limit=10&depth=0`,
-    { headers: { 'x-storefront-secret': process.env.PAYLOAD_API_SECRET! }, cache: 'no-store' }
+    { headers: { 'x-storefront-secret': cmsServiceSecret() }, cache: 'no-store' }
   )
   const ordersData = ordersRes.ok ? await ordersRes.json() : { docs: [] }
   const orders = ordersData.docs ?? []

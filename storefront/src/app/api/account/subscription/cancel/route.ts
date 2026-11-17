@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { getSession } from '@/lib/account-auth'
@@ -14,7 +15,7 @@ export async function POST(req: NextRequest) {
   if (!subscriptionDocId) return NextResponse.json({ error: 'ID mancante' }, { status: 400 })
 
   const docRes = await fetch(`${CMS_URL}/api/subscriptions/${subscriptionDocId}`, {
-    headers: { 'x-storefront-secret': process.env.PAYLOAD_API_SECRET || '' },
+    headers: { 'x-storefront-secret': cmsServiceSecret() },
   })
   if (!docRes.ok) return NextResponse.json({ error: 'Abbonamento non trovato' }, { status: 404 })
   const doc = await docRes.json()
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
 
   const patchRes = await fetch(`${CMS_URL}/api/subscriptions/${subscriptionDocId}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', 'x-storefront-secret': process.env.PAYLOAD_API_SECRET || '' },
+    headers: { 'Content-Type': 'application/json', 'x-storefront-secret': cmsServiceSecret() },
     body: JSON.stringify({ status: 'canceling' }),
   })
   if (!patchRes.ok) return NextResponse.json({ error: 'Errore aggiornamento abbonamento' }, { status: 500 })

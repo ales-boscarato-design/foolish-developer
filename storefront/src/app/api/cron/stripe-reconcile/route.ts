@@ -1,3 +1,4 @@
+import { hasCmsServiceSecret } from '@/lib/cms-service-secret'
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { notifyStripeReconciliation } from '@/lib/stripe-reconciliation-alert'
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  if (!process.env.STRIPE_SECRET_KEY || !process.env.PAYLOAD_API_SECRET) {
+  if (!process.env.STRIPE_SECRET_KEY || !hasCmsServiceSecret()) {
     return NextResponse.json({ error: 'Stripe or CMS not configured' }, { status: 500 })
   }
 

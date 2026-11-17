@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
@@ -99,7 +100,7 @@ async function findPrintfulVariantForSku(sku: string): Promise<string | null> {
   const cmsUrl = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
   const res = await fetch(
     `${cmsUrl}/api/products?where[section][equals]=merch&where[variants.sku][equals]=${encodeURIComponent(sku)}&depth=0&limit=1`,
-    { headers: { 'x-storefront-secret': process.env.PAYLOAD_API_SECRET || '' } },
+    { headers: { 'x-storefront-secret': cmsServiceSecret() } },
   )
   if (!res.ok) return null
   const data = await res.json()

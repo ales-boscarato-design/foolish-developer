@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { upsertSubscriber, markCartSessionRecovered, logEmail, upsertCmsCustomer, enqueuePwaInvite } from '@/lib/marketing-db'
@@ -23,7 +24,7 @@ export const dynamic = 'force-dynamic'
 const CMS_URL = () => process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
 const cmsHeaders = () => ({
   'Content-Type': 'application/json',
-  'x-storefront-secret': process.env.PAYLOAD_API_SECRET || '',
+  'x-storefront-secret': cmsServiceSecret(),
 })
 
 interface SubscriptionDoc {
@@ -373,7 +374,7 @@ export async function POST(req: NextRequest) {
     // Offerta post-ordine — fetch config CMS e crea offerta per il cliente
     try {
       const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL ?? process.env.PAYLOAD_PUBLIC_URL
-      const cmsSecret = process.env.PAYLOAD_API_SECRET
+      const cmsSecret = cmsServiceSecret()
       if (cmsUrl && cmsSecret) {
         const offerRes = await fetch(
           `${cmsUrl}/api/offer-config?where[active][equals]=true&depth=1&limit=1`,

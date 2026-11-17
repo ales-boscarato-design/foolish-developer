@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from './cms-service-secret'
 import { lineTotalCents } from './b2b-pricing'
 import { calculateUnitPrice } from './pricing'
 
@@ -57,7 +58,7 @@ const cmsUrl = () => process.env.CMS_URL || process.env.PAYLOAD_PUBLIC_URL || 'h
 
 const cmsHeaders = () => ({
   'Content-Type': 'application/json',
-  'x-storefront-secret': process.env.PAYLOAD_API_SECRET || '',
+  'x-storefront-secret': cmsServiceSecret(),
 })
 
 function cmsOrderUrl(orderNumber: string): string {

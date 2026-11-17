@@ -45,6 +45,7 @@ type UIStep = 'email' | 'login' | 'register'
 
 const ERROR_MESSAGES: Record<string, string> = {
   invalid_credentials: 'Email o password non corretti.',
+  too_many_attempts: 'Troppi tentativi. Riprova più tardi.',
   account_suspended: 'Account sospeso. Contatta il supporto.',
   password_too_short: 'La password deve essere di almeno 6 caratteri.',
   business_name_required: 'Inserisci il nome della tua attività.',
