@@ -11,6 +11,11 @@
  * R7-R9 sono le correzioni Fase 1-bis: i `check` hanno una chiave propria e
  * non consumano la soglia dei fallimenti; la registrazione azzera solo
  * l'identita' e lascia intatto il contatore IP.
+ *
+ * R10-R11 sono la Fase 1-ter: nemmeno un login riuscito azzera la chiave IP
+ * (la registrazione e' aperta, quindi chiunque puo' procurarsi un account e
+ * usarlo per svuotare il freno), mentre i fallimenti successivi di quella
+ * identita' continuano a contare regolarmente.
  */
 
 import assert from 'node:assert/strict'
@@ -314,4 +319,59 @@ test('R9: la registrazione non azzera il contatore IP', async () => {
   const second = await post(harness.deps, auth('nuovo@example.test', 'wrong-password'))
   assert.equal(second.status, 429, 'il contatore IP non deve essere azzerato dalla registrazione')
   assert.equal(await second.text(), TOO_MANY)
+})
+
+test('R10: un login riuscito non azzera il contatore IP', async () => {
+  const harness = makeHarness({ users: [existingUser('mario@example.test')] })
+
+  // Diciannove fallimenti da email distinte portano il solo contatore IP a 19
+  // senza toccare la soglia per identita' (5): cosi' il caso isola l'IP.
+  for (let attempt = 1; attempt <= 19; attempt += 1) {
+    const res = await post(harness.deps, auth(`nessuno${attempt}@example.test`, 'wrong-password'))
+    assert.equal(res.status, 401, `fallimento ${attempt}`)
+    assert.equal(await res.text(), INVALID)
+  }
+
+  // L'attaccante ha un account valido (la registrazione e' aperta) e lo usa
+  // per far ripartire il freno: qui il login deve riuscire ma non toccare l'IP.
+  const ok = await post(harness.deps, auth('mario@example.test', 'correct-password'))
+  assert.equal(ok.status, 200)
+  assert.deepEqual(await ok.json(), { ok: true, isNew: false })
+
+  const first = await post(harness.deps, auth('nessuno20@example.test', 'wrong-password'))
+  assert.equal(first.status, 401)
+  assert.equal(await first.text(), INVALID)
+
+  // Primo fallimento: l'IP arriva a 20. Il successivo deve essere bloccato. Se
+  // il login riuscito avesse azzerato l'IP, qui ci sarebbe un altro 401.
+  const second = await post(harness.deps, auth('nessuno21@example.test', 'wrong-password'))
+  assert.equal(second.status, 429, 'il login riuscito non deve azzerare il contatore IP')
+  assert.equal(await second.text(), TOO_MANY)
+})
+
+test('R11: dopo un login riuscito i fallimenti tornano a contare', async () => {
+  const harness = makeHarness({ users: [existingUser('mario@example.test')] })
+
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    const res = await post(harness.deps, auth('mario@example.test', 'wrong-password'))
+    assert.equal(res.status, 401, `fallimento ${attempt}`)
+  }
+
+  const ok = await post(harness.deps, auth('mario@example.test', 'correct-password'))
+  assert.equal(ok.status, 200)
+
+  // La soglia dell'identita' e' tornata a zero: cinque errori passano e
+  // vengono registrati, il sesto blocca senza arrivare a bcrypt.
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    const res = await post(harness.deps, auth('mario@example.test', 'wrong-password'))
+    assert.equal(res.status, 401, `fallimento dopo il login ${attempt}`)
+    assert.equal(await res.text(), INVALID)
+  }
+  const callsAfterFive = harness.verifyCalls
+  assert.equal(callsAfterFive, 10, 'quattro prima del login, cinque dopo')
+
+  const sixth = await post(harness.deps, auth('mario@example.test', 'wrong-password'))
+  assert.equal(sixth.status, 429, 'i fallimenti successivi al login devono contare')
+  assert.equal(await sixth.text(), TOO_MANY)
+  assert.equal(harness.verifyCalls, callsAfterFive, 'il sesto non deve chiamare bcrypt')
 })

@@ -217,12 +217,14 @@ export function createLoginHandler(deps: LoginDeps): (req: NextRequest) => Promi
       }
     }
 
-    // Al successo si azzera l'identita': un login valido non deve portarsi
-    // dietro i fallimenti precedenti. Per una registrazione nuova si azzera
-    // solo l'email: azzerare anche l'IP permetterebbe di creare email nuove in
-    // serie per svuotare il freno per IP e aggirarlo.
+    // Al successo si azzera la sola identita': un login valido non deve
+    // portarsi dietro i fallimenti precedenti. La chiave IP non si azzera
+    // MAI, nemmeno per un login riuscito: la registrazione B2B e' aperta,
+    // quindi chiunque puo' procurarsi un account valido e usarlo per
+    // svuotare il freno per IP dopo una raffica di tentativi su altre email.
+    // Il contatore IP deve decadere solo con la finestra temporale.
     try {
-      await deps.store.reset(isNew ? [emailKey] : keys)
+      await deps.store.reset([emailKey])
     } catch {
       return unavailable()
     }
