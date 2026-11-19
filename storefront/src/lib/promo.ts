@@ -5,6 +5,7 @@ import {
   type AllowedShippingCountry,
 } from './shipping'
 import { prudentialExtraEuPriceCents } from './landed-cost-price'
+import { formatMachineMoneyCents } from './money'
 
 export type PromoType = 'free_shipping' | 'percent_pro' | 'percent' | 'amount' | 'percent_tiered'
 
@@ -151,10 +152,6 @@ export function moneyToCents(value: unknown): number | null {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return null
   const cents = Math.round(value * 100)
   return Number.isSafeInteger(cents) ? cents : null
-}
-
-export function formatCents(cents: number): string {
-  return (cents / 100).toFixed(2)
 }
 
 /**
@@ -570,12 +567,12 @@ export function buildCheckoutMetadata(args: {
     metadata.promo_code = args.promo.code
     metadata.promo_type = args.promo.type
     metadata.promo_discount_amount_cents = String(args.promo.discountAmountCents)
-    metadata.promo_discount_amount = formatCents(args.promo.discountAmountCents)
+    metadata.promo_discount_amount = formatMachineMoneyCents(args.promo.discountAmountCents)
     metadata.promo_free_shipping = String(args.promo.freeShipping)
     metadata.promo_discount_snapshot = JSON.stringify({
       type: args.promo.type,
       discountAmountCents: args.promo.discountAmountCents,
-      discountAmount: formatCents(args.promo.discountAmountCents),
+      discountAmount: formatMachineMoneyCents(args.promo.discountAmountCents),
       discountPercent: args.promo.discountPercent ?? null,
       freeShipping: args.promo.freeShipping,
     })
