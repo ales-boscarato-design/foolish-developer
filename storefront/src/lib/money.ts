@@ -3,7 +3,7 @@
  *
  * Il difetto che questo file chiude (misurato il 12/11/2026 su build di
  * produzione, Chromium su `next start`): tutti gli importi del checkout erano
- * resi con `Number.prototype.toFixed(2)`, che produce sempre il punto come
+ * resi con arrotondamento decimale a due cifre, che produce sempre il punto come
  * separatore decimale. Su `/fr/checkout` la barra della soglia diceva
  * «Ajoutez 30.00€ pour la livraison gratuite», su `/it/checkout`
  * «Aggiungi 30.00€ per la spedizione gratuita»; subtotale `€99.00`, totale
@@ -182,6 +182,11 @@ export function formatMoneyCents(locale: string | null | undefined, cents: numbe
   // Un intero diviso per 100 e' il doppio piu' vicino a quel decimale, quindi
   // `Intl` non puo' spostare la cifra: formatta i centesimi che ha ricevuto.
   return formatterFor(normalizeMoneyLocale(locale)).format(cents / 100)
+}
+
+/** Formato numerico stabile per metadata/API: non usare per testo visibile. */
+export function formatMachineMoneyCents(cents: number): string {
+  return (cents / 100).toFixed(2)
 }
 
 /** `30,00€` — il simbolo dopo il numero, senza spazio, come nelle frasi. */

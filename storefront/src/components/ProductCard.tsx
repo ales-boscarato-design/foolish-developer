@@ -2,9 +2,11 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { useLocale } from 'next-intl'
 import type { Product } from '@/lib/cms'
 import { cmsImageUrl } from '@/lib/cms'
 import { TiltCard } from './TiltCard'
+import { formatMoney } from '@/lib/money'
 
 interface ProductCardProps {
   product: Product
@@ -14,6 +16,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, showLimitedBadge, className = '', formatLabel }: ProductCardProps) {
+  const locale = useLocale()
   const lowestPrice = Math.min(...product.variants.map((v) => v.price))
   const hasMultipleVariants = product.variants.length > 1
   const firstImage = product.images[0]?.image
@@ -95,8 +98,8 @@ export function ProductCard({ product, showLimitedBadge, className = '', formatL
           <div className="mt-3 flex items-center justify-between">
             <span className="text-mono text-sm font-semibold" style={{ color: 'var(--accent)' }}>
               {hasMultipleVariants
-                ? `Da €${lowestPrice.toFixed(2)}`
-                : `€${lowestPrice.toFixed(2)}`}
+                ? `Da €${formatMoney(locale, lowestPrice)}`
+                : `€${formatMoney(locale, lowestPrice)}`}
             </span>
             {hasLowStock && !allUnavailable && (
               <span className="text-label px-1.5 py-0.5 rounded"

@@ -2,6 +2,7 @@ import {
   Html, Head, Body, Container, Section, Text, Button, Hr, Preview,
 } from 'react-email'
 import { getEmailCopy, type EmailCopy } from './copy'
+import { formatMoney } from '@/lib/money'
 
 interface CartItem {
   productName: string
@@ -53,7 +54,7 @@ export function AbandonedCartEmail({ cartData, locale, unsubscribeUrl, checkoutU
                 {items.map((item, i) => (
                   <Text key={i} style={{ color: '#f0ede8', fontSize: '13px', margin: '0 0 6px' }}>
                     {item.productName} — {item.variantLabel} × {item.quantity}
-                    <span style={{ color: '#c8a97e' }}> €{(item.price * item.quantity).toFixed(2)}</span>
+                    <span style={{ color: '#c8a97e' }}> €{formatMoney(locale, item.price * item.quantity)}</span>
                   </Text>
                 ))}
               </Section>

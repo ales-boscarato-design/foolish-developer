@@ -4,6 +4,7 @@ import { getWishlist } from '@/lib/account-db'
 import { getAccountLocale, getT } from '@/lib/account-i18n'
 import { ownsCustomerFile, type CustomerFileRelation } from '@/lib/customer-files'
 import { WishlistItemActions } from './_components/WishlistItem'
+import { formatMoney } from '@/lib/money'
 
 interface CustomerFile {
   id: string
@@ -97,7 +98,7 @@ export default async function FilePage() {
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '12px', color: '#fff', marginBottom: '2px' }}>{item.product_name}</div>
               {item.product_price && (
-                <div style={{ fontSize: '10px', color: '#555' }}>€{item.product_price.toFixed(2)}</div>
+                <div style={{ fontSize: '10px', color: '#555' }}>€{formatMoney(locale, item.product_price)}</div>
               )}
             </div>
             <a

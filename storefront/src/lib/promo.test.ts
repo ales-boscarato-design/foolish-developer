@@ -354,6 +354,24 @@ test('metadata Stripe: nome e cognome separati, provincia solo se presente', () 
   assert.equal(metadata.customer_name, 'Mario Rossi')
   assert.equal(metadata.customer_province, 'TO')
 
+  const withPromo = buildCheckoutMetadata({
+    orderRef: 'FOOLISH-PROMO-TEST',
+    customer: withProvince!,
+    chargedProductLines: lines!,
+    promo: {
+      code: 'SAVE',
+      type: 'amount',
+      label: 'Sconto 12,34€',
+      discountAmountCents: 123456,
+      freeShipping: false,
+    },
+  })
+  assert.equal(withPromo?.promo_discount_amount, '1234.56')
+  assert.equal(
+    withPromo?.promo_discount_snapshot,
+    '{"type":"amount","discountAmountCents":123456,"discountAmount":"1234.56","discountPercent":null,"freeShipping":false}',
+  )
+
   // Senza provincia la chiave non esiste: una stringa vuota sarebbe un valore
   // che Stripe conserva e che il CMS leggerebbe come dato.
   const withoutProvince = normalizeCheckoutCustomer({

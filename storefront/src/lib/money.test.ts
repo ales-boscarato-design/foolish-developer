@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
+import ts from 'typescript'
 import { test } from 'node:test'
 
 import {
@@ -11,6 +12,7 @@ import {
   eurosToDisplayCents,
   formatEuro,
   formatEuroCents,
+  formatMachineMoneyCents,
   formatMoney,
   formatMoneyCents,
   formatPercentBps,
@@ -26,6 +28,7 @@ import {
   moneyToCents,
 } from './promo'
 import { routing } from '../i18n/routing'
+import { getEmailCopy } from '../emails/copy'
 
 /**
  * Il difetto che questi test difendono (misurato il 12/11/2026 su `next start`
@@ -79,8 +82,11 @@ test('il separatore decimale e quello delle migliaia sono quelli della lingua', 
   assert.equal(formatMoney('de', 30), '30,00')
 
   assert.equal(formatMoney('it', 106.65), '106,65')
+  assert.equal(formatMoney('fr', 106.65), '106,65')
   assert.equal(formatMoney('en', 106.65), '106.65')
   assert.equal(formatMoney('de', 37.65), '37,65')
+  assert.equal(formatMoneyCents('en', 1_066_500), '10,665.00')
+  assert.equal(formatMoneyCents('fr', 1_066_500), '10\u202f665,00')
 
   // Sopra il migliaio il raggruppamento segue la lingua: punto in it/de/es,
   // virgola in inglese, spazio (in francese tipograficamente stretto) in fr.
@@ -96,7 +102,179 @@ test('il separatore decimale e quello delle migliaia sono quelli della lingua', 
   assert.equal(formatMoney('en', 1000), '1,000.00')
 })
 
+test('ProductCard e ProductDetail conservano la posizione originale del simbolo euro', () => {
+  const productCard = fs.readFileSync(path.join(process.cwd(), 'src/components/ProductCard.tsx'), 'utf8')
+  const productDetail = fs.readFileSync(path.join(process.cwd(), 'src/components/ProductDetail.tsx'), 'utf8')
+
+  assert.match(productCard, /`Da €\$\{formatMoney\(locale, lowestPrice\)\}`/)
+  assert.match(productCard, /`€\$\{formatMoney\(locale, lowestPrice\)\}`/)
+  assert.match(productDetail, /\$\{formatMoney\(locale, firstVariant\.price\)\}€/)
+  assert.match(productDetail, /\$\{formatMoney\(locale, component\.basePrice\)\}€/)
+  assert.match(productDetail, /\{formatMoney\(locale, selectedVariant\.price\)\}€/)
+  assert.match(productDetail, /Risparmi €\{formatMoney\(locale,/)
+  assert.match(productDetail, /€\{formatMoney\(locale, selectedVariant\.price \* pack\.quantity\)\}/)
+  assert.match(productDetail, /€\{formatMoney\(locale, selectedVariant\.price \* pack\.quantity \* \(1 - pack\.discountPercent \/ 100\)\)\}/)
+
+  assert.equal(`Da €${formatMoney('it', 106.65)}`, 'Da €106,65')
+  assert.equal(`€${formatMoney('en', 106.65)}`, '€106.65')
+  assert.equal(`${formatMoney('it', 106.65)}€`, '106,65€')
+})
+
+test('ringraziamento e email carrello usano il formatter con la lingua effettiva', () => {
+  const thankYou = fs.readFileSync(path.join(process.cwd(), 'src/app/[locale]/grazie/page.tsx'), 'utf8')
+  const abandonedCart = fs.readFileSync(path.join(process.cwd(), 'src/emails/abandoned-cart.tsx'), 'utf8')
+  assert.match(thankYou, /formatEuro\(locale, total\)/)
+  assert.match(thankYou, /formatEuro\(locale, item\.unitAmount \* item\.quantity\)/)
+  assert.match(abandonedCart, /€\{formatMoney\(locale, item\.price \* item\.quantity\)\}/)
+  assert.doesNotMatch(thankYou, /\.toFixed\s*\(/)
+  assert.doesNotMatch(abandonedCart, /\.toFixed\s*\(/)
+  assert.equal(formatEuro('it', 106.65), '106,65€')
+  assert.equal(formatEuro('en', 106.65), '106.65€')
+  for (const locale of MONEY_LOCALES) {
+    assert.equal(typeof getEmailCopy(locale).abandoned_cart.subject, 'string')
+  }
+})
+
+test('i call-site monetari preservano posizione e spazio del simbolo rispetto a origin/main', () => {
+  const sites: Record<string, string[]> = {
+    'src/components/SubscriptionRoadmap.tsx': [
+      '€{formatMoney(locale, phase.productPrice + phase.shippingPrice)} {labels.perMonth}',
+    ],
+    'src/app/(customer-app)/account/(protected)/abbonamento/page.tsx': [
+      "{t('subscription_cycle')} {currentCycle} · {t('subscription_current_price')} €{formatMoney(locale, benefit.total)}",
+    ],
+    'src/app/(customer-app)/account/(protected)/file/page.tsx': [
+      '<div style={{ fontSize: \'10px\', color: \'#555\' }}>€{formatMoney(locale, item.product_price)}</div>',
+    ],
+    'src/app/(customer-app)/account/(protected)/offerta/page.tsx': [
+      '€{formatMoney(locale, product.basePrice * (1 - offer.discount_percent / 100))}',
+      '€{formatMoney(locale, product.basePrice)}',
+    ],
+    'src/app/(customer-app)/account/(protected)/ordini/page.tsx': [
+      "{lineItems.map(i => i.name).join(', ')} · €{order.total == null ? '' : formatMoney(locale, order.total as number)}\n",
+    ],
+    'src/emails/abandoned-cart.tsx': [
+      '€{formatMoney(locale, item.price * item.quantity)}</span>',
+    ],
+    'src/app/[locale]/grazie/page.tsx': [
+      '{formatEuro(locale, total)}',
+      '{formatEuro(locale, item.unitAmount * item.quantity)}',
+    ],
+  }
+  const sourceByPath = new Map<string, string>()
+  for (const [sourcePath, expected] of Object.entries(sites)) {
+    const source = fs.readFileSync(path.join(process.cwd(), sourcePath), 'utf8')
+    sourceByPath.set(sourcePath, source)
+    for (const snippet of expected) {
+      assert.ok(source.includes(snippet), `${sourcePath} deve contenere il call-site: ${snippet}`)
+    }
+  }
+
+  const examples = [
+    `€${formatMoney('it', 106.65)}`,
+    `€${formatMoney('en', 106.65)}`,
+    ` €${formatMoney('it', 106.65)}`,
+    ` €${formatMoney('en', 106.65)}`,
+    `${formatMoney('it', 106.65)}€`,
+    `${formatMoney('en', 106.65)}€`,
+  ]
+  assert.deepEqual(examples, ['€106,65', '€106.65', ' €106,65', ' €106.65', '106,65€', '106.65€'])
+
+  // Prova di mutazione: ciascun sito richiesto viene cambiato da prefisso a
+  // suffisso; il controllo del call-site deve diventare rosso per tutti.
+  for (const sourcePath of Object.keys(sites)) {
+    const source = sourceByPath.get(sourcePath)!
+    const target = sites[sourcePath][0]
+    if (!target.includes('€')) continue // grazie mantiene intenzionalmente il suffisso.
+    const mutated = source.replace(target, target.replace('€', ''))
+    assert.notEqual(mutated, source, `${sourcePath}: la mutazione deve modificare il sorgente`)
+    assert.throws(() => {
+      for (const expected of sites[sourcePath]) {
+        assert.ok(mutated.includes(expected), `${sourcePath} mutato non conserva ${expected}`)
+      }
+    }, `${sourcePath}: il controllo deve rifiutare il cambio a suffisso`)
+  }
+})
+
+test('gli ordini mantengono il prefisso euro anche senza totale e formattano importi per lingua', () => {
+  const ordersPage = fs.readFileSync(
+    path.join(process.cwd(), 'src/app/(customer-app)/account/(protected)/ordini/page.tsx'),
+    'utf8',
+  )
+  assert.ok(
+    ordersPage.includes("· €{order.total == null ? '' : formatMoney(locale, order.total as number)}"),
+    'il simbolo euro resta fuori dalla condizione sul totale',
+  )
+
+  const renderTotal = (locale: string, total: number | null | undefined) =>
+    `€${total == null ? '' : formatMoney(locale, total)}`
+
+  assert.equal(renderTotal('fr', null), '€')
+  assert.equal(renderTotal('fr', undefined), '€')
+  assert.equal(renderTotal('fr', 0), '€0,00')
+  assert.equal(renderTotal('fr', 106.65), '€106,65')
+  assert.equal(renderTotal('en', null), '€')
+  assert.equal(renderTotal('en', undefined), '€')
+  assert.equal(renderTotal('en', 0), '€0.00')
+  assert.equal(renderTotal('en', 106.65), '€106.65')
+})
+
+test('i consumatori UI monetari usano money.ts e il locale effettivo', () => {
+  const sources = [
+    'src/components/ProductCard.tsx',
+    'src/components/ProductDetail.tsx',
+    'src/components/SubscriptionRoadmap.tsx',
+    'src/app/(customer-app)/account/(protected)/file/page.tsx',
+    'src/app/(customer-app)/account/(protected)/offerta/page.tsx',
+    'src/app/(customer-app)/account/(protected)/ordini/page.tsx',
+    'src/app/(customer-app)/account/(protected)/abbonamento/page.tsx',
+    'src/lib/subscription-renewal-zone-alert.ts',
+  ]
+  for (const sourcePath of sources) {
+    const source = fs.readFileSync(path.join(process.cwd(), sourcePath), 'utf8')
+    assert.match(source, /from ['"].*\/money['"]/, `${sourcePath} deve usare money.ts`)
+  }
+  for (const sourcePath of sources.slice(0, 7)) {
+    const source = fs.readFileSync(path.join(process.cwd(), sourcePath), 'utf8')
+    assert.match(source, /format(?:Euro|Money)\(locale,/, `${sourcePath} deve formattare nel locale effettivo`)
+  }
+})
+
+test('subscription-renewal-zone-alert vieta toFixed anche con accesso statico tra parentesi', () => {
+  const sourcePath = 'src/lib/subscription-renewal-zone-alert.ts'
+  const source = fs.readFileSync(path.join(process.cwd(), sourcePath), 'utf8')
+  const legacyFormatter = /(?:\?\.\s*(?:toFixed\b|\[\s*(['"])toFixed\1\s*\])|\.\s*toFixed\b|\[\s*(['"])toFixed\2\s*\])\s*(?:\?\.)?\s*\(/m
+  const assertNoLegacyFormatter = (candidate: string) =>
+    assert.doesNotMatch(candidate, legacyFormatter, `${sourcePath} non deve formattare denaro con toFixed`)
+
+  assertNoLegacyFormatter(source)
+
+  // Riproduce sul sorgente reale il bypass della review: il controllo deve
+  // intercettare l'accesso statico tra parentesi che mostrava 106.65 in FR.
+  const mutationTarget = "formatMoney('it', value)"
+  assert.equal((106.65).toFixed(2), '106.65', 'la mutazione riproduce il separatore errato in francese')
+  for (const replacement of [
+    "value.toFixed(2)",
+    "value['toFixed'](2)",
+    'value["toFixed"](2)',
+    "value?.['toFixed'](2)",
+    'value?.["toFixed"]?.(2)',
+  ]) {
+    const mutated = source.replace(mutationTarget, replacement)
+    assert.notEqual(mutated, source, `la mutazione deve colpire il formatter reale: ${replacement}`)
+    assert.throws(
+      () => assertNoLegacyFormatter(mutated),
+      /non deve formattare denaro con toFixed/,
+      `la guardia deve rifiutare ${replacement}`,
+    )
+  }
+})
+
 test('importi di confine: zero, mezzo euro, valori gia arrotondati, negativo', () => {
+  for (const cents of [-123_456, -1, 0, 1, 50, 999_999, 100_000_001]) {
+    assert.equal(formatMachineMoneyCents(cents), (cents / 100).toFixed(2))
+  }
+
   assert.equal(formatMoney('it', 0), '0,00')
   assert.equal(formatMoney('en', 0), '0.00')
   assert.equal(formatMoney('it', 0.5), '0,50')
@@ -690,4 +868,352 @@ test('ogni frase di soldi ha il simbolo una volta sola', () => {
       assert.equal(count, 1, `${locale}.checkout.${key}: ${count} simboli € in «${value}»`)
     }
   }
+})
+
+// Eccezioni puntuali: ogni espressione autorizzata e' censita per riga di
+// codice (senza numero di riga). Il solo conteggio consentiva di sostituire
+// l'uso non monetario con toString e aggiungere un toFixed monetario altrove.
+// Motivi: file/page = dimensione in MB; JSON-LD = valori numerici schema.org;
+// promo/validate = amount numerico API; webhook/stripe e stripe-orders =
+// serializzazione/calcolo; ProductDetail/ReviewList = rating; money.ts =
+// conservare l'arrotondamento preesistente e serializzare importi machine-only;
+// shipping.ts = arrotondamento anti-sottostima;
+// shipping.test.ts = asserzione numerica, non display.
+const TO_FIXED_ALLOWLIST: Record<string, string[]> = {
+  'src/app/(customer-app)/account/(protected)/file/page.tsx': [
+    'const sizeMb = file.file?.filesize ? (file.file.filesize / 1024 / 1024).toFixed(1) : null',
+  ],
+  'src/app/[locale]/prodotto/[slug]/page.tsx': [
+    "price: lowestPrice.toFixed(2),",
+    'ratingValue: reviewSummary.average.toFixed(1),',
+  ],
+  'src/app/api/promo/validate/route.ts': [
+    '...(promo.discountAmountCents > 0 ? { discountAmount: Number((promo.discountAmountCents / 100).toFixed(2)) } : {}),',
+    'discountAmount: Number((discountAmountCents / 100).toFixed(2)),',
+    '...(promo.discountAmountCents > 0 ? { discountAmount: Number((promo.discountAmountCents / 100).toFixed(2)) } : {}),',
+  ],
+  'src/app/api/webhook/stripe/route.ts': [
+    'const total = ((session.amount_total ?? 0) / 100).toFixed(2)',
+  ],
+  'src/components/ProductDetail.tsx': [
+    '{reviewSummary.average.toFixed(1)} ({reviewSummary.count})',
+  ],
+  'src/components/ReviewList.tsx': [
+    "{summary.average.toFixed(1)} · {summary.count} {locale === 'it' ? 'recensioni' : 'reviews'}",
+  ],
+
+  'src/lib/money.ts': [
+    '  const cents = Math.round(Number(amount.toFixed(2)) * 100)',
+    '  return (cents / 100).toFixed(2)',
+  ],
+  'src/lib/shipping.test.ts': [
+    "  assert.equal(blend.toFixed(4), '0.0442')",
+  ],
+  'src/lib/shipping.ts': [
+    '  return Math.ceil(Number((value * 100).toFixed(6))) / 100',
+  ],
+  'src/lib/stripe-orders.ts': [
+    '  const shippingCost = Math.max(0, Number((total - itemsTotal).toFixed(2)))',
+  ],
+}
+
+function findToFixedLines(files: Record<string, string>): Record<string, string[]> {
+  function unwrapParentheses(expression: ts.Expression): ts.Expression {
+    while (ts.isParenthesizedExpression(expression)) expression = expression.expression
+    return expression
+  }
+
+  function isStaticToFixedAccess(expression: ts.Expression): expression is ts.PropertyAccessExpression | ts.ElementAccessExpression {
+    expression = unwrapParentheses(expression)
+
+    if (ts.isPropertyAccessExpression(expression)) return expression.name.text === 'toFixed'
+    if (!ts.isElementAccessExpression(expression)) return false
+
+    const argument = expression.argumentExpression
+    return Boolean(
+      argument &&
+      ((ts.isStringLiteral(argument) && argument.text === 'toFixed') ||
+        (ts.isNoSubstitutionTemplateLiteral(argument) && argument.text === 'toFixed')),
+    )
+  }
+
+  function isToFixedInvocation(expression: ts.Expression): ts.Expression | null {
+    expression = unwrapParentheses(expression)
+    if (isStaticToFixedAccess(expression)) return expression
+
+    // Number.prototype.toFixed.call/apply(amount, ...) bypasses a check that
+    // only looks for a CallExpression whose immediate callee is toFixed.
+    if (ts.isPropertyAccessExpression(expression) && (expression.name.text === 'call' || expression.name.text === 'apply')) {
+      const target = unwrapParentheses(expression.expression)
+      if (isStaticToFixedAccess(target)) return target
+    }
+    return null
+  }
+
+  function collectToFixedCalls(file: string, source: string): string[] {
+    const scriptKind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+    const sourceFile = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, scriptKind)
+    const parseErrors = (sourceFile as ts.SourceFile & { parseDiagnostics: readonly ts.Diagnostic[] }).parseDiagnostics
+    assert.deepEqual(
+      parseErrors,
+      [],
+      `${file}: sorgente non parsabile, guardia toFixed fail-closed`,
+    )
+
+    const lines: string[] = []
+    function visit(node: ts.Node): void {
+      if (ts.isCallExpression(node)) {
+        const access = isToFixedInvocation(node.expression)
+        if (access) {
+          const accessName = ts.isPropertyAccessExpression(access)
+            ? access.name
+            : ts.isElementAccessExpression(access)
+              ? access.argumentExpression
+              : undefined
+          const accessStart = accessName?.getStart(sourceFile)
+          if (accessStart !== undefined) {
+            const line = sourceFile.getLineAndCharacterOfPosition(accessStart).line
+            lines.push(source.split('\n')[line]?.trim() ?? '')
+          }
+        }
+      }
+      ts.forEachChild(node, visit)
+    }
+    visit(sourceFile)
+    return lines
+  }
+
+  return Object.fromEntries(
+    Object.entries(files)
+      .filter(([file]) => file !== 'src/lib/money.test.ts')
+      .map(([file, source]) => [file, collectToFixedCalls(file, source)] as const)
+      .filter(([, lines]) => lines.length > 0)
+      .sort(([left], [right]) => left.localeCompare(right)),
+  )
+}
+
+function readSourceTree(directory: string, prefix = 'src'): Record<string, string> {
+  const result: Record<string, string> = {}
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const absolute = path.join(directory, entry.name)
+    const relative = `${prefix}/${entry.name}`
+    if (entry.isDirectory()) Object.assign(result, readSourceTree(absolute, relative))
+    else if (/\.tsx?$/.test(entry.name)) result[relative] = fs.readFileSync(absolute, 'utf8')
+  }
+  return result
+}
+
+test('whitelist completa e fail-closed per gli usi residui di toFixed', () => {
+  const actual = findToFixedLines(readSourceTree(path.join(process.cwd(), 'src')))
+  const expected = Object.fromEntries(
+    Object.entries(TO_FIXED_ALLOWLIST)
+      .map(([file, lines]) => [file, lines.map((line) => line.trim())] as const)
+      .sort(([left], [right]) => left.localeCompare(right)),
+  )
+  assert.deepEqual(actual, expected)
+
+
+  // Riproduzione avversaria: conserva intatto il rating consentito e aggiunge
+  // un formatter monetario con optional chaining nella pagina reale. La
+  // allowlist deve rifiutare il nuovo call-site, non solo contare le chiamate.
+  const productDetail = fs.readFileSync(path.join(process.cwd(), 'src/components/ProductDetail.tsx'), 'utf8')
+  const parenthesizedCallSite = productDetail.replace(
+    '{formatMoney(locale, selectedVariant.price)}€',
+    "{(selectedVariant.price['toFixed'])(2)}€",
+  )
+  assert.notEqual(parenthesizedCallSite, productDetail, 'la mutazione deve sostituire il vero call-site ProductDetail')
+
+  // La vecchia guardia guardava direttamente CallExpression.expression: qui
+  // trova un ParenthesizedExpression e quindi non vedeva il metodo statico.
+  const mutatedProductDetailAst = ts.createSourceFile(
+    'src/components/ProductDetail.tsx',
+    parenthesizedCallSite,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  )
+  let legacyGuardMissedParenthesizedCall = false
+  function findLegacyMiss(node: ts.Node): void {
+    if (ts.isCallExpression(node) && ts.isParenthesizedExpression(node.expression)) {
+      const inner = node.expression.expression
+      if (ts.isElementAccessExpression(inner) && inner.argumentExpression?.getText(mutatedProductDetailAst) === "'toFixed'") {
+        legacyGuardMissedParenthesizedCall = true
+      }
+    }
+    ts.forEachChild(node, findLegacyMiss)
+  }
+  findLegacyMiss(mutatedProductDetailAst)
+  assert.ok(legacyGuardMissedParenthesizedCall, 'la mutazione riproduce il bypass della vecchia guardia AST')
+
+  const parenthesizedFindings = findToFixedLines({
+    'src/components/ProductDetail.tsx': parenthesizedCallSite,
+  })
+  assert.deepEqual(
+    parenthesizedFindings,
+    { 'src/components/ProductDetail.tsx': [
+      ...TO_FIXED_ALLOWLIST['src/components/ProductDetail.tsx'],
+      "{(selectedVariant.price['toFixed'])(2)}€",
+    ] },
+    'la nuova guardia AST rileva il formatter monetario parenthesized nel vero call-site senza perdere il rating consentito',
+  )
+
+  // La review ha riprodotto il bypass via Number.prototype.toFixed.call.
+  // Mutiamo il call-site monetario reale: la vecchia guardia (solo callee
+  // diretto) non vede il toFixed annidato sotto .call/.apply, la nuova sì.
+  for (const [replacement, label] of [
+    ['{Number.prototype.toFixed.call(selectedVariant.price, 2)}€', 'call'],
+    ['{Number.prototype.toFixed.apply(selectedVariant.price, [2])}€', 'apply'],
+  ]) {
+    const callApplyMutation = productDetail.replace(
+      '{formatMoney(locale, selectedVariant.price)}€',
+      replacement,
+    )
+    assert.notEqual(callApplyMutation, productDetail, `la mutazione ${label} deve colpire il call-site ProductDetail reale`)
+
+    const mutatedAst = ts.createSourceFile(
+      'src/components/ProductDetail.tsx',
+      callApplyMutation,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TSX,
+    )
+    let legacyGuardMissedBypass = false
+    function findLegacyBypass(node: ts.Node): void {
+      if (ts.isCallExpression(node)) {
+        const callee = node.expression
+        // The old recognizer only accepted direct `.toFixed(...)` calls.
+        if (
+          ts.isPropertyAccessExpression(callee) &&
+          callee.name.text === 'toFixed' &&
+          node.getText(mutatedAst).includes('selectedVariant.price')
+        ) {
+          legacyGuardMissedBypass = true
+        }
+      }
+      ts.forEachChild(node, findLegacyBypass)
+    }
+    findLegacyBypass(mutatedAst)
+    assert.equal(legacyGuardMissedBypass, false, `la vecchia guardia diretta deve riprodursi bypassata con ${label}`)
+
+    assert.deepEqual(
+      findToFixedLines({ 'src/components/ProductDetail.tsx': callApplyMutation }),
+      {
+        'src/components/ProductDetail.tsx': [
+          ...TO_FIXED_ALLOWLIST['src/components/ProductDetail.tsx'],
+          replacement,
+        ],
+      },
+      `la nuova guardia AST rileva Number.prototype.toFixed.${label} sul call-site reale`,
+    )
+  }
+  assert.equal(Number.prototype.toFixed.call(106.65, 2), '106.65', 'la mutazione riproduce il separatore errato in FR')
+  assert.equal(Number.prototype.toFixed.apply(106.65, [2]), '106.65', 'anche apply bypassa il formatter localizzato')
+
+  const attacked = productDetail.replace(
+    '{formatMoney(locale, selectedVariant.price)}€',
+    '{selectedVariant.price.toFixed?.(2)}€',
+  )
+  assert.notEqual(attacked, productDetail, 'la mutazione avversaria deve modificare il sorgente')
+  assert.match(attacked, /reviewSummary\.average\.toFixed\(1\)/, 'la chiamata consentita deve restare nel campione mutato')
+  assert.match(attacked, /selectedVariant\.price\.toFixed\?\.\(2\)/, 'la mutazione deve usare la forma optional-chain riprodotta')
+  assert.throws(
+    () => assert.deepEqual(
+      findToFixedLines({ 'src/components/ProductDetail.tsx': attacked }),
+      { 'src/components/ProductDetail.tsx': TO_FIXED_ALLOWLIST['src/components/ProductDetail.tsx'] },
+    ),
+    'la guardia deve rilevare il toFixed monetario inserito in ProductDetail',
+  )
+
+  // La guardia globale deve rilevare anche l'accesso statico bracket nel vero
+  // call-site del checkout, incluse le varianti con apici singoli o doppi.
+  const checkoutPath = 'src/app/[locale]/checkout/page.tsx'
+  const checkout = fs.readFileSync(path.join(process.cwd(), checkoutPath), 'utf8')
+  const checkoutMutation = checkout.replace(
+    '{formatEuro(locale, item.price * item.quantity)}',
+    "{(item.price * item.quantity)['toFixed'](2)}",
+  )
+  assert.notEqual(checkoutMutation, checkout, 'la mutazione bracket deve modificare il vero checkout')
+  assert.throws(
+    () => assert.deepEqual(findToFixedLines({ [checkoutPath]: checkoutMutation }), {}),
+    'la guardia globale deve rilevare toFixed con accesso bracket nel checkout',
+  )
+  const oldHeuristicMissesUrlBeforeCall = (source: string) => {
+    const index = source.indexOf('.toFixed(2)') + 1
+    let cursor = index
+    while (cursor > 0 && /\s/.test(source[cursor - 1])) cursor -= 1
+    const lineStart = source.lastIndexOf('\n', cursor - 1) + 1
+    const lineComment = source.lastIndexOf('//', cursor - 1)
+    if (lineComment >= lineStart) cursor = lineComment
+    const oldHeuristicAccess = source.slice(Math.max(0, index - 256), cursor)
+    return !/(?:\.|\?\.)$/.test(oldHeuristicAccess)
+  }
+  const checkoutCallSite = checkout.replace(
+    '{formatEuro(locale, item.price * item.quantity)}',
+    "{(() => { const checkoutUrl = 'https://shop.example/checkout//amount'; return (item.price * item.quantity).toFixed(2) })()}",
+  )
+  assert.notEqual(checkoutCallSite, checkout, 'la mutazione deve sostituire il vero importo del checkout')
+  assert.ok(oldHeuristicMissesUrlBeforeCall(checkoutCallSite), 'la guardia precedente deve fallire sul // dentro l’URL prima del call-site monetario')
+  assert.notDeepEqual(
+    findToFixedLines({ [checkoutPath]: checkoutCallSite }),
+    {},
+    'la guardia AST rileva il toFixed monetario nel vero call-site checkout anche dopo una URL contenente //',
+  )
+
+  const commentDecoys = [
+    "// amount.toFixed(2) is forbidden only as code, not in this comment",
+    '/* amount["toFixed"](2) is documentation, not an invocation */',
+    "const message = 'amount.toFixed(2) is text';",
+  ].join('\n')
+  assert.deepEqual(findToFixedLines({ 'src/comment-decoys.ts': commentDecoys }), {})
+
+  assert.deepEqual(
+    findToFixedLines({
+      'src/attacker.ts': `amount['toFixed'](2); amount["toFixed"]?.(2); amount?.['toFixed'](2); amount?.["toFixed"]?.(2)`,
+    }),
+    {
+      'src/attacker.ts': [
+        `amount['toFixed'](2); amount["toFixed"]?.(2); amount?.['toFixed'](2); amount?.["toFixed"]?.(2)`,
+        `amount['toFixed'](2); amount["toFixed"]?.(2); amount?.['toFixed'](2); amount?.["toFixed"]?.(2)`,
+        `amount['toFixed'](2); amount["toFixed"]?.(2); amount?.['toFixed'](2); amount?.["toFixed"]?.(2)`,
+        `amount['toFixed'](2); amount["toFixed"]?.(2); amount?.['toFixed'](2); amount?.["toFixed"]?.(2)`,
+      ],
+    },
+  )
+  for (const expression of [
+    "amount['toFixed']\n(2)",
+    "amount['toFixed'] /* comment */ (2)",
+    'amount["toFixed"] // comment\n(2)',
+  ]) {
+    assert.deepEqual(
+      findToFixedLines({ 'src/attacker.ts': expression }),
+      { 'src/attacker.ts': [expression.split('\n')[0].trim()] },
+      `la guardia globale deve rilevare accesso bracket separato da newline/commento: ${expression}`,
+    )
+  }
+
+  const allowedCallWithComment = productDetail.replace(
+    '{reviewSummary.average.toFixed(1)} ({reviewSummary.count})',
+    '{reviewSummary.average.toFixed(1)} ({reviewSummary.count}) {/* toFixed consentito */}',
+  )
+  assert.notEqual(allowedCallWithComment, productDetail, 'la mutazione con commento deve modificare il sorgente')
+  assert.throws(
+    () => assert.deepEqual(
+      findToFixedLines({ 'src/components/ProductDetail.tsx': allowedCallWithComment }),
+      { 'src/components/ProductDetail.tsx': TO_FIXED_ALLOWLIST['src/components/ProductDetail.tsx'] },
+    ),
+    'la whitelist deve richiedere la riga esatta e rifiutare commenti/testo aggiunti',
+  )
+
+  // Un nuovo file non censito deve fallire in modo chiuso.
+  assert.throws(
+    () => assert.deepEqual(
+      findToFixedLines({ 'src/nuovo-componente.tsx': 'const price = amount.toFixed(2)' }),
+      {},
+    ),
+  )
+  assert.deepEqual(
+    findToFixedLines({ 'src/static-template.ts': 'amount[`toFixed`](2)' }),
+    { 'src/static-template.ts': ['amount[`toFixed`](2)'] },
+    'l’accesso statico con template literal senza interpolazione va rilevato',
+  )
 })
