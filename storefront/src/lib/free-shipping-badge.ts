@@ -31,6 +31,7 @@
  */
 
 import { FLAT_ZONE_CONFIG, type ShippingZone } from './shipping'
+import { formatWholeMoney } from './money'
 
 /** Le lingue pubblicate dal negozio (`src/i18n/routing.ts`). */
 export const FREE_SHIPPING_BADGE_LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
@@ -76,24 +77,28 @@ export function flatShippingCostEuros(zone: 'IT' | 'EU'): number {
 }
 
 /**
- * Un importo come lo legge quella lingua: `60` in tutte e cinque (la soglia e'
- * tonda), `7,65` in italiano e `7.65` in inglese per la tariffa. La formattazione
- * sta qui e non nei JSON, altrimenti la virgola decimale cambierebbe da sola.
- */
-export function formatBadgeAmount(locale: string, amount: number, fractionDigits = 0): string {
-  return new Intl.NumberFormat(normalizeBadgeLocale(locale), {
-    minimumFractionDigits: fractionDigits,
-    maximumFractionDigits: fractionDigits,
-  }).format(amount)
-}
-
-/**
  * Cosa mostrare nel badge: le chiavi del namespace `home.badges.freeShipping`
  * e l'importo (gia' formattato) da passare al segnaposto `{amount}`.
  *
  * Le chiavi sono restituite invece del testo perche' il testo deve restare nei
  * `messages/*.json` (una traduzione non si scrive nel codice) e perche' il
  * chiamante lo rende con next-intl, che e' l'unico che sa interpolare.
+ *
+ * L'importo lo formatta `money.ts`, non questo file: i separatori, i tag di
+ * lingua espliciti (`MONEY_LOCALE_TAGS`: `it-IT`, `en-GB`, …) e il simbolo
+ * appartengono a un'unica autorita'. Il file aveva un formattatore proprio
+ * costruito sulla lingua nuda (`it`, `en`, …) invece che sui tag: la stessa
+ * pagina di checkout finiva con due regole di formattazione, e non si vedeva
+ * solo perche' le soglie sono intere e la lingua nuda oggi rende uguale. Con
+ * una soglia decimale o una lingua nuova il badge avrebbe scritto i numeri con
+ * una regola diversa dal resto della pagina.
+ *
+ * La guardia che impedisce il ritorno del difetto vive in
+ * `free-shipping-badge.test.ts` e legge questo sorgente GREZZO, commenti
+ * compresi: per questo qui non si nomina il tipo del formattatore nemmeno in
+ * prosa. Un filtro che scarta le righe di commento sembra comodo, ma in TS una
+ * riga di codice puo' iniziare con `*` (un metodo generatore) o con `//` dopo
+ * una continuazione, e diventerebbe codice invisibile alla guardia.
  */
 export type FreeShippingBadgeCopy = {
   titleKey: 'title' | 'titleExtraEu'
@@ -111,7 +116,9 @@ export function freeShippingBadgeCopy(locale: string, zone: ShippingZone): FreeS
   return {
     titleKey: 'title',
     bodyKey: 'body',
-    amount: formatBadgeAmount(locale, freeShippingThresholdEuros(zone)),
+    // La soglia e' una promessa tonda (`60`, non `60,00`), e la scrive la stessa
+    // autorita' degli altri importi del negozio.
+    amount: formatWholeMoney(locale, freeShippingThresholdEuros(zone)),
   }
 }
 

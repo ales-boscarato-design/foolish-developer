@@ -12,6 +12,7 @@ import {
   formatEuroCents,
   formatMoney,
   formatMoneyCents,
+  formatWholeMoney,
   normalizeMoneyLocale,
 } from './money'
 import { resolveCheckoutCatalog } from './catalog'
@@ -209,6 +210,118 @@ test('ogni lingua ha il suo locale esplicito: nessun Intl che indovina la macchi
       `${locale}: la resa non e' quella di ${MONEY_LOCALE_TAGS[locale]}`,
     )
   }
+})
+
+// ------------------------------------------------------------ importi tondi
+
+test('un importo tondo si scrive senza decimali, con i tag espliciti della lingua', () => {
+  // La soglia della spedizione gratuita e' una promessa tonda: il badge dice
+  // «Gratis sopra 60€», non «60,00€». Ma il formato resta quello di questa
+  // autorita': stesso tag esplicito, stesso raggruppamento. La variante a zero
+  // decimali esiste perche' un importo che non e' un prezzo non deve leggersi
+  // come un prezzo.
+  for (const locale of MONEY_LOCALES) {
+    assert.equal(formatWholeMoney(locale, 60), '60', `${locale}: sessanta`)
+    assert.equal(formatWholeMoney(locale, 150), '150', `${locale}: centocinquanta`)
+    const reference: Intl.NumberFormat = new Intl.NumberFormat(MONEY_LOCALE_TAGS[locale], {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+      useGrouping: true,
+    })
+    assert.equal(
+      formatWholeMoney(locale, 1234),
+      reference.format(1234),
+      `${locale}: la resa tonda non e' quella di ${MONEY_LOCALE_TAGS[locale]}`,
+    )
+  }
+  // Il raggruppamento e' quello della lingua (non quello del sistema): lo stesso
+  // 1234 ha la stessa forma tonda e a due decimali.
+  assert.equal(formatWholeMoney('it', 1234), '1.234')
+  assert.equal(formatWholeMoney('en', 1234), '1,234')
+  assert.equal(formatWholeMoney('de', 1234), '1.234')
+  // Una lingua non pubblicata ricade sul default di routing, mai su `undefined`.
+  assert.equal(formatWholeMoney('xx', 60), '60')
+  assert.equal(formatWholeMoney(undefined, 60), '60')
+})
+
+test('un importo con centesimi si ferma: non si arrotonda a una promessa tonda', () => {
+  // Se una soglia diventasse 59,90 il badge non deve scrivere «60» (una promessa
+  // piu' larga di quella vera): chi ha centesimi usa `formatMoney`. Il controllo
+  // e' sul valore in ingresso, quindi anche 59,999 si ferma invece di essere
+  // arrotondato ai centesimi e poi all'euro.
+  assert.throws(() => formatWholeMoney('it', 59.9), /non intero/)
+  assert.throws(() => formatWholeMoney('it', 0.01), /non intero/)
+  assert.throws(() => formatWholeMoney('it', 59.999), /non intero/)
+  assert.throws(() => formatWholeMoney('it', Number.NaN), /non intero/)
+  assert.throws(() => formatWholeMoney('it', Number.POSITIVE_INFINITY), /non intero/)
+  // Un intero che non e' rappresentabile esattamente (2**53) non e' un
+  // importo: si ferma con il messaggio di questa funzione, non con quello della
+  // conversione a centesimi (che direbbe «centesimi non interi» e non si capisce
+  // da dove arrivi).
+  assert.throws(() => formatWholeMoney('it', 2 ** 53), /formatWholeMoney: importo non intero/)
+})
+
+test('i formattatori si costruiscono dal tag esplicito, mai dalla lingua nuda', () => {
+  // Le cinque lingue rendono uguale con la lingua nuda e con il tag su un
+  // importo tondo (`it` e `it-IT` danno `60`), quindi nessun confronto di
+  // stringhe puo' accorgersi che i tag espliciti sono spariti: la regressione
+  // che questa PR chiude si vede solo sul sorgente. Questo test la chiude nel
+  // file che ora e' l'unica autorita' del formato.
+  const source = fs.readFileSync(path.join(process.cwd(), 'src', 'lib', 'money.ts'), 'utf8')
+
+  const tagged = source.match(/new Intl\.NumberFormat\(MONEY_LOCALE_TAGS\[locale\],/g) ?? []
+  assert.equal(
+    tagged.length,
+    2,
+    'i due formattatori (2 decimali e importo tondo) devono costruirsi dal tag esplicito',
+  )
+  // Nessuna terza strada: il file costruisce esattamente due formattatori, e
+  // ogni menzione di `Intl.NumberFormat(` e' una di quelle due costruzioni
+  // (quindi nessuna chiamata senza `new`, ammessa da ES2020). Il sorgente e'
+  // letto GREZZO, commenti compresi: un filtro che scarta righe puo' nascondere
+  // codice vero (una riga `*` e' un metodo generatore valido).
+  const constructed = source.match(/new Intl\.NumberFormat\(/g) ?? []
+  const mentioned = source.match(/Intl\.NumberFormat\(/g) ?? []
+  assert.equal(
+    constructed.length,
+    2,
+    'money.ts non deve costruire altri formattatori oltre ai due (2 decimali e importo tondo)',
+  )
+  assert.equal(
+    mentioned.length,
+    constructed.length,
+    'nessun `Intl.NumberFormat(...)` chiamato senza `new`: sarebbe un terzo formattatore invisibile',
+  )
+  // Nessun `NumberFormat` fuori da `Intl.NumberFormat`: blocks destructuring e
+  // alias (`const { NumberFormat } = Intl`), che il conteggio qui sopra non vede.
+  const bareNumberFormat = source.match(/(?<!Intl\.)\bNumberFormat\b/g) ?? []
+  assert.equal(
+    bareNumberFormat.length,
+    0,
+    'nessun `NumberFormat` fuori da `Intl.NumberFormat`: niente destrutturazione, niente alias',
+  )
+  assert.ok(
+    !/globalThis|\bIntl\s*\[/.test(source),
+    'il formattatore non si raggiunge per vie indirette (`globalThis`, accesso con parentesi quadre)',
+  )
+  // I due percorsi USATI, non solo le due costruzioni. Una sostituzione di corpo
+  // — `(cents / 100).toLocaleString(normalizeMoneyLocale(locale), …)` — lascia
+  // le due costruzioni al loro posto (e `wholeFormatterFor` inutilizzato) con la
+  // suite verde, perche' lingua nuda e tag esplicito rendono uguale su un
+  // importo tondo: misurato da una review indipendente. Quindi si pinna il
+  // ritorno delle due funzioni e si vieta la terza strada.
+  assert.ok(
+    /return formatterFor\(normalizeMoneyLocale\(locale\)\)\.format\(/.test(source),
+    'formatMoneyCents deve formattare con formatterFor sulla lingua normalizzata',
+  )
+  assert.ok(
+    /return wholeFormatterFor\(normalizeMoneyLocale\(locale\)\)\.format\(/.test(source),
+    'formatWholeMoney deve formattare con wholeFormatterFor sulla lingua normalizzata',
+  )
+  assert.ok(
+    !/toLocaleString/.test(source),
+    'money.ts non deve formattare con `toLocaleString`: i due formattatori cache-ati sul tag esplicito sono la sola strada',
+  )
 })
 
 // ------------------------------------------------------- centesimi interi
