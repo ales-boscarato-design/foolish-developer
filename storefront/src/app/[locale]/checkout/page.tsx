@@ -467,11 +467,15 @@ export default function CheckoutPage() {
             >
               <div className="flex justify-between items-center mb-3">
                 <p className="text-sm" style={{ color: 'var(--muted-fg)' }}>
-                  Aggiungi{' '}
-                  <span className="font-medium" style={{ color: 'var(--accent)' }}>
-                    {formatEuroCents(locale, remainingCents)}
-                  </span>{' '}
-                  per la spedizione gratuita
+                  {t.rich('freeShippingAdd', {
+                    // La chiave porta gia' il simbolo dopo il numero (la frase e'
+                    // `Aggiungi <b>{amount}</b>` + simbolo): qui si formatta solo il
+                    // numero, nella lingua della pagina.
+                    amount: formatMoneyCents(locale, remainingCents),
+                    b: (chunks) => (
+                      <span className="font-medium" style={{ color: 'var(--accent)' }}>{chunks}</span>
+                    ),
+                  })}
                 </p>
                 <span className="text-mono text-xs" style={{ color: 'var(--muted-fg)' }}>
                   {Math.round((cartTotal / (cartTotal + remaining)) * 100)}%
@@ -569,7 +573,7 @@ export default function CheckoutPage() {
                       onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--limited)' }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--muted-fg)' }}
                     >
-                      ✕ Rimuovi
+                      <span aria-hidden>✕</span> {t('promoRemove')}
                     </button>
                   </div>
                 </div>
@@ -678,7 +682,7 @@ export default function CheckoutPage() {
                 {emailStatus === 'valid' && <CheckCircle size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#5a9c52' }} />}
               </div>
               {emailStatus === 'invalid' && (
-                <p className="text-xs mt-1" style={{ color: 'var(--limited)' }}>Email non valida — ricontrolla</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--limited)' }}>{t('emailInvalidRecheck')}</p>
               )}
             </div>
 
@@ -699,7 +703,7 @@ export default function CheckoutPage() {
                 {!phoneError && form.phone && <CheckCircle size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#5a9c52' }} />}
               </div>
               {phoneError && (
-                <p className="text-xs mt-1" style={{ color: 'var(--limited)' }}>Numero di telefono non valido</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--limited)' }}>{t('phoneInvalid')}</p>
               )}
             </div>
 
@@ -773,7 +777,7 @@ export default function CheckoutPage() {
                 {!postalCodeError && form.postalCode && <CheckCircle size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#5a9c52' }} />}
               </div>
               {postalCodeError && (
-                <p className="text-xs mt-1" style={{ color: 'var(--limited)' }}>Formato CAP non valido per {country}</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--limited)' }}>{t('postalCodeInvalidFor', { country })}</p>
               )}
             </div>
 
@@ -899,19 +903,19 @@ export default function CheckoutPage() {
 
             {/* Riepilogo */}
             <div className="space-y-0 mb-3">
-              <p className="text-label mb-3" style={{ color: 'var(--muted-fg)' }}>Riepilogo ordine</p>
+              <p className="text-label mb-3" style={{ color: 'var(--muted-fg)' }}>{t('orderSummary')}</p>
 
               <div className="flex justify-between py-2" style={{ borderBottom: '1px solid var(--surface-3)' }}>
-                <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>Subtotale</span>
+                <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>{t('labelSubtotal')}</span>
                 <span className="text-mono text-sm">{formatEuroCents(locale, cartTotalCents)}</span>
               </div>
 
               <div className="flex justify-between py-2" style={{ borderBottom: '1px solid var(--surface-3)' }}>
-                <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>Spedizione — {country}</span>
+                <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>{t('labelShipping', { country })}</span>
                 <span className="text-mono text-sm" style={{ color: shipping.isFree ? '#5a9c52' : 'var(--foreground)' }}>
                   {baseShipping.requiresQuote
                     ? t('shippingQuoteRequired')
-                    : shipping.isFree ? 'Gratuita' : formatEuroCents(locale, shippingDisplayCents)}
+                    : shipping.isFree ? t('labelFree') : formatEuroCents(locale, shippingDisplayCents)}
                 </span>
               </div>
 
@@ -939,7 +943,9 @@ export default function CheckoutPage() {
               {proDiscount > 0 && (
                 <div className="flex justify-between py-2" style={{ borderBottom: '1px solid var(--surface-3)' }}>
                   <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>
-                    {promoData?.discountPercent ? `Sconto ${promoData.discountPercent}%` : 'Sconto'}
+                    {promoData?.discountPercent
+                      ? t('labelDiscountPercent', { percent: promoData.discountPercent })
+                      : t('labelDiscount')}
                   </span>
                   <span className="text-mono text-sm" style={{ color: '#5a9c52' }}>−{formatEuroCents(locale, proDiscountCents)}</span>
                 </div>
@@ -951,7 +957,7 @@ export default function CheckoutPage() {
 
             {/* Totale */}
             <div className="flex justify-between items-baseline mb-4">
-              <span className="text-sm font-medium">Totale IVA inc.</span>
+              <span className="text-sm font-medium">{t('labelTotalVatIncluded')}</span>
               <span className="text-mono font-bold" style={{ fontSize: 22, color: 'var(--accent)', letterSpacing: '-0.01em' }}>
                 {formatEuroCents(locale, grandTotalCents)}
               </span>
@@ -963,7 +969,7 @@ export default function CheckoutPage() {
                 <input
                   className={`${inputBase} flex-1 text-mono uppercase`}
                   style={inputStyle('promo')}
-                  placeholder="CODICE PROMO"
+                  placeholder={t('promoCodePlaceholder')}
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                   onFocus={() => setFocusedField('promo')}
@@ -980,7 +986,7 @@ export default function CheckoutPage() {
                     transitionDuration: 'var(--dur-fast)',
                   }}
                 >
-                  {promoStatus === 'loading' ? <Loader2 size={14} className="animate-spin" /> : 'Applica'}
+                  {promoStatus === 'loading' ? <Loader2 size={14} className="animate-spin" /> : t('promoApply')}
                 </button>
               </div>
               {promoIsValidForCart && (
@@ -1005,13 +1011,13 @@ export default function CheckoutPage() {
                     }
                   </span>
                   <button onClick={removePromo} className="text-label" style={{ color: 'var(--muted-fg)' }}>
-                    Rimuovi
+                    {t('promoRemove')}
                   </button>
                 </div>
               )}
               {promoStatus === 'invalid' && (
                 <p className="flex items-center gap-1.5 text-xs mt-1" style={{ color: 'var(--limited)' }}>
-                  <XCircle size={12} /> Codice non valido o scaduto
+                  <XCircle size={12} /> {t('promoInvalidExpired')}
                 </p>
               )}
             </div>
@@ -1033,7 +1039,7 @@ export default function CheckoutPage() {
               }
             </button>
             <p className="text-center mt-2.5 text-xs" style={{ color: 'var(--muted-fg)' }}>
-              🔒 Stripe · Pagamento sicuro · Dati crittografati
+              <span aria-hidden>🔒</span> {t('securePaymentNote')}
             </p>
           </div>
         </div>
