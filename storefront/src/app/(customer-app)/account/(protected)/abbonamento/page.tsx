@@ -4,6 +4,7 @@ import { getSession } from '@/lib/account-auth'
 import { getAccountLocale, getT } from '@/lib/account-i18n'
 import { getBenefitForCycle, getNextTierCyclesRemaining, type PlanKey, type Zone } from '@/lib/subscription-plans'
 import { CancelSubscriptionButton } from './_components/CancelSubscriptionButton'
+import { formatMoney } from '@/lib/money'
 import { ChangeZoneButton } from './_components/ChangeZoneButton'
 
 const PLAN_LABELS: Record<PlanKey, string> = { tattoo: 'Tattoo XXL', pmu: 'PMU 3 Visi' }
@@ -56,7 +57,7 @@ export default async function AbbonamentoPage() {
                 {PLAN_LABELS[sub.plan]} · {ZONE_LABELS[sub.zone]}
               </div>
               <div style={{ fontSize: '11px', color: '#888', marginBottom: '8px' }}>
-                {t('subscription_cycle')} {currentCycle} · {t('subscription_current_price')} €{benefit.total.toFixed(2)}
+                {t('subscription_cycle')} {currentCycle} · {t('subscription_current_price')} €{formatMoney(locale, benefit.total)}
               </div>
               <div style={{ fontSize: '11px', color: '#c9a96e', marginBottom: '10px' }}>
                 {cyclesRemaining > 0

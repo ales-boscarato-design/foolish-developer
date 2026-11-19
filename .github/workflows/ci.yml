@@ -109,6 +109,7 @@ jobs:
           npm run test:printful-webhook --silent
           npm run test:checkout-i18n --silent
           npm run test:security-secrets --silent
+          npm run test:money --silent
       - name: Storefront — build
         working-directory: storefront
         run: npm run build

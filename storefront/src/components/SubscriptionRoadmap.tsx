@@ -1,6 +1,8 @@
 'use client'
 import { useState } from 'react'
 import { SUBSCRIPTION_LADDER, type PlanKey, type Zone } from '@/lib/subscription-plans'
+import { useLocale } from 'next-intl'
+import { formatMoney } from '@/lib/money'
 
 interface Props {
   plan: PlanKey
@@ -17,6 +19,7 @@ interface Props {
 }
 
 export function SubscriptionRoadmap({ plan, labels }: Props) {
+  const locale = useLocale()
   const [zone, setZone] = useState<Zone>('IT')
   const config = SUBSCRIPTION_LADDER[plan][zone]
   const stepLabels = [labels.cycle1, labels.cycle2, labels.cycle6]
@@ -56,7 +59,7 @@ export function SubscriptionRoadmap({ plan, labels }: Props) {
                 {stepLabels[i]}
               </div>
               <div className="text-mono" style={{ fontSize: '11px', color: 'var(--foreground)', marginTop: '4px' }}>
-                €{(phase.productPrice + phase.shippingPrice).toFixed(2)} {labels.perMonth}
+                €{formatMoney(locale, phase.productPrice + phase.shippingPrice)} {labels.perMonth}
               </div>
               {phase.shippingPrice === 0 && (
                 <div style={{ fontSize: '10px', color: 'var(--accent)', marginTop: '2px' }}>{labels.shippingIncluded}</div>

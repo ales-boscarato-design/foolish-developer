@@ -25,6 +25,7 @@ import { Resend } from 'resend'
 
 import { notifyNanobot } from './nanobot'
 import { PLAN_NAMES } from './subscription-plans'
+import { formatMoney } from './money'
 import {
   buildRenewalZoneAlertPayload,
   type RenewalZoneAlertPayload,
@@ -52,7 +53,7 @@ const REASON_TEXT: Record<RenewalZoneAlertPayload['reason'], string> = {
 }
 
 function money(value: number | null): string {
-  return value === null ? 'non calcolabile' : `${value.toFixed(2)} EUR`
+  return value === null ? 'non calcolabile' : `${formatMoney('it', value)} EUR`
 }
 
 function alertText(payload: RenewalZoneAlertPayload): string {

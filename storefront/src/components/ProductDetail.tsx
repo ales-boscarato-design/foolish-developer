@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ShoppingBag, Check, Star, Shield, Truck, Sparkles, Play, Expand, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useTranslations, useLocale } from 'next-intl'
+import { formatMoney } from '@/lib/money'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import { DURATION, EASE } from '@/lib/motion'
 import type { Product, ProductVariant, ProductAttribute, ProductVariantCombination, FeatureHighlight, ProductComponent, ProductPack, ProductVideo } from '@/lib/cms'
@@ -195,7 +196,7 @@ function FeatureCard({ highlight }: FeatureCardProps) {
 }
 
 // ─── Component product card ──────────────────────────────────────────────────
-function ComponentCard({ component }: { component: ProductComponent }) {
+function ComponentCard({ component, locale }: { component: ProductComponent; locale: string }) {
   const addToCart = useCart((s) => s.add)
   const [added, setAdded] = useState(false)
   const firstVariant = component.variants[0]
@@ -228,7 +229,7 @@ function ComponentCard({ component }: { component: ProductComponent }) {
       <div className="flex-1 min-w-0">
         <Link href={`/prodotto/${component.slug}`} className="text-sm font-semibold truncate block hover:underline" style={{ color: 'var(--foreground)' }}>{component.name}</Link>
         <p className="text-sm mt-0.5" style={{ color: 'var(--accent)' }}>
-          {firstVariant ? `${firstVariant.price.toFixed(2)}€` : `${component.basePrice.toFixed(2)}€`}
+          {firstVariant ? `${formatMoney(locale, firstVariant.price)}€` : `${formatMoney(locale, component.basePrice)}€`}
         </p>
       </div>
 
@@ -569,7 +570,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.5 }}
               >
-                {selectedVariant.price.toFixed(2)}€
+                {formatMoney(locale, selectedVariant.price)}€
               </motion.span>
               <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>{t('vatIncluded')}</span>
             </div>
@@ -846,18 +847,18 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                               borderColor: 'rgba(97,51,24,0.20)',
                             }}
                           >
-                            Risparmi €{((selectedVariant.price * pack.quantity) * (pack.discountPercent / 100)).toFixed(2)}
+                            Risparmi €{formatMoney(locale, (selectedVariant.price * pack.quantity) * (pack.discountPercent / 100))}
                           </span>
                         )}
                       </div>
                       <div className="text-right flex flex-col">
                         {pack.discountPercent > 0 && (
                           <span className="text-xs line-through" style={{ color: 'var(--muted-fg)' }}>
-                            €{(selectedVariant.price * pack.quantity).toFixed(2)}
+                            €{formatMoney(locale, selectedVariant.price * pack.quantity)}
                           </span>
                         )}
                         <span className="text-mono font-semibold text-base" style={{ color: 'var(--accent)' }}>
-                          €{(selectedVariant.price * pack.quantity * (1 - pack.discountPercent / 100)).toFixed(2)}
+                          €{formatMoney(locale, selectedVariant.price * pack.quantity * (1 - pack.discountPercent / 100))}
                         </span>
                       </div>
                     </div>
@@ -947,7 +948,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
             </p>
             <div className="space-y-3">
               {product.components.map((component) => (
-                <ComponentCard key={component.id} component={component} />
+                <ComponentCard key={component.id} component={component} locale={locale} />
               ))}
             </div>
           </motion.section>
