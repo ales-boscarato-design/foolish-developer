@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/account-auth'
 import { savePushSubscription, markPushSequenceStep } from '@/lib/account-db'
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
   if (isFirstTime) {
     // Fetch on_subscribe sequence delay=0 steps from CMS and send immediately
     const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL ?? process.env.PAYLOAD_PUBLIC_URL
-    const cmsSecret = process.env.PAYLOAD_API_SECRET
+    const cmsSecret = cmsServiceSecret()
     if (cmsUrl && cmsSecret) {
       try {
         const res = await fetch(

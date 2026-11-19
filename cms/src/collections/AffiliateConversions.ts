@@ -1,11 +1,7 @@
 import { APIError } from 'payload'
 import { sql, type PostgresAdapter } from '@payloadcms/db-postgres'
 import type { CollectionConfig, PayloadRequest } from 'payload'
-
-function hasStorefrontSecret(req: PayloadRequest): boolean {
-  const secret = req.headers?.get?.('x-storefront-secret') ?? (req.headers as unknown as Record<string, string>)?.['x-storefront-secret']
-  return !!secret && secret === process.env.PAYLOAD_API_SECRET
-}
+import { hasServiceAccess, resolveServiceScope } from '../lib/serviceAccess'
 
 function validateNonNegativeInteger(label: string, max = Number.MAX_SAFE_INTEGER) {
   return (value: unknown) => {
@@ -222,7 +218,7 @@ function canonicalExistingConversion(
 }
 
 async function createOrGetConversion(req: PayloadRequest): Promise<Response> {
-  if (!hasStorefrontSecret(req) && !req.user) throw new APIError('Unauthorized', 401)
+  if (resolveServiceScope(req.headers) !== 'storefront' && !req.user) throw new APIError('Unauthorized', 401)
 
   let body: unknown
   try {
@@ -398,7 +394,7 @@ function parseOrderAttributionBody(body: unknown): {
 }
 
 export async function applyOrderAttribution(req: PayloadRequest): Promise<Response> {
-  if (!hasStorefrontSecret(req) && !req.user) throw new APIError('Unauthorized', 401)
+  if (resolveServiceScope(req.headers) !== 'storefront' && !req.user) throw new APIError('Unauthorized', 401)
 
   let body: unknown
   try {
@@ -482,7 +478,7 @@ function parseRefundTransitionBody(body: unknown): {
 }
 
 export async function applyRefundTransition(req: PayloadRequest): Promise<Response> {
-  if (!hasStorefrontSecret(req) && !req.user) throw new APIError('Unauthorized', 401)
+  if (resolveServiceScope(req.headers) !== 'storefront' && !req.user) throw new APIError('Unauthorized', 401)
 
   let body: unknown
   try {
@@ -607,7 +603,7 @@ export const AffiliateConversions: CollectionConfig = {
   access: {
     // Conversion and refund data is not public; admins and trusted server
     // integrations may read it through the shared secret.
-    read: ({ req }) => !!req.user || hasStorefrontSecret(req),
+    read: ({ req }) => !!req.user || hasServiceAccess(req, 'affiliate-conversions', 'read'),
     create: ({ req }) => !!req.user,
     update: ({ req }) => !!req.user,
     delete: ({ req }) => !!req.user,

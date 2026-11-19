@@ -1,3 +1,4 @@
+import { adminSecret } from '@/lib/admin-secret'
 import { NextRequest, NextResponse } from 'next/server'
 import { createCustomerOffer } from '@/lib/account-db'
 
@@ -5,7 +6,8 @@ export const dynamic = 'force-dynamic'
 
 /**
  * POST /api/admin/create-offer
- * Protected by PAYLOAD_API_SECRET.
+ * Protected by FOOLISH_ADMIN_SECRET (fallback STOREFRONT_API_SECRET, poi
+ * PAYLOAD_API_SECRET durante la transizione).
  *
  * Body: { email, productSlug, discountPercent?, validityHours? }
  *
@@ -14,7 +16,8 @@ export const dynamic = 'force-dynamic'
  */
 export async function POST(req: NextRequest) {
   const secret = req.headers.get('x-admin-secret')
-  if (!secret || secret !== process.env.PAYLOAD_API_SECRET) {
+  const expected = adminSecret()
+  if (!secret || !expected || secret !== expected) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

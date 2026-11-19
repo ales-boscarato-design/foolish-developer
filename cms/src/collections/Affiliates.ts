@@ -1,12 +1,8 @@
 import { APIError } from 'payload'
-import type { CollectionBeforeChangeHook, CollectionConfig, PayloadRequest } from 'payload'
+import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload'
+import { hasServiceAccess } from '../lib/serviceAccess'
 
 const AFFILIATE_SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/
-
-function hasStorefrontSecret(req: PayloadRequest): boolean {
-  const secret = req.headers?.get?.('x-storefront-secret') ?? (req.headers as unknown as Record<string, string>)?.['x-storefront-secret']
-  return !!secret && secret === process.env.PAYLOAD_API_SECRET
-}
 
 function validateIntegerRange(label: string, min: number, max: number) {
   return (value: unknown) => {
@@ -59,7 +55,7 @@ export const Affiliates: CollectionConfig = {
   },
   access: {
     // Affiliate identities and commission configuration are never public.
-    read: ({ req }) => !!req.user || hasStorefrontSecret(req),
+    read: ({ req }) => !!req.user || hasServiceAccess(req, 'affiliates', 'read'),
     create: ({ req }) => !!req.user,
     update: ({ req }) => !!req.user,
     delete: ({ req }) => !!req.user,

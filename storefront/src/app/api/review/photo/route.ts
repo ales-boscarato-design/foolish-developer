@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
@@ -18,9 +19,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'File too large (max 5MB)' }, { status: 400 })
   }
 
-  const cmsSecret = process.env.PAYLOAD_API_SECRET
+  const cmsSecret = cmsServiceSecret()
   if (!cmsSecret) {
-    console.error('[review/photo] PAYLOAD_API_SECRET is not configured')
+    console.error('[review/photo] cms service secret is not configured')
     return NextResponse.json({ error: 'Upload unavailable' }, { status: 503 })
   }
 

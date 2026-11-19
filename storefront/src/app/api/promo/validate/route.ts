@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { NextRequest, NextResponse } from 'next/server'
 import { getOfferByCode } from '@/lib/account-db'
 import { resolveCheckoutCatalog } from '@/lib/catalog'
@@ -43,13 +44,12 @@ export async function POST(req: NextRequest) {
   }
 
   // 1. Check CMS PromoCodes
+  const cmsSecret = cmsServiceSecret()
   try {
     const cmsRes = await fetch(
       `${CMS_URL}/api/promo-codes?where[code][equals]=${encodeURIComponent(normalizedCode)}&depth=0&limit=1`,
       {
-        headers: process.env.PAYLOAD_API_SECRET
-          ? { 'x-storefront-secret': process.env.PAYLOAD_API_SECRET }
-          : undefined,
+        headers: cmsSecret ? { 'x-storefront-secret': cmsSecret } : undefined,
         cache: 'no-store',
       },
     )

@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/account-auth'
 import { getWishlist } from '@/lib/account-db'
@@ -30,7 +31,7 @@ export default async function FilePage() {
   const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL ?? process.env.PAYLOAD_PUBLIC_URL
   const filesRes = await fetch(
     `${cmsUrl}/api/customer-files?where[active][equals]=true&limit=50&depth=1`,
-    { headers: { 'x-storefront-secret': process.env.PAYLOAD_API_SECRET! }, cache: 'no-store' }
+    { headers: { 'x-storefront-secret': cmsServiceSecret() }, cache: 'no-store' }
   )
   const filesData = filesRes.ok ? await filesRes.json() : null
   const filesError = filesData === null

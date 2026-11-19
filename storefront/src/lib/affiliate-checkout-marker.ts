@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { normalizePromoCode, type PromoRecord } from './promo'
 
 type CmsId = string | number
@@ -82,7 +83,7 @@ export async function shouldMarkAffiliateCheckoutPromo(
   record: PromoRecord | null | undefined,
 ): Promise<AffiliateCheckoutMarker | null> {
   const promoId = affiliatePromoId(record)
-  const secret = process.env.PAYLOAD_API_SECRET
+  const secret = cmsServiceSecret()
   if (promoId === null || !secret) return null
 
   const cmsUrl = process.env.PAYLOAD_PUBLIC_URL || CMS_DEFAULT_URL

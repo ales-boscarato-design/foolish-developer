@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { getSession } from '@/lib/account-auth'
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
     {
       stripe: new Stripe(stripeSecret),
       cmsUrl: CMS_URL,
-      cmsSecret: process.env.PAYLOAD_API_SECRET || '',
+      cmsSecret: cmsServiceSecret(),
     },
     {
       subscriptionDocId: payload?.subscriptionDocId,

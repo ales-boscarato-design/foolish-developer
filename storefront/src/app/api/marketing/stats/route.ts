@@ -1,3 +1,4 @@
+import { adminSecret } from '@/lib/admin-secret'
 import { NextRequest, NextResponse } from 'next/server'
 import sql from '@/lib/db'
 
@@ -5,7 +6,8 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('x-storefront-secret')
-  if (!secret || secret !== process.env.PAYLOAD_API_SECRET) {
+  const expected = adminSecret()
+  if (!secret || !expected || secret !== expected) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

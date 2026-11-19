@@ -1,9 +1,10 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
 const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
-const CMS_SECRET = process.env.PAYLOAD_API_SECRET || ''
+const CMS_SECRET = cmsServiceSecret()
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
