@@ -237,3 +237,54 @@ export function formatWholeMoney(locale: string | null | undefined, amount: numb
   }
   return wholeFormatterFor(normalizeMoneyLocale(locale)).format(eurosToDisplayCents(amount) / 100)
 }
+
+// -------------------------------------------------------------- percentuali
+
+/** Il segno di percentuale, uno solo in tutto il negozio: si compone, non si riscrive. */
+export const PERCENT_SIGN = '%'
+
+/**
+ * Le aliquote di commissione del programma affiliati arrivano in PUNTI BASE
+ * interi (`currentRateBps`, `commissionBaseRateBps`): 500 punti base sono il
+ * 5%, 1250 il 12,5%, 333 il 3,33%. Come per gli importi, l'unita' del testo e'
+ * un intero e non un decimale gia' scritto: 1/100 di punto base non esiste, e
+ * un valore frazionario e' un errore di programmazione che si ferma qui.
+ *
+ * Perche' una funzione qui e non nella pagina: la pagina delle statistiche
+ * costruiva il proprio formattatore con la lingua nuda (`it`, `en`, …) invece
+ * dei tag espliciti di `MONEY_LOCALE_TAGS`. Due formattatori nella stessa
+ * pagina non si vedevano finche' la lingua nuda e il tag rendono uguale; la
+ * deriva si sarebbe vista con una lingua nuova in `routing.locales` o con una
+ * regola CLDR diversa per una lingua senza regione (`en` -> `en-US`).
+ *
+ * Il segno sta FUORI dal valore formattato e attaccato al numero, come l'euro
+ * (`12,5%`): `style: 'percent'` lo metterebbe dentro con lo spazio che decide
+ * il locale, e una frase che lo scrive gia' produrrebbe `12,5 % %`.
+ */
+const percentFormatters = new Map<MoneyLocale, Intl.NumberFormat>()
+
+function percentFormatterFor(locale: MoneyLocale): Intl.NumberFormat {
+  const cached = percentFormatters.get(locale)
+  if (cached) return cached
+  const formatter = new Intl.NumberFormat(MONEY_LOCALE_TAGS[locale], {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+    useGrouping: true,
+  })
+  percentFormatters.set(locale, formatter)
+  return formatter
+}
+
+/**
+ * `12,5%` in it/fr/es/de, `12.5%` in inglese: due decimali solo se servono
+ * (`5%`, non `5,00%`), raggruppamento e separatori quelli della lingua.
+ *
+ * Un punto base frazionario e' un errore di programmazione, non un'aliquota:
+ * `Intl` non deve decidere una cifra che il calcolo non ha prodotto.
+ */
+export function formatPercentBps(locale: string | null | undefined, bps: number): string {
+  if (typeof bps !== 'number' || !Number.isSafeInteger(bps)) {
+    throw new TypeError(`formatPercentBps: punti base non interi (${String(bps)})`)
+  }
+  return `${percentFormatterFor(normalizeMoneyLocale(locale)).format(bps / 100)}${PERCENT_SIGN}`
+}

@@ -7,11 +7,13 @@ import {
   EURO_SIGN,
   MONEY_LOCALES,
   MONEY_LOCALE_TAGS,
+  PERCENT_SIGN,
   eurosToDisplayCents,
   formatEuro,
   formatEuroCents,
   formatMoney,
   formatMoneyCents,
+  formatPercentBps,
   formatWholeMoney,
   normalizeMoneyLocale,
 } from './money'
@@ -261,6 +263,50 @@ test('un importo con centesimi si ferma: non si arrotonda a una promessa tonda',
   assert.throws(() => formatWholeMoney('it', 2 ** 53), /formatWholeMoney: importo non intero/)
 })
 
+// ------------------------------------------------------------ percentuali
+
+test('un aliquota in punti base si legge nella lingua, due decimali solo se servono', () => {
+  // Le aliquote del programma affiliati sono intere in punti base: 500 = 5%,
+  // 1250 = 12,5%, 333 = 3,33%. Il segno sta fuori dal numero e attaccato, come
+  // l'euro: `style: 'percent'` lo metterebbe dentro con lo spazio del locale.
+  assert.equal(PERCENT_SIGN, '%')
+  for (const locale of MONEY_LOCALES) {
+    assert.equal(formatPercentBps(locale, 500), '5%', `${locale}: cinque per cento`)
+    assert.equal(formatPercentBps(locale, 0), '0%', `${locale}: zero`)
+    assert.equal(formatPercentBps(locale, 2000), '20%', `${locale}: venti per cento`)
+  }
+  assert.equal(formatPercentBps('it', 1250), '12,5%')
+  assert.equal(formatPercentBps('en', 1250), '12.5%')
+  assert.equal(formatPercentBps('fr', 1250), '12,5%')
+  assert.equal(formatPercentBps('de', 1250), '12,5%')
+  assert.equal(formatPercentBps('es', 1250), '12,5%')
+  assert.equal(formatPercentBps('it', 333), '3,33%')
+  assert.equal(formatPercentBps('en', 333), '3.33%')
+  // Sopra il migliaio si raggruppa nella lingua (non `1,234.5` in italiano).
+  assert.equal(formatPercentBps('it', 123450), '1.234,5%')
+  assert.equal(formatPercentBps('en', 123450), '1,234.5%')
+  // Una lingua non pubblicata ricade sul default di routing, mai su `undefined`.
+  assert.equal(formatPercentBps('xx', 500), '5%')
+  assert.equal(formatPercentBps(undefined, 500), '5%')
+})
+
+test('i punti base non si arrotondano: la cifra scritta e quella contata', () => {
+  // Il rischio di `Intl` su un decimale gia' scritto: 1250/100 e' 12,5 ma in
+  // binario non e' esatto, e un formattatore con `maximumFractionDigits: 2`
+  // potrebbe mostrare `12,49%` su un valore che il registro conta come 12,5.
+  // Si controlla la cifra, non solo la forma: ogni punto base intero, da 0 a
+  // 20000, si rilegge come se stesso dopo la formattazione.
+  for (let bps = 0; bps <= 20000; bps += 1) {
+    const written = formatPercentBps('en', bps).replace(PERCENT_SIGN, '')
+    const reread = Math.round(Number(written.replace(/,/g, '')) * 100)
+    assert.equal(reread, bps, `${bps} punti base scritti come ${written}`)
+  }
+  // Un punto base frazionario e' un errore di programmazione, non un'aliquota.
+  assert.throws(() => formatPercentBps('it', 12.5), /punti base non interi/)
+  assert.throws(() => formatPercentBps('it', Number.NaN), /punti base non interi/)
+  assert.throws(() => formatPercentBps('it', '500' as unknown as number), /punti base non interi/)
+})
+
 test('i formattatori si costruiscono dal tag esplicito, mai dalla lingua nuda', () => {
   // Le cinque lingue rendono uguale con la lingua nuda e con il tag su un
   // importo tondo (`it` e `it-IT` danno `60`), quindi nessun confronto di
@@ -272,11 +318,11 @@ test('i formattatori si costruiscono dal tag esplicito, mai dalla lingua nuda', 
   const tagged = source.match(/new Intl\.NumberFormat\(MONEY_LOCALE_TAGS\[locale\],/g) ?? []
   assert.equal(
     tagged.length,
-    2,
-    'i due formattatori (2 decimali e importo tondo) devono costruirsi dal tag esplicito',
+    3,
+    'i tre formattatori (2 decimali, importo tondo, percentuale) devono costruirsi dal tag esplicito',
   )
-  // Nessuna terza strada: il file costruisce esattamente due formattatori, e
-  // ogni menzione di `Intl.NumberFormat(` e' una di quelle due costruzioni
+  // Nessuna terza strada: il file costruisce esattamente tre formattatori, e
+  // ogni menzione di `Intl.NumberFormat(` e' una di quelle tre costruzioni
   // (quindi nessuna chiamata senza `new`, ammessa da ES2020). Il sorgente e'
   // letto GREZZO, commenti compresi: un filtro che scarta righe puo' nascondere
   // codice vero (una riga `*` e' un metodo generatore valido).
@@ -284,8 +330,8 @@ test('i formattatori si costruiscono dal tag esplicito, mai dalla lingua nuda', 
   const mentioned = source.match(/Intl\.NumberFormat\(/g) ?? []
   assert.equal(
     constructed.length,
-    2,
-    'money.ts non deve costruire altri formattatori oltre ai due (2 decimali e importo tondo)',
+    3,
+    'money.ts non deve costruire altri formattatori oltre ai tre (2 decimali, importo tondo, percentuale)',
   )
   assert.equal(
     mentioned.length,
@@ -304,12 +350,12 @@ test('i formattatori si costruiscono dal tag esplicito, mai dalla lingua nuda', 
     !/globalThis|\bIntl\s*\[/.test(source),
     'il formattatore non si raggiunge per vie indirette (`globalThis`, accesso con parentesi quadre)',
   )
-  // I due percorsi USATI, non solo le due costruzioni. Una sostituzione di corpo
+  // I percorsi USATI, non solo le costruzioni. Una sostituzione di corpo
   // — `(cents / 100).toLocaleString(normalizeMoneyLocale(locale), …)` — lascia
-  // le due costruzioni al loro posto (e `wholeFormatterFor` inutilizzato) con la
+  // le costruzioni al loro posto (e `wholeFormatterFor` inutilizzato) con la
   // suite verde, perche' lingua nuda e tag esplicito rendono uguale su un
   // importo tondo: misurato da una review indipendente. Quindi si pinna il
-  // ritorno delle due funzioni e si vieta la terza strada.
+  // ritorno di ogni funzione e si vieta la terza strada.
   assert.ok(
     /return formatterFor\(normalizeMoneyLocale\(locale\)\)\.format\(/.test(source),
     'formatMoneyCents deve formattare con formatterFor sulla lingua normalizzata',
@@ -319,8 +365,12 @@ test('i formattatori si costruiscono dal tag esplicito, mai dalla lingua nuda', 
     'formatWholeMoney deve formattare con wholeFormatterFor sulla lingua normalizzata',
   )
   assert.ok(
+    /return `\$\{percentFormatterFor\(normalizeMoneyLocale\(locale\)\)\.format\(bps \/ 100\)\}\$\{PERCENT_SIGN\}`/.test(source),
+    'formatPercentBps deve formattare con percentFormatterFor e comporre il segno, non riscriverlo',
+  )
+  assert.ok(
     !/toLocaleString/.test(source),
-    'money.ts non deve formattare con `toLocaleString`: i due formattatori cache-ati sul tag esplicito sono la sola strada',
+    'money.ts non deve formattare con `toLocaleString`: i formattatori cache-ati sul tag esplicito sono la sola strada',
   )
 })
 
