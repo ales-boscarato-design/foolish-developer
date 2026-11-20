@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import Stripe from 'stripe'
 import { countryToLocale } from '@/lib/resend'
 import { ORDER_REF_PREFIX } from '@/lib/order-ref'
@@ -102,7 +103,7 @@ export interface StripeOrderReconciliationResult {
 const cmsUrl = () => process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
 const cmsHeaders = () => ({
   'Content-Type': 'application/json',
-  'x-storefront-secret': process.env.PAYLOAD_API_SECRET || '',
+  'x-storefront-secret': cmsServiceSecret(),
 })
 
 /** Formato di un codice promo: identico al vincolo di `PromoCodes.code` (uppercase). */

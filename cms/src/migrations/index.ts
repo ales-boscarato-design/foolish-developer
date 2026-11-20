@@ -44,6 +44,7 @@ import * as migration_20261030_150000_add_media_visibility from './20261030_1500
 import * as migration_20261109_100000_add_order_stripe_session_id from './20261109_100000_add_order_stripe_session_id';
 import * as migration_20261111_100000_add_order_recipient_fields from './20261111_100000_add_order_recipient_fields';
 import * as migration_20261112_120000_add_order_attribution from './20261112_120000_add_order_attribution';
+import * as migration_20261117_153805_payload_3_90_security_fields from './20261117_153805_payload_3_90_security_fields';
 
 export const migrations = [
   {
@@ -275,5 +276,10 @@ export const migrations = [
     up: migration_20261112_120000_add_order_attribution.up,
     down: migration_20261112_120000_add_order_attribution.down,
     name: '20261112_120000_add_order_attribution',
+  },
+  {
+    up: migration_20261117_153805_payload_3_90_security_fields.up,
+    down: migration_20261117_153805_payload_3_90_security_fields.down,
+    name: '20261117_153805_payload_3_90_security_fields',
   },
 ];

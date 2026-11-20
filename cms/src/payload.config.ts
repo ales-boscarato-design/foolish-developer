@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url'
 import { Products } from './collections/Products'
 import { Orders } from './collections/Orders'
 import { Customers } from './collections/Customers'
+import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 import { ProMembers } from './collections/ProMembers'
 import { PromoCodes } from './collections/PromoCodes'
@@ -62,19 +63,7 @@ export default buildConfig({
     Subscriptions,
     Affiliates,
     AffiliateConversions,
-    {
-      slug: 'users',
-      auth: {
-        maxLoginAttempts: 5,
-        lockTime: 30 * 60 * 1000, // 30 minuti
-        useAPIKey: true, // permette di generare una API key per utente in alternativa alla password (28/07/2026)
-      },
-      admin: {
-        useAsTitle: 'email',
-        group: 'Sistema',
-      },
-      fields: [],
-    },
+    Users,
   ],
   editor: lexicalEditor({}),
   sharp,

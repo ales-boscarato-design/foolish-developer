@@ -5,8 +5,10 @@ import { Package, ArrowRight, CheckCircle } from 'lucide-react'
 import { Suspense } from 'react'
 import { OrderCompletedTracker } from '@/components/OrderCompletedTracker'
 import { telegramOrderLink } from '@/lib/order-ref'
+import { formatEuro } from '@/lib/money'
 
 interface GraziePageProps {
+  params: Promise<{ locale: string }>
   searchParams: Promise<{ session_id?: string }>
 }
 
@@ -34,7 +36,7 @@ function TelegramCta({ href, title, body, cta }: { href: string; title: string; 
   )
 }
 
-async function OrderVerifier({ sessionId }: { sessionId: string }) {
+async function OrderVerifier({ sessionId, locale }: { sessionId: string; locale: string }) {
   const t = await getTranslations('grazie')
 
   let orderRef: string | null = null
@@ -96,14 +98,14 @@ async function OrderVerifier({ sessionId }: { sessionId: string }) {
           <p className="text-sm mb-2">Ciao {customerName.split(' ')[0]},</p>
         )}
         <p className="text-sm" style={{ color: 'var(--muted-fg)' }}>
-          Totale pagato: <span className="font-semibold" style={{ color: 'var(--foreground)' }}>{total.toFixed(2)}€</span>
+          Totale pagato: <span className="font-semibold" style={{ color: 'var(--foreground)' }}>{formatEuro(locale, total)}</span>
         </p>
         {items.length > 0 && (
           <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
             {items.slice(0, 3).map((item, i) => (
               <div key={i} className="flex justify-between text-xs py-0.5">
                 <span style={{ color: 'var(--muted-fg)' }}>{item.name} × {item.quantity}</span>
-                <span>{(item.unitAmount * item.quantity).toFixed(2)}€</span>
+                <span>{formatEuro(locale, item.unitAmount * item.quantity)}</span>
               </div>
             ))}
             {items.length > 3 && (
@@ -140,7 +142,8 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default async function GraziePage({ searchParams }: GraziePageProps) {
+export default async function GraziePage({ params, searchParams }: GraziePageProps) {
+  const { locale } = await params
   const t = await getTranslations('grazie')
   const { session_id } = await searchParams
 
@@ -156,7 +159,7 @@ export default async function GraziePage({ searchParams }: GraziePageProps) {
         <Suspense fallback={
           <div className="rounded-lg p-4 mb-6 border animate-pulse" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }} />
         }>
-          <OrderVerifier sessionId={session_id} />
+          <OrderVerifier sessionId={session_id} locale={locale} />
         </Suspense>
       ) : (
         <TelegramCta

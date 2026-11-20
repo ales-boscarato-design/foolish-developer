@@ -1,9 +1,11 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/account-auth'
 import { getAccountLocale, getT } from '@/lib/account-i18n'
 import Link from 'next/link'
 import { ReorderButton } from '../_components/ReorderButton'
 import { getProductImagesBySku, cmsImageUrl } from '@/lib/cms'
+import { formatMoney } from '@/lib/money'
 
 const ACTIVE_STATES = ['received','eta_pending','eta_confirmed','in_production','matching_pending','matched','preview_sent','shipped']
 
@@ -24,7 +26,7 @@ export default async function OrdiniPage() {
   const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL ?? process.env.PAYLOAD_PUBLIC_URL
   const res = await fetch(
     `${cmsUrl}/api/orders?where[customerEmail][equals]=${encodeURIComponent(session.email)}&sort=-createdAt&limit=50&depth=0`,
-    { headers: { 'x-storefront-secret': process.env.PAYLOAD_API_SECRET! }, cache: 'no-store' }
+    { headers: { 'x-storefront-secret': cmsServiceSecret() }, cache: 'no-store' }
   )
   const data = res.ok ? await res.json() : { docs: [] }
   const orders = data.docs ?? []
@@ -68,7 +70,7 @@ export default async function OrdiniPage() {
                     </div>
                   </div>
                   <div style={{ fontSize: '11px', color: '#555', marginBottom: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {lineItems.map(i => i.name).join(', ')} · €{(order.total as number)?.toFixed(2)}
+                    {lineItems.map(i => i.name).join(', ')} · €{order.total == null ? '' : formatMoney(locale, order.total as number)}
                   </div>
                   <div style={{ display: 'flex', gap: '6px' }}>
                     {!isActive && <ReorderButton orderId={order.orderNumber as string} label={t('reorder')} locale={locale} />}

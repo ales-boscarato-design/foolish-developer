@@ -1,10 +1,6 @@
-import type { CollectionConfig, PayloadRequest } from 'payload'
+import type { CollectionConfig } from 'payload'
 import path from 'path'
-
-function hasStorefrontSecret(req: PayloadRequest): boolean {
-  const secret = req.headers?.get?.('x-storefront-secret') ?? (req.headers as unknown as Record<string, string>)?.['x-storefront-secret']
-  return !!secret && secret === process.env.PAYLOAD_API_SECRET
-}
+import { hasServiceAccess } from '../lib/serviceAccess'
 
 // In produzione Railway: monta un Volume su /data/media e imposta MEDIA_UPLOAD_DIR=/data/media
 // In locale: i file vanno nella cartella cms/public/media
@@ -28,13 +24,10 @@ export const Media: CollectionConfig = {
     // Catalogo e immagini pubbliche restano leggibili da chiunque (visibility = 'public').
     read: ({ req }) => {
       if (req.user) return true
-      if (hasStorefrontSecret(req)) return true
+      if (hasServiceAccess(req, 'media', 'read')) return true
       return { visibility: { not_equals: 'private' } }
     },
-    create: ({ req }) => {
-      if (req.user) return true
-      return hasStorefrontSecret(req)
-    },
+    create: ({ req }) => !!req.user || hasServiceAccess(req, 'media', 'create'),
   },
   upload: {
     staticDir,

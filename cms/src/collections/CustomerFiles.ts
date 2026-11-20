@@ -1,4 +1,5 @@
 import type { CollectionConfig, PayloadRequest } from 'payload'
+import { hasServiceAccess } from '../lib/serviceAccess'
 
 type RelationValue = number | string | { id?: number | string } | null | undefined
 
@@ -87,11 +88,7 @@ export const CustomerFiles: CollectionConfig = {
     beforeChange: [ensurePrivateMediaFile],
   },
   access: {
-    read: ({ req }) => {
-      if (req.user) return true
-      const secret = req.headers?.get?.('x-storefront-secret') ?? (req.headers as unknown as Record<string, string>)?.['x-storefront-secret']
-      return !!secret && secret === process.env.PAYLOAD_API_SECRET
-    },
+    read: ({ req }) => !!req.user || hasServiceAccess(req, 'customer-files', 'read'),
     create: ({ req }) => !!req.user,
     update: ({ req }) => !!req.user,
     delete: ({ req }) => !!req.user,

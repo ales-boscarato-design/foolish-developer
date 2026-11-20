@@ -5,7 +5,7 @@
 const CMS_URL = (process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app').replace(/\/$/, '')
 const API_BASE = `${CMS_URL}/api`
 const WARMUP = CMS_URL
-const PAYLOAD_API_SECRET = process.env.PAYLOAD_API_SECRET
+const CATALOG_API_SECRET = process.env.CATALOG_API_SECRET
 const LOCALES = ['it', 'en', 'fr', 'es', 'de']
 
 // ──────────────────────────────────────────
@@ -58,7 +58,7 @@ async function api(method, path, body = null, locale = null, queryParams = {}) {
     method,
     headers: {
       'Content-Type': 'application/json',
-      'x-storefront-secret': PAYLOAD_API_SECRET,
+      'x-storefront-secret': CATALOG_API_SECRET,
     }
   }
   if (body) opts.body = JSON.stringify(body)
@@ -494,8 +494,8 @@ for (const loc of LOCALES) {
 async function main() {
   console.log('🚀 Avvio import prodotti Foolish…\n')
 
-  if (!PAYLOAD_API_SECRET) {
-    throw new Error('PAYLOAD_API_SECRET non configurato: rifiuto di usare credenziali CMS personali')
+  if (!CATALOG_API_SECRET) {
+    throw new Error('CATALOG_API_SECRET non configurato: rifiuto di usare credenziali CMS personali (serve lo scope catalog, non lo storefront)')
   }
 
   // 1. Wakeup call

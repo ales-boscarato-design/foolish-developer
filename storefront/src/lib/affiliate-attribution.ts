@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import type Stripe from 'stripe'
 import { normalizePromoCode, MAX_CART_SUBTOTAL_CENTS, MAX_CHECKOUT_ITEMS, MAX_ITEM_PRICE_CENTS } from './promo'
 
@@ -748,7 +749,7 @@ function cmsUrl(): string {
 function cmsHeaders(): Record<string, string> {
   return {
     'Content-Type': 'application/json',
-    'x-storefront-secret': process.env.PAYLOAD_API_SECRET || '',
+    'x-storefront-secret': cmsServiceSecret(),
   }
 }
 

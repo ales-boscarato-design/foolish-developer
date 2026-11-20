@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { resolveCheckoutCatalog } from '@/lib/catalog'
@@ -39,8 +40,8 @@ const STOREFRONT_URL = process.env.STOREFRONT_URL || 'https://thefoolishbutcher.
 const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
 
 async function assertCMSOrderAccess(): Promise<void> {
-  const secret = process.env.PAYLOAD_API_SECRET
-  if (!secret) throw new Error('PAYLOAD_API_SECRET non configurato')
+  const secret = cmsServiceSecret()
+  if (!secret) throw new Error('STOREFRONT_API_SECRET non configurato')
 
   const response = await fetch(`${CMS_URL}/api/orders?limit=1&depth=0`, {
     headers: { 'x-storefront-secret': secret },
@@ -53,7 +54,7 @@ async function assertCMSOrderAccess(): Promise<void> {
 }
 
 async function findPromoRecord(code: string): Promise<PromoRecord | null> {
-  const secret = process.env.PAYLOAD_API_SECRET
+  const secret = cmsServiceSecret()
 
   if (secret) {
     try {

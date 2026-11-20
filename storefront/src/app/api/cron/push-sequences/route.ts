@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { NextRequest, NextResponse } from 'next/server'
 import { getSubscribersForSequence, markPushSequenceStep } from '@/lib/account-db'
 import { sendPushToEmail } from '@/lib/push'
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
   }
 
   const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL ?? process.env.PAYLOAD_PUBLIC_URL
-  const cmsSecret = process.env.PAYLOAD_API_SECRET
+  const cmsSecret = cmsServiceSecret()
   if (!cmsUrl || !cmsSecret) {
     return NextResponse.json({ error: 'CMS not configured' }, { status: 500 })
   }

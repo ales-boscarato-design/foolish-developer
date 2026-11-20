@@ -4,14 +4,10 @@ import crypto from 'crypto'
 import type { Order } from '../payload-types'
 import { PROMO_TYPES, PROMO_TYPE_LABELS, isPromoType } from './promoTypes'
 import { formatOrderLineTotal } from '../lib/order-line-amount'
+import { hasServiceAccess } from '../lib/serviceAccess'
 
 /** Formato di un codice promo: stessa regex di `PromoCodes.code`, normalizzato in uppercase. */
 const PROMO_CODE_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
-
-function hasStorefrontSecret(req: PayloadRequest): boolean {
-  const secret = req.headers?.get?.('x-storefront-secret') ?? (req.headers as unknown as Record<string, string>)?.['x-storefront-secret']
-  return !!secret && secret === process.env.PAYLOAD_API_SECRET
-}
 
 const ALFRED_PIPELINE_STATES = new Set<NonNullable<Order['pipelineState']>>([
   'received',
@@ -719,18 +715,9 @@ export const Orders: CollectionConfig = {
     },
   },
   access: {
-    read: ({ req }) => {
-      if (req.user) return true
-      return hasStorefrontSecret(req)
-    },
-    create: ({ req }) => {
-      if (req.user) return true
-      return hasStorefrontSecret(req)
-    },
-    update: ({ req }) => {
-      if (req.user) return true
-      return hasStorefrontSecret(req)
-    },
+    read: ({ req }) => !!req.user || hasServiceAccess(req, 'orders', 'read'),
+    create: ({ req }) => !!req.user || hasServiceAccess(req, 'orders', 'create'),
+    update: ({ req }) => !!req.user || hasServiceAccess(req, 'orders', 'update'),
     delete: ({ req }) => !!req.user,
   },
   fields: [

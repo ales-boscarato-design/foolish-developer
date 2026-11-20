@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { redirect, notFound } from 'next/navigation'
 import { getSession } from '@/lib/account-auth'
 import { getAccountLocale, getT } from '@/lib/account-i18n'
@@ -36,7 +37,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL ?? process.env.PAYLOAD_PUBLIC_URL
   const res = await fetch(
     `${cmsUrl}/api/orders?where[orderNumber][equals]=${id}&where[customerEmail][equals]=${encodeURIComponent(session.email)}&depth=0&limit=1`,
-    { headers: { 'x-storefront-secret': process.env.PAYLOAD_API_SECRET! }, cache: 'no-store' }
+    { headers: { 'x-storefront-secret': cmsServiceSecret() }, cache: 'no-store' }
   )
   const data = res.ok ? await res.json() : { docs: [] }
   const order = data.docs?.[0]

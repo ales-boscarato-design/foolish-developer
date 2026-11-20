@@ -6,6 +6,7 @@ import { getProductBySlug, cmsImageUrl } from '@/lib/cms'
 import Link from 'next/link'
 import { OfferCountdown } from './_components/OfferCountdown'
 import { CopyCode } from './_components/CopyCode'
+import { formatMoney } from '@/lib/money'
 
 export default async function OffertaPage() {
   const session = await getSession()
@@ -78,10 +79,10 @@ export default async function OffertaPage() {
           {product.basePrice > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
               <span style={{ fontSize: '18px', fontWeight: 700, color: '#c9a96e' }}>
-                €{(product.basePrice * (1 - offer.discount_percent / 100)).toFixed(2)}
+                €{formatMoney(locale, product.basePrice * (1 - offer.discount_percent / 100))}
               </span>
               <span style={{ fontSize: '13px', color: '#555', textDecoration: 'line-through' }}>
-                €{product.basePrice.toFixed(2)}
+                €{formatMoney(locale, product.basePrice)}
               </span>
             </div>
           )}

@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/account-auth'
 import { loadCustomerFile, safeFilenameForHeader } from '@/lib/customer-files'
@@ -21,7 +22,7 @@ export async function GET(
   }
 
   const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL ?? process.env.PAYLOAD_PUBLIC_URL
-  const secret = process.env.PAYLOAD_API_SECRET
+  const secret = cmsServiceSecret()
   if (!cmsUrl || !secret) {
     console.error('[account/files] CMS non configurato')
     return NextResponse.json({ error: 'unavailable' }, { status: 502 })

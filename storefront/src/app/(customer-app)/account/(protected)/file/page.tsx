@@ -1,9 +1,11 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/account-auth'
 import { getWishlist } from '@/lib/account-db'
 import { getAccountLocale, getT } from '@/lib/account-i18n'
 import { ownsCustomerFile, type CustomerFileRelation } from '@/lib/customer-files'
 import { WishlistItemActions } from './_components/WishlistItem'
+import { formatMoney } from '@/lib/money'
 
 interface CustomerFile {
   id: string
@@ -29,7 +31,7 @@ export default async function FilePage() {
   const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL ?? process.env.PAYLOAD_PUBLIC_URL
   const filesRes = await fetch(
     `${cmsUrl}/api/customer-files?where[active][equals]=true&limit=50&depth=1`,
-    { headers: { 'x-storefront-secret': process.env.PAYLOAD_API_SECRET! }, cache: 'no-store' }
+    { headers: { 'x-storefront-secret': cmsServiceSecret() }, cache: 'no-store' }
   )
   const filesData = filesRes.ok ? await filesRes.json() : null
   const filesError = filesData === null
@@ -97,7 +99,7 @@ export default async function FilePage() {
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '12px', color: '#fff', marginBottom: '2px' }}>{item.product_name}</div>
               {item.product_price && (
-                <div style={{ fontSize: '10px', color: '#555' }}>€{item.product_price.toFixed(2)}</div>
+                <div style={{ fontSize: '10px', color: '#555' }}>€{formatMoney(locale, item.product_price)}</div>
               )}
             </div>
             <a

@@ -1,3 +1,4 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 /**
  * Payload CMS API client — usato dal server-side Next.js.
  */
@@ -238,13 +239,13 @@ export interface SubscriptionPlanConfig {
 
 export async function getSubscriptionPlanConfig(key: 'tattoo' | 'pmu', locale = 'it'): Promise<SubscriptionPlanConfig | null> {
   // `subscription-plans` read access requires an authenticated admin OR this shared secret
-  // (see cms/src/collections/SubscriptionPlans.ts `hasStorefrontSecret`) — unlike `products`,
+  // (see cms/src/collections/SubscriptionPlans.ts `hasServiceAccess`) — unlike `products`,
   // which is publicly readable. Without this header, anonymous storefront visitors get a 403.
   const data = await fetchAPI<{ docs: SubscriptionPlanConfig[] }>(
     '/subscription-plans',
     { 'where[key][equals]': key, 'where[active][equals]': 'true', depth: '2', limit: '1' },
     locale,
-    { 'x-storefront-secret': process.env.PAYLOAD_API_SECRET || '' },
+    { 'x-storefront-secret': cmsServiceSecret() },
   )
   return data.docs[0] ?? null
 }

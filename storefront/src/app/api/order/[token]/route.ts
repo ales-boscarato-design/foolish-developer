@@ -1,7 +1,8 @@
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { NextRequest, NextResponse } from 'next/server'
 
 const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
-const API_SECRET = process.env.PAYLOAD_API_SECRET || ''
+const API_SECRET = cmsServiceSecret()
 
 export async function GET(
   _req: NextRequest,

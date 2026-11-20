@@ -108,6 +108,8 @@ jobs:
           npm run test:printful-shipping --silent
           npm run test:printful-webhook --silent
           npm run test:checkout-i18n --silent
+          npm run test:security-secrets --silent
+          npm run test:money --silent
       - name: Storefront — build
         working-directory: storefront
         run: npm run build
@@ -137,7 +139,9 @@ jobs:
 
       - name: B2B — test
         working-directory: b2b
-        run: npm run test:checkout --silent
+        run: |
+          npm run test:checkout --silent
+          npm run test:security --silent
 
       - name: B2B — build
         working-directory: b2b
