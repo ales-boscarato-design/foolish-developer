@@ -111,7 +111,18 @@ test('ProductCard e ProductDetail conservano la posizione originale del simbolo 
   assert.match(productDetail, /\$\{formatMoney\(locale, firstVariant\.price\)\}€/)
   assert.match(productDetail, /\$\{formatMoney\(locale, component\.basePrice\)\}€/)
   assert.match(productDetail, /\{formatMoney\(locale, selectedVariant\.price\)\}€/)
-  assert.match(productDetail, /Risparmi €\{formatMoney\(locale,/)
+  // Il risparmio del pack ora passa da una chiave tradotta (`product.packs.save`)
+  // perche' la scheda non puo' piu' portare testo italiano nel codice. L'importo
+  // resta formato da un'unica autorita' (`money.ts`) e il simbolo resta in coda:
+  // si controlla la forma del messaggio in tutte e cinque le lingue, non la
+  // stringa italiana che non esiste piu'.
+  assert.match(productDetail, /t\('packs\.save', \{ amount: formatMoney\(locale, /)
+  for (const locale of MONEY_LOCALES) {
+    const value = flatten(readMessages(locale))['product.packs.save'] ?? ''
+    const symbols = (value.match(/€/g) ?? []).length
+    assert.equal(symbols, 1, `${locale}.product.packs.save: ${symbols} simboli € in «${value}»`)
+    assert.ok(value.includes('{amount}€'), `${locale}.product.packs.save mette il simbolo dopo l'importo: «${value}»`)
+  }
   assert.match(productDetail, /€\{formatMoney\(locale, selectedVariant\.price \* pack\.quantity\)\}/)
   assert.match(productDetail, /€\{formatMoney\(locale, selectedVariant\.price \* pack\.quantity \* \(1 - pack\.discountPercent \/ 100\)\)\}/)
 

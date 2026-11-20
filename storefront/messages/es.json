@@ -129,12 +129,64 @@
     "unavailable": "No disponible",
     "thickness": "{value}mm grosor",
     "pieces": "{qty} piezas",
+    "quantity": "Cantidad",
+    "maxQty": "máx. {qty}",
+    "lowStock": "● Últimas unidades",
+    "lastOnes": "Últimos",
+    "quickAdd": "Añadir",
+    "quickAdded": "Añadido",
     "sectionTattoo": "Tatuaje",
     "sectionPmu": "PMU",
     "sectionMerch": "Merch",
-    "shipsIn": "Envío en {days} días hábiles",
     "madeToOrder": "Fabricado bajo pedido",
-    "madeToOrderDesc": "Tu pieza se trabaja personalmente tras la compra. Entrega estimada en {total} días hábiles."
+    "delivery": {
+      "bandEu": "Italia y UE: 24–48 horas",
+      "bandExtraEu": "Fuera de la UE: 4–6 días laborables",
+      "productionExtra": "más {days} días laborables de producción"
+    },
+    "shippingCost": {
+      "title": "Envío",
+      "italy": "Italia: {cost}€ · gratis desde {threshold}€",
+      "eu": "Unión Europea: {cost}€ · gratis desde {threshold}€",
+      "extraEuDdp": "Fuera de la UE: envío calculado en el pago · aranceles e IVA de importación incluidos en el coste del envío",
+      "extraEuDap": "Fuera de la UE: envío calculado en el pago · aranceles e IVA de importación a cargo del destinatario"
+    },
+    "tech": {
+      "title": "Cómo está hecho",
+      "stencil": "Stencil: la piel de silicona absorbe la tinta en sus poros, queda dentro del grosor y no en la superficie.",
+      "discromie": "Variaciones de tono: el flock no es uniforme; ligeras diferencias de tono forman parte del material.",
+      "thickness": "4–8 mm de grosor, por las dos caras.",
+      "translucency": "Translucidez: las capas dejan pasar la luz. Translúcido no significa transparente."
+    },
+    "packs": {
+      "title": "Compra más, ahorra más",
+      "save": "Ahorras {amount}€"
+    },
+    "why": {
+      "title": "Por qué elegirlo"
+    },
+    "usage": {
+      "title": "Cómo se usa"
+    },
+    "box": {
+      "title": "Contenido del paquete"
+    },
+    "components": {
+      "title": "Compra las piezas por separado",
+      "note": "¿Ya tienes algo? Compra solo las piezas que te faltan."
+    },
+    "description": {
+      "title": "Descripción"
+    },
+    "aria": {
+      "galleryVideo": "Vídeo {index}",
+      "galleryImage": "Imagen {index}",
+      "close": "Cerrar",
+      "previous": "Anterior",
+      "next": "Siguiente"
+    },
+    "available": "Disponible",
+    "onOrder": "Bajo pedido"
   },
   "sections": {
     "label": "Sección",
