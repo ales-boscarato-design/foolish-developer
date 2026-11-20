@@ -1,6 +1,6 @@
 'use client'
 
-import { normalizeAttribution, type AttributionSnapshot } from './attribution'
+import { normalizeAttribution, normalizeCapturedAttribution, UNKNOWN_ATTRIBUTION, isAttributionSnapshot, type AttributionSnapshot } from './attribution'
 
 const STORAGE_KEY = 'foolish_attribution_v1'
 
@@ -9,7 +9,7 @@ export function captureAttribution(): void {
     if (window.sessionStorage.getItem(STORAGE_KEY) !== null) return
     const url = new URL(window.location.href)
     const referrerHost = document.referrer ? new URL(document.referrer).hostname : null
-    const snapshot = normalizeAttribution({
+    const snapshot = normalizeCapturedAttribution({
       landingPath: url.pathname,
       referrerHost,
       utmSource: url.searchParams.get('utm_source'),
@@ -24,9 +24,13 @@ export function captureAttribution(): void {
 }
 
 export function readAttribution(): AttributionSnapshot | null {
+  let raw: string | null
   try {
-    const raw = window.sessionStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    return normalizeAttribution(JSON.parse(raw))
+    raw = window.sessionStorage.getItem(STORAGE_KEY)
   } catch { return null }
+  if (!raw) return null
+  let parsed: unknown
+  try { parsed = JSON.parse(raw) } catch { return { ...UNKNOWN_ATTRIBUTION } }
+  if (!isAttributionSnapshot(parsed)) return { ...UNKNOWN_ATTRIBUTION }
+  return normalizeAttribution(parsed)
 }

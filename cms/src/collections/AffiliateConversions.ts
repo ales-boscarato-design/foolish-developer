@@ -493,7 +493,7 @@ export async function applyRefundTransition(req: PayloadRequest): Promise<Respon
 
   const result = await db.drizzle.transaction(async (tx) => {
     const locked = await tx.execute(sql`
-      SELECT "id", "stripe_payment_intent_id", "order_number", "payment_status", "refund_status", "amount_refunded_cents"
+      SELECT "id", "stripe_payment_intent_id", "order_number", "payment_status", "refund_status", "amount_refunded_cents", "commission_amount_cents"
       FROM "affiliate_conversions"
       WHERE "stripe_payment_intent_id" = ${transition.stripePaymentIntentId}
       FOR UPDATE
@@ -509,6 +509,7 @@ export async function applyRefundTransition(req: PayloadRequest): Promise<Respon
       payment_status?: unknown
       refund_status?: unknown
       amount_refunded_cents?: unknown
+      commission_amount_cents?: unknown
     }
     const currentAmount = Number(current.amount_refunded_cents)
     if (
@@ -527,11 +528,32 @@ export async function applyRefundTransition(req: PayloadRequest): Promise<Respon
       current.payment_status === 'partially_refunded'
       && current.refund_status === 'partial'
       && currentAmount > 0
+    ) || (
+      current.payment_status === 'refunded'
+      && current.refund_status === 'full'
+      && currentAmount > 0
+      && Number(current.commission_amount_cents) === 0
     )
     if (!currentStateIsEligible) throw new APIError('Malformed affiliate conversion state', 500)
 
+    if (current.refund_status === 'full' && transition.refundStatus !== 'full') {
+      throw new APIError('Malformed affiliate conversion state', 500)
+    }
     if (transition.amountRefundedCents <= currentAmount) {
-      return { status: 'stale' as const }
+      if (transition.amountRefundedCents < currentAmount || current.refund_status !== 'full') {
+        return { status: 'stale' as const }
+      }
+      const orderNumber = boundedString(current.order_number, MAX_ORDER_NUMBER_LENGTH)
+      if (orderNumber === null) throw new APIError('Malformed affiliate conversion', 500)
+      const zeroedOrder = await tx.execute(sql`
+        UPDATE "orders"
+        SET "affiliate_commission_cents" = 0, "updated_at" = NOW()
+        WHERE "order_number" = ${orderNumber}
+          AND "stripe_payment_intent_id" = ${transition.stripePaymentIntentId}
+        RETURNING "id"
+      `)
+      if (zeroedOrder.rows.length !== 1) throw new APIError('Order unavailable for affiliate refund', 409)
+      return { status: 'updated' as const }
     }
 
     const updated = await tx.execute(sql`

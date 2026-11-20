@@ -18,6 +18,8 @@ type CatalogProduct = {
   active?: unknown
   variants?: unknown
   packs?: unknown
+  madeToOrder?: unknown
+  productionDays?: unknown
 }
 
 type CatalogVariant = {
@@ -46,7 +48,7 @@ export type CatalogProductFetcher = (query: {
 }) => Promise<CatalogLookup>
 
 export type CatalogResolution =
-  | { status: 'ok'; items: CheckoutCartItem[] }
+  | { status: 'ok'; items: Array<CheckoutCartItem & { madeToOrder?: boolean; productionDays?: number | null }> }
   | { status: 'invalid' }
   | { status: 'unavailable' }
 
@@ -113,6 +115,15 @@ function validDiscountPercent(value: unknown): number | null {
     : null
 }
 
+/**
+ * Durata di produzione dichiarata dal CMS. Un valore non valido non e' un
+ * guasto del catalogo: e' una durata IGNOTA, che `estimateCartDelivery` sa gia'
+ * trattare con il margine prudente. Per questo torna `null` invece di bloccare.
+ */
+function validProductionDays(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null
+}
+
 function productFromLookup(lookup: CatalogLookup): CatalogProduct | null {
   if (lookup.status !== 'found' || !isPlainObject(lookup.product)) return null
   return lookup.product as CatalogProduct
@@ -168,7 +179,7 @@ export async function resolveCheckoutCatalog(
 
   const fetchProduct = options.fetchProduct ?? fetchProductFromCms
   const productCache = new Map<string, CatalogLookup>()
-  const resolvedItems: CheckoutCartItem[] = []
+  const resolvedItems: Array<CheckoutCartItem & { madeToOrder?: boolean; productionDays?: number | null }> = []
   let subtotalCents = 0
 
   for (const rawItem of rawItems) {
@@ -218,6 +229,13 @@ export async function resolveCheckoutCatalog(
     if (product.active !== true) return { status: 'unavailable' }
     const productName = boundedCatalogString(product.name, 120)
     if (!productName || !Array.isArray(product.variants)) return { status: 'unavailable' }
+    const madeToOrder = product.madeToOrder === true
+    // Una durata di produzione rotta (negativa, NaN, infinita, non numerica) non
+    // rende indisponibile un prodotto che il cliente puo' comprare: diventa
+    // "ignota" (null) e la stima applica il margine prudente, come per un CMS
+    // che il campo non ce l'ha. Bloccare la vendita qui renderebbe illeggibile
+    // un dato che la stima sa gia' trattare.
+    const productionDays = madeToOrder ? validProductionDays(product.productionDays) : 0
 
     const variant = product.variants.find((candidate: unknown) => (
       isPlainObject(candidate) && candidate.sku === baseSku
@@ -287,6 +305,7 @@ export async function resolveCheckoutCatalog(
       price: unitPriceCents / 100,
       quantity,
       sku,
+      ...(madeToOrder ? { madeToOrder, productionDays } : {}),
     })
   }
 

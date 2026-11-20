@@ -5,6 +5,7 @@ import { after, before, test } from 'node:test'
 import https from 'node:https'
 import { EventEmitter } from 'node:events'
 import { NextRequest } from 'next/server'
+import { captureAttribution, readAttribution } from '@/lib/attribution-client'
 
 process.env.STRIPE_SECRET_KEY = 'sk_test_local_only'
 process.env.PAYLOAD_API_SECRET = 'test-storefront-secret'
@@ -94,6 +95,139 @@ test('checkout accetta attribuzione malformata senza conservarne i valori', asyn
   assert.ok((await response.json() as { checkoutUrl?: string }).checkoutUrl)
   assert.equal(stripeBodies.length, beforeCount + 1)
   assert.equal(new URLSearchParams(stripeBodies.at(-1)).has('metadata[attribution_json]'), false)
+})
+
+test('checkout invia a Stripe solo attribution anonima nonostante payload tampered e sovradimensionato', async () => {
+  const beforeCount = stripeBodies.length
+  const { POST } = await import('./route')
+  const response = await POST(request({
+    landingPath: '/it/pro/card/PRO-CODE-123', refSlug: 'buyer-private-slug',
+    referrerHost: 'https://evil.example/path?email=buyer@example.com',
+    utmSource: 'google', utmMedium: 'cpc',
+    utmCampaign: `https://evil.example/?email=${'x'.repeat(2000)}`,
+    utmTerm: 'PRO-CODE-123', utmContent: 'javascript:alert(1)',
+    padding: 'x'.repeat(100_000),
+  }))
+  assert.equal(response.status, 200, JSON.stringify(await response.clone().json()))
+  assert.equal(stripeBodies.length, beforeCount + 1, 'attribution eccessiva non deve bloccare la sessione')
+  const form = new URLSearchParams(stripeBodies.at(-1))
+  const raw = form.get('metadata[attribution_json]')
+  assert.ok(raw)
+  assert.ok(raw.length <= 480)
+  assert.deepEqual(JSON.parse(raw), {
+    landingPath: null, referrerHost: null, utmSource: 'google', utmMedium: 'cpc',
+    utmCampaign: null, utmTerm: null, utmContent: null, refSlug: null, sourceClass: 'unknown',
+  })
+  assert.equal(raw.includes('PRO-CODE-123'), false)
+  assert.equal(raw.includes('buyer@example.com'), false)
+  assert.equal(form.has('payment_intent_data[metadata][attribution_json]'), false)
+})
+
+test('checkout distingue direct dimostrato da referrer o utmSource scartati nei metadata Stripe', async () => {
+  const { POST } = await import('./route')
+  for (const [input, expectedClass] of [
+    [{ landingPath: '/it/', referrerHost: null, utmSource: null, utmMedium: null, utmCampaign: null, utmTerm: null, utmContent: null, refSlug: null, sourceClass: 'direct' }, 'direct'],
+    [{ landingPath: '/it/', referrerHost: 'https://customer.example/private' }, 'unknown'],
+    [{ landingPath: '/it/', utmSource: 'buyer@example.com' }, 'unknown'],
+  ] as const) {
+    const response = await POST(request(input))
+    assert.equal(response.status, 200, JSON.stringify(await response.clone().json()))
+    const form = new URLSearchParams(stripeBodies.at(-1))
+    const raw = form.get('metadata[attribution_json]')
+    assert.ok(raw)
+    const metadata = JSON.parse(raw) as Record<string, unknown>
+    assert.equal(metadata.sourceClass, expectedClass)
+    assert.equal(raw.includes('customer.example'), false)
+    assert.equal(raw.includes('buyer@example.com'), false)
+  }
+})
+
+test('checkout non promuove payload mancanti o malformati a direct', async () => {
+  const { POST } = await import('./route')
+  for (const input of [{}, { sourceClass: 'garbage' }]) {
+    const beforeCount = stripeBodies.length
+    const response = await POST(request(input))
+    assert.equal(response.status, 200)
+    assert.equal(stripeBodies.length, beforeCount + 1)
+    assert.equal(new URLSearchParams(stripeBodies.at(-1)).has('metadata[attribution_json]'), false)
+  }
+})
+
+test('storage malformato resta unknown; uno snapshot direct completo sopravvive senza path privato', () => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window')
+  let raw = '{}'
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: { sessionStorage: { getItem: () => raw, setItem: (_key: string, value: string) => { raw = value } } },
+  })
+  try {
+    for (const malformed of ['{}', '{"sourceClass":"garbage"}']) {
+      raw = malformed
+      captureAttribution()
+      assert.equal(readAttribution()?.sourceClass, 'unknown')
+    }
+    raw = JSON.stringify({
+      landingPath: null, referrerHost: null, utmSource: null, utmMedium: null,
+      utmCampaign: null, utmTerm: null, utmContent: null, refSlug: null, sourceClass: 'direct',
+    })
+    const direct = readAttribution()
+    assert.equal(direct?.sourceClass, 'direct')
+    assert.equal(direct?.landingPath, null)
+  } finally {
+    if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow)
+    else Reflect.deleteProperty(globalThis, 'window')
+  }
+})
+
+test('capture -> checkout metadata conserva unknown sui segnali misti e direct/organic autentici', async () => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window')
+  const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document')
+  const storage = new Map<string, string>()
+  const scenarios = [
+    { href: 'https://shop.test/it/?utm_source=bing&utm_medium=email', referrer: '', expected: 'unknown' },
+    { href: 'https://shop.test/it/?utm_medium=newsletter', referrer: 'https://www.google.com/search?q=private', expected: 'unknown' },
+    { href: 'https://shop.test/it/', referrer: '', expected: 'direct' },
+    { href: 'https://shop.test/it/prodotto/example', referrer: '', expected: 'direct' },
+    { href: 'https://shop.test/it/', referrer: 'https://www.google.com/search?q=private', expected: 'organicSearch' },
+  ] as const
+  try {
+    for (const scenario of scenarios) {
+      storage.clear()
+      Object.defineProperty(globalThis, 'window', {
+        configurable: true,
+        value: {
+          location: { href: scenario.href },
+          sessionStorage: {
+            getItem: (key: string) => storage.get(key) ?? null,
+            setItem: (key: string, value: string) => storage.set(key, value),
+          },
+        },
+      })
+      Object.defineProperty(globalThis, 'document', { configurable: true, value: { referrer: scenario.referrer } })
+      captureAttribution()
+      const captured = readAttribution()
+      assert.ok(captured)
+      assert.equal(captured.sourceClass, scenario.expected)
+      const response = await (await import('./route')).POST(request(captured))
+      assert.equal(response.status, 200, JSON.stringify(await response.clone().json()))
+      const form = new URLSearchParams(stripeBodies.at(-1))
+      const raw = form.get('metadata[attribution_json]')
+      assert.ok(raw)
+      assert.equal((JSON.parse(raw) as Record<string, unknown>).sourceClass, scenario.expected)
+      assert.equal(raw.includes('private'), false)
+      if (scenario.href.includes('/prodotto/')) {
+        const snapshot = JSON.parse(raw) as Record<string, unknown>
+        assert.equal(snapshot.landingPath, null)
+        assert.equal(raw.includes('/it/prodotto/example'), false)
+        assert.ok(raw.length <= 480)
+      }
+    }
+  } finally {
+    if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow)
+    else Reflect.deleteProperty(globalThis, 'window')
+    if (originalDocument) Object.defineProperty(globalThis, 'document', originalDocument)
+    else Reflect.deleteProperty(globalThis, 'document')
+  }
 })
 
 test('checkout senza attribution non aggiunge il metadata', async () => {
