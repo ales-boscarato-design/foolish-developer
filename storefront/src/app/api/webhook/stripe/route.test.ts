@@ -533,7 +533,10 @@ async function submitEventWithStripe(
   const Refunds = Stripe.resources.Refunds
   const originalRetrieve = Charges.prototype.retrieve
   const originalList = Refunds.prototype.list
-  Charges.prototype.retrieve = (async () => charge) as unknown as typeof Charges.prototype.retrieve
+  Charges.prototype.retrieve = (async (chargeId: string) => {
+    assert.equal(chargeId, 'ch_test_refund', 'Stripe Charge.retrieve deve ricevere refund.charge, non refund.id')
+    return charge
+  }) as unknown as typeof Charges.prototype.retrieve
   let page = 0
   Refunds.prototype.list = (async () => {
     if (!refundPages) throw new Error('stripe.refunds.list non deve essere chiamato: il charge porta l elenco completo')
@@ -644,7 +647,10 @@ test('charge.refund.updated passa dallo stesso percorso di riconciliazione', asy
   const payload = JSON.stringify({
     id: 'evt_test_charge_refund_updated', object: 'event', api_version: '2025-01-27.acacia',
     created: 1_700_000_500, livemode: false, pending_webhooks: 1,
-    request: { id: null, idempotency_key: null }, type: 'charge.refund.updated', data: { object: charge },
+    request: { id: null, idempotency_key: null }, type: 'charge.refund.updated', data: { object: {
+      id: 're_test_refund', object: 'refund', amount: 2_500, currency: 'eur', status: 'failed',
+      charge: 'ch_test_refund', payment_intent: 'pi_test_refund', created: 1_700_000_120, metadata: {},
+    } },
   })
   const response = await submitEventWithStripe(
     { payload, signature: Stripe.webhooks.generateTestHeaderString({ payload, secret: WEBHOOK_SECRET }) },

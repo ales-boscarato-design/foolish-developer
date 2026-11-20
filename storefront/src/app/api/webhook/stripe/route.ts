@@ -65,9 +65,9 @@ const REFUND_EVENT_TYPES = new Set<string>([
   'refund.failed',
 ])
 
-/** Il charge da riconciliare: `charge.*` lo porta sull'oggetto, `refund.*` sul rimborso. */
+/** Il charge da riconciliare: charge.refunded lo porta sull'oggetto, gli altri eventi sul refund. */
 function refundEventChargeId(event: Stripe.Event): string | null {
-  if (event.type.startsWith('charge.')) {
+  if (event.type === 'charge.refunded') {
     const charge = event.data.object as Stripe.Charge
     return validChargeId(charge.id) ? charge.id : null
   }
