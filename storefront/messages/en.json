@@ -129,12 +129,16 @@
     "unavailable": "Not available",
     "thickness": "{value}mm thickness",
     "pieces": "{qty} pieces",
+    "quantity": "Quantity",
+    "maxQty": "max {qty}",
+    "lowStock": "● Last few pieces",
+    "lastOnes": "Last",
+    "quickAdd": "Add",
+    "quickAdded": "Added",
     "sectionTattoo": "Tattoo",
     "sectionPmu": "PMU",
     "sectionMerch": "Merch",
-    "shipsIn": "Ships in {days} business days",
     "madeToOrder": "Made to order",
-    "madeToOrderDesc": "Your piece is crafted personally after purchase. Estimated delivery in {total} business days.",
     "delivery": {
       "bandEu": "Italy and EU: 24–48 hours",
       "bandExtraEu": "Outside the EU: 4–6 working days",
@@ -153,6 +157,33 @@
       "discromie": "Colour variation: flock is not perfectly even; slight tone differences are part of the material.",
       "thickness": "4–8 mm thick, on both faces.",
       "translucency": "Translucency: the layers let light through. Translucent does not mean transparent."
+    },
+    "packs": {
+      "title": "Buy more, save more",
+      "save": "You save {amount}€"
+    },
+    "why": {
+      "title": "Why choose it"
+    },
+    "usage": {
+      "title": "How to use it"
+    },
+    "box": {
+      "title": "What's in the box"
+    },
+    "components": {
+      "title": "Buy the parts separately",
+      "note": "Already have some? Buy only the parts you are missing."
+    },
+    "description": {
+      "title": "Description"
+    },
+    "aria": {
+      "galleryVideo": "Video {index}",
+      "galleryImage": "Image {index}",
+      "close": "Close",
+      "previous": "Previous",
+      "next": "Next"
     },
     "available": "Available",
     "onOrder": "Made to order"

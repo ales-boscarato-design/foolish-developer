@@ -129,12 +129,16 @@
     "unavailable": "Non disponible",
     "thickness": "{value}mm épaisseur",
     "pieces": "{qty} pièces",
+    "quantity": "Quantité",
+    "maxQty": "max {qty}",
+    "lowStock": "● Derniers exemplaires",
+    "lastOnes": "Rares",
+    "quickAdd": "Ajouter",
+    "quickAdded": "Ajouté",
     "sectionTattoo": "Tatouage",
     "sectionPmu": "PMU",
     "sectionMerch": "Merch",
-    "shipsIn": "Expédié en {days} jours ouvrés",
     "madeToOrder": "Fabriqué sur commande",
-    "madeToOrderDesc": "Votre pièce est travaillée personnellement après l'achat. Livraison estimée en {total} jours ouvrés.",
     "delivery": {
       "bandEu": "Italie et UE : 24–48 heures",
       "bandExtraEu": "Hors UE : 4–6 jours ouvrés",
@@ -153,6 +157,33 @@
       "discromie": "Variations de teinte : le flock n'est pas parfaitement uniforme ; de légères différences de ton font partie du matériau.",
       "thickness": "4–8 mm d'épaisseur, sur les deux faces.",
       "translucency": "Translucidité : les couches laissent passer la lumière. Translucide ne veut pas dire transparent."
+    },
+    "packs": {
+      "title": "Achetez plus, économisez plus",
+      "save": "Vous économisez {amount}€"
+    },
+    "why": {
+      "title": "Pourquoi le choisir"
+    },
+    "usage": {
+      "title": "Comment l'utiliser"
+    },
+    "box": {
+      "title": "Contenu de la pochette"
+    },
+    "components": {
+      "title": "Achetez les pièces séparément",
+      "note": "Vous en avez déjà ? Achetez seulement les pièces qui vous manquent."
+    },
+    "description": {
+      "title": "Description"
+    },
+    "aria": {
+      "galleryVideo": "Vidéo {index}",
+      "galleryImage": "Image {index}",
+      "close": "Fermer",
+      "previous": "Précédent",
+      "next": "Suivant"
     },
     "available": "Disponible",
     "onOrder": "Sur commande"

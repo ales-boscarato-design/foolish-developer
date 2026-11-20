@@ -5,7 +5,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ShoppingBag, Check, Star, Shield, Truck, Sparkles, Play, Expand, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useTranslations, useLocale } from 'next-intl'
-import { formatMoney } from '@/lib/money'
+import { formatMoney, formatWholeMoney } from '@/lib/money'
+import { flatShippingCostEuros, freeShippingThresholdEuros } from '@/lib/free-shipping-badge'
+import type { ImportDutiesMode } from '@/lib/shipping'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import { DURATION, EASE } from '@/lib/motion'
 import type { Product, ProductVariant, ProductAttribute, ProductVariantCombination, FeatureHighlight, ProductComponent, ProductPack, ProductVideo } from '@/lib/cms'
@@ -145,24 +147,16 @@ const ICON_MAP: Record<FeatureHighlight['icon'], React.ReactNode> = {
   truck: <Truck size={20} style={{ color: 'var(--accent)' }} />,
 }
 
-const DEFAULT_HIGHLIGHTS: FeatureHighlight[] = [
-  { icon: 'sparkles', title: 'Fatto a mano', description: 'Ogni foglio è unico, prodotto artigianalmente in Italia' },
-  { icon: 'shield', title: 'Atossico', description: 'Silicone sintetico, sicuro per la pelle' },
-  { icon: 'star', title: 'Texture realistica', description: 'Floccatura che replica fedelmente la pelle vera' },
-  { icon: 'truck', title: 'Spedizione rapida', description: 'Prepariamo e spediamo entro 48h dall ordine' },
-]
-
-const DEFAULT_USAGE_STEPS = [
-  { step: '01', title: 'Prepara la pelle', description: 'Pulisci e asciuga la superficie di lavoro. Fissa con nastro medico o pinzette.' },
-  { step: '02', title: 'Tatua senza fretta', description: 'Usa aghi classici. La texture flockata trattiene l inchiostro come una pelle vera.' },
-  { step: '03', title: 'Conserva e riutilizza', description: 'Dopo l uso, pulisci con alcol. I fogli possono essere usati più volte.' },
-]
-
-const DEFAULT_WHATS_IN_THE_BOX = [
-  { label: 'Foglio sintetico', description: '1x foglio nelle dimensioni selezionate' },
-  { label: 'Scheda tecnica', description: 'Codice seriale, specifiche materiale, istruzioni utilizzo' },
-  { label: 'Certificato', description: 'Attestazione materiale atossico e origine italiana' },
-]
+/**
+ * Niente contenuti di riserva scritti qui.
+ *
+ * C'erano tre set italiani (vantaggi, passi d'uso, contenuto della confezione)
+ * usati quando il CMS non manda il campo: contenevano una seconda promessa di
+ * consegna («Prepariamo e spediamo entro 48h dall'ordine») che contraddiceva la
+ * fascia dichiarata piu' sotto, e restavano in italiano in tutte e cinque le
+ * lingue. Una sezione senza contenuto CMS ora non si mostra: meglio una pagina
+ * piu' corta di una pagina che promette due tempi diversi.
+ */
 
 interface FeatureCardProps {
   highlight: FeatureHighlight
@@ -197,6 +191,7 @@ function FeatureCard({ highlight }: FeatureCardProps) {
 
 // ─── Component product card ──────────────────────────────────────────────────
 function ComponentCard({ component, locale }: { component: ProductComponent; locale: string }) {
+  const t = useTranslations('product')
   const addToCart = useCart((s) => s.add)
   const [added, setAdded] = useState(false)
   const firstVariant = component.variants[0]
@@ -242,7 +237,7 @@ function ComponentCard({ component, locale }: { component: ProductComponent; loc
         style={{ backgroundColor: added ? '#2d5a27' : 'var(--accent)', color: 'black' }}
       >
         {added ? <Check size={14} /> : <ShoppingBag size={14} />}
-        {added ? 'Aggiunto' : 'Aggiungi'}
+        {added ? t('quickAdded') : t('quickAdd')}
       </motion.button>
     </motion.div>
   )
@@ -253,9 +248,16 @@ interface ProductDetailProps {
   product: Product
   reviews?: Review[]
   reviewSummary?: { average: number; count: number }
+  /**
+   * Chi paga dazi e IVA all'importazione (vedi `importDutiesMode()` in
+   * `shipping.ts`). Arriva dal server: un componente client non legge le
+   * variabili d'ambiente, e la pagina deve mostrare la stessa modalita' che il
+   * prezzo applica. Default DDP — quello che il checkout calcola oggi.
+   */
+  importDuties?: ImportDutiesMode
 }
 
-export function ProductDetail({ product, reviews = [], reviewSummary = { average: 0, count: 0 } }: ProductDetailProps) {
+export function ProductDetail({ product, reviews = [], reviewSummary = { average: 0, count: 0 }, importDuties = 'DDP' }: ProductDetailProps) {
   const t = useTranslations('product')
   const locale = useLocale()
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | undefined>(
@@ -329,6 +331,22 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
   if (!selectedVariant) return null
 
   const maxQty = selectedVariant.limitedQty ?? 99
+
+  // Spedizione: costi e soglie lette dall'unica fonte (`FLAT_ZONE_CONFIG` via
+  // `free-shipping-badge`), formattati dall'unica autorita' degli importi.
+  const italyCost = formatMoney(locale, flatShippingCostEuros('IT'))
+  const italyThreshold = formatWholeMoney(locale, freeShippingThresholdEuros('IT'))
+  const euCost = formatMoney(locale, flatShippingCostEuros('EU'))
+  const euThreshold = formatWholeMoney(locale, freeShippingThresholdEuros('EU'))
+
+  // Tempo di produzione: il campo del CMS che anche la stima del carrello
+  // consuma. Se manca non si inventa un numero (niente `?? 3`): la fascia
+  // resta e la riga della produzione non compare.
+  const productionDays = typeof product.productionDays === 'number'
+    && Number.isFinite(product.productionDays)
+    && product.productionDays >= 0
+    ? Math.ceil(product.productionDays)
+    : null
 
   const handleVariantSelect = (v: ProductVariant) => {
     setSelectedVariant(v)
@@ -508,7 +526,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                   <button
                     key={i}
                     onClick={() => { setActiveImage(i); }}
-                    aria-label={item.kind === 'video' ? `Video ${i + 1}` : `Immagine ${i + 1}`}
+                    aria-label={item.kind === 'video' ? t('aria.galleryVideo', { index: i + 1 }) : t('aria.galleryImage', { index: i + 1 })}
                     className="relative flex-shrink-0 rounded-lg overflow-hidden border transition-[border-color,box-shadow]"
                     style={{
                       width: 44,
@@ -546,23 +564,29 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
               <h1 className="text-4xl lg:text-5xl font-bold leading-tight font-artisan" style={{ color: 'var(--foreground)' }}>
                 {product.name}
               </h1>
-              {reviewSummary.count > 0 && (
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span style={{ color: '#c8a97e', fontSize: 13 }}>
-                    {'★'.repeat(Math.round(reviewSummary.average))}{'☆'.repeat(5 - Math.round(reviewSummary.average))}
-                  </span>
-                  <span className="text-xs" style={{ color: 'var(--muted-fg)' }}>
-                    {reviewSummary.average.toFixed(1)} ({reviewSummary.count})
-                  </span>
-                </div>
-              )}
               {product.shortDescription && (
                 <p className="text-base mt-3" style={{ color: 'var(--muted-fg)' }}>{product.shortDescription}</p>
               )}
             </div>
 
-            {/* Prezzo */}
-            <div className="flex items-baseline gap-4">
+            {/* Prova accanto al prezzo: le recensioni che esistono gia' e le
+                quattro verita' tecniche del materiale. Nessuna testimonianza
+                inventata e nessun asset nuovo: se non ci sono recensioni
+                pubblicate, la riga non compare. */}
+            {reviewSummary.count > 0 && (
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 -mb-3 min-w-0">
+                <span style={{ color: '#c8a97e', fontSize: 13 }} aria-hidden>
+                  {'★'.repeat(Math.max(0, Math.min(5, Math.round(reviewSummary.average))))}
+                  {'☆'.repeat(Math.max(0, 5 - Math.min(5, Math.round(reviewSummary.average))))}
+                </span>
+                <span className="text-xs" style={{ color: 'var(--muted-fg)' }}>
+                  {reviewSummary.average.toFixed(1)} ({reviewSummary.count})
+                </span>
+              </div>
+            )}
+
+            {/* Prezzo + prova gia' disponibile */}
+            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 min-w-0">
               <motion.span
                 className="text-4xl font-bold"
                 style={{ color: 'var(--accent)' }}
@@ -574,7 +598,8 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
               </motion.span>
               <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>{t('vatIncluded')}</span>
             </div>
-            <div className="mt-2">
+
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               {selectedVariant.stockStatus === 'available' && (
                 <span
                   className="inline-flex items-center gap-1.5 text-label px-2 py-1 rounded border"
@@ -588,7 +613,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                     borderColor: 'rgba(90,156,82,0.2)',
                   }}
                 >
-                  {product.madeToOrder ? '✦ Su ordinazione' : '● Disponibile'}
+                  {product.madeToOrder ? `✦ ${t('onOrder')}` : `● ${t('available')}`}
                 </span>
               )}
               {selectedVariant.stockStatus === 'low' && (
@@ -600,10 +625,64 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                     borderColor: 'rgba(192,57,43,0.20)',
                   }}
                 >
-                  ● Ultimi pezzi
+                  {t('lowStock')}
                 </span>
               )}
             </div>
+
+            {/* Spedizione e consegna — accanto al prezzo, una sola fascia.
+                Nessuna data esatta: in scheda il paese non e' noto, la data la
+                calcola `estimateCartDelivery` nel carrello e nel checkout. */}
+            <motion.div
+              variants={itemVariants}
+              className="rounded-xl px-4 py-3 border space-y-3 text-xs min-w-0 break-words"
+              style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
+            >
+              <div className="space-y-1">
+                <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
+                  {t('shippingCost.title')}
+                </p>
+                <p style={{ color: 'var(--muted-fg)' }}>
+                  {t('shippingCost.italy', { cost: italyCost, threshold: italyThreshold })}
+                </p>
+                <p style={{ color: 'var(--muted-fg)' }}>
+                  {t('shippingCost.eu', { cost: euCost, threshold: euThreshold })}
+                </p>
+                <p style={{ color: 'var(--muted-fg)' }}>
+                  {/* Una frase sola, scelta da un interruttore solo: DDP dice
+                      «inclusi», DAP dice «a carico del destinatario». Mai
+                      tutte e due, mai un testo scritto a mano qui dentro. */}
+                  {importDuties === 'DAP' ? t('shippingCost.extraEuDap') : t('shippingCost.extraEuDdp')}
+                </p>
+              </div>
+              <div className="space-y-1 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+                <p style={{ color: 'var(--foreground)' }}>{t('delivery.bandEu')}</p>
+                <p style={{ color: 'var(--foreground)' }}>{t('delivery.bandExtraEu')}</p>
+                {product.madeToOrder && productionDays !== null && (
+                  <p className="font-medium" style={{ color: 'var(--accent)' }}>
+                    {t('delivery.productionExtra', { days: productionDays })}
+                  </p>
+                )}
+              </div>
+            </motion.div>
+
+            {/* Com'e' fatto — le quattro verita' tecniche canoniche, nessun
+                claim nuovo e nessun asset inventato. */}
+            <motion.div
+              variants={itemVariants}
+              className="rounded-xl px-4 py-3 border space-y-1.5 text-xs min-w-0 break-words"
+              style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
+            >
+              <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
+                {t('tech.title')}
+              </p>
+              <ul className="space-y-1" style={{ color: 'var(--muted-fg)' }}>
+                <li>{t('tech.stencil')}</li>
+                <li>{t('tech.discromie')}</li>
+                <li>{t('tech.thickness')}</li>
+                <li>{t('tech.translucency')}</li>
+              </ul>
+            </motion.div>
 
             {/* Varianti — 48px touch targets */}
             {product.variants.length > 0 && <div>
@@ -630,7 +709,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                         className="ml-2 text-label px-1 py-0.5 rounded"
                         style={{ color: 'var(--limited)', background: 'rgba(192,57,43,0.1)' }}
                       >
-                        Ultimi
+                        {t('lastOnes')}
                       </span>
                     )}
                   </motion.button>
@@ -686,32 +765,6 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
               </motion.div>
             )}
 
-            {/* Delivery estimate */}
-            {(product.shippingDays || product.madeToOrder) && (
-              <motion.div
-                variants={itemVariants}
-                className="rounded-xl px-4 py-3 text-sm border"
-                style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
-              >
-                {product.madeToOrder ? (
-                  <div>
-                    <p className="font-semibold mb-0.5" style={{ color: 'var(--foreground)' }}>
-                      {t('madeToOrder')}
-                    </p>
-                    <p className="text-xs leading-relaxed" style={{ color: 'var(--muted-fg)' }}>
-                      {t('madeToOrderDesc', {
-                        total: (product.productionDays ?? 0) + (product.shippingDays ?? 3),
-                      })}
-                    </p>
-                  </div>
-                ) : (
-                  <p style={{ color: 'var(--muted-fg)' }}>
-                    {t('shipsIn', { days: product.shippingDays ?? 3 })}
-                  </p>
-                )}
-              </motion.div>
-            )}
-
             {/* CTA — ref for sticky detection */}
             <div ref={addRef} className="border-t pt-6" style={{ borderColor: 'var(--border)' }}>
               {selectedVariant.limitedQty && (
@@ -728,7 +781,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
               {selectedVariant.stockStatus !== 'unavailable' && (
                 <motion.div variants={itemVariants} className="flex items-center gap-3 mb-4">
                   <span className="text-sm font-medium" style={{ color: 'var(--muted-fg)' }}>
-                    Quantità
+                    {t('quantity')}
                   </span>
                   <div
                     className="flex items-center rounded-xl border overflow-hidden"
@@ -761,7 +814,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                   </div>
                   {maxQty < 10 && (
                     <span className="text-xs font-medium" style={{ color: 'var(--limited)' }}>
-                      max {maxQty}
+                      {t('maxQty', { qty: maxQty })}
                     </span>
                   )}
                 </motion.div>
@@ -789,7 +842,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                   />
                 )}
                 <CartIcon count={itemCount} />
-                {added ? 'Aggiunto al carrello' : t('addToCart')}
+                {added ? t('added') : t('addToCart')}
               </motion.button>
             </div>
           </motion.div>
@@ -799,7 +852,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
         {product.packs && product.packs.length > 0 && selectedVariant.stockStatus !== 'unavailable' && (
           <motion.section variants={itemVariants} className="mb-14">
             <h2 className="text-xl font-semibold mb-4 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
-              Acquista di più, risparmia
+              {t('packs.title')}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {product.packs.map((pack) => {
@@ -847,7 +900,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                               borderColor: 'rgba(97,51,24,0.20)',
                             }}
                           >
-                            Risparmi €{formatMoney(locale, (selectedVariant.price * pack.quantity) * (pack.discountPercent / 100))}
+                            {t('packs.save', { amount: formatMoney(locale, (selectedVariant.price * pack.quantity) * (pack.discountPercent / 100)) })}
                           </span>
                         )}
                       </div>
@@ -869,82 +922,88 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
           </motion.section>
         )}
 
-        {/* Feature highlights — 4 cards */}
-        <motion.section variants={itemVariants} className="mb-14">
-          <h2 className="text-xl font-semibold mb-6 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
-            Perché sceglierlo
-          </h2>
-          <motion.div
-            variants={containerVariants}
-            className="grid grid-cols-2 gap-2"
-          >
-            {(product.featureHighlights?.length ? product.featureHighlights : DEFAULT_HIGHLIGHTS).map((highlight, i) => (
-              <FeatureCard key={i} highlight={highlight} />
-            ))}
-          </motion.div>
-        </motion.section>
+        {/* Feature highlights — solo contenuto CMS (niente fallback italiani) */}
+        {product.featureHighlights && product.featureHighlights.length > 0 && (
+          <motion.section variants={itemVariants} className="mb-14">
+            <h2 className="text-xl font-semibold mb-6 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
+              {t('why.title')}
+            </h2>
+            <motion.div
+              variants={containerVariants}
+              className="grid grid-cols-2 gap-2"
+            >
+              {product.featureHighlights.map((highlight, i) => (
+                <FeatureCard key={i} highlight={highlight} />
+              ))}
+            </motion.div>
+          </motion.section>
+        )}
 
-        {/* Uso del prodotto — 3 step */}
-        <motion.section
-          variants={itemVariants}
-          className="mb-14"
-          style={{ borderColor: 'var(--border)' }}
-        >
-          <h2 className="text-xl font-semibold mb-6 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
-            Come si usa
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {(product.usageSteps?.length ? product.usageSteps : DEFAULT_USAGE_STEPS).map((item) => (
-              <motion.div
-                key={item.step}
-                variants={itemVariants}
-                className="relative rounded-2xl p-6"
-                style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}
-                whileHover={{ y: -4, transition: { duration: 0.3 } }}
-              >
-                <span className="text-5xl font-bold font-artisan opacity-10 absolute top-4 right-5" style={{ color: 'var(--accent)' }}>
-                  {item.step}
-                </span>
-                <h3 className="text-base font-semibold mb-3" style={{ color: 'var(--foreground)' }}>{item.title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--muted-fg)' }}>{item.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* Cosa c'è nella confezione */}
-        <motion.section variants={itemVariants} className="mb-14">
-          <h2 className="text-xl font-semibold mb-6 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
-            Contenuto
-          </h2>
-          <div
-            className="rounded-2xl p-6 lg:p-8"
-            style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}
+        {/* Uso del prodotto — solo contenuto CMS */}
+        {product.usageSteps && product.usageSteps.length > 0 && (
+          <motion.section
+            variants={itemVariants}
+            className="mb-14"
+            style={{ borderColor: 'var(--border)' }}
           >
-            <div className="space-y-4">
-              {(product.whatsInTheBox?.length ? product.whatsInTheBox : DEFAULT_WHATS_IN_THE_BOX).map((item, i) => (
-                <div key={i} className="flex items-start gap-4">
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: 'var(--accent)' }}>
-                    <Check size={12} color="black" />
-                  </div>
-                  <div>
-                    <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>{item.label}</span>
-                    <p className="text-sm mt-0.5" style={{ color: 'var(--muted-fg)' }}>{item.description}</p>
-                  </div>
-                </div>
+            <h2 className="text-xl font-semibold mb-6 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
+              {t('usage.title')}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {product.usageSteps.map((item) => (
+                <motion.div
+                  key={item.step}
+                  variants={itemVariants}
+                  className="relative rounded-2xl p-6"
+                  style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}
+                  whileHover={{ y: -4, transition: { duration: 0.3 } }}
+                >
+                  <span className="text-5xl font-bold font-artisan opacity-10 absolute top-4 right-5" style={{ color: 'var(--accent)' }}>
+                    {item.step}
+                  </span>
+                  <h3 className="text-base font-semibold mb-3" style={{ color: 'var(--foreground)' }}>{item.title}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--muted-fg)' }}>{item.description}</p>
+                </motion.div>
               ))}
             </div>
-          </div>
-        </motion.section>
+          </motion.section>
+        )}
+
+        {/* Cosa c'è nella confezione — solo contenuto CMS */}
+        {product.whatsInTheBox && product.whatsInTheBox.length > 0 && (
+          <motion.section variants={itemVariants} className="mb-14">
+            <h2 className="text-xl font-semibold mb-6 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
+              {t('box.title')}
+            </h2>
+            <div
+              className="rounded-2xl p-6 lg:p-8"
+              style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}
+            >
+              <div className="space-y-4">
+                {product.whatsInTheBox.map((item, i) => (
+                  <div key={i} className="flex items-start gap-4">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: 'var(--accent)' }}>
+                      <Check size={12} color="black" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>{item.label}</span>
+                      <p className="text-sm mt-0.5" style={{ color: 'var(--muted-fg)' }}>{item.description}</p>
+                    </div>
+                  </div>
+              ))}
+            </div>
+            </div>
+          </motion.section>
+        )}
 
         {/* Componenti acquistabili separatamente */}
         {product.components && product.components.length > 0 && (
           <motion.section variants={itemVariants} className="mb-14">
             <h2 className="text-xl font-semibold mb-2 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
-              Acquista i componenti separatamente
+              {t('components.title')}
             </h2>
             <p className="text-sm mb-6" style={{ color: 'var(--muted-fg)' }}>
-              Hai già qualcosa? Puoi acquistare solo i pezzi che ti mancano.
+              {t('components.note')}
             </p>
             <div className="space-y-3">
               {product.components.map((component) => (
@@ -962,7 +1021,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
             style={{ borderColor: 'var(--border)' }}
           >
             <h2 className="text-xl font-semibold mb-5 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
-              Descrizione
+              {t('description.title')}
             </h2>
             <div
               className="rounded-2xl p-6 lg:p-8"
@@ -1054,7 +1113,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setLightboxOpen(false) }}
-            aria-label="Chiudi"
+            aria-label={t('aria.close')}
             className="absolute top-4 right-4 w-11 h-11 rounded-full flex items-center justify-center"
             style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
           >
@@ -1067,7 +1126,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setActiveImage((i) => Math.max(i - 1, 0)) }}
                 disabled={activeImage === 0}
-                aria-label="Precedente"
+                aria-label={t('aria.previous')}
                 className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full items-center justify-center disabled:opacity-20"
                 style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
               >
@@ -1077,7 +1136,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setActiveImage((i) => Math.min(i + 1, effectiveGallery.length - 1)) }}
                 disabled={activeImage === effectiveGallery.length - 1}
-                aria-label="Successiva"
+                aria-label={t('aria.next')}
                 className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full items-center justify-center disabled:opacity-20"
                 style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
               >

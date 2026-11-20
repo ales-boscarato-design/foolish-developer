@@ -129,12 +129,16 @@
     "unavailable": "Nicht verfügbar",
     "thickness": "{value}mm Stärke",
     "pieces": "{qty} Stück",
+    "quantity": "Menge",
+    "maxQty": "max. {qty}",
+    "lowStock": "● Nur noch wenige",
+    "lastOnes": "Wenige",
+    "quickAdd": "Hinzufügen",
+    "quickAdded": "Hinzugefügt",
     "sectionTattoo": "Tätowierung",
     "sectionPmu": "PMU",
     "sectionMerch": "Merch",
-    "shipsIn": "Versand in {days} Werktagen",
     "madeToOrder": "Auf Bestellung gefertigt",
-    "madeToOrderDesc": "Ihr Stück wird nach dem Kauf persönlich gefertigt. Geschätzte Lieferzeit: {total} Werktage.",
     "delivery": {
       "bandEu": "Italien und EU: 24–48 Stunden",
       "bandExtraEu": "Außerhalb der EU: 4–6 Werktage",
@@ -153,6 +157,33 @@
       "discromie": "Farbabweichungen: Der Flock ist nicht gleichmäßig; leichte Tonunterschiede gehören zum Material.",
       "thickness": "4–8 mm dick, auf beiden Seiten.",
       "translucency": "Transluzenz: Die Schichten lassen Licht durch. Durchscheinend heißt nicht durchsichtig."
+    },
+    "packs": {
+      "title": "Mehr kaufen, mehr sparen",
+      "save": "Du sparst {amount}€"
+    },
+    "why": {
+      "title": "Warum dieses Blatt"
+    },
+    "usage": {
+      "title": "So wird es verwendet"
+    },
+    "box": {
+      "title": "Lieferumfang"
+    },
+    "components": {
+      "title": "Einzelteile separat kaufen",
+      "note": "Schon etwas da? Kaufe nur die Teile, die dir fehlen."
+    },
+    "description": {
+      "title": "Beschreibung"
+    },
+    "aria": {
+      "galleryVideo": "Video {index}",
+      "galleryImage": "Bild {index}",
+      "close": "Schließen",
+      "previous": "Zurück",
+      "next": "Weiter"
     },
     "available": "Verfügbar",
     "onOrder": "Auf Bestellung"
