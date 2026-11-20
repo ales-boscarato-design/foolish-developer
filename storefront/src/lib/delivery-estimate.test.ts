@@ -140,6 +140,7 @@ test('paese assente: nessuna zona, nessuna data, nessuna eccezione', () => {
       productionDays: null,
       marginDays: null,
       fallback: false,
+      departureDate: null,
       date: null,
       reason: 'zone_unknown',
     })
@@ -156,6 +157,7 @@ test('durata di produzione fuori dal limite: out_of_bounds, nessun ciclo, nessun
       productionDays: null,
       marginDays: null,
       fallback: false,
+      departureDate: null,
       date: null,
       reason: 'out_of_bounds',
     })
@@ -237,7 +239,11 @@ test('pin della pagina checkout: niente quota senza paese, niente stima appesa, 
   assert.match(canPay, /pendingForCart === null/, 'canPay blocca una stima in attesa')
 
   // La data che parte verso il checkout e' quella mostrata.
-  assert.match(page, /deliveryEstimateDate: activeEstimateDate/, 'si invia la data mostrata, non un ricalcolo')
+  assert.match(
+    page,
+    /deliveryEstimateDate: estimateResolved \? activeEstimateDate : undefined/,
+    'si invia la data mostrata (o null quando la stima non ne produce una), non un ricalcolo',
+  )
 
   // Una stima che non risponde non lascia il cliente appeso: abort dopo il
   // timeout e stesso percorso della stima assente (conferma esplicita).
@@ -246,4 +252,18 @@ test('pin della pagina checkout: niente quota senza paese, niente stima appesa, 
   const estimateCall = page.slice(estimateCallStart, estimateCallStart + 400)
   assert.match(estimateCall, /signal: controller\.signal/, 'la richiesta della stima deve poter essere annullata')
   assert.match(page, /setTimeout\(\(\) => controller\.abort\(\), 9_000\)/, 'la stima deve avere un timeout')
+})
+
+test("la partenza fa parte della stima: la data promessa si conta da li'", () => {
+  // Giovedi' 19/11/2026, ore 10:00 italiane: prima del cutoff, quindi si parte
+  // lo stesso giorno. Due giorni di produzione (ven 20, lun 23) piu' due di
+  // margine (mar 24, mer 25): la data promessa e' mercoledi' 25.
+  const estimate = estimateCartDelivery({
+    now: new Date('2026-11-19T09:00:00.000Z'),
+    country: 'IT',
+    items: [{ madeToOrder: true, productionDays: 2 }],
+  })
+  assert.equal(estimate.departureDate, '2026-11-19')
+  assert.equal(estimate.date, '2026-11-25')
+  assert.equal(estimate.marginDays, 2)
 })

@@ -1,7 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { cmsServiceSecret } from '@/lib/cms-service-secret'
+import { parseDeliveryPromise, parseDeliveryPromiseMetadataValue } from '@/lib/delivery-promise'
 
 export const dynamic = 'force-dynamic'
+
+const CMS_URL = () => process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
+
+/**
+ * La promessa di consegna da mostrare nella conferma d'ordine.
+ *
+ * Si legge l'ORDINE CMS, che e' la fonte che tutte le altre schermate
+ * post-pagamento leggono. Se il CMS non risponde si usa lo snapshot scritto nei
+ * metadata della sessione: e' lo stesso valore, congelato alla creazione del
+ * pagamento. In nessuno dei due casi la data viene ricalcolata con le
+ * festivita', i `productionDays` o l'indirizzo di oggi.
+ */
+async function readFrozenDeliveryPromise(
+  orderRef: string | null,
+  sessionMetadata: Stripe.Metadata | null | undefined,
+): Promise<ReturnType<typeof parseDeliveryPromise>> {
+  const fromSession = parseDeliveryPromiseMetadataValue(sessionMetadata?.delivery_promise)
+  const secret = cmsServiceSecret()
+  if (!orderRef || !secret) return fromSession
+
+  try {
+    const res = await fetch(
+      `${CMS_URL()}/api/orders?where[orderNumber][equals]=${encodeURIComponent(orderRef)}&depth=0&limit=1`,
+      { headers: { 'x-storefront-secret': secret }, cache: 'no-store' },
+    )
+    if (!res.ok) return fromSession
+    const data = await res.json() as { docs?: Array<{ deliveryPromise?: unknown }> }
+    return parseDeliveryPromise(data.docs?.[0]?.deliveryPromise) ?? fromSession
+  } catch {
+    return fromSession
+  }
+}
 
 export async function GET(req: NextRequest) {
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -49,6 +83,8 @@ export async function GET(req: NextRequest) {
       .filter((li) => li.description?.toLowerCase().includes('spedizione') || li.description?.toLowerCase().includes('shipping'))
       .reduce((sum, li) => sum + ((li.amount_total ?? li.amount ?? 0) / 100), 0)
 
+    const deliveryPromise = await readFrozenDeliveryPromise(orderRef, session.metadata)
+
     return NextResponse.json({
       orderRef,
       customerName,
@@ -56,6 +92,7 @@ export async function GET(req: NextRequest) {
       total,
       items,
       shippingCost,
+      deliveryPromise,
       paymentStatus: session.payment_status,
     })
   } catch (err) {

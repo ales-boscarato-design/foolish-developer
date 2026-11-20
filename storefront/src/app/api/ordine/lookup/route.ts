@@ -1,5 +1,6 @@
 import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { NextRequest, NextResponse } from 'next/server'
+import { parseDeliveryPromise } from '@/lib/delivery-promise'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,6 +59,9 @@ export async function GET(req: NextRequest) {
         trackingNumber: order.trackingNumber ?? null,
         trackingCarrier: order.trackingCarrier ?? null,
         productionEtaDays: order.productionEtaDays ?? null,
+        // Promessa congelata al pagamento: la scheda ordine dell'area cliente
+        // mostra questa data e non ricalcola la stima.
+        deliveryPromise: parseDeliveryPromise(order.deliveryPromise),
         shippingAddress: order.shippingAddress ?? null,
         items,
         createdAt: order.createdAt,

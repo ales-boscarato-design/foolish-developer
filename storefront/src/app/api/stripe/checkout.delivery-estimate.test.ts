@@ -5,6 +5,7 @@ import type { AddressInfo } from 'node:net'
 import test from 'node:test'
 import { NextRequest } from 'next/server'
 import Stripe from 'stripe'
+import { parseDeliveryPromiseMetadataValue } from '@/lib/delivery-promise'
 
 // Fence every HTTPS path before the route is dynamically loaded. CMS access in
 // this test is only the ephemeral HTTP localhost server; Stripe is stubbed.
@@ -35,8 +36,9 @@ globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
  * nessuna — il checkout risponde 409 e non apre Stripe. Un carrello senza data
  * mostrabile non blocca il pagamento: non promette niente e non registra niente.
  *
- * Lo snapshot della data sull'ordine CMS e' materia di un'altra card: qui non
- * si guarda l'ordine, si guarda la sessione Stripe.
+ * Qui si guarda la sessione Stripe: la promessa che il webhook portera'
+ * sull'ordine nasce da questi metadata, quindi si verifica che ci sia e che sia
+ * coerente con la data mostrata (e che non ne inventi una quando non c'e').
  */
 test('real checkout route requires exact estimate confirmation before Stripe', async () => {
   const stripeSessions: Array<Record<string, unknown>> = []
@@ -87,7 +89,7 @@ test('real checkout route requires exact estimate confirmation before Stripe', a
     stripeSessions.push(session)
     return { url: 'https://checkout.stripe.test/session', ...session }
   }
-  const requestFor = (date?: string) => new NextRequest('http://shop.test/api/stripe/checkout', {
+  const requestFor = (date?: string | null) => new NextRequest('http://shop.test/api/stripe/checkout', {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       items: [{ productId: '1', sku: 'SYNTH-MTO', quantity: 1 }],
@@ -114,6 +116,14 @@ test('real checkout route requires exact estimate confirmation before Stripe', a
     assert.equal(unavailableWithoutDate.status, 200)
     assert.equal(stripeSessions.length, 1)
     assert.equal('delivery_estimate_date' in (stripeSessions[0]!.metadata as Record<string, unknown>), false)
+    // Nessuna data vista = nessuna promessa, e lo snapshot lo dichiara invece di
+    // tacere o di inventare una data.
+    const hiddenPromise = parseDeliveryPromiseMetadataValue(
+      (stripeSessions[0]!.metadata as Record<string, string>).delivery_promise,
+    )
+    assert.equal(hiddenPromise?.promiseShown, false)
+    assert.equal(hiddenPromise?.reason, 'not_shown')
+    assert.equal(hiddenPromise?.estimatedDeliveryDate, null)
     stripeSessions.length = 0
 
     // Regression 1: a date was shown, then CMS makes the computation fail.
@@ -149,6 +159,23 @@ test('real checkout route requires exact estimate confirmation before Stripe', a
     assert.equal('delivery_estimate_date' in (stripeSessions[0]!.metadata as Record<string, unknown>), false)
     stripeSessions.length = 0
 
+    // Il cliente ha visto «nessuna data» (stima non calcolabile) e prosegue con
+    // il campo esplicito a null: lo snapshot registra il motivo e la zona, senza
+    // date. E' diverso dal campo assente: li' non c'e' stato nessun calcolo.
+    cmsProductionDays = 3_651
+    const explicitNoDate = await POST(requestFor(null))
+    assert.equal(explicitNoDate.status, 200)
+    assert.equal(stripeSessions.length, 1)
+    const unavailablePromise = parseDeliveryPromiseMetadataValue(
+      (stripeSessions[0]!.metadata as Record<string, string>).delivery_promise,
+    )
+    assert.equal(unavailablePromise?.promiseShown, false)
+    assert.equal(unavailablePromise?.reason, 'estimate_unavailable')
+    assert.equal(unavailablePromise?.zone, 'IT_EU')
+    assert.equal(unavailablePromise?.estimatedDeliveryDate, null)
+    stripeSessions.length = 0
+    cmsProductionDays = 5
+
     // Regression 3: a date the client DID show, but a different one from what
     // the server computes now, still requires reconfirmation.
     const stale = estimate.deliveryEstimateDate === '2026-01-05' ? '2026-01-06' : '2026-01-05'
@@ -167,6 +194,17 @@ test('real checkout route requires exact estimate confirmation before Stripe', a
     assert.equal(stripeSessions.length, 1)
     const metadata = stripeSessions[0]!.metadata as Record<string, string>
     assert.equal(metadata.delivery_estimate_date, estimate.deliveryEstimateDate)
+    const promise = parseDeliveryPromiseMetadataValue(metadata.delivery_promise)
+    assert.notEqual(promise, null, 'la sessione porta lo snapshot della promessa')
+    assert.equal(promise?.promiseShown, true)
+    assert.equal(promise?.reason, 'ok')
+    assert.equal(promise?.zone, 'IT_EU')
+    assert.equal(promise?.estimatedDeliveryDate, estimate.deliveryEstimateDate)
+    assert.match(promise?.departureDate ?? '', /^\d{4}-\d{2}-\d{2}$/)
+    assert.equal(promise?.productionDays, 5)
+    assert.equal(promise?.marginDays, 2)
+    assert.equal(promise?.fallback, false)
+    assert.match(promise?.calculatedAt ?? '', /Z$/)
     assert.equal(blockedHttpsAttempts, 0, 'no external HTTPS attempt was made')
   } finally {
     sessionsResource.create = originalCreate

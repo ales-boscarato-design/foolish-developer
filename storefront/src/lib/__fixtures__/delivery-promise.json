@@ -1,0 +1,262 @@
+{
+  "_comment": "Contratto condiviso dello snapshot della promessa di consegna: i validatori dello storefront (storefront/src/lib/delivery-promise.ts) e del CMS (cms/src/lib/delivery-promise.ts) devono accettare e rifiutare esattamente questi casi. Se i due lati divergono, un ordine pagato arriva al CMS con uno snapshot che lo storefront considera valido (o viceversa) e la data promessa sparisce o blocca la creazione.",
+  "valid": [
+    {
+      "name": "promessa Italia/UE con produzione nota",
+      "snapshot": {
+        "version": 1,
+        "promiseShown": true,
+        "zone": "IT_EU",
+        "departureDate": "2026-11-23",
+        "estimatedDeliveryDate": "2026-11-25",
+        "productionDays": 0,
+        "marginDays": 2,
+        "fallback": false,
+        "reason": "ok",
+        "calculatedAt": "2026-11-20T09:00:00.000Z"
+      }
+    },
+    {
+      "name": "promessa extra-UE con produzione nota",
+      "snapshot": {
+        "version": 1,
+        "promiseShown": true,
+        "zone": "EXTRA_EU",
+        "departureDate": "2026-11-23",
+        "estimatedDeliveryDate": "2026-12-08",
+        "productionDays": 5,
+        "marginDays": 6,
+        "fallback": false,
+        "reason": "ok",
+        "calculatedAt": "2026-11-20T09:00:00.000Z"
+      }
+    },
+    {
+      "name": "promessa Italia/UE con margine prudente: durata ignota",
+      "snapshot": {
+        "version": 1,
+        "promiseShown": true,
+        "zone": "IT_EU",
+        "departureDate": "2026-11-23",
+        "estimatedDeliveryDate": "2026-11-26",
+        "productionDays": null,
+        "marginDays": 3,
+        "fallback": true,
+        "reason": "ok",
+        "calculatedAt": "2026-11-20T09:00:00.000Z"
+      }
+    },
+    {
+      "name": "promessa extra-UE con margine prudente e produzione nota",
+      "snapshot": {
+        "version": 1,
+        "promiseShown": true,
+        "zone": "EXTRA_EU",
+        "departureDate": "2026-11-23",
+        "estimatedDeliveryDate": "2026-12-04",
+        "productionDays": 2,
+        "marginDays": 7,
+        "fallback": true,
+        "reason": "ok",
+        "calculatedAt": "2026-11-20T09:00:00.000Z"
+      }
+    },
+    {
+      "name": "stima non calcolabile: nessuna data, zona nota",
+      "snapshot": {
+        "version": 1,
+        "promiseShown": false,
+        "zone": "IT_EU",
+        "departureDate": null,
+        "estimatedDeliveryDate": null,
+        "productionDays": null,
+        "marginDays": null,
+        "fallback": false,
+        "reason": "estimate_unavailable",
+        "calculatedAt": "2026-11-20T09:00:00.000Z"
+      }
+    },
+    {
+      "name": "nessuna data mostrata al cliente",
+      "snapshot": {
+        "version": 1,
+        "promiseShown": false,
+        "zone": null,
+        "departureDate": null,
+        "estimatedDeliveryDate": null,
+        "productionDays": null,
+        "marginDays": null,
+        "fallback": false,
+        "reason": "not_shown",
+        "calculatedAt": "2026-11-20T09:00:00.000Z"
+      }
+    },
+    {
+      "name": "promessa non arrivata dalla sessione di pagamento",
+      "snapshot": {
+        "version": 1,
+        "promiseShown": false,
+        "zone": null,
+        "departureDate": null,
+        "estimatedDeliveryDate": null,
+        "productionDays": null,
+        "marginDays": null,
+        "fallback": false,
+        "reason": "not_captured",
+        "calculatedAt": "2026-11-20T09:00:00.000Z"
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "name": "data promessa senza partenza",
+      "snapshot": {
+        "version": 1,
+        "promiseShown": true,
+        "zone": "IT_EU",
+        "departureDate": null,
+        "estimatedDeliveryDate": "2026-11-25",
+        "productionDays": 0,
+        "marginDays": 2,
+        "fallback": false,
+        "reason": "ok",
+        "calculatedAt": "2026-11-20T09:00:00.000Z"
+      }
+    },
+    {
+      "name": "consegna prima della partenza",
+      "snapshot": {
+        "version": 1,
+        "promiseShown": true,
+        "zone": "IT_EU",
+        "departureDate": "2026-11-27",
+        "estimatedDeliveryDate": "2026-11-25",
+        "productionDays": 0,
+        "marginDays": 2,
+        "fallback": false,
+        "reason": "ok",
+        "calculatedAt": "2026-11-20T09:00:00.000Z"
+      }
+    },
+    {
+      "name": "margine non previsto dalla zona",
+      "snapshot": {
+        "version": 1,
+        "promiseShown": true,
+        "zone": "IT_EU",
+        "departureDate": "2026-11-23",
+        "estimatedDeliveryDate": "2026-11-30",
+        "productionDays": 0,
+        "marginDays": 6,
+        "fallback": false,
+        "reason": "ok",
+        "calculatedAt": "2026-11-20T09:00:00.000Z"
+      }
+    },
+    {
+      "name": "durata ignota senza margine prudente",
+      "snapshot": {
+        "version": 1,
+        "promiseShown": true,
+        "zone": "IT_EU",
+        "departureDate": "2026-11-23",
+        "estimatedDeliveryDate": "2026-11-25",
+        "productionDays": null,
+        "marginDays": 2,
+        "fallback": false,
+        "reason": "ok",
+        "calculatedAt": "2026-11-20T09:00:00.000Z"
+      }
+    },
+    {
+      "name": "promessa non mostrata con date dentro",
+      "snapshot": {
+        "version": 1,
+        "promiseShown": false,
+        "zone": "IT_EU",
+        "departureDate": "2026-11-23",
+        "estimatedDeliveryDate": "2026-11-25",
+        "productionDays": null,
+        "marginDays": null,
+        "fallback": false,
+        "reason": "estimate_unavailable",
+        "calculatedAt": "2026-11-20T09:00:00.000Z"
+      }
+    },
+    {
+      "name": "reason ok senza data promessa",
+      "snapshot": {
+        "version": 1,
+        "promiseShown": false,
+        "zone": "IT_EU",
+        "departureDate": null,
+        "estimatedDeliveryDate": null,
+        "productionDays": null,
+        "marginDays": null,
+        "fallback": false,
+        "reason": "ok",
+        "calculatedAt": "2026-11-20T09:00:00.000Z"
+      }
+    },
+    {
+      "name": "versione non supportata",
+      "snapshot": {
+        "version": 2,
+        "promiseShown": true,
+        "zone": "IT_EU",
+        "departureDate": "2026-11-23",
+        "estimatedDeliveryDate": "2026-11-25",
+        "productionDays": 0,
+        "marginDays": 2,
+        "fallback": false,
+        "reason": "ok",
+        "calculatedAt": "2026-11-20T09:00:00.000Z"
+      }
+    },
+    {
+      "name": "data che non esiste nel calendario",
+      "snapshot": {
+        "version": 1,
+        "promiseShown": true,
+        "zone": "IT_EU",
+        "departureDate": "2026-02-31",
+        "estimatedDeliveryDate": "2026-03-02",
+        "productionDays": 0,
+        "marginDays": 2,
+        "fallback": false,
+        "reason": "ok",
+        "calculatedAt": "2026-11-20T09:00:00.000Z"
+      }
+    },
+    {
+      "name": "stima non disponibile senza zona",
+      "snapshot": {
+        "version": 1,
+        "promiseShown": false,
+        "zone": null,
+        "departureDate": null,
+        "estimatedDeliveryDate": null,
+        "productionDays": null,
+        "marginDays": null,
+        "fallback": false,
+        "reason": "estimate_unavailable",
+        "calculatedAt": "2026-11-20T09:00:00.000Z"
+      }
+    },
+    {
+      "name": "istante di calcolo non valido",
+      "snapshot": {
+        "version": 1,
+        "promiseShown": false,
+        "zone": null,
+        "departureDate": null,
+        "estimatedDeliveryDate": null,
+        "productionDays": null,
+        "marginDays": null,
+        "fallback": false,
+        "reason": "not_shown",
+        "calculatedAt": "ieri"
+      }
+    }
+  ]
+}

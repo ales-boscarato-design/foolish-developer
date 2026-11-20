@@ -116,6 +116,7 @@
     "telegramTitle": "Recevez des mises à jour directes sur Telegram",
     "telegramBody": "Je vous préviens quand les feuilles sont prêtes, je vous envoie les photos de ce que vous allez recevoir, et je vous envoie le suivi dès l'expédition.",
     "telegramCta": "Connectez-vous sur Telegram",
+    "deliveryEstimate": "Livraison estimée : {date}",
     "backToShop": "← Retour à la boutique"
   },
   "product": {

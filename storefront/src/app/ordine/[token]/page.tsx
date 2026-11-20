@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import { telegramOrderLink } from '@/lib/order-ref'
+import { formatDeliveryPromiseDate, parseDeliveryPromise } from '@/lib/delivery-promise'
 
 // ── Types ─────────────────────────────────────────────────
 type PipelineState =
@@ -29,6 +30,12 @@ interface OrderData {
   customerLocale?: string
   pipelineState: PipelineState
   productionEtaDays?: number
+  /**
+   * Promessa congelata al pagamento. Assente sugli ordini storici, che nessuna
+   * data hanno promesso: in quel caso la riga non si mostra (mai una data
+   * ricostruita a posteriori).
+   */
+  deliveryPromise?: unknown
   trackingNumber?: string
   trackingCarrier?: string
   createdAt: string
@@ -45,6 +52,7 @@ interface PageStrings {
   greeting: (name: string) => string
   steps: StepDef[]
   eta: (days: number) => string
+  delivery: string
   sheetPhotos: string
   photoAlt: (i: number) => string
   fromAlessandro: string
@@ -67,6 +75,7 @@ const STRINGS: Record<Locale, PageStrings> = {
       { label: 'Consegnato' },
     ],
     eta: (days) => `ETA: ~${days} giorni`,
+    delivery: 'Consegna stimata',
     sheetPhotos: 'I tuoi fogli',
     photoAlt: (i) => `Foglio ${i + 1}`,
     fromAlessandro: 'Da Alessandro',
@@ -87,6 +96,7 @@ const STRINGS: Record<Locale, PageStrings> = {
       { label: 'Delivered' },
     ],
     eta: (days) => `ETA: ~${days} days`,
+    delivery: 'Estimated delivery',
     sheetPhotos: 'Your sheets',
     photoAlt: (i) => `Sheet ${i + 1}`,
     fromAlessandro: 'From Alessandro',
@@ -107,6 +117,7 @@ const STRINGS: Record<Locale, PageStrings> = {
       { label: 'Geliefert' },
     ],
     eta: (days) => `Lieferzeit: ~${days} Tage`,
+    delivery: 'Voraussichtliche Lieferung',
     sheetPhotos: 'Deine Bögen',
     photoAlt: (i) => `Bogen ${i + 1}`,
     fromAlessandro: 'Von Alessandro',
@@ -127,6 +138,7 @@ const STRINGS: Record<Locale, PageStrings> = {
       { label: 'Livrée' },
     ],
     eta: (days) => `Délai estimé : ~${days} jours`,
+    delivery: 'Livraison estimée',
     sheetPhotos: 'Vos feuilles',
     photoAlt: (i) => `Feuille ${i + 1}`,
     fromAlessandro: 'De Alessandro',
@@ -147,6 +159,7 @@ const STRINGS: Record<Locale, PageStrings> = {
       { label: 'Entregado' },
     ],
     eta: (days) => `Estimación: ~${days} días`,
+    delivery: 'Entrega estimada',
     sheetPhotos: 'Tus hojas',
     photoAlt: (i) => `Hoja ${i + 1}`,
     fromAlessandro: 'De Alessandro',
@@ -211,6 +224,16 @@ export default async function OrderPage({
   const currentStep = stepIndex(order.pipelineState)
   const firstName = order.customerName?.split(' ')[0] ?? ''
 
+  // La data promessa si legge dallo SNAPSHOT dell'ordine: qui non si conoscono
+  // festivita', `productionDays` o margini, e non si ricalcola niente. Una
+  // promessa non mostrata (o un ordine storico senza snapshot) non produce
+  // nessuna riga: meglio il silenzio di una data inventata.
+  const locale = (order.customerLocale ?? 'it') as Locale
+  const deliveryPromise = parseDeliveryPromise(order.deliveryPromise)
+  const promisedDeliveryDate = deliveryPromise?.promiseShown && deliveryPromise.estimatedDeliveryDate
+    ? formatDeliveryPromiseDate(STRINGS[locale] ? locale : 'it', deliveryPromise.estimatedDeliveryDate)
+    : null
+
   return (
     <main style={{ backgroundColor: '#0d0b08', minHeight: '100vh', color: '#e8e0d0' }}>
 
@@ -246,6 +269,11 @@ export default async function OrderPage({
           <h1 style={{ fontSize: '28px', fontWeight: 700, margin: 0, color: '#f0e8d8' }}>
             {t.greeting(firstName)}
           </h1>
+          {promisedDeliveryDate && (
+            <p style={{ fontSize: '14px', color: '#c9a96e', margin: '10px 0 0' }}>
+              {t.delivery}: <strong>{promisedDeliveryDate}</strong>
+            </p>
+          )}
         </div>
 
         {/* Timeline */}

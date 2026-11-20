@@ -116,6 +116,7 @@
     "telegramTitle": "Get direct updates on Telegram",
     "telegramBody": "I'll notify you when the sheets are ready, send you photos of what you're receiving, and send you tracking as soon as it's shipped.",
     "telegramCta": "Connect on Telegram",
+    "deliveryEstimate": "Estimated delivery: {date}",
     "backToShop": "← Back to shop"
   },
   "product": {

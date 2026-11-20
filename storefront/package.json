@@ -19,6 +19,7 @@
     "test:shipping": "tsx --test src/lib/shipping.test.ts",
     "test:delivery-estimate": "tsx --test src/lib/delivery-estimate.test.ts src/app/api/stripe/delivery-estimate/route.test.ts",
     "test:delivery-estimate-checkout": "tsx --test src/app/api/stripe/checkout.delivery-estimate.test.ts",
+    "test:delivery-promise": "tsx --test src/lib/delivery-promise.test.ts",
     "test:free-shipping-badge": "tsx --test src/lib/free-shipping-badge.test.ts",
     "test:subscription": "tsx --test src/lib/subscription-plans.test.ts",
     "test:subscription-zone": "tsx --test src/lib/subscription-zone-change.test.ts && tsx --test src/lib/subscription-renewal-zone.test.ts",
