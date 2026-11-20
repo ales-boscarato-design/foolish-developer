@@ -107,7 +107,10 @@
     "promoInvalidExpired": "Codice non valido o scaduto",
     "promoRemove": "Rimuovi",
     "promoProDiscount": "Sconto Pro {percent}%",
-    "promoProActive": "✓ Sconto Pro {percent}% applicato"
+    "promoProActive": "✓ Sconto Pro {percent}% applicato",
+    "deliveryEstimate": "Consegna stimata: {date}",
+    "deliveryTransitItEu": "Italia e Unione Europea: corriere espresso, 24–48 ore lavorative dalla partenza.",
+    "deliveryTransitExtraEu": "Extra-UE: corriere espresso, 4–6 giorni lavorativi dalla partenza."
   },
   "grazie": {
     "title": "Ordine ricevuto.",
@@ -133,9 +136,81 @@
     "sectionTattoo": "Tatuaggio",
     "sectionPmu": "PMU",
     "sectionMerch": "Merch",
-    "shipsIn": "Spedito in {days} giorni lavorativi",
+    "availableBadge": "● Disponibile",
+    "availableDelivery": "Parte dal magazzino entro 24 ore lavorative; consegna in 24–48 ore.",
+    "madeToOrderBadge": "✦ Su ordinazione",
+    "madeToOrderDelivery": "Lo produciamo in laboratorio in {productionDays} giorni lavorativi, poi parte con corriere espresso: 24–48 ore.",
+    "madeToOrderProductionUnknown": "Lo produciamo in laboratorio su ordinazione; la durata esatta dipende dal laboratorio e ti confermiamo la data prima di iniziare.",
     "madeToOrder": "Fatto su ordinazione",
-    "madeToOrderDesc": "Il tuo ordine viene lavorato personalmente dopo l'acquisto. Consegna stimata in {total} giorni lavorativi."
+    "highlights": {
+      "title": "Perché sceglierlo",
+      "handmade": {
+        "title": "Fatto a mano",
+        "description": "Ogni foglio è unico, prodotto artigianalmente in Italia"
+      },
+      "nonToxic": {
+        "title": "Atossico",
+        "description": "Silicone sintetico, sicuro per la pelle"
+      },
+      "texture": {
+        "title": "Texture realistica",
+        "description": "Floccatura che replica fedelmente la pelle vera"
+      },
+      "shipping": {
+        "title": "Spedizione rapida",
+        "description": "Parte dal magazzino entro 24 ore lavorative; consegna in 24–48 ore."
+      }
+    },
+    "usage": {
+      "title": "Come si usa",
+      "step1": {
+        "title": "Prepara la pelle",
+        "description": "Pulisci e asciuga la superficie di lavoro. Fissa con nastro medico o pinzette."
+      },
+      "step2": {
+        "title": "Tatua senza fretta",
+        "description": "Usa aghi classici. La texture flockata trattiene l inchiostro come una pelle vera."
+      },
+      "step3": {
+        "title": "Conserva e riutilizza",
+        "description": "Dopo l uso, pulisci con alcol. I fogli possono essere usati più volte."
+      }
+    },
+    "box": {
+      "title": "Contenuto",
+      "sheet": {
+        "label": "Foglio sintetico",
+        "description": "1x foglio nelle dimensioni selezionate"
+      },
+      "techCard": {
+        "label": "Scheda tecnica",
+        "description": "Codice seriale, specifiche materiale, istruzioni utilizzo"
+      },
+      "certificate": {
+        "label": "Certificato",
+        "description": "Attestazione materiale atossico e origine italiana"
+      }
+    },
+    "components": {
+      "title": "Acquista i componenti separatamente",
+      "description": "Hai già qualcosa? Puoi acquistare solo i pezzi che ti mancano."
+    },
+    "descriptionTitle": "Descrizione",
+    "quantity": "Quantità",
+    "packs": {
+      "title": "Acquista di più, risparmia",
+      "save": "Risparmi"
+    },
+    "addToCartAdded": "Aggiunto",
+    "addToCartAdd": "Aggiungi",
+    "addedToCart": "Aggiunto al carrello",
+    "lastPieces": "● Ultimi pezzi",
+    "lastPiecesShort": "Ultimi",
+    "galleryVideo": "Video {n}",
+    "galleryImage": "Immagine {n}",
+    "close": "Chiudi",
+    "previous": "Precedente",
+    "next": "Successiva"
   },
   "sections": {
     "label": "Sezione",
@@ -222,8 +297,8 @@
         "body": "Dati crittografati, nessuna info salvata"
       },
       "shippingSpeed": {
-        "title": "Spedizione in 24–48h",
-        "body": "Prepariamo e spediamo il giorno lavorativo successivo"
+        "title": "Parte entro 24 ore lavorative",
+        "body": "Dal nostro magazzino in Italia; la data di consegna la vedi nel carrello"
       },
       "support": {
         "title": "Supporto diretto",
@@ -364,7 +439,7 @@
     "pricing": "3. Prezzi e pagamenti",
     "pricingText": "Tutti i prezzi sono espressi in Euro (€) IVA inclusa. Il pagamento avviene tramite Stripe (carta di credito/debito, Apple Pay, Google Pay). L'ordine si considera confermato al completamento del pagamento.",
     "shipping": "4. Spedizione",
-    "shippingText": "Le spedizioni avvengono dall'Italia entro 3–5 giorni lavorativi dalla conferma dell'ordine, salvo periodi di alta domanda comunicati esplicitamente.",
+    "shippingText": "Se tutti gli articoli sono disponibili partono dal magazzino entro 24 ore lavorative. Nei carrelli misti la spedizione è unica e parte quando è pronto l'articolo con la produzione più lunga: la data stimata la vedi nel carrello prima di pagare. In Italia e nell'Unione Europea la consegna è in 24–48 ore lavorative dalla partenza; nell'extra-UE è in 4–6 giorni lavorativi dalla partenza.",
     "shippingRates": {
       "italy": "Italia: {cost}€ · gratuita sopra {amount}€",
       "europe": "Unione Europea: {cost}€ · gratuita sopra {amount}€",
