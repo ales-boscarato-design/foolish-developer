@@ -57,8 +57,12 @@ interface CmsState {
   byOrderNumber: string | null
   /** Record di abbonamento restituito dalla ricerca per `stripeSubscriptionId`. */
   subscription: Record<string, unknown> | null
+  /** Valori del filtro `where[stripeSubscriptionId][equals]` ricevuti dallo stub. */
+  subscriptionQueries: string[]
   /** Patch inviate a `/api/subscriptions/<id>` (avanzamento di `cyclesCompleted`). */
   subscriptionPatches: Array<Record<string, unknown>>
+  /** Id su cui lo stub ha ricevuto una PATCH in `/api/subscriptions/<id>`. */
+  subscriptionPatchIds: string[]
   /** Status della creazione ordine (per provare il percorso di creazione fallita). */
   orderPostStatus: number
 }
@@ -73,7 +77,9 @@ const state: CmsState = {
   bySession: null,
   byOrderNumber: null,
   subscription: null,
+  subscriptionQueries: [],
   subscriptionPatches: [],
+  subscriptionPatchIds: [],
   orderPostStatus: 201,
 }
 
@@ -140,14 +146,21 @@ before(async () => {
     }
 
     // Ricerca dell'abbonamento (ramo `invoice.paid`) e avanzamento del contatore.
+    // Lo stub rispetta il filtro serializzato: se la rotta cerca con la chiave
+    // sbagliata non trova nulla (e il test lo vede), come in produzione.
     if (req.method === 'GET' && url.pathname === '/api/subscriptions') {
-      return json(200, { docs: state.subscription ? [state.subscription] : [] })
+      const wanted = url.searchParams.get('where[stripeSubscriptionId][equals]')
+      state.subscriptionQueries.push(wanted ?? '')
+      const match = state.subscription !== null && wanted !== null
+        && wanted === state.subscription.stripeSubscriptionId
+      return json(200, { docs: match ? [state.subscription] : [] })
     }
 
     if (req.method === 'PATCH' && url.pathname.startsWith('/api/subscriptions/')) {
       const chunks: Buffer[] = []
       req.on('data', (chunk: Buffer) => chunks.push(chunk))
       req.on('end', () => {
+        state.subscriptionPatchIds.push(url.pathname.slice('/api/subscriptions/'.length))
         state.subscriptionPatches.push(JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>)
         json(200, { doc: state.subscription ?? {} })
       })
@@ -179,7 +192,9 @@ beforeEach(() => {
   state.bySession = null
   state.byOrderNumber = null
   state.subscription = null
+  state.subscriptionQueries = []
   state.subscriptionPatches = []
+  state.subscriptionPatchIds = []
   state.orderPostStatus = 201
 })
 
@@ -631,6 +646,12 @@ test('invoice.paid senza `payments`: l ordine nasce senza PaymentIntent e il seg
     [{ cyclesCompleted: 1 }],
     'il contatore avanza una volta sola, e solo dopo la creazione riuscita dell ordine',
   )
+  assert.deepEqual(
+    state.subscriptionQueries,
+    [RENEWAL_SUBSCRIPTION_ID],
+    'la ricerca dell abbonamento usa la chiave serializzata vera, non una qualunque',
+  )
+  assert.deepEqual(state.subscriptionPatchIds, ['77'], 'il contatore si aggiorna sul record trovato')
   const logged = lines.join('\n')
   assert.equal(
     logged.includes('renewal-test@example.invalid'),
@@ -768,4 +789,54 @@ test('creazione ordine rifiutata: nessun segnale, contatore fermo (il rinnovo no
     'il segnale dichiara un rinnovo CREATO senza PaymentIntent, non un tentativo fallito',
   )
   assert.deepEqual(state.subscriptionPatches, [], 'nessun ordine, nessun avanzamento del ciclo')
+})
+
+test('payments senza `has_more`: lista di completezza ignota, si segnala payments_paginated', async () => {
+  const { result, lines } = await submitInvoicePaid({
+    payments: {
+      data: [{ status: 'paid', payment: { type: 'payment_intent', payment_intent: RENEWAL_PAYMENT_INTENT } }],
+    },
+  })
+
+  assert.equal(result.status, 200)
+  assert.equal(
+    'stripePaymentIntentId' in state.posts[0]!,
+    false,
+    'senza `has_more: false` non si puo escludere che il pagamento sia oltre la prima pagina',
+  )
+  const signals = renewalSignals(lines)
+  assert.equal(signals.length, 1)
+  assert.equal(signals[0]?.reason, 'payments_paginated')
+})
+
+test('forma espansa: `payment_intent` come oggetto porta comunque l id sull ordine', async () => {
+  const { result, lines } = await submitInvoicePaid({
+    payments: {
+      has_more: false,
+      data: [{ status: 'paid', payment: { type: 'payment_intent', payment_intent: { id: RENEWAL_PAYMENT_INTENT } } }],
+    },
+  })
+
+  assert.equal(result.status, 200)
+  assert.equal(state.posts[0]!.stripePaymentIntentId, RENEWAL_PAYMENT_INTENT)
+  assert.deepEqual(renewalSignals(lines), [])
+})
+
+test('un pagamento pagato di tipo diverso non viene letto come PaymentIntent, anche se ne nomina uno', async () => {
+  const { result, lines } = await submitInvoicePaid({
+    payments: {
+      has_more: false,
+      data: [{ status: 'paid', payment: { type: 'charge', payment_intent: RENEWAL_PAYMENT_INTENT } }],
+    },
+  })
+
+  assert.equal(result.status, 200)
+  assert.equal(
+    'stripePaymentIntentId' in state.posts[0]!,
+    false,
+    'il tipo del pagamento conta: un charge che nomina un payment_intent non e la fonte dell id',
+  )
+  const signals = renewalSignals(lines)
+  assert.equal(signals.length, 1)
+  assert.equal(signals[0]?.reason, 'payments_ambiguous')
 })
