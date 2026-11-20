@@ -615,19 +615,58 @@ function renewalSignals(lines: string[]): Array<Record<string, unknown>> {
   return signals
 }
 
-async function submitInvoicePaid(invoiceOverrides: Record<string, unknown> = {}) {
-  state.subscription = renewalSubscription()
-  const { payload, signature } = invoicePaidEvent(invoiceOverrides)
-  return await captureLogs(() => POST(webhookRequest(payload, signature)))
+/**
+ * Esito della lettura `invoices.retrieve(id, { expand: ['payments'] })` che la
+ * rotta fa nel solo ramo «pagamenti mancanti». `ok` senza `payments` riproduce
+ * la forma misurata di un'API che risponde ma non porta la lista.
+ */
+type InvoiceRetrieveOutcome =
+  | { status: 'ok'; payments?: unknown }
+  | { status: 'error' }
+
+interface InvoiceRetrieveCall {
+  id: string
+  params?: Record<string, unknown>
 }
 
-test('invoice.paid senza `payments`: l ordine nasce senza PaymentIntent e il segnale dice payments_absent', async () => {
-  const { result, lines } = await submitInvoicePaid()
+async function submitInvoicePaid(
+  invoiceOverrides: Record<string, unknown> = {},
+  expanded: InvoiceRetrieveOutcome = { status: 'ok' },
+) {
+  state.subscription = renewalSubscription()
+  const { payload, signature } = invoicePaidEvent(invoiceOverrides)
+  const invoiceCalls: InvoiceRetrieveCall[] = []
+  const Invoices = Stripe.resources.Invoices
+  const originalRetrieve = Invoices.prototype.retrieve
+  Invoices.prototype.retrieve = (async (id: string, params?: Record<string, unknown>) => {
+    invoiceCalls.push({ id, params })
+    if (expanded.status === 'error') {
+      // Forma di un guasto di trasporto dell'SDK: la rotta deve trattarlo come
+      // ritentabile e NON creare l'ordine.
+      throw Object.assign(new Error('Stripe connection error'), { type: 'StripeConnectionError' })
+    }
+    return { id, object: 'invoice', payments: expanded.payments }
+  }) as unknown as typeof Invoices.prototype.retrieve
+  try {
+    const captured = await captureLogs(() => POST(webhookRequest(payload, signature)))
+    return { ...captured, invoiceCalls }
+  } finally {
+    Invoices.prototype.retrieve = originalRetrieve
+  }
+}
+
+test('invoice.paid senza `payments` e expand senza lista: l ordine nasce senza PaymentIntent e il segnale dice payments_absent', async () => {
+  const { result, lines, invoiceCalls } = await submitInvoicePaid()
 
   assert.equal(result.status, 200)
   assert.equal(state.posts.length, 1, 'il rinnovo pagato deve comunque creare l ordine')
   const order = state.posts[0]!
   assert.equal(order.orderNumber, RENEWAL_ORDER_REF)
+  assert.deepEqual(
+    invoiceCalls,
+    [{ id: RENEWAL_INVOICE_ID, params: { expand: ['payments'] } }],
+    'una sola lettura, con l expand misurato e sulla stessa invoice dell evento',
+  )
   assert.equal(
     'stripePaymentIntentId' in order,
     false,
@@ -660,21 +699,65 @@ test('invoice.paid senza `payments`: l ordine nasce senza PaymentIntent e il seg
   )
 })
 
-test('invoice.paid con lista paginata (`has_more: true`): segnale payments_paginated, una volta', async () => {
-  const { result, lines } = await submitInvoicePaid({
-    payments: {
-      has_more: true,
-      data: [{ status: 'paid', payment: { type: 'payment_intent', payment_intent: RENEWAL_PAYMENT_INTENT } }],
+test('invoice.paid con lista paginata: l expand la completa e l id finisce sull ordine', async () => {
+  // Il caso che la decisione (default, 20/11) copre: la lista troncata
+  // dell'evento non basta, la stessa invoice riletta con expand si'.
+  const { result, lines, invoiceCalls } = await submitInvoicePaid(
+    {
+      payments: {
+        has_more: true,
+        data: [{ status: 'paid', payment: { type: 'payment_intent', payment_intent: RENEWAL_PAYMENT_INTENT } }],
+      },
     },
-  })
+    {
+      status: 'ok',
+      payments: {
+        has_more: false,
+        data: [{ status: 'paid', payment: { type: 'payment_intent', payment_intent: RENEWAL_PAYMENT_INTENT } }],
+      },
+    },
+  )
+
+  assert.equal(result.status, 200)
+  assert.equal(state.posts.length, 1)
+  assert.equal(
+    state.posts[0]!.stripePaymentIntentId,
+    RENEWAL_PAYMENT_INTENT,
+    'la lista completa letta con expand e la fonte dell id',
+  )
+  assert.deepEqual(
+    invoiceCalls,
+    [{ id: RENEWAL_INVOICE_ID, params: { expand: ['payments'] } }],
+    'l expand si chiede una volta sola',
+  )
+  assert.deepEqual(renewalSignals(lines), [], 'con l id risolto non c e nulla da segnalare')
+})
+
+test('invoice.paid con lista paginata che resta tale dopo l expand: segnale payments_paginated', async () => {
+  const { result, lines, invoiceCalls } = await submitInvoicePaid(
+    {
+      payments: {
+        has_more: true,
+        data: [{ status: 'paid', payment: { type: 'payment_intent', payment_intent: RENEWAL_PAYMENT_INTENT } }],
+      },
+    },
+    {
+      status: 'ok',
+      payments: {
+        has_more: true,
+        data: [{ status: 'paid', payment: { type: 'payment_intent', payment_intent: RENEWAL_PAYMENT_INTENT } }],
+      },
+    },
+  )
 
   assert.equal(result.status, 200)
   assert.equal(state.posts.length, 1)
   assert.equal(
     'stripePaymentIntentId' in state.posts[0]!,
     false,
-    'con la lista troncata il pagamento puo essere oltre la prima pagina: non si sceglie il primo',
+    'se anche la lettura espansa e troncata il pagamento puo essere oltre la prima pagina: non si sceglie il primo',
   )
+  assert.equal(invoiceCalls.length, 1, 'una sola lettura: non si insiste')
 
   const signals = renewalSignals(lines)
   assert.equal(signals.length, 1)
@@ -721,7 +804,7 @@ test('invoice.paid con lista completa ma senza PaymentIntent pagato: payments_am
 })
 
 test('controllo: con un solo pagamento pagato l ordine porta il PaymentIntent e NON emette il segnale', async () => {
-  const { result, lines } = await submitInvoicePaid({
+  const { result, lines, invoiceCalls } = await submitInvoicePaid({
     payments: {
       has_more: false,
       data: [{ status: 'paid', payment: { type: 'payment_intent', payment_intent: RENEWAL_PAYMENT_INTENT } }],
@@ -736,6 +819,11 @@ test('controllo: con un solo pagamento pagato l ordine porta il PaymentIntent e 
     'con la lista completa e un solo pagamento l id deve finire sull ordine',
   )
   assert.deepEqual(renewalSignals(lines), [], 'nessun segnale quando il PaymentIntent c e')
+  assert.deepEqual(
+    invoiceCalls,
+    [],
+    'sul percorso normale non si fa nessuna lettura Stripe in piu: l expand scatta solo quando la lista manca',
+  )
 })
 
 test('controllo: un id che non e un PaymentIntent valido non finisce sull ordine e produce il segnale', async () => {
@@ -792,11 +880,19 @@ test('creazione ordine rifiutata: nessun segnale, contatore fermo (il rinnovo no
 })
 
 test('payments senza `has_more`: lista di completezza ignota, si segnala payments_paginated', async () => {
-  const { result, lines } = await submitInvoicePaid({
-    payments: {
-      data: [{ status: 'paid', payment: { type: 'payment_intent', payment_intent: RENEWAL_PAYMENT_INTENT } }],
+  const { result, lines } = await submitInvoicePaid(
+    {
+      payments: {
+        data: [{ status: 'paid', payment: { type: 'payment_intent', payment_intent: RENEWAL_PAYMENT_INTENT } }],
+      },
     },
-  })
+    {
+      status: 'ok',
+      payments: {
+        data: [{ status: 'paid', payment: { type: 'payment_intent', payment_intent: RENEWAL_PAYMENT_INTENT } }],
+      },
+    },
+  )
 
   assert.equal(result.status, 200)
   assert.equal(
@@ -836,6 +932,108 @@ test('un pagamento pagato di tipo diverso non viene letto come PaymentIntent, an
     false,
     'il tipo del pagamento conta: un charge che nomina un payment_intent non e la fonte dell id',
   )
+  const signals = renewalSignals(lines)
+  assert.equal(signals.length, 1)
+  assert.equal(signals[0]?.reason, 'payments_ambiguous')
+})
+
+/*
+ * COPERTURA DEL CASO (decisione del 20/11, opzione A).
+ *
+ * La lettura con `expand[]=payments` non e' un extra: senza di essa ogni
+ * rinnovo nasce senza PaymentIntent (e' la forma normale dell'evento, non un
+ * caso di scuola). Le garanzie che questi test pinnano:
+ *   1. l'expand scatta solo quando la lista manca o e' troncata;
+ *   2. errore/timeout Stripe -> 503 ritentabile, mai un ordine senza id;
+ *   3. id assente anche dopo expand -> segnale strutturato, nessun id inventato;
+ *   4. nessuna scrittura Stripe: solo `retrieve`.
+ */
+
+test('lettura Stripe in errore: 503 ritentabile e nessun ordine creato senza identificativo', async () => {
+  const { result, lines, invoiceCalls } = await submitInvoicePaid({}, { status: 'error' })
+
+  assert.equal(result.status, 503, 'un 200 segnerebbe l evento come consegnato e il rinnovo nascerebbe senza id')
+  const body = (await result.json()) as Record<string, unknown>
+  assert.equal(body.error, 'PaymentIntent lookup failed')
+  assert.equal(invoiceCalls.length, 1, 'la lettura e stata tentata')
+  assert.equal(state.posts.length, 0, 'la lettura non riuscita non crea un ordine senza id')
+  assert.deepEqual(state.subscriptionPatches, [], 'il contatore non avanza: al retry si rifa tutto')
+  assert.deepEqual(
+    renewalSignals(lines),
+    [],
+    'il segnale dichiara un rinnovo CREATO senza id, non un tentativo fallito',
+  )
+})
+
+test('dopo il 503 per errore Stripe il retry crea il rinnovo con l id, senza duplicati', async () => {
+  const first = await submitInvoicePaid({}, { status: 'error' })
+  assert.equal(first.result.status, 503)
+  assert.equal(state.posts.length, 0)
+
+  const second = await submitInvoicePaid(
+    {},
+    {
+      status: 'ok',
+      payments: {
+        has_more: false,
+        data: [{ status: 'paid', payment: { type: 'payment_intent', payment_intent: RENEWAL_PAYMENT_INTENT } }],
+      },
+    },
+  )
+
+  assert.equal(second.result.status, 200)
+  assert.equal(state.posts.length, 1, 'un solo ordine: il tentativo fallito non ne ha lasciato nessuno')
+  assert.equal(state.posts[0]!.stripePaymentIntentId, RENEWAL_PAYMENT_INTENT)
+  assert.deepEqual(renewalSignals(second.lines), [])
+})
+
+test('id assente anche dopo expand: ordine creato senza id e segnale payments_ambiguous', async () => {
+  const { result, lines, invoiceCalls } = await submitInvoicePaid(
+    {},
+    {
+      status: 'ok',
+      payments: {
+        has_more: false,
+        data: [{ status: 'paid', payment: { type: 'charge', charge: 'ch_test_renewal' } }],
+      },
+    },
+  )
+
+  assert.equal(result.status, 200)
+  assert.equal(invoiceCalls.length, 1, 'l id non c era: si e tentata una sola rilettura')
+  assert.equal(state.posts.length, 1)
+  assert.equal(
+    'stripePaymentIntentId' in state.posts[0]!,
+    false,
+    'se l expand non da un PaymentIntent non se ne inventa uno',
+  )
+  assert.deepEqual(renewalSignals(lines), [
+    {
+      event: 'renewal_order_without_payment_intent',
+      orderRef: RENEWAL_ORDER_REF,
+      reason: 'payments_ambiguous',
+    },
+  ])
+})
+
+test('lista completa ma ambigua: nessuna lettura Stripe in piu, il segnale resta', async () => {
+  const { result, lines, invoiceCalls } = await submitInvoicePaid({
+    payments: {
+      has_more: false,
+      data: [
+        { status: 'paid', payment: { type: 'payment_intent', payment_intent: 'pi_test_renewal_a' } },
+        { status: 'paid', payment: { type: 'payment_intent', payment_intent: 'pi_test_renewal_b' } },
+      ],
+    },
+  })
+
+  assert.equal(result.status, 200)
+  assert.deepEqual(
+    invoiceCalls,
+    [],
+    'una lista completa e ambigua non cambia con l expand: una lettura in piu aggiungerebbe solo un modo di far fallire un rinnovo pagato',
+  )
+  assert.equal(state.posts.length, 1)
   const signals = renewalSignals(lines)
   assert.equal(signals.length, 1)
   assert.equal(signals[0]?.reason, 'payments_ambiguous')

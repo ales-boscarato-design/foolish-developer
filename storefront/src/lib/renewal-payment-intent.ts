@@ -75,6 +75,21 @@ export function resolveRenewalPaymentIntent(payments: InvoicePaymentsLike | null
 }
 
 /**
+ * Dice se una lettura con `expand[]=payments` puo' cambiare la risposta.
+ *
+ * Solo quando la lista e' assente o troncata: li' l'expand porta la lista vera
+ * e misurata il 20/11/2026 su un'invoice di subscription reale contiene il
+ * pagamento `payment_intent`. Una lista COMPLETA ma ambigua (zero pagamenti
+ * pagati, o due) non cambia con l'expand: chiederla comunque aggiungerebbe solo
+ * un modo di fallire — e di rendere ritentabile per sempre un rinnovo gia'
+ * pagato — senza aggiungere informazione. Il percorso normale (lista completa
+ * con un solo pagamento) non chiama mai Stripe.
+ */
+export function shouldRetrieveExpandedPayments(reason: RenewalPaymentIntentGap): boolean {
+  return reason === 'payments_absent' || reason === 'payments_paginated'
+}
+
+/**
  * Riga JSON del segnale, senza dati cliente: `orderRef` e motivo bastano a
  * ritrovare l'ordine e a contarlo. Il numero d'ordine di rinnovo
  * (`FOOLISH-SUB-<subscription>-<invoice>`) non contiene dati personali.

@@ -18,7 +18,23 @@ import { attachScheduleToSubscription } from '@/lib/stripe-subscription-schedule
 import { getBenefitForCycle, type PlanKey, type Zone } from '@/lib/subscription-plans'
 import { detectRenewalZoneMismatch } from '@/lib/subscription-renewal-zone'
 import { reportRenewalZoneMismatch } from '@/lib/subscription-renewal-zone-alert'
-import { renewalPaymentIntentSignal, resolveRenewalPaymentIntent } from '@/lib/renewal-payment-intent'
+import {
+  renewalPaymentIntentSignal,
+  resolveRenewalPaymentIntent,
+  shouldRetrieveExpandedPayments,
+} from '@/lib/renewal-payment-intent'
+
+/**
+ * La lettura dell'invoice con `expand[]=payments` non e' riuscita: l'evento
+ * `invoice.paid` va ritentato (503), perche' creare l'ordine senza
+ * PaymentIntent lo renderebbe per sempre irraggiungibile da un rimborso.
+ */
+class RenewalPaymentIntentLookupError extends Error {
+  constructor(readonly invoiceId: string) {
+    super(`PaymentIntent lookup failed for invoice ${invoiceId}`)
+    this.name = 'RenewalPaymentIntentLookupError'
+  }
+}
 
 export const dynamic = 'force-dynamic'
 
@@ -626,13 +642,31 @@ export async function POST(req: NextRequest) {
 
         // `invoice.payments` manca nella forma normale degli eventi `invoice.paid`
         // (misurato in sola lettura sull'API 2026-04-22: il campo compare solo
-        // con `expand[]=payments`). La risoluzione dice ESPLICITAMENTE se
-        // l'ordine nasce senza PaymentIntent e per quale motivo, invece di
-        // lasciare il campo vuoto in silenzio: un rinnovo senza PaymentIntent
-        // non sara' mai aggiornato da un rimborso. Nessuna chiamata Stripe in
-        // piu' (la copertura del caso e' una decisione separata, card
-        // t_e1223d64).
-        const renewalPaymentIntent = resolveRenewalPaymentIntent(invoice.payments)
+        // con `expand[]=payments`, dove porta il pagamento `payment_intent`).
+        // Quindi, quando l'evento non basta, si chiede la STESSA invoice con
+        // l'expand: una lettura sola, solo su questo ramo, mai sul percorso
+        // normale. Se la lettura fallisce NON si crea un ordine senza
+        // identificativo: si risponde 503 e Stripe ritenta (un rinnovo senza
+        // PaymentIntent non sarebbe piu' raggiungibile da un rimborso).
+        let renewalPaymentIntent = resolveRenewalPaymentIntent(invoice.payments)
+        if (renewalPaymentIntent.status === 'missing' && shouldRetrieveExpandedPayments(renewalPaymentIntent.reason)) {
+          if (typeof invoice.id !== 'string' || invoice.id.length === 0) {
+            // Senza id non c'e' nulla da rileggere: nessun id inventato, e
+            // nessun retry infinito per un evento che non cambierebbe.
+            console.error('[webhook] invoice.paid senza invoice.id: PaymentIntent non recuperabile')
+          } else {
+            let expandedInvoice: Stripe.Invoice
+            try {
+              expandedInvoice = await stripe.invoices.retrieve(invoice.id, { expand: ['payments'] })
+            } catch {
+              // Mai loggare corpo o dati: la classe dell'errore e' gia' stata
+              // registrata qui, e l'evento resta ritentabile.
+              console.error('[webhook] invoices.retrieve(expand=payments) failed: evento ritentabile')
+              throw new RenewalPaymentIntentLookupError(invoice.id)
+            }
+            renewalPaymentIntent = resolveRenewalPaymentIntent(expandedInvoice.payments)
+          }
+        }
         await createRenewalOrder({
           orderRef,
           ...(renewalPaymentIntent.status === 'resolved'
@@ -658,6 +692,11 @@ export async function POST(req: NextRequest) {
         await updateSubscriptionRecord(record.id, { cyclesCompleted: newCycle })
         console.log(`[webhook] Renewal order created for ${subscriptionId}, cycle ${newCycle}`)
       } catch (err) {
+        if (err instanceof RenewalPaymentIntentLookupError) {
+          // L'ordine NON e' stato creato: si esce prima di `createRenewalOrder`.
+          // 503 = Stripe riconsegna l'evento; al retry la lettura viene rifatta.
+          return NextResponse.json({ error: 'PaymentIntent lookup failed' }, { status: 503 })
+        }
         console.error('[webhook] invoice.paid handling failed:', err)
       }
     }
