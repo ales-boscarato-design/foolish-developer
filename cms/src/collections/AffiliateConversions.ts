@@ -14,6 +14,8 @@ function validateNonNegativeInteger(label: string, max = Number.MAX_SAFE_INTEGER
 }
 
 const MAX_REFUND_AMOUNT_CENTS = 1_000_000_000
+/** Tetto al numero di rimborsi per charge: oltre, il conteggio non e' una chiave affidabile. */
+const MAX_REFUND_OBJECTS = 10_000
 const MAX_SESSION_ID_LENGTH = 128
 const MAX_ORDER_NUMBER_LENGTH = 256
 const MAX_ELIGIBLE_AMOUNT_CENTS = 99_999_999
@@ -456,27 +458,48 @@ export async function applyOrderAttribution(req: PayloadRequest): Promise<Respon
 function parseRefundTransitionBody(body: unknown): {
   stripePaymentIntentId: string
   amountRefundedCents: number
-  refundStatus: 'partial' | 'full'
+  refundCount: number
+  refundStatus: 'none' | 'partial' | 'full'
 } {
   if (!isRecord(body)) throw new APIError('Invalid refund transition', 400)
 
   const stripePaymentIntentId = body.stripePaymentIntentId
   const amountRefundedCents = body.amountRefundedCents
+  const refundCount = body.refundCount
   const refundStatus = body.refundStatus
+  const validStatus = refundStatus === 'none' || refundStatus === 'partial' || refundStatus === 'full'
   if (
     typeof stripePaymentIntentId !== 'string'
     || !/^pi_[A-Za-z0-9_]+$/.test(stripePaymentIntentId)
     || stripePaymentIntentId.length > 128
     || typeof amountRefundedCents !== 'number'
     || !Number.isSafeInteger(amountRefundedCents)
-    || amountRefundedCents < 1
+    || amountRefundedCents < 0
     || amountRefundedCents > MAX_REFUND_AMOUNT_CENTS
-    || (refundStatus !== 'partial' && refundStatus !== 'full')
+    || typeof refundCount !== 'number'
+    || !Number.isSafeInteger(refundCount)
+    || refundCount < 0
+    || refundCount > MAX_REFUND_OBJECTS
+    || !validStatus
+    // Un rimborso a zero esiste solo se tutti i rimborsi del charge sono stati
+    // annullati: nessun rimborso sul charge e cumulativo zero non e' uno stato nostro.
+    || (refundCount === 0 && amountRefundedCents === 0)
+    || ((refundStatus === 'none') !== (amountRefundedCents === 0))
   ) throw new APIError('Invalid refund transition', 400)
 
-  return { stripePaymentIntentId, amountRefundedCents, refundStatus }
+  return { stripePaymentIntentId, amountRefundedCents, refundCount, refundStatus }
 }
 
+/**
+ * Transizione cumulativa del ledger conversioni, sotto lock.
+ *
+ * L'ordinamento e' `refund_count` (numero di rimborsi sul charge), non l'importo:
+ * un rimborso che Stripe passa a `failed`/`canceled` abbassa il cumulativo e deve
+ * essere APPLICATO, riaprendo lo stato precedente e ripristinando la commissione
+ * che il rimborso totale aveva azzerato (card t_6f9c968d). Il valore ripristinato
+ * e' quello registrato prima dell'azzeramento (`commission_pre_refund_cents`),
+ * non una formula inventata.
+ */
 export async function applyRefundTransition(req: PayloadRequest): Promise<Response> {
   if (resolveServiceScope(req.headers) !== 'storefront' && !req.user) throw new APIError('Unauthorized', 401)
 
@@ -488,12 +511,14 @@ export async function applyRefundTransition(req: PayloadRequest): Promise<Respon
     throw new APIError('Invalid JSON body', 400)
   }
   const transition = parseRefundTransitionBody(body)
-  const paymentStatus = transition.refundStatus === 'full' ? 'refunded' : 'partially_refunded'
+  const paymentStatus = transition.refundStatus === 'full'
+    ? 'refunded'
+    : transition.refundStatus === 'partial' ? 'partially_refunded' : 'paid'
   const db = req.payload.db as unknown as PostgresAdapter
 
   const result = await db.drizzle.transaction(async (tx) => {
     const locked = await tx.execute(sql`
-      SELECT "id", "stripe_payment_intent_id", "order_number", "payment_status", "refund_status", "amount_refunded_cents", "commission_amount_cents"
+      SELECT "id", "stripe_payment_intent_id", "order_number", "payment_status", "refund_status", "amount_refunded_cents", "commission_amount_cents", "commission_pre_refund_cents", "refund_count"
       FROM "affiliate_conversions"
       WHERE "stripe_payment_intent_id" = ${transition.stripePaymentIntentId}
       FOR UPDATE
@@ -510,14 +535,27 @@ export async function applyRefundTransition(req: PayloadRequest): Promise<Respon
       refund_status?: unknown
       amount_refunded_cents?: unknown
       commission_amount_cents?: unknown
+      commission_pre_refund_cents?: unknown
+      refund_count?: unknown
     }
     const currentAmount = Number(current.amount_refunded_cents)
+    const currentCount = current.refund_count === null || current.refund_count === undefined
+      ? null
+      : Number(current.refund_count)
+    const commissionAmountCents = Number(current.commission_amount_cents)
+    const commissionPreRefundCents = current.commission_pre_refund_cents === null || current.commission_pre_refund_cents === undefined
+      ? null
+      : Number(current.commission_pre_refund_cents)
     if (
       !Number.isSafeInteger(current.id)
       || current.stripe_payment_intent_id !== transition.stripePaymentIntentId
       || !Number.isSafeInteger(currentAmount)
       || currentAmount < 0
       || currentAmount > MAX_REFUND_AMOUNT_CENTS
+      || !Number.isSafeInteger(commissionAmountCents)
+      || commissionAmountCents < 0
+      || (commissionPreRefundCents !== null && (!Number.isSafeInteger(commissionPreRefundCents) || commissionPreRefundCents < 0))
+      || (currentCount !== null && (!Number.isSafeInteger(currentCount) || currentCount < 0))
     ) throw new APIError('Malformed affiliate conversion', 500)
 
     const currentStateIsEligible = (
@@ -532,15 +570,20 @@ export async function applyRefundTransition(req: PayloadRequest): Promise<Respon
       current.payment_status === 'refunded'
       && current.refund_status === 'full'
       && currentAmount > 0
-      && Number(current.commission_amount_cents) === 0
+      && commissionAmountCents === 0
     )
     if (!currentStateIsEligible) throw new APIError('Malformed affiliate conversion state', 500)
 
-    if (current.refund_status === 'full' && transition.refundStatus !== 'full') {
-      throw new APIError('Malformed affiliate conversion state', 500)
+    // 1. Il conteggio dei rimborsi non torna mai indietro: stato precedente.
+    if (currentCount !== null && transition.refundCount < currentCount) return { status: 'stale' as const }
+    // 2. Riga scritta da un codice che non registrava il conteggio: solo crescite.
+    if (currentCount === null && currentAmount > 0 && transition.amountRefundedCents <= currentAmount) {
+      return { status: 'stale' as const }
     }
-    if (transition.amountRefundedCents <= currentAmount) {
-      if (transition.amountRefundedCents < currentAmount || current.refund_status !== 'full') {
+    // 3. Stessa fotografia: nessuna transizione (l'unica eccezione e' la riparazione
+    //    dell'ordine per un full gia' registrato, comportamento invariato).
+    if (transition.amountRefundedCents === currentAmount) {
+      if (current.refund_status !== 'full' || transition.refundStatus !== 'full') {
         return { status: 'stale' as const }
       }
       const orderNumber = boundedString(current.order_number, MAX_ORDER_NUMBER_LENGTH)
@@ -555,6 +598,18 @@ export async function applyRefundTransition(req: PayloadRequest): Promise<Respon
       if (zeroedOrder.rows.length !== 1) throw new APIError('Order unavailable for affiliate refund', 409)
       return { status: 'updated' as const }
     }
+    // 4. A parita' di rimborsi l'importo puo' solo scendere (rimborso annullato).
+    if (currentCount !== null && transition.refundCount === currentCount
+      && transition.amountRefundedCents > currentAmount) {
+      return { status: 'stale' as const }
+    }
+
+    // Un rimborso totale annullato riapre lo stato precedente: la commissione
+    // azzerata torna quella di prima della richiesta di rimborso.
+    const reopensFullRefund = current.refund_status === 'full' && transition.refundStatus !== 'full'
+    const restoredCommissionCents = reopensFullRefund
+      ? commissionPreRefundCents ?? commissionAmountCents
+      : commissionAmountCents
 
     const updated = await tx.execute(sql`
       UPDATE "affiliate_conversions"
@@ -564,29 +619,37 @@ export async function applyRefundTransition(req: PayloadRequest): Promise<Respon
         "amount_refunded_cents" = ${transition.amountRefundedCents},
         "commission_amount_cents" = CASE
           WHEN ${transition.refundStatus} = 'full' THEN 0
+          WHEN ${reopensFullRefund} THEN ${restoredCommissionCents}
           ELSE "commission_amount_cents"
         END,
+        "commission_pre_refund_cents" = CASE
+          WHEN ${transition.refundStatus} = 'full' THEN COALESCE("commission_pre_refund_cents", "commission_amount_cents")
+          ELSE "commission_pre_refund_cents"
+        END,
         "refunded_at" = COALESCE("refunded_at", NOW()),
+        "refund_count" = ${transition.refundCount},
         "updated_at" = NOW()
       WHERE "id" = ${current.id}
         AND "stripe_payment_intent_id" = ${transition.stripePaymentIntentId}
-        AND "refund_status" <> 'full'
-        AND "amount_refunded_cents" < ${transition.amountRefundedCents}
+        AND "refund_status" = ${String(current.refund_status)}::"enum_affiliate_conversions_refund_status"
+        AND "amount_refunded_cents" IS NOT DISTINCT FROM ${currentAmount}::numeric
+        AND "refund_count" IS NOT DISTINCT FROM ${currentCount}::numeric
       RETURNING "id"
     `)
 
-    if (updated.rows.length === 1 && transition.refundStatus === 'full') {
+    const orderCommissionCents = transition.refundStatus === 'full' ? 0 : reopensFullRefund ? restoredCommissionCents : null
+    if (updated.rows.length === 1 && orderCommissionCents !== null) {
       const orderNumber = boundedString(current.order_number, MAX_ORDER_NUMBER_LENGTH)
       if (orderNumber === null) throw new APIError('Malformed affiliate conversion', 500)
 
-      const zeroedOrder = await tx.execute(sql`
+      const patchedOrder = await tx.execute(sql`
         UPDATE "orders"
-        SET "affiliate_commission_cents" = 0, "updated_at" = NOW()
+        SET "affiliate_commission_cents" = ${orderCommissionCents}, "updated_at" = NOW()
         WHERE "order_number" = ${orderNumber}
           AND "stripe_payment_intent_id" = ${transition.stripePaymentIntentId}
         RETURNING "id"
       `)
-      if (zeroedOrder.rows.length !== 1) throw new APIError('Order unavailable for affiliate refund', 409)
+      if (patchedOrder.rows.length !== 1) throw new APIError('Order unavailable for affiliate refund', 409)
     }
 
     return updated.rows.length === 1
@@ -731,6 +794,20 @@ export const AffiliateConversions: CollectionConfig = {
       defaultValue: 0,
       label: 'Importo rimborsato (centesimi)',
       validate: validateNonNegativeInteger('L’importo rimborsato', Number.MAX_SAFE_INTEGER),
+    },
+    {
+      name: 'refundCount',
+      type: 'number',
+      label: 'Numero di rimborsi sul charge',
+      admin: { readOnly: true },
+      validate: validateNonNegativeInteger('Il numero di rimborsi', 10_000),
+    },
+    {
+      name: 'commissionPreRefundCents',
+      type: 'number',
+      label: 'Commissione prima del rimborso (centesimi)',
+      admin: { readOnly: true },
+      validate: validateNonNegativeInteger('La commissione prima del rimborso', Number.MAX_SAFE_INTEGER),
     },
     {
       type: 'row',

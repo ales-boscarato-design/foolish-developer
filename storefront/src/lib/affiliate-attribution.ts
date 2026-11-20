@@ -4,6 +4,8 @@ import { normalizePromoCode, MAX_CART_SUBTOTAL_CENTS, MAX_CHECKOUT_ITEMS, MAX_IT
 
 const CMS_DEFAULT_URL = 'https://cms-production-1e56.up.railway.app'
 const MAX_SESSION_AMOUNT_CENTS = 1_000_000_000
+/** Tetto al numero di rimborsi per charge: oltre, il conteggio non e' una chiave affidabile. */
+const MAX_REFUND_OBJECTS = 10_000
 const MAX_ITEM_QUANTITY = 100
 const MAX_SLUG_LENGTH = 63
 const AFFILIATE_SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/
@@ -105,9 +107,16 @@ export type AffiliateOrderAttributionResult =
   | { status: 'refunded' }
 
 export interface AffiliateConversionPaymentStatusPatch {
-  paymentStatus: 'refunded' | 'partially_refunded'
-  refundStatus: 'full' | 'partial'
+  paymentStatus: 'paid' | 'refunded' | 'partially_refunded'
+  refundStatus: 'none' | 'partial' | 'full'
   amountRefundedCents: number
+  /**
+   * Numero di rimborsi presenti sul charge. E' la chiave di ordinamento delle
+   * transizioni: l'importo cumulativo scende quando un rimborso diventa
+   * `failed`/`canceled`, quindi da solo non distingue un calo legittimo da uno
+   * snapshot consegnato fuori ordine (card t_6f9c968d).
+   */
+  refundCount: number
   commissionAmountCents?: 0
 }
 
@@ -646,9 +655,17 @@ function stripePaymentIntentId(value: unknown): string | null {
 }
 
 function validRefundPatch(patch: AffiliateConversionPaymentStatusPatch): boolean {
-  const amountRefundedCents = boundedInteger(patch.amountRefundedCents, 1, MAX_SESSION_AMOUNT_CENTS)
+  const amountRefundedCents = boundedInteger(patch.amountRefundedCents, 0, MAX_SESSION_AMOUNT_CENTS)
   if (amountRefundedCents === null) return false
+  const refundCount = boundedInteger(patch.refundCount, 0, MAX_REFUND_OBJECTS)
+  if (refundCount === null) return false
 
+  if (amountRefundedCents === 0) {
+    // Tutti i rimborsi annullati: l'ordine torna pagato e la commissione matura.
+    return patch.refundStatus === 'none'
+      && patch.paymentStatus === 'paid'
+      && patch.commissionAmountCents === undefined
+  }
   if (patch.refundStatus === 'full') {
     return patch.paymentStatus === 'refunded' && patch.commissionAmountCents === 0
   }
@@ -682,21 +699,36 @@ export function hasAffiliateRefundMarker(charge: Pick<Stripe.Charge, 'metadata'>
 export function mapStripeChargeRefund(charge: Pick<
   Stripe.Charge,
   'payment_intent' | 'amount' | 'amount_refunded' | 'currency' | 'refunded' | 'metadata'
->): { paymentIntentId: string; patch: AffiliateConversionPaymentStatusPatch; hasAffiliateMarker: boolean } | null {
+>, refundCount: number): { paymentIntentId: string; patch: AffiliateConversionPaymentStatusPatch; hasAffiliateMarker: boolean } | null {
   const paymentIntentId = stripePaymentIntentId(charge.payment_intent)
   const hasAffiliateMarker = hasAffiliateRefundMarker(charge)
   const amount = boundedInteger(charge.amount, 1, MAX_SESSION_AMOUNT_CENTS)
   const amountRefundedCents = boundedInteger(charge.amount_refunded, 0, MAX_SESSION_AMOUNT_CENTS)
+  const refundCountValue = boundedInteger(refundCount, 0, MAX_REFUND_OBJECTS)
   if (
     paymentIntentId === null
     || amount === null
     || amountRefundedCents === null
+    || refundCountValue === null
     || amountRefundedCents > amount
     || typeof charge.currency !== 'string'
     || charge.currency.toLowerCase() !== 'eur'
   ) return null
 
-  if (charge.refunded === true && amountRefundedCents === amount) {
+  if (amountRefundedCents === 0) {
+    return {
+      paymentIntentId,
+      hasAffiliateMarker,
+      patch: {
+        paymentStatus: 'paid',
+        refundStatus: 'none',
+        amountRefundedCents: 0,
+        refundCount: refundCountValue,
+      },
+    }
+  }
+
+  if (amountRefundedCents === amount) {
     return {
       paymentIntentId,
       hasAffiliateMarker,
@@ -704,31 +736,30 @@ export function mapStripeChargeRefund(charge: Pick<
         paymentStatus: 'refunded',
         refundStatus: 'full',
         amountRefundedCents,
+        refundCount: refundCountValue,
         commissionAmountCents: 0,
       },
     }
   }
 
-  if (amountRefundedCents > 0 && amountRefundedCents < amount) {
-    return {
-      paymentIntentId,
-      hasAffiliateMarker,
-      patch: {
-        paymentStatus: 'partially_refunded',
-        refundStatus: 'partial',
-        amountRefundedCents,
-      },
-    }
+  return {
+    paymentIntentId,
+    hasAffiliateMarker,
+    patch: {
+      paymentStatus: 'partially_refunded',
+      refundStatus: 'partial',
+      amountRefundedCents,
+      refundCount: refundCountValue,
+    },
   }
-
-  return null
 }
 
 export async function updateAffiliateConversionForStripeChargeRefund(args: {
   charge: Pick<Stripe.Charge, 'payment_intent' | 'amount' | 'amount_refunded' | 'currency' | 'refunded' | 'metadata'>
+  refundCount: number
   cms: AffiliateAttributionCms
 }): Promise<AffiliateChargeRefundResult> {
-  const mappedRefund = mapStripeChargeRefund(args.charge)
+  const mappedRefund = mapStripeChargeRefund(args.charge, args.refundCount)
   if (mappedRefund === null) throw new Error('Invalid Stripe charge refund')
   if (!mappedRefund.hasAffiliateMarker) return { status: 'non_affiliate' }
   return updateConversionPaymentStatusByPaymentIntent(
@@ -853,6 +884,7 @@ export function createAffiliateAttributionCms(): AffiliateAttributionCms {
           stripePaymentIntentId,
           amountRefundedCents: patch.amountRefundedCents,
           refundStatus: patch.refundStatus,
+          refundCount: patch.refundCount,
         }),
       })
       if (!response.ok) throw new Error(`CMS conversion payment status update failed ${response.status}`)
