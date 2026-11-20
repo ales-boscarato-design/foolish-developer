@@ -99,7 +99,10 @@
     "promoInvalidExpired": "Ungültiger oder abgelaufener Code",
     "promoRemove": "Entfernen",
     "promoProDiscount": "Pro-Rabatt {percent}%",
-    "promoProActive": "✓ Pro-Rabatt {percent}% angewendet"
+    "promoProActive": "✓ Pro-Rabatt {percent}% angewendet",
+    "deliveryEstimate": "Voraussichtliche Lieferung: {date}",
+    "deliveryTransitItEu": "Italien und Europäische Union: Express, 24–48 Arbeitsstunden ab Versand.",
+    "deliveryTransitExtraEu": "Außerhalb der EU: Express, 4–6 Werktage ab Versand."
   },
   "grazie": {
     "title": "Bestellung erhalten.",
@@ -124,9 +127,81 @@
     "sectionTattoo": "Tätowierung",
     "sectionPmu": "PMU",
     "sectionMerch": "Merch",
-    "shipsIn": "Versand in {days} Werktagen",
+    "availableBadge": "● Auf Lager",
+    "availableDelivery": "Verlässt unser Lager innerhalb von 24 Arbeitsstunden; Lieferung in 24–48 Stunden.",
+    "madeToOrderBadge": "✦ Auf Bestellung",
+    "madeToOrderDelivery": "Wir fertigen es in {productionDays} Werktagen in der Werkstatt, danach geht es per Express: 24–48 Stunden.",
+    "madeToOrderProductionUnknown": "Anfertigung auf Bestellung in unserer Werkstatt; die genaue Dauer hängt von der Werkstatt ab, wir bestätigen Ihnen das Datum vor dem Start.",
     "madeToOrder": "Auf Bestellung gefertigt",
-    "madeToOrderDesc": "Ihr Stück wird nach dem Kauf persönlich gefertigt. Geschätzte Lieferzeit: {total} Werktage."
+    "highlights": {
+      "title": "Warum dieses Produkt",
+      "handmade": {
+        "title": "Handgefertigt",
+        "description": "Jedes Blatt ist ein Unikat, handgefertigt in Italien"
+      },
+      "nonToxic": {
+        "title": "Ungiftig",
+        "description": "Synthetisches Silikon, hautfreundlich"
+      },
+      "texture": {
+        "title": "Realistische Textur",
+        "description": "Flock, der echte Haut täuschend echt nachbildet"
+      },
+      "shipping": {
+        "title": "Schneller Versand",
+        "description": "Verlässt unser Lager innerhalb von 24 Arbeitsstunden; Lieferung in 24–48 Stunden."
+      }
+    },
+    "usage": {
+      "title": "So wird es verwendet",
+      "step1": {
+        "title": "Haut vorbereiten",
+        "description": "Arbeitsfläche reinigen und trocknen. Mit medizinischem Klebeband oder Klemmen fixieren."
+      },
+      "step2": {
+        "title": "In Ruhe tätowieren",
+        "description": "Verwenden Sie klassische Nadeln. Die Flocktextur hält die Farbe wie echte Haut."
+      },
+      "step3": {
+        "title": "Aufbewahren und wiederverwenden",
+        "description": "Nach der Nutzung mit Alkohol reinigen. Die Blätter lassen sich mehrfach verwenden."
+      }
+    },
+    "box": {
+      "title": "Lieferumfang",
+      "sheet": {
+        "label": "Synthetisches Blatt",
+        "description": "1x Blatt in der gewählten Größe"
+      },
+      "techCard": {
+        "label": "Datenblatt",
+        "description": "Seriennummer, Materialspezifikationen, Gebrauchsanweisung"
+      },
+      "certificate": {
+        "label": "Zertifikat",
+        "description": "Bestätigt ungiftiges Material und italienische Herkunft"
+      }
+    },
+    "components": {
+      "title": "Komponenten einzeln kaufen",
+      "description": "Sie haben schon etwas? Sie können nur die fehlenden Teile kaufen."
+    },
+    "descriptionTitle": "Beschreibung",
+    "quantity": "Menge",
+    "packs": {
+      "title": "Mehr kaufen, mehr sparen",
+      "save": "Sie sparen"
+    },
+    "addToCartAdded": "Hinzugefügt",
+    "addToCartAdd": "Hinzufügen",
+    "addedToCart": "Zum Warenkorb hinzugefügt",
+    "lastPieces": "● Letzte Stücke",
+    "lastPiecesShort": "Letzte",
+    "galleryVideo": "Video {n}",
+    "galleryImage": "Bild {n}",
+    "close": "Schließen",
+    "previous": "Zurück",
+    "next": "Weiter"
   },
   "sections": {
     "label": "Abschnitt",
@@ -213,8 +288,8 @@
         "body": "Verschlüsselte Daten, nichts gespeichert"
       },
       "shippingSpeed": {
-        "title": "Versand in 24–48h",
-        "body": "Wir verpacken und versenden am nächsten Werktag"
+        "title": "Versand innerhalb von 24 Arbeitsstunden",
+        "body": "Aus unserem Lager in Italien; das Lieferdatum sehen Sie im Warenkorb"
       },
       "support": {
         "title": "Direkter Support",
@@ -355,7 +430,7 @@
     "pricing": "3. Preise und Zahlungen",
     "pricingText": "Alle Preise sind in Euro (€) inkl. MwSt. angegeben. Die Zahlung erfolgt über Stripe (Kredit-/Debitkarte, Apple Pay, Google Pay). Die Bestellung gilt mit Abschluss der Zahlung als bestätigt.",
     "shipping": "4. Versand",
-    "shippingText": "Der Versand erfolgt aus Italien innerhalb von 3–5 Werktagen nach Bestellbestätigung, außer in Zeiten hoher Nachfrage, die ausdrücklich kommuniziert werden.",
+    "shippingText": "Sind alle Artikel vorrätig, verlässt die Bestellung unser Lager innerhalb von 24 Arbeitsstunden. Gemischte Warenkörbe gehen als ein Paket raus, sobald der Artikel mit der längsten Fertigungszeit fertig ist: das voraussichtliche Datum sehen Sie im Warenkorb vor der Zahlung. In Italien und der Europäischen Union dauert die Lieferung 24–48 Arbeitsstunden ab Versand, außerhalb der EU 4–6 Werktage ab Versand.",
     "shippingRates": {
       "italy": "Italien: {cost}€ · kostenlos ab {amount}€",
       "europe": "Europäische Union: {cost}€ · kostenlos ab {amount}€",

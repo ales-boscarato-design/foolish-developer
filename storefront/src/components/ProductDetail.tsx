@@ -145,24 +145,10 @@ const ICON_MAP: Record<FeatureHighlight['icon'], React.ReactNode> = {
   truck: <Truck size={20} style={{ color: 'var(--accent)' }} />,
 }
 
-const DEFAULT_HIGHLIGHTS: FeatureHighlight[] = [
-  { icon: 'sparkles', title: 'Fatto a mano', description: 'Ogni foglio è unico, prodotto artigianalmente in Italia' },
-  { icon: 'shield', title: 'Atossico', description: 'Silicone sintetico, sicuro per la pelle' },
-  { icon: 'star', title: 'Texture realistica', description: 'Floccatura che replica fedelmente la pelle vera' },
-  { icon: 'truck', title: 'Spedizione rapida', description: 'Prepariamo e spediamo entro 48h dall ordine' },
-]
-
-const DEFAULT_USAGE_STEPS = [
-  { step: '01', title: 'Prepara la pelle', description: 'Pulisci e asciuga la superficie di lavoro. Fissa con nastro medico o pinzette.' },
-  { step: '02', title: 'Tatua senza fretta', description: 'Usa aghi classici. La texture flockata trattiene l inchiostro come una pelle vera.' },
-  { step: '03', title: 'Conserva e riutilizza', description: 'Dopo l uso, pulisci con alcol. I fogli possono essere usati più volte.' },
-]
-
-const DEFAULT_WHATS_IN_THE_BOX = [
-  { label: 'Foglio sintetico', description: '1x foglio nelle dimensioni selezionate' },
-  { label: 'Scheda tecnica', description: 'Codice seriale, specifiche materiale, istruzioni utilizzo' },
-  { label: 'Certificato', description: 'Attestazione materiale atossico e origine italiana' },
-]
+// I contenuti di fallback (quando il CMS non compila highlights, step d'uso e
+// confezione) erano costanti di modulo con il testo italiano dentro: cosi'
+// restavano italiani in tutte e cinque le lingue. Ora si costruiscono a ogni
+// render da `t(...)`, nello stesso namespace `product` del resto della pagina.
 
 interface FeatureCardProps {
   highlight: FeatureHighlight
@@ -197,6 +183,7 @@ function FeatureCard({ highlight }: FeatureCardProps) {
 
 // ─── Component product card ──────────────────────────────────────────────────
 function ComponentCard({ component, locale }: { component: ProductComponent; locale: string }) {
+  const t = useTranslations('product')
   const addToCart = useCart((s) => s.add)
   const [added, setAdded] = useState(false)
   const firstVariant = component.variants[0]
@@ -242,7 +229,7 @@ function ComponentCard({ component, locale }: { component: ProductComponent; loc
         style={{ backgroundColor: added ? '#2d5a27' : 'var(--accent)', color: 'black' }}
       >
         {added ? <Check size={14} /> : <ShoppingBag size={14} />}
-        {added ? 'Aggiunto' : 'Aggiungi'}
+        {added ? t('addToCartAdded') : t('addToCartAdd')}
       </motion.button>
     </motion.div>
   )
@@ -329,6 +316,36 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
   if (!selectedVariant) return null
 
   const maxQty = selectedVariant.limitedQty ?? 99
+
+  // La durata di produzione o c'e' o non c'e'. Quando il CMS non la dichiara
+  // non si inventa — niente `?? 3`, niente somma con i giorni di spedizione:
+  // la frase dice che la data la confermiamo noi prima di iniziare.
+  const productionDays =
+    typeof product.productionDays === 'number' &&
+    Number.isFinite(product.productionDays) &&
+    product.productionDays >= 1
+      ? product.productionDays
+      : null
+
+  // Fallback editoriali: il CMS vince, questi si mostrano solo se manca.
+  const defaultHighlights: FeatureHighlight[] = [
+    { icon: 'sparkles', title: t('highlights.handmade.title'), description: t('highlights.handmade.description') },
+    { icon: 'shield', title: t('highlights.nonToxic.title'), description: t('highlights.nonToxic.description') },
+    { icon: 'star', title: t('highlights.texture.title'), description: t('highlights.texture.description') },
+    { icon: 'truck', title: t('highlights.shipping.title'), description: t('highlights.shipping.description') },
+  ]
+
+  const defaultUsageSteps = [
+    { step: '01', title: t('usage.step1.title'), description: t('usage.step1.description') },
+    { step: '02', title: t('usage.step2.title'), description: t('usage.step2.description') },
+    { step: '03', title: t('usage.step3.title'), description: t('usage.step3.description') },
+  ]
+
+  const defaultWhatsInTheBox = [
+    { label: t('box.sheet.label'), description: t('box.sheet.description') },
+    { label: t('box.techCard.label'), description: t('box.techCard.description') },
+    { label: t('box.certificate.label'), description: t('box.certificate.description') },
+  ]
 
   const handleVariantSelect = (v: ProductVariant) => {
     setSelectedVariant(v)
@@ -508,7 +525,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                   <button
                     key={i}
                     onClick={() => { setActiveImage(i); }}
-                    aria-label={item.kind === 'video' ? `Video ${i + 1}` : `Immagine ${i + 1}`}
+                    aria-label={item.kind === 'video' ? t('galleryVideo', { n: i + 1 }) : t('galleryImage', { n: i + 1 })}
                     className="relative flex-shrink-0 rounded-lg overflow-hidden border transition-[border-color,box-shadow]"
                     style={{
                       width: 44,
@@ -588,7 +605,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                     borderColor: 'rgba(90,156,82,0.2)',
                   }}
                 >
-                  {product.madeToOrder ? '✦ Su ordinazione' : '● Disponibile'}
+                  {product.madeToOrder ? t('madeToOrderBadge') : t('availableBadge')}
                 </span>
               )}
               {selectedVariant.stockStatus === 'low' && (
@@ -600,7 +617,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                     borderColor: 'rgba(192,57,43,0.20)',
                   }}
                 >
-                  ● Ultimi pezzi
+                  {t('lastPieces')}
                 </span>
               )}
             </div>
@@ -630,7 +647,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                         className="ml-2 text-label px-1 py-0.5 rounded"
                         style={{ color: 'var(--limited)', background: 'rgba(192,57,43,0.1)' }}
                       >
-                        Ultimi
+                        {t('lastPiecesShort')}
                       </span>
                     )}
                   </motion.button>
@@ -686,8 +703,11 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
               </motion.div>
             )}
 
-            {/* Delivery estimate */}
-            {(product.shippingDays || product.madeToOrder) && (
+            {/* Disponibilita' e consegna: la stessa frase per ogni variante
+                acquistabile. Prima compariva solo quando il CMS aveva
+                `shippingDays`, e per il made-to-order sommava produzione e
+                spedizione in un numero inventato. */}
+            {selectedVariant.stockStatus !== 'unavailable' && (
               <motion.div
                 variants={itemVariants}
                 className="rounded-xl px-4 py-3 text-sm border"
@@ -699,14 +719,14 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                       {t('madeToOrder')}
                     </p>
                     <p className="text-xs leading-relaxed" style={{ color: 'var(--muted-fg)' }}>
-                      {t('madeToOrderDesc', {
-                        total: (product.productionDays ?? 0) + (product.shippingDays ?? 3),
-                      })}
+                      {productionDays !== null
+                        ? t('madeToOrderDelivery', { productionDays })
+                        : t('madeToOrderProductionUnknown')}
                     </p>
                   </div>
                 ) : (
                   <p style={{ color: 'var(--muted-fg)' }}>
-                    {t('shipsIn', { days: product.shippingDays ?? 3 })}
+                    {t('availableDelivery')}
                   </p>
                 )}
               </motion.div>
@@ -728,7 +748,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
               {selectedVariant.stockStatus !== 'unavailable' && (
                 <motion.div variants={itemVariants} className="flex items-center gap-3 mb-4">
                   <span className="text-sm font-medium" style={{ color: 'var(--muted-fg)' }}>
-                    Quantità
+                    {t('quantity')}
                   </span>
                   <div
                     className="flex items-center rounded-xl border overflow-hidden"
@@ -789,7 +809,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                   />
                 )}
                 <CartIcon count={itemCount} />
-                {added ? 'Aggiunto al carrello' : t('addToCart')}
+                {added ? t('addedToCart') : t('addToCart')}
               </motion.button>
             </div>
           </motion.div>
@@ -799,7 +819,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
         {product.packs && product.packs.length > 0 && selectedVariant.stockStatus !== 'unavailable' && (
           <motion.section variants={itemVariants} className="mb-14">
             <h2 className="text-xl font-semibold mb-4 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
-              Acquista di più, risparmia
+              {t('packs.title')}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {product.packs.map((pack) => {
@@ -847,7 +867,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                               borderColor: 'rgba(97,51,24,0.20)',
                             }}
                           >
-                            Risparmi €{formatMoney(locale, (selectedVariant.price * pack.quantity) * (pack.discountPercent / 100))}
+                            {t('packs.save')} €{formatMoney(locale, (selectedVariant.price * pack.quantity) * (pack.discountPercent / 100))}
                           </span>
                         )}
                       </div>
@@ -872,13 +892,13 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
         {/* Feature highlights — 4 cards */}
         <motion.section variants={itemVariants} className="mb-14">
           <h2 className="text-xl font-semibold mb-6 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
-            Perché sceglierlo
+            {t('highlights.title')}
           </h2>
           <motion.div
             variants={containerVariants}
             className="grid grid-cols-2 gap-2"
           >
-            {(product.featureHighlights?.length ? product.featureHighlights : DEFAULT_HIGHLIGHTS).map((highlight, i) => (
+            {(product.featureHighlights?.length ? product.featureHighlights : defaultHighlights).map((highlight, i) => (
               <FeatureCard key={i} highlight={highlight} />
             ))}
           </motion.div>
@@ -891,10 +911,10 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
           style={{ borderColor: 'var(--border)' }}
         >
           <h2 className="text-xl font-semibold mb-6 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
-            Come si usa
+            {t('usage.title')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {(product.usageSteps?.length ? product.usageSteps : DEFAULT_USAGE_STEPS).map((item) => (
+            {(product.usageSteps?.length ? product.usageSteps : defaultUsageSteps).map((item) => (
               <motion.div
                 key={item.step}
                 variants={itemVariants}
@@ -915,14 +935,14 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
         {/* Cosa c'è nella confezione */}
         <motion.section variants={itemVariants} className="mb-14">
           <h2 className="text-xl font-semibold mb-6 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
-            Contenuto
+            {t('box.title')}
           </h2>
           <div
             className="rounded-2xl p-6 lg:p-8"
             style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}
           >
             <div className="space-y-4">
-              {(product.whatsInTheBox?.length ? product.whatsInTheBox : DEFAULT_WHATS_IN_THE_BOX).map((item, i) => (
+              {(product.whatsInTheBox?.length ? product.whatsInTheBox : defaultWhatsInTheBox).map((item, i) => (
                 <div key={i} className="flex items-start gap-4">
                   <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: 'var(--accent)' }}>
                     <Check size={12} color="black" />
@@ -941,10 +961,10 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
         {product.components && product.components.length > 0 && (
           <motion.section variants={itemVariants} className="mb-14">
             <h2 className="text-xl font-semibold mb-2 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
-              Acquista i componenti separatamente
+              {t('components.title')}
             </h2>
             <p className="text-sm mb-6" style={{ color: 'var(--muted-fg)' }}>
-              Hai già qualcosa? Puoi acquistare solo i pezzi che ti mancano.
+              {t('components.description')}
             </p>
             <div className="space-y-3">
               {product.components.map((component) => (
@@ -962,7 +982,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
             style={{ borderColor: 'var(--border)' }}
           >
             <h2 className="text-xl font-semibold mb-5 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
-              Descrizione
+              {t('descriptionTitle')}
             </h2>
             <div
               className="rounded-2xl p-6 lg:p-8"
@@ -1054,7 +1074,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setLightboxOpen(false) }}
-            aria-label="Chiudi"
+            aria-label={t('close')}
             className="absolute top-4 right-4 w-11 h-11 rounded-full flex items-center justify-center"
             style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
           >
@@ -1067,7 +1087,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setActiveImage((i) => Math.max(i - 1, 0)) }}
                 disabled={activeImage === 0}
-                aria-label="Precedente"
+                aria-label={t('previous')}
                 className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full items-center justify-center disabled:opacity-20"
                 style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
               >
@@ -1077,7 +1097,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setActiveImage((i) => Math.min(i + 1, effectiveGallery.length - 1)) }}
                 disabled={activeImage === effectiveGallery.length - 1}
-                aria-label="Successiva"
+                aria-label={t('next')}
                 className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full items-center justify-center disabled:opacity-20"
                 style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
               >

@@ -919,6 +919,14 @@ export default function CheckoutPage() {
                 </span>
               </div>
 
+              {/* Transito per zona: la riga sopra dice quanto costa, questa dice
+                  quando arriva. La data stimata la calcola un'altra card
+                  (`deliveryEstimate` esiste gia' nel catalogo): qui non si
+                  inventa nessun intervallo oltre a quello dichiarato. */}
+              <p className="text-xs pb-2" style={{ color: 'var(--muted-fg)' }}>
+                {isExtraEuDestination ? t('deliveryTransitExtraEu') : t('deliveryTransitItEu')}
+              </p>
+
               {showImportDutiesBadge && (
                 <>
                   <p className="text-xs font-medium pb-1" style={{ color: 'var(--foreground)' }}>
