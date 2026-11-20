@@ -44,13 +44,29 @@ interface CmsState {
   queries: string[]
   refundTransitions: Array<Record<string, unknown>>
   refundEndpointStatus: 'updated' | 'missing' | 'stale'
+  /**
+   * Esito dell'endpoint affiliate apply-refund-transition. `missing` e' il caso
+   * permanente (marker scritto al checkout, conversione mai creata); `error`
+   * copre un guasto transitorio del ledger.
+   */
+  affiliateRefundEndpoint: 'updated' | 'missing' | 'error'
+  affiliateRefundRequests: Array<Record<string, unknown>>
   /** Numero d'ordine da restituire per la chiave di sessione, se presente. */
   bySession: string | null
   /** Numero d'ordine da restituire per la ricerca per numero, se presente. */
   byOrderNumber: string | null
 }
 
-const state: CmsState = { posts: [], queries: [], refundTransitions: [], refundEndpointStatus: 'updated', bySession: null, byOrderNumber: null }
+const state: CmsState = {
+  posts: [],
+  queries: [],
+  refundTransitions: [],
+  refundEndpointStatus: 'updated',
+  affiliateRefundEndpoint: 'updated',
+  affiliateRefundRequests: [],
+  bySession: null,
+  byOrderNumber: null,
+}
 
 let server: ReturnType<typeof createServer>
 let baseUrl = ''
@@ -90,8 +106,14 @@ before(async () => {
     }
 
     if (req.method === 'POST' && url.pathname === '/api/affiliate-conversions/apply-refund-transition') {
-      req.on('data', () => undefined)
-      req.on('end', () => json(200, { status: 'updated' }))
+      const chunks: Buffer[] = []
+      req.on('data', (chunk: Buffer) => chunks.push(chunk))
+      req.on('end', () => {
+        state.affiliateRefundRequests.push(JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>)
+        if (state.affiliateRefundEndpoint === 'missing') return json(200, { status: 'missing' })
+        if (state.affiliateRefundEndpoint === 'error') return json(500, { error: 'affiliate ledger unavailable' })
+        return json(200, { status: 'updated' })
+      })
       return
     }
 
@@ -127,6 +149,8 @@ beforeEach(() => {
   state.queries = []
   state.refundTransitions = []
   state.refundEndpointStatus = 'updated'
+  state.affiliateRefundEndpoint = 'updated'
+  state.affiliateRefundRequests = []
   state.bySession = null
   state.byOrderNumber = null
 })
@@ -387,4 +411,73 @@ test('rifare la stessa fotografia cumulativa può completare una data mancante s
   } finally {
     globalThis.fetch = originalFetch
   }
+})
+
+/**
+ * DIFETTO STORICO (rosso prima della correzione): il ramo charge.refunded
+ * aggiornava il ledger affiliate PRIMA dello snapshot ordine. Con marker
+ * affiliate e conversione assente (`missing`, permanente) la rotta usciva 503
+ * senza mai scrivere il rimborso sull'ordine. Questi test fissano l'ordine
+ * delle due scritture e la ritentabilita' del retry.
+ */
+function refundedAffiliateCharge(): Record<string, unknown> {
+  return {
+    id: 'ch_test_refund', object: 'charge', payment_intent: 'pi_test_refund', amount: 10_000,
+    amount_refunded: 10_000, currency: 'eur', refunded: true,
+    metadata: { affiliate_promo_code: 'NESTOR' },
+    refunds: { data: [{ created: 1_700_000_120 }], has_more: false, object: 'list', url: '' },
+  }
+}
+
+test('marker affiliate con conversione mancante: la transizione ordine parte comunque e la risposta resta 503', async () => {
+  state.affiliateRefundEndpoint = 'missing'
+
+  const response = await submitRefundWithStripeCharge(refundedAffiliateCharge())
+
+  assert.equal(
+    state.refundTransitions.length,
+    1,
+    'lo snapshot cumulativo dell ordine non dipende dal ledger e deve essere scritto prima',
+  )
+  assert.deepEqual(state.refundTransitions[0], {
+    stripePaymentIntentId: 'pi_test_refund',
+    chargeAmountCents: 10_000,
+    amountRefundedCents: 10_000,
+    lastRefundedAt: new Date(1_700_000_120 * 1000).toISOString(),
+  })
+  assert.equal(response.status, 503, 'la conversione mancante resta ritentabile per Stripe')
+})
+
+test('marker affiliate con ledger in errore: la transizione ordine parte comunque e la risposta resta 503', async () => {
+  state.affiliateRefundEndpoint = 'error'
+
+  const response = await submitRefundWithStripeCharge(refundedAffiliateCharge())
+
+  assert.equal(
+    state.refundTransitions.length,
+    1,
+    'un guasto del ledger non deve impedire la scrittura dell ordine',
+  )
+  assert.equal(response.status, 503, 'il guasto del ledger resta ritentabile per Stripe')
+})
+
+test('il retry con ledger in errore resta 503 e riscrive lo stesso snapshot ordine, senza duplicare altro', async () => {
+  state.affiliateRefundEndpoint = 'error'
+
+  const first = await submitRefundWithStripeCharge(refundedAffiliateCharge())
+  const second = await submitRefundWithStripeCharge(refundedAffiliateCharge())
+
+  assert.equal(first.status, 503)
+  assert.equal(second.status, 503)
+  assert.equal(
+    state.refundTransitions.length,
+    2,
+    'ogni consegna ritenta la stessa fotografia cumulativa',
+  )
+  assert.deepEqual(
+    state.refundTransitions[0],
+    state.refundTransitions[1],
+    'la transizione ordine e idempotente/stale: il retry non produce uno stato diverso',
+  )
+  assert.equal(state.posts.length, 0, 'il ramo refund non crea ordini')
 })

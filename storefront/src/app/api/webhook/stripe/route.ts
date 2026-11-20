@@ -220,17 +220,6 @@ export async function POST(req: NextRequest) {
         || charge.currency.toLowerCase() !== 'eur'
       ) throw new Error('Invalid cumulative Stripe refund')
 
-      if (hasAffiliateRefundMarker(charge)) {
-        refundStage = 'affiliate_persistence'
-        const affiliateResult = await updateAffiliateConversionForStripeChargeRefund({
-          charge,
-          cms: createAffiliateAttributionCms(),
-        })
-        if (affiliateResult.status === 'missing') {
-          return NextResponse.json({ error: 'Affiliate conversion unavailable' }, { status: 503 })
-        }
-      }
-
       const refundList = charge.refunds
       const refundCreatedAt = refundList?.has_more === false
         && refundList.data.length > 0
@@ -246,6 +235,22 @@ export async function POST(req: NextRequest) {
       })
       if (orderResult === 'missing') {
         return NextResponse.json({ error: 'Order unavailable' }, { status: 503 })
+      }
+
+      // Lo snapshot cumulativo dell'ordine e' gia' scritto: il ledger affiliate
+      // non puo' piu' impedire il rimborso. Se la conversione manca (marker
+      // scritto al checkout, attribuzione best-effort) o la scrittura fallisce,
+      // il 503 fa ritentare Stripe; il retry riscrive la stessa transizione
+      // ordine, che il CMS tratta come idempotente/stale.
+      if (hasAffiliateRefundMarker(charge)) {
+        refundStage = 'affiliate_persistence'
+        const affiliateResult = await updateAffiliateConversionForStripeChargeRefund({
+          charge,
+          cms: createAffiliateAttributionCms(),
+        })
+        if (affiliateResult.status === 'missing') {
+          return NextResponse.json({ error: 'Affiliate conversion unavailable' }, { status: 503 })
+        }
       }
     } catch {
       // Keep the event retryable until both the affiliate ledger (when marked)
