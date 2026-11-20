@@ -55,6 +55,10 @@ interface CmsState {
   bySession: string | null
   /** Numero d'ordine da restituire per la ricerca per numero, se presente. */
   byOrderNumber: string | null
+  /** Record di abbonamento restituito dalla ricerca per `stripeSubscriptionId`. */
+  subscription: Record<string, unknown> | null
+  /** Patch inviate a `/api/subscriptions/<id>` (avanzamento di `cyclesCompleted`). */
+  subscriptionPatches: Array<Record<string, unknown>>
 }
 
 const state: CmsState = {
@@ -66,6 +70,8 @@ const state: CmsState = {
   affiliateRefundRequests: [],
   bySession: null,
   byOrderNumber: null,
+  subscription: null,
+  subscriptionPatches: [],
 }
 
 let server: ReturnType<typeof createServer>
@@ -129,6 +135,21 @@ before(async () => {
       })
     }
 
+    // Ricerca dell'abbonamento (ramo `invoice.paid`) e avanzamento del contatore.
+    if (req.method === 'GET' && url.pathname === '/api/subscriptions') {
+      return json(200, { docs: state.subscription ? [state.subscription] : [] })
+    }
+
+    if (req.method === 'PATCH' && url.pathname.startsWith('/api/subscriptions/')) {
+      const chunks: Buffer[] = []
+      req.on('data', (chunk: Buffer) => chunks.push(chunk))
+      req.on('end', () => {
+        state.subscriptionPatches.push(JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>)
+        json(200, { doc: state.subscription ?? {} })
+      })
+      return
+    }
+
     // Tutte le altre letture (affiliati, offer-config, clienti) non riguardano
     // questo test: una collezione vuota e' una risposta valida.
     return json(200, { docs: [], totalDocs: 0 })
@@ -153,6 +174,8 @@ beforeEach(() => {
   state.affiliateRefundRequests = []
   state.bySession = null
   state.byOrderNumber = null
+  state.subscription = null
+  state.subscriptionPatches = []
 })
 
 function sessionEvent(overrides: Partial<Stripe.Checkout.Session> = {}): {
@@ -218,14 +241,17 @@ async function captureLogs<T>(run: () => Promise<T>): Promise<{ result: T; lines
   const lines: string[] = []
   const originalError = console.error
   const originalLog = console.log
+  const originalWarn = console.warn
   console.error = (...args: unknown[]) => { lines.push(args.map(String).join(' ')) }
   console.log = (...args: unknown[]) => { lines.push(args.map(String).join(' ')) }
+  console.warn = (...args: unknown[]) => { lines.push(args.map(String).join(' ')) }
   try {
     const result = await run()
     return { result, lines }
   } finally {
     console.error = originalError
     console.log = originalLog
+    console.warn = originalWarn
   }
 }
 
@@ -480,4 +506,203 @@ test('il retry con ledger in errore resta 503 e riscrive lo stesso snapshot ordi
     'la transizione ordine e idempotente/stale: il retry non produce uno stato diverso',
   )
   assert.equal(state.posts.length, 0, 'il ramo refund non crea ordini')
+})
+
+/*
+ * RINNOVI SENZA PAYMENTINTENT (card t_e1223d64).
+ *
+ * `stripePaymentIntentId` puo' essere scritto sull'ordine di rinnovo solo se
+ * `invoice.payments` e' completo e contiene esattamente un pagamento pagato di
+ * tipo `payment_intent`. Negli altri casi l'ordine nasceva senza id e senza
+ * nessun segnale: quel rinnovo non e' piu' raggiungibile da un rimborso
+ * (`apply-refund-transition` risponde `missing` → 503 a ogni consegna).
+ *
+ * MISURATO IN PRODUZIONE (sola lettura, 20/11/2026): su un'invoice di
+ * subscription pagata, il campo `payments` NON e' presente ne' nell'evento ne'
+ * in `invoices.retrieve` senza expand; compare solo con `expand[]=payments`.
+ * Per questo la fixture del primo test non ha `payments`: e' la forma vera, non
+ * un caso di scuola.
+ *
+ * Questi test passano dalla rotta vera (`POST`) con eventi firmati: asseriscono
+ * l'ordine creato nel CMS (stub HTTP) e la riga JSON emessa UNA volta sola.
+ */
+const RENEWAL_SUBSCRIPTION_ID = 'sub_test_renewal'
+const RENEWAL_INVOICE_ID = 'in_test_renewal'
+const RENEWAL_ORDER_REF = `FOOLISH-SUB-${RENEWAL_SUBSCRIPTION_ID}-${RENEWAL_INVOICE_ID}`
+const RENEWAL_PAYMENT_INTENT = 'pi_test_renewal'
+
+function renewalSubscription(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    id: '77',
+    customerEmail: 'renewal-test@example.invalid',
+    plan: 'tattoo',
+    zone: 'IT',
+    stripeSubscriptionId: RENEWAL_SUBSCRIPTION_ID,
+    stripeScheduleId: 'sub_sched_test',
+    status: 'active',
+    cyclesCompleted: 0,
+    ...overrides,
+  }
+}
+
+function invoicePaidEvent(invoiceOverrides: Record<string, unknown> = {}): { payload: string; signature: string } {
+  const invoice = {
+    id: RENEWAL_INVOICE_ID,
+    object: 'invoice',
+    status: 'paid',
+    parent: {
+      type: 'subscription_details',
+      subscription_details: { subscription: RENEWAL_SUBSCRIPTION_ID },
+    },
+    customer_shipping: {
+      name: 'Renewal Test',
+      address: {
+        line1: 'Via Test 1',
+        line2: null,
+        city: 'Milano',
+        postal_code: '20100',
+        country: 'IT',
+      },
+    },
+    ...invoiceOverrides,
+  }
+  const payload = JSON.stringify({
+    id: 'evt_test_invoice_paid',
+    object: 'event',
+    api_version: '2026-04-22.dahlia',
+    created: 1_700_000_500,
+    livemode: false,
+    pending_webhooks: 1,
+    request: { id: null, idempotency_key: null },
+    type: 'invoice.paid',
+    data: { object: invoice },
+  })
+  return { payload, signature: Stripe.webhooks.generateTestHeaderString({ payload, secret: WEBHOOK_SECRET }) }
+}
+
+/** Righe JSON del segnale, parse come le leggerebbe un raccoglitore di log. */
+function renewalSignals(lines: string[]): Array<Record<string, unknown>> {
+  const signals: Array<Record<string, unknown>> = []
+  for (const line of lines) {
+    if (!line.startsWith('{')) continue
+    try {
+      const parsed = JSON.parse(line) as Record<string, unknown>
+      if (parsed.event === 'renewal_order_without_payment_intent') signals.push(parsed)
+    } catch {
+      // una riga non-JSON e' rumore: non e' il segnale in esame
+    }
+  }
+  return signals
+}
+
+async function submitInvoicePaid(invoiceOverrides: Record<string, unknown> = {}) {
+  state.subscription = renewalSubscription()
+  const { payload, signature } = invoicePaidEvent(invoiceOverrides)
+  return await captureLogs(() => POST(webhookRequest(payload, signature)))
+}
+
+test('invoice.paid senza `payments`: l ordine nasce senza PaymentIntent e il segnale dice payments_absent', async () => {
+  const { result, lines } = await submitInvoicePaid()
+
+  assert.equal(result.status, 200)
+  assert.equal(state.posts.length, 1, 'il rinnovo pagato deve comunque creare l ordine')
+  const order = state.posts[0]!
+  assert.equal(order.orderNumber, RENEWAL_ORDER_REF)
+  assert.equal(
+    'stripePaymentIntentId' in order,
+    false,
+    'senza lista pagamenti non si inventa un PaymentIntent',
+  )
+
+  const signals = renewalSignals(lines)
+  assert.equal(signals.length, 1, 'una sola riga per rinnovo: il caso deve essere contabile, non ripetuto')
+  assert.deepEqual(signals[0], {
+    event: 'renewal_order_without_payment_intent',
+    orderRef: RENEWAL_ORDER_REF,
+    reason: 'payments_absent',
+  })
+  const logged = lines.join('\n')
+  assert.equal(
+    logged.includes('renewal-test@example.invalid'),
+    false,
+    'il segnale non deve portare dati cliente',
+  )
+})
+
+test('invoice.paid con lista paginata (`has_more: true`): segnale payments_paginated, una volta', async () => {
+  const { result, lines } = await submitInvoicePaid({
+    payments: {
+      has_more: true,
+      data: [{ status: 'paid', payment: { type: 'payment_intent', payment_intent: RENEWAL_PAYMENT_INTENT } }],
+    },
+  })
+
+  assert.equal(result.status, 200)
+  assert.equal(state.posts.length, 1)
+  assert.equal(
+    'stripePaymentIntentId' in state.posts[0]!,
+    false,
+    'con la lista troncata il pagamento puo essere oltre la prima pagina: non si sceglie il primo',
+  )
+
+  const signals = renewalSignals(lines)
+  assert.equal(signals.length, 1)
+  assert.equal(signals[0]?.reason, 'payments_paginated')
+  assert.equal(signals[0]?.orderRef, RENEWAL_ORDER_REF)
+})
+
+test('invoice.paid con due pagamenti pagati: segnale payments_ambiguous, una volta', async () => {
+  const { result, lines } = await submitInvoicePaid({
+    payments: {
+      has_more: false,
+      data: [
+        { status: 'paid', payment: { type: 'payment_intent', payment_intent: 'pi_test_renewal_a' } },
+        { status: 'paid', payment: { type: 'payment_intent', payment_intent: 'pi_test_renewal_b' } },
+      ],
+    },
+  })
+
+  assert.equal(result.status, 200)
+  assert.equal(state.posts.length, 1)
+  assert.equal('stripePaymentIntentId' in state.posts[0]!, false, 'fra due pagamenti non si indovina')
+
+  const signals = renewalSignals(lines)
+  assert.equal(signals.length, 1)
+  assert.equal(signals[0]?.reason, 'payments_ambiguous')
+})
+
+test('invoice.paid con lista completa ma senza PaymentIntent pagato: payments_ambiguous, non silenzio', async () => {
+  const { result, lines } = await submitInvoicePaid({
+    payments: {
+      has_more: false,
+      data: [
+        { status: 'paid', payment: { type: 'charge', charge: 'ch_test_renewal' } },
+        { status: 'failed', payment: { type: 'payment_intent', payment_intent: RENEWAL_PAYMENT_INTENT } },
+      ],
+    },
+  })
+
+  assert.equal(result.status, 200)
+  assert.equal('stripePaymentIntentId' in state.posts[0]!, false)
+  const signals = renewalSignals(lines)
+  assert.equal(signals.length, 1)
+  assert.equal(signals[0]?.reason, 'payments_ambiguous')
+})
+
+test('controllo: con un solo pagamento pagato l ordine porta il PaymentIntent e NON emette il segnale', async () => {
+  const { result, lines } = await submitInvoicePaid({
+    payments: {
+      has_more: false,
+      data: [{ status: 'paid', payment: { type: 'payment_intent', payment_intent: RENEWAL_PAYMENT_INTENT } }],
+    },
+  })
+
+  assert.equal(result.status, 200)
+  assert.equal(state.posts.length, 1, 'un rinnovo pagato crea l ordine')
+  assert.equal(
+    state.posts[0]!.stripePaymentIntentId,
+    RENEWAL_PAYMENT_INTENT,
+    'con la lista completa e un solo pagamento l id deve finire sull ordine',
+  )
+  assert.deepEqual(renewalSignals(lines), [], 'nessun segnale quando il PaymentIntent c e')
 })

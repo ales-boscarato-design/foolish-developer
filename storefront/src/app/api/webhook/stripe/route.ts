@@ -18,6 +18,7 @@ import { attachScheduleToSubscription } from '@/lib/stripe-subscription-schedule
 import { getBenefitForCycle, type PlanKey, type Zone } from '@/lib/subscription-plans'
 import { detectRenewalZoneMismatch } from '@/lib/subscription-renewal-zone'
 import { reportRenewalZoneMismatch } from '@/lib/subscription-renewal-zone-alert'
+import { renewalPaymentIntentSignal, resolveRenewalPaymentIntent } from '@/lib/renewal-payment-intent'
 
 export const dynamic = 'force-dynamic'
 
@@ -623,18 +624,19 @@ export async function POST(req: NextRequest) {
           country: destinationCountry ?? record.zone,
         }
 
-        const invoicePayments = invoice.payments
-        const paidInvoicePayment = invoicePayments?.has_more === false
-          ? invoicePayments.data.filter((payment) => payment.status === 'paid' && payment.payment.type === 'payment_intent')
-          : []
-        const invoicePaymentIntent = paidInvoicePayment.length === 1 ? paidInvoicePayment[0]?.payment.payment_intent : undefined
-        const invoicePaymentIntentId = typeof invoicePaymentIntent === 'string'
-          ? invoicePaymentIntent
-          : invoicePaymentIntent?.id
+        // `invoice.payments` manca nella forma normale degli eventi `invoice.paid`
+        // (misurato in sola lettura sull'API 2026-04-22: il campo compare solo
+        // con `expand[]=payments`). La risoluzione dice ESPLICITAMENTE se
+        // l'ordine nasce senza PaymentIntent e per quale motivo, invece di
+        // lasciare il campo vuoto in silenzio: un rinnovo senza PaymentIntent
+        // non sara' mai aggiornato da un rimborso. Nessuna chiamata Stripe in
+        // piu' (la copertura del caso e' una decisione separata, card
+        // t_e1223d64).
+        const renewalPaymentIntent = resolveRenewalPaymentIntent(invoice.payments)
         await createRenewalOrder({
           orderRef,
-          ...(invoicePaymentIntentId && /^pi_[A-Za-z0-9_]{1,127}$/.test(invoicePaymentIntentId)
-            ? { stripePaymentIntentId: invoicePaymentIntentId }
+          ...(renewalPaymentIntent.status === 'resolved'
+            ? { stripePaymentIntentId: renewalPaymentIntent.paymentIntentId }
             : {}),
           cycle: newCycle,
           plan: record.plan,
@@ -642,6 +644,12 @@ export async function POST(req: NextRequest) {
           customerEmail: record.customerEmail,
           shippingAddress,
         })
+        if (renewalPaymentIntent.status === 'missing') {
+          // Riga JSON, senza dati cliente: il rinnovo e' contabile e non
+          // invisibile, e il motivo distingue la forma della lista (assente /
+          // paginata / ambigua) senza costringere a ricostruire l'evento.
+          console.warn(renewalPaymentIntentSignal(orderRef, renewalPaymentIntent.reason))
+        }
         // Il contatore avanza SOLO dopo la creazione riuscita dell'ordine, dietro
         // lo stesso controllo di idempotenza sopra: un redelivery dello stesso
         // invoice trova l'ordine già esistente e non fa avanzare il contatore
