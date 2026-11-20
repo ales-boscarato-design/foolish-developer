@@ -177,8 +177,10 @@ type ProductionQueueEstimate =
 
 `incomplete_orders` = il CMS ha risposto ma non si può dimostrare che l'elenco sia completo
 (`totalDocs` mancante, `docs.length < totalDocs`, `hasNextPage: true`). `cms_unavailable` = il
-CMS non ha risposto (rete, timeout, 401/5xx, corpo non JSON). In entrambi i casi la risposta
-**non contiene** `extraDays`: un chiamante che legge `extraDays ?? 0` sta sbagliando.
+CMS non ha risposto (rete, timeout, 401/5xx, corpo non JSON, `PAYLOAD_PUBLIC_URL` malformato).
+In entrambi i casi la risposta **non contiene** `extraDays`: un chiamante che legge
+`extraDays ?? 0` sta sbagliando. Anche una richiesta **senza SKU** è `invalid_payload`
+(`skus_missing`): non esiste un formato da stimare, quindi non esiste una stima.
 
 Regole d'uso obbligatorie per chi consuma la risposta:
 
@@ -230,7 +232,8 @@ Per i chiamanti: uno SKU per la scheda prodotto (variante selezionata), tutti gl
 carrello per carrello e checkout. La risposta è la stessa nei tre casi; per il carrello
 `extraDays` è il massimo fra i formati, mai la somma. Lo stato HTTP è 200 anche quando la stima
 non è disponibile (è un valore del contratto); 400 solo per una richiesta malformata (nessuno
-SKU, più di 50 SKU, SKU vuoto o troppo lungo).
+SKU, più di 50 SKU **distinti**, SKU vuoto o troppo lungo). I parametri ripetuti sullo stesso SKU
+valgono una volta sola: il tetto è sui formati da stimare, non sui parametri dell'URL.
 
 ---
 
@@ -253,7 +256,7 @@ di produzione.
 | `excluded-only` | 20/11 12:00 | 10 failed + 10 cancelled | 0 pezzi, +0 |
 | `other-day-ignored` | 20/11 12:00 | 50 pezzi del 19/11 | 0 pezzi, +0 |
 | `midnight-before` | 20/11 23:30 Roma | 20 pezzi 23:59 + 5 pezzi 00:01 | 20 pezzi, +0 |
-| `midnight-after` | 21/11 09:00 Roma | gli stessi ordini | 21 pezzi nel lunedì, +1 |
+| `midnight-after` | 21/11 09:00 Roma | scenario separato: 20 pezzi ven 23:59 + 21 pezzi sab 00:01 | 21 pezzi nel lunedì, +1, `dayKey 2026-11-23` |
 | `dst-end` | 25/10 12:00 | 20 + 1 a cavallo del cambio d'ora | 21 pezzi, +1, `dayKey 2026-10-26` |
 | `dst-start` | 29/03 12:00 | 20 + 1 a cavallo del cambio d'ora | 21 pezzi, +1, `dayKey 2026-03-30` |
 | `weekend-roll` | lunedì 23/11 | sab 6 + dom 7 + lun 8 | 21 pezzi, +1 |
@@ -267,8 +270,8 @@ Comandi:
 
 ```
 cd storefront
-npm run test:production-queue          # calcolo puro + fixture -> 21/21
-npm run test:production-queue-server   # lettore CMS + endpoint, stub HTTP su porta effimera -> 25/25
+npm run test:production-queue          # calcolo puro + fixture -> 22/22
+npm run test:production-queue-server   # lettore CMS + endpoint, stub HTTP su porta effimera -> 30/30
 ```
 
 Il lettore (`production-queue-service.test.ts`) copre la scala 19/20/21/40/41, la finestra del

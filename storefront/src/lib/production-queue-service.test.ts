@@ -372,7 +372,7 @@ test('lettore: la cache di processo evita letture ripetute nella stessa giornata
 // ── Input non valido ────────────────────────────────────────────────────────
 test('lettore: elenco SKU non valido -> unavailable invalid_payload', async () => {
   reset()
-  for (const skus of [[], ['   '], [42], new Array(51).fill('DBL-A4')]) {
+  for (const skus of [[], ['   '], [42]]) {
     const result = unavailable(await readProductionQueueEstimate({
       skus,
       deps: { cmsUrl, secret: SECRET, now: new Date('2026-11-20T12:00:00.000Z'), useCache: false },
@@ -380,7 +380,66 @@ test('lettore: elenco SKU non valido -> unavailable invalid_payload', async () =
     assert.equal(result.reason, 'invalid_payload')
     assert.equal(result.detail, 'skus_invalid')
   }
+
+  // 51 SKU distinti superano il tetto; 51 parametri che ripetono lo stesso SKU
+  // no (il tetto e' sugli SKU, non sui parametri).
+  const distinct = Array.from({ length: 51 }, (_, index) => `SKU-${index}`)
+  const overflow = unavailable(await readProductionQueueEstimate({
+    skus: distinct,
+    deps: { cmsUrl, secret: SECRET, now: new Date('2026-11-20T12:00:00.000Z'), useCache: false },
+  }))
+  assert.equal(overflow.reason, 'invalid_payload')
+  assert.equal(overflow.detail, 'too_many_skus')
+
   assert.equal(state.ordersRequests.length, 0, 'una richiesta non valida non tocca il CMS')
+})
+
+test('lettore: la cache non attraversa la mezzanotte ne conserva un errore', async () => {
+  // Due istanti a 30 secondi di distanza ma in due giornate Europe/Rome
+  // diverse (giovedi' 19 -> venerdi' 20, cosi' il weekend non entra nel
+  // conteggio): 23:59:40 e 00:00:10. La TTL e' piu' lunga di 30 s, quindi solo
+  // il controllo sulla giornata puo' forzare la rilettura.
+  reset()
+  state.orders = scenario('21-a4').orders
+  // Prima lettura: 23:59:40 del 19/11, gli ordini delle 09:10 del 20/11 non
+  // sono ancora nel bucket.
+  const beforeMidnight = ok(await read(['DBL-A4'], '2026-11-19T22:59:40.000Z', { useCache: true }))
+  assert.equal(beforeMidnight.dayKey, '2026-11-19')
+  assert.equal(beforeMidnight.extraDays, 0)
+  assert.equal(state.ordersRequests.length, 1)
+
+  const afterMidnight = ok(await read(['DBL-A4'], '2026-11-19T23:00:10.000Z', { useCache: true }))
+  assert.equal(state.ordersRequests.length, 2, 'giornata nuova = nuova lettura')
+  assert.equal(afterMidnight.dayKey, '2026-11-20')
+  // Stessi ordini, giornata nuova: se la cache fosse stata riusata qui
+  // l'`extraDays` resterebbe quello di prima (0). Ora invece contano (+1).
+  assert.equal(afterMidnight.extraDays, 1)
+
+  // Un errore non entra in cache: la chiamata successiva rilegge e torna ok.
+  reset('orders-500')
+  unavailable(await read(['DBL-A4'], '2026-11-20T12:00:00.000Z', { useCache: true }))
+  assert.equal(state.ordersRequests.length, 1)
+
+  state.behaviour = 'ok'
+  state.orders = scenario('21-a4').orders
+  const recovered = ok(await read(['DBL-A4'], '2026-11-20T12:00:00.000Z', { useCache: true }))
+  assert.equal(state.ordersRequests.length, 2, 'l errore non e stato messo in cache')
+  assert.equal(recovered.extraDays, 1)
+})
+
+test('lettore: PAYLOAD_PUBLIC_URL malformato -> unavailable, nessuna eccezione', async () => {
+  reset()
+  const result = unavailable(await readProductionQueueEstimate({
+    skus: ['DBL-A4'],
+    deps: {
+      cmsUrl: 'cms.example.com', // senza schema: new URL() lancerebbe
+      secret: SECRET,
+      now: new Date('2026-11-20T12:00:00.000Z'),
+      useCache: false,
+    },
+  }))
+  assert.equal(result.reason, 'cms_unavailable')
+  assert.equal(result.detail, 'orders_url_invalid')
 })
 
 test('proiezione pubblica: niente dettaglio operativo, unavailable invariato', async () => {

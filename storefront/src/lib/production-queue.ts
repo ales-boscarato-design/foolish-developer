@@ -313,6 +313,13 @@ export function computeProductionEstimate(args: {
   if (requested === null) {
     return { state: 'unavailable', reason: 'invalid_payload', detail: 'skus_invalid' }
   }
+  // Senza SKU non c'e' formato da stimare: restituire `ok` con `extraDays: 0`
+  // sarebbe la stima piu' ottimistica possibile, ed e' la trappola che si apre
+  // dimenticando l'argomento in un nuovo consumatore (es. il congelamento al
+  // checkout). Fail-closed.
+  if (requested.length === 0) {
+    return { state: 'unavailable', reason: 'invalid_payload', detail: 'skus_missing' }
+  }
 
   const collected = collectDayLoads({ orders: args.orders, index, now: args.now })
   if ('state' in collected) return collected

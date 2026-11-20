@@ -147,23 +147,31 @@ const QUEUE_SKU_MAX_LENGTH = 200
 
 /**
  * Normalizza l'elenco di SKU richiesti: deduplica, conserva l'ordine e rifiuta
- * (con `null`) qualunque voce che non sia una stringa non vuota e ragionevole.
- * Rifiutare e' meglio che filtrare: un SKU scartato in silenzio toglierebbe un
- * formato dal calcolo e renderebbe la stima piu' corta.
+ * qualunque voce che non sia una stringa non vuota e ragionevole. Rifiutare e'
+ * meglio che filtrare: un SKU scartato in silenzio toglierebbe un formato dal
+ * calcolo e renderebbe la stima piu' corta.
+ *
+ * Il tetto vale sugli SKU **distinti**: 51 parametri che ripetono lo stesso SKU
+ * sono una richiesta legittima da un carrello costruito male, non 51 formati.
  */
-export function normalizeQueueSkus(raw: unknown): string[] | null {
-  if (!Array.isArray(raw) || raw.length === 0 || raw.length > PRODUCTION_QUEUE_MAX_SKUS) return null
+export function parseQueueSkus(
+  raw: unknown,
+): { ok: true; skus: string[] } | { ok: false; detail: 'sku_missing' | 'sku_invalid' | 'too_many_skus' } {
+  if (!Array.isArray(raw)) return { ok: false, detail: 'sku_invalid' }
+  if (raw.length === 0) return { ok: false, detail: 'sku_missing' }
   const seen = new Set<string>()
   const skus: string[] = []
   for (const candidate of raw) {
-    if (typeof candidate !== 'string') return null
+    if (typeof candidate !== 'string') return { ok: false, detail: 'sku_invalid' }
     const sku = candidate.trim()
-    if (!sku || sku.length > QUEUE_SKU_MAX_LENGTH) return null
+    if (!sku || sku.length > QUEUE_SKU_MAX_LENGTH) return { ok: false, detail: 'sku_invalid' }
     if (seen.has(sku)) continue
     seen.add(sku)
     skus.push(sku)
   }
-  return skus.length > 0 ? skus : null
+  if (skus.length === 0) return { ok: false, detail: 'sku_missing' }
+  if (skus.length > PRODUCTION_QUEUE_MAX_SKUS) return { ok: false, detail: 'too_many_skus' }
+  return { ok: true, skus }
 }
 
 function cmsBaseUrl(deps: ProductionQueueReaderDeps | undefined): string {
@@ -211,8 +219,15 @@ async function readCmsList(args: {
     return { ok: false, result: unavailable('cms_unavailable', `${args.label}_secret_missing`) }
   }
 
-  const url = new URL(`${cmsBaseUrl(args.deps)}/api/${args.path}`)
-  for (const [key, value] of Object.entries(args.params)) url.searchParams.set(key, value)
+  let url: URL
+  try {
+    url = new URL(`${cmsBaseUrl(args.deps)}/api/${args.path}`)
+    for (const [key, value] of Object.entries(args.params)) url.searchParams.set(key, value)
+  } catch {
+    // `PAYLOAD_PUBLIC_URL` malformato (es. senza schema): anche questa e' una
+    // lettura impossibile, non un'eccezione da far uscire dalla rotta.
+    return { ok: false, result: unavailable('cms_unavailable', `${args.label}_url_invalid`) }
+  }
 
   let response: Response
   try {
@@ -303,8 +318,14 @@ async function readCatalog(
 export async function readProductionQueueEstimate(
   args: { skus: unknown; deps?: ProductionQueueReaderDeps },
 ): Promise<ProductionQueueReadResult> {
-  const skus = normalizeQueueSkus(args.skus)
-  if (skus === null) return unavailable('invalid_payload', 'skus_invalid')
+  const parsed = parseQueueSkus(args.skus)
+  if (!parsed.ok) {
+    return unavailable(
+      'invalid_payload',
+      parsed.detail === 'too_many_skus' ? 'too_many_skus' : 'skus_invalid',
+    )
+  }
+  const { skus } = parsed
 
   const deps = args.deps
   const now = deps?.now instanceof Date && !Number.isNaN(deps.now.getTime())

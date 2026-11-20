@@ -6,6 +6,10 @@
  * effimera (nessun CMS di produzione, nessun segreto reale). Copre: risposta
  * valida, richiesta sintatticamente sbagliata, e CMS giu' che deve restare
  * `unavailable` — mai `extraDays: 0`.
+ *
+ * Gli ordini sono datati `NOW` e lo stub mette l'istante reale quando risponde:
+ * il test non dipende dal giorno in cui gira (con date fisse in fixture sarebbe
+ * verde oggi e rosso domani, e non coprirebbe piu' il valore).
  */
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -15,22 +19,35 @@ import test, { after, before, beforeEach } from 'node:test'
 
 import { NextRequest } from 'next/server'
 import { GET } from './route'
+import { productionQueueDayKey } from '@/lib/production-queue'
 import { resetProductionQueueReadCache } from '@/lib/production-queue-service'
 
 const fixtures = JSON.parse(
   readFileSync(new URL('../../../../lib/production-queue.fixtures.json', import.meta.url), 'utf8'),
-) as { catalog: unknown[]; scenarios: Array<{ id: string; orders: unknown[] }> }
+) as { catalog: unknown[] }
 
 interface StubState {
   down: boolean
   orders: unknown[]
+  ordersCalls: number
 }
 
-const state: StubState = { down: false, orders: [] }
+const state: StubState = { down: false, orders: [], ordersCalls: 0 }
 
 function sendJson(res: ServerResponse, status: number, body: unknown) {
   res.writeHead(status, { 'Content-Type': 'application/json' })
   res.end(JSON.stringify(body))
+}
+
+/** Ordine pagato con `createdAt` materializzato al momento della risposta. */
+function paidOrder(sku: string, quantity: number) {
+  return {
+    id: 1,
+    orderNumber: 'FOOLISH-ROUTE-TEST',
+    createdAt: 'NOW',
+    paymentStatus: 'paid',
+    lineItems: [{ sku, quantity }],
+  }
 }
 
 const server = createServer((req: IncomingMessage, res: ServerResponse) => {
@@ -38,7 +55,14 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
   if (state.down) return sendJson(res, 503, { error: 'down' })
 
   if (url.pathname === '/api/orders') {
-    return sendJson(res, 200, { docs: state.orders, totalDocs: state.orders.length, hasNextPage: false })
+    state.ordersCalls += 1
+    const nowIso = new Date().toISOString()
+    const docs = state.orders.map((order) => (
+      order && typeof order === 'object' && (order as { createdAt?: unknown }).createdAt === 'NOW'
+        ? { ...(order as Record<string, unknown>), createdAt: nowIso }
+        : order
+    ))
+    return sendJson(res, 200, { docs, totalDocs: docs.length, hasNextPage: false })
   }
   if (url.pathname === '/api/products') {
     return sendJson(res, 200, {
@@ -77,21 +101,16 @@ before(async () => {
 // leggerebbe gli ordini del primo e il test misurerebbe la cache, non la rotta.
 beforeEach(() => {
   resetProductionQueueReadCache()
+  state.ordersCalls = 0
 })
 
 function request(query: string) {
   return new NextRequest(`https://thefoolishbutcher.com/api/produzione/coda${query}`)
 }
 
-function scenarioOrders(id: string): unknown[] {
-  const found = fixtures.scenarios.find((candidate) => candidate.id === id)
-  assert.ok(found, `scenario ${id} mancante`)
-  return found.orders
-}
-
 test('rotta: 200 con la stima per gli SKU richiesti', async () => {
   state.down = false
-  state.orders = scenarioOrders('21-a4')
+  state.orders = [paidOrder('DBL-A4', 21)]
 
   const response = await GET(request('?sku=DBL-A4'))
   assert.equal(response.status, 200)
@@ -101,7 +120,9 @@ test('rotta: 200 con la stima per gli SKU richiesti', async () => {
   assert.equal(body.state, 'ok')
   assert.equal(body.extraDays, 1)
   assert.equal(body.batchSize, 20)
-  assert.equal(body.dayKey, '2026-11-20')
+  // Giornata calcolata, non una data scritta nel test: la rotta usa l'orologio
+  // vero e il caso deve restare valido in qualunque giorno giri.
+  assert.equal(body.dayKey, productionQueueDayKey(new Date()))
   assert.deepEqual(body.requested, [{ sku: 'DBL-A4', format: 'a4' }])
   assert.equal(body.catalogState, 'ok')
 
@@ -111,9 +132,24 @@ test('rotta: 200 con la stima per gli SKU richiesti', async () => {
   }
 })
 
+test('rotta: 20 pezzi restano a +0, il 21esimo alza la stima', async () => {
+  state.down = false
+
+  state.orders = [paidOrder('DBL-A4', 20)]
+  const twenty = await (await GET(request('?sku=DBL-A4'))).json() as Record<string, unknown>
+  assert.equal(twenty.state, 'ok')
+  assert.equal(twenty.extraDays, 0)
+
+  resetProductionQueueReadCache()
+  state.orders = [paidOrder('DBL-A4', 21)]
+  const twentyOne = await (await GET(request('?sku=DBL-A4'))).json() as Record<string, unknown>
+  assert.equal(twentyOne.state, 'ok')
+  assert.equal(twentyOne.extraDays, 1)
+})
+
 test('rotta: il carrello misto chiede tutti gli SKU e non somma i formati', async () => {
   state.down = false
-  state.orders = scenarioOrders('formats-not-summed')
+  state.orders = [paidOrder('DBL-A4', 25), paidOrder('DUO-A5-PELLE', 19)]
 
   const response = await GET(request('?sku=DBL-A4&sku=DUO-A5-PELLE'))
   const body = await response.json() as Record<string, unknown>
@@ -127,13 +163,24 @@ test('rotta: il carrello misto chiede tutti gli SKU e non somma i formati', asyn
   )
 })
 
-test('rotta: nessuno SKU -> 400 invalid_payload', async () => {
+test('rotta: gli SKU ripetuti valgono una volta sola', async () => {
+  state.down = false
+  state.orders = [paidOrder('DBL-A4', 21)]
+
+  const body = await (await GET(request('?sku=DBL-A4&sku=DBL-A4&sku=%20DBL-A4%20'))).json() as Record<string, unknown>
+  assert.equal(body.state, 'ok')
+  assert.equal(body.extraDays, 1)
+  assert.deepEqual(body.requested, [{ sku: 'DBL-A4', format: 'a4' }])
+})
+
+test('rotta: nessuno SKU -> 400 invalid_payload, senza chiamare il CMS', async () => {
   const response = await GET(request(''))
   assert.equal(response.status, 400)
   const body = await response.json() as Record<string, unknown>
   assert.equal(body.state, 'unavailable')
   assert.equal(body.reason, 'invalid_payload')
   assert.equal(body.detail, 'sku_missing')
+  assert.equal(state.ordersCalls, 0)
 })
 
 test('rotta: SKU vuoto -> 400, non una stima con meno formati', async () => {
@@ -141,14 +188,28 @@ test('rotta: SKU vuoto -> 400, non una stima con meno formati', async () => {
   assert.equal(response.status, 400)
   const body = await response.json() as Record<string, unknown>
   assert.equal(body.detail, 'sku_invalid')
+  assert.equal(state.ordersCalls, 0)
 })
 
-test('rotta: troppi SKU -> 400', async () => {
-  const query = Array.from({ length: 51 }, () => 'sku=DBL-A4').join('&')
+test('rotta: troppi SKU distinti -> 400', async () => {
+  const query = Array.from({ length: 51 }, (_, index) => `sku=SKU-${index}`).join('&')
   const response = await GET(request(`?${query}`))
   assert.equal(response.status, 400)
   const body = await response.json() as Record<string, unknown>
   assert.equal(body.detail, 'too_many_skus')
+  assert.equal(state.ordersCalls, 0)
+})
+
+test('rotta: 51 parametri ripetuti sullo stesso SKU non sono 51 SKU', async () => {
+  state.down = false
+  state.orders = [paidOrder('DBL-A4', 21)]
+
+  const query = Array.from({ length: 51 }, () => 'sku=DBL-A4').join('&')
+  const response = await GET(request(`?${query}`))
+  const body = await response.json() as Record<string, unknown>
+  assert.equal(response.status, 200)
+  assert.equal(body.state, 'ok')
+  assert.equal(body.extraDays, 1)
 })
 
 test('rotta: CMS giu -> 200 unavailable cms_unavailable, nessun extraDays', async () => {

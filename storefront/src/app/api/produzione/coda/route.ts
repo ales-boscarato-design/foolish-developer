@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import {
-  PRODUCTION_QUEUE_MAX_SKUS,
-  normalizeQueueSkus,
+  parseQueueSkus,
   readProductionQueueEstimate,
   toPublicProductionQueueEstimate,
 } from '@/lib/production-queue-service'
@@ -20,7 +19,7 @@ import {
  *
  * Lo stato HTTP e' 200 anche per `unavailable`: l'errore del CMS e' un valore
  * del contratto, non un guasto della rotta. Il 400 e' riservato a una richiesta
- * sintatticamente sbagliata (nessuno SKU, troppi SKU, SKU vuoto).
+ * sintatticamente sbagliata (nessuno SKU, troppi SKU distinti, SKU vuoto).
  */
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -35,12 +34,12 @@ function badRequest(detail: string) {
 }
 
 export async function GET(req: NextRequest) {
-  const rawSkus = req.nextUrl.searchParams.getAll('sku')
-  if (rawSkus.length === 0) return badRequest('sku_missing')
-  if (rawSkus.length > PRODUCTION_QUEUE_MAX_SKUS) return badRequest('too_many_skus')
-  if (normalizeQueueSkus(rawSkus) === null) return badRequest('sku_invalid')
+  // Validazione prima di qualunque lettura: una richiesta malformata non deve
+  // toccare il CMS.
+  const parsed = parseQueueSkus(req.nextUrl.searchParams.getAll('sku'))
+  if (!parsed.ok) return badRequest(parsed.detail)
 
-  const estimate = await readProductionQueueEstimate({ skus: rawSkus })
+  const estimate = await readProductionQueueEstimate({ skus: parsed.skus })
   // Proiezione pubblica: la rotta e' raggiungibile da chiunque, quindi non esce
   // il dettaglio operativo (pezzi per formato, SKU fuori catalogo, ordini
   // esclusi con i loro numeri).

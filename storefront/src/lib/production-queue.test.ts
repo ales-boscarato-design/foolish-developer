@@ -229,6 +229,22 @@ test('coda: un payload non valido non produce un numero', () => {
   assert.equal(truncated.state === 'unavailable' ? truncated.reason : null, 'incomplete_orders')
 })
 
+test('coda: senza SKU non esiste una stima (nemmeno +0)', () => {
+  // La trappola: un consumatore che dimentica `skus` (es. il congelamento al
+  // checkout) otterrebbe un `ok` con 0 giorni, cioe' la promessa piu' corta
+  // possibile. Il modulo deve rifiutare.
+  const result = computeProductionEstimate({
+    orders: [],
+    products: fixtures.catalog,
+    now: new Date('2026-11-20T12:00:00.000Z'),
+    ordersComplete: true,
+  })
+  assert.equal(result.state, 'unavailable')
+  assert.equal(result.state === 'unavailable' ? result.reason : null, 'invalid_payload')
+  assert.equal(result.state === 'unavailable' ? result.detail : null, 'skus_missing')
+  assert.equal('extraDays' in result, false)
+})
+
 test('funzioni pure: formati, SKU base, soglia', () => {
   assert.equal(formatFromVariant({ label: 'A5' }), 'a5')
   assert.equal(formatFromVariant({ label: 'A5 — Pelle' }), 'a5')
