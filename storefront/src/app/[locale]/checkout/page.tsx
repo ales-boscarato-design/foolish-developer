@@ -504,7 +504,12 @@ export default function CheckoutPage() {
           // Il checkout non si fida di un prezzo mandato dal browser: o
           // riconosce il gettone di QUEL carrello, o risolve da capo.
           quoteToken: activeQuote?.token ?? undefined,
-          deliveryEstimateDate: activeEstimateDate ?? undefined,
+          // La data mostrata viaggia cosi' com'e'. Quando la stima e' risolta
+          // ma non produce una data (il cliente ha accettato di proseguire) si
+          // manda `null`, non `undefined`: cosi' l'ordine registra «nessuna data
+          // promessa perche' il calcolo non la produceva», invece di confonderlo
+          // con «nessuna stima mai vista» (campo assente).
+          deliveryEstimateDate: estimateResolved ? activeEstimateDate : undefined,
           discountAmount: proDiscount > 0 ? proDiscount : undefined,
           discountLabel: promoType === 'percent_pro' && promoData?.discountPercent
             ? `Sconto Foolish Pro ${promoData.discountPercent}%`

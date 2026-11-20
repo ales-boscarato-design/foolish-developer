@@ -3,6 +3,7 @@ import Stripe from 'stripe'
 import { countryToLocale } from '@/lib/resend'
 import { ORDER_REF_PREFIX } from '@/lib/order-ref'
 import { splitFullName } from '@/lib/promo'
+import { notCapturedSnapshot, parseDeliveryPromiseMetadataValue } from '@/lib/delivery-promise'
 
 interface ParsedItem {
   sku: string
@@ -351,6 +352,20 @@ export async function createOrderInCMS(session: Stripe.Checkout.Session): Promis
   // solo come prezzo netto per riga). Assente o illeggibile => campi omessi, ordine creato.
   const promoSnapshot = parsePromoSnapshot(meta)
 
+  // Promessa di consegna: la data che il cliente ha VISTO nel carrello, gia'
+  // calcolata dal checkout e congelata qui nei suoi valori di partenza. Se la
+  // sessione non la porta (sessione creata da codice vecchio, metadata rotti)
+  // si registra il fatto con `not_captured`: un ordine pagato si crea sempre,
+  // ma nessuno inventa una data che il cliente non ha mai visto.
+  const declaredDeliveryPromise = parseDeliveryPromiseMetadataValue(meta.delivery_promise)
+  if (!declaredDeliveryPromise) {
+    console.error(
+      `[stripe-order] delivery promise assente o illeggibile nei metadata sessione=${session.id}: `
+      + 'ordine creato con snapshot not_captured',
+    )
+  }
+  const deliveryPromise = declaredDeliveryPromise ?? notCapturedSnapshot()
+
   // Nome e cognome separati: li scrive il checkout quando il cliente li ha
   // dati. Per una sessione storica (o per un nome raccolto come unica stringa)
   // si derivano dal nome completo, e un nome di una parola sola lascia il
@@ -422,6 +437,7 @@ export async function createOrderInCMS(session: Stripe.Checkout.Session): Promis
       total,
       shippingCost,
       ...promoSnapshot,
+      deliveryPromise,
       shippingAddress,
       customerLocale: countryToLocale(shippingAddress.country),
       pipelineState: 'received',

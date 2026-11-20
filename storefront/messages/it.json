@@ -116,6 +116,7 @@
     "telegramTitle": "Ricevi aggiornamenti diretti su Telegram",
     "telegramBody": "Ti avviso quando i fogli sono pronti, ti mando le foto di quello che stai per ricevere, e ti mando il tracking non appena spedito.",
     "telegramCta": "Collegati su Telegram",
+    "deliveryEstimate": "Consegna stimata: {date}",
     "backToShop": "← Torna alla vetrina"
   },
   "product": {

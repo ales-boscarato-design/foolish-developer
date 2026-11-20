@@ -116,6 +116,7 @@
     "telegramTitle": "Erhalte direkte Updates auf Telegram",
     "telegramBody": "Ich benachrichtige dich, wenn die Folien fertig sind, schicke dir Fotos von dem, was du bekommst, und sende dir die Tracking-Nummer sobald versandt.",
     "telegramCta": "Auf Telegram verbinden",
+    "deliveryEstimate": "Voraussichtliche Lieferung: {date}",
     "backToShop": "← Zurück zum Shop"
   },
   "product": {

@@ -5,6 +5,7 @@ import { getAccountLocale, getT } from '@/lib/account-i18n'
 import Link from 'next/link'
 import { ReorderButton } from '../../_components/ReorderButton'
 import { telegramOrderLink } from '@/lib/order-ref'
+import { formatDeliveryPromiseDate, parseDeliveryPromise } from '@/lib/delivery-promise'
 
 const PIPELINE_STEPS = ['received','in_production','shipped','delivered']
 
@@ -46,6 +47,13 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const currentStepIndex = PIPELINE_STEPS.findIndex((s) => s === order.pipelineState)
   const isDelivered = order.pipelineState === 'delivered' || order.pipelineState === 'followup_done' || order.pipelineState === 'closed'
 
+  // Promessa di consegna congelata al pagamento: si legge, non si ricalcola. Un
+  // ordine storico (o una promessa mai mostrata) non ha la riga.
+  const deliveryPromise = parseDeliveryPromise(order.deliveryPromise)
+  const promisedDeliveryDate = deliveryPromise?.promiseShown && deliveryPromise.estimatedDeliveryDate
+    ? formatDeliveryPromiseDate(locale, deliveryPromise.estimatedDeliveryDate)
+    : null
+
   return (
     <div style={{ padding: '16px', fontFamily: 'monospace', color: '#fff' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', paddingTop: '8px' }}>
@@ -71,6 +79,13 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           ))}
         </div>
       </div>
+
+      {promisedDeliveryDate && (
+        <div style={{ background: '#111', borderRadius: '8px', padding: '12px 14px', marginBottom: '12px' }}>
+          <div style={{ fontSize: '10px', color: '#555', textTransform: 'uppercase', letterSpacing: '1px' }}>{t('delivery_estimate')}</div>
+          <div style={{ fontSize: '14px', color: '#c9a96e', marginTop: '2px' }}>{promisedDeliveryDate}</div>
+        </div>
+      )}
 
       {Array.isArray(order.sheetPhotos) && order.sheetPhotos.length > 0 && (
         <div style={{ marginBottom: '12px' }}>

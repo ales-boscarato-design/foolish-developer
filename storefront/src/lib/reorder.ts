@@ -37,6 +37,8 @@ import {
   buildStripeLineItems,
 } from '@/lib/checkout-session'
 import { generateOrderRef } from '@/lib/order-ref'
+import { estimateCartDelivery } from '@/lib/delivery-estimate'
+import { buildDeliveryPromiseSnapshot } from '@/lib/delivery-promise'
 
 export type ReorderCode =
   | 'order_not_found'
@@ -332,11 +334,19 @@ export async function planReorder(args: {
   // di idempotenza dell'ordine: una collisione significa un cliente addebitato
   // senza ordine).
   const orderRef = generateOrderRef()
+  // Anche il riordino e' un ordine nuovo: la promessa si calcola QUI, con la
+  // stessa funzione del carrello, e viaggia nello snapshot. Senza, un ordine
+  // pagato dal riordino arriverebbe al CMS senza la data che il cliente
+  // ricevera' nella conferma.
+  const deliveryPromise = buildDeliveryPromiseSnapshot({
+    estimate: estimateCartDelivery({ country, items: normalizedItems }),
+  })
   const metadata = buildCheckoutMetadata({
     orderRef,
     customer,
     chargedProductLines,
     promo: null,
+    deliveryPromise,
   })
   if (!metadata) {
     // Con `promo: null` l'unico valore che puo` superare i 500 caratteri e`

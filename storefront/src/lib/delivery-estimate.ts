@@ -32,6 +32,11 @@ export interface CartDeliveryEstimate {
   productionDays: number | null
   marginDays: number | null
   fallback: boolean
+  /**
+   * Giorno di partenza (ISO) da cui il margine e' contato. Fa parte della
+   * promessa: senza, una data congelata non e' verificabile ("da quando?").
+   */
+  departureDate: string | null
   date: string | null
   reason: CartDeliveryReason
 }
@@ -166,7 +171,7 @@ export function estimateCartDelivery(args: {
   const now = args.now ?? new Date()
   const zone = deliveryZoneForCountry(args.country)
   if (!zone) {
-    return { zone: null, productionDays: null, marginDays: null, fallback: false, date: null, reason: 'zone_unknown' }
+    return { zone: null, productionDays: null, marginDays: null, fallback: false, departureDate: null, date: null, reason: 'zone_unknown' }
   }
 
   let slowestKnownProductionDays = 0
@@ -180,20 +185,22 @@ export function estimateCartDelivery(args: {
       continue
     }
     if (typeof days !== 'number' || !Number.isFinite(days) || days < 0 || days > MAX_PRODUCTION_DAYS) {
-      return { zone, productionDays: null, marginDays: null, fallback: false, date: null, reason: 'out_of_bounds' }
+      return { zone, productionDays: null, marginDays: null, fallback: false, departureDate: null, date: null, reason: 'out_of_bounds' }
     }
     slowestKnownProductionDays = Math.max(slowestKnownProductionDays, days)
   }
 
   const productionDays = Math.ceil(slowestKnownProductionDays)
   const marginDays = productionUnknown ? UNKNOWN_PRODUCTION_MARGIN_DAYS[zone] : TRANSIT_MARGIN_DAYS[zone]
-  const date = workingDaysBetween(departureDay(now), { productionDays, marginDays })
+  const departure = departureDay(now)
+  const date = workingDaysBetween(departure, { productionDays, marginDays })
 
   return {
     zone,
     productionDays: productionUnknown ? null : productionDays,
     marginDays,
     fallback: productionUnknown,
+    departureDate: dateKey(departure),
     date: dateKey(date),
     reason: 'ok',
   }
