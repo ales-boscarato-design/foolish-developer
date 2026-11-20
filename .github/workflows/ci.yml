@@ -135,6 +135,11 @@ jobs:
         working-directory: storefront
         run: npm run build
 
+      # Reads .next output to verify emitted CSS and actual SSR preload links.
+      - name: Storefront — font output verification
+        working-directory: storefront
+        run: npm run verify:fonts
+
       - name: CMS — tipi
         working-directory: cms
         run: npx tsc --noEmit
