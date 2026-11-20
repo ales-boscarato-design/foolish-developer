@@ -75,7 +75,12 @@ export interface ProductionQueueOk {
 
 export interface ProductionQueueUnavailable {
   state: 'unavailable'
-  reason: 'invalid_payload' | 'incomplete_orders'
+  /**
+   * `cms_unavailable`: il CMS non ha risposto (rete, 401/5xx, corpo illeggibile).
+   * E' distinto da `incomplete_orders`, che invece dice "ha risposto ma non so
+   * se l'elenco e' completo": in entrambi i casi non esiste un numero.
+   */
+  reason: 'invalid_payload' | 'incomplete_orders' | 'cms_unavailable'
   detail: string
 }
 
@@ -129,10 +134,6 @@ export function productionQueueDayKey(instant: Date): string {
 const PACK_SEPARATOR = '-pack-'
 const LABEL_FORMAT = /^(a[3-6]|l|xxl|roll)\b/
 const DIMENSION_FORMAT = /(\d{1,3})\s*[x×*]\s*(\d{1,3})/
-
-function normalizeFormatToken(raw: string): SheetFormat {
-  return raw.trim().toLowerCase().replace(/×/g, 'x').replace(/\s+/g, '')
-}
 
 /**
  * Formato del foglio dichiarato dalla variante, oppure `null` quando la
@@ -332,9 +333,21 @@ export function computeProductionEstimate(args: {
     extraDaysByFormat[format] = extraDaysForPieces(pieces)
   }
 
+  // Uno SKU richiesto senza formato dichiarato puo' essere qualunque formato
+  // della giornata: la stima prudente e' il massimo carico del giorno, non 0.
+  // Con 0 la promessa sarebbe piu' corta della realta' proprio nel caso in cui
+  // non sappiamo dove finira' il pezzo.
+  let unknownFormatExtraDays = extraDaysForPieces(collected.unknownPieces)
+  for (const pieces of Object.values(extraDaysByFormat)) {
+    unknownFormatExtraDays = Math.max(unknownFormatExtraDays, pieces)
+  }
+
   let extraDays = 0
   for (const item of requested) {
-    extraDays = Math.max(extraDays, extraDaysForPieces(loads[item.format ?? 'unknown'] ?? collected.unknownPieces))
+    const itemExtraDays = item.format === null
+      ? unknownFormatExtraDays
+      : extraDaysForPieces(loads[item.format] ?? collected.unknownPieces)
+    extraDays = Math.max(extraDays, itemExtraDays)
   }
 
   return {

@@ -276,3 +276,33 @@ test('funzioni pure: indice formati costruito dal catalogo CMS', () => {
   assert.equal(result.state === 'ok' ? result.unknownPieces : null, 3)
   assert.equal(result.state === 'ok' ? result.extraDays : null, 0)
 })
+
+test('coda: uno SKU richiesto senza formato eredita il carico massimo della giornata', () => {
+  const paid = (quantity: number) => ({
+    id: 990,
+    orderNumber: 'FOOLISH-UNKNOWN-REQUEST',
+    createdAt: '2026-11-20T09:00:00.000Z',
+    paymentStatus: 'paid',
+    lineItems: [{ sku: 'DBL-A4', quantity }],
+  })
+
+  const run = (orders: unknown[]) => computeProductionEstimate({
+    orders,
+    products: fixtures.catalog,
+    now: new Date('2026-11-20T12:00:00.000Z'),
+    // SKU storico non piu' in catalogo: il pezzo puo' essere qualunque formato.
+    skus: ['LEGACY-XYZ'],
+    ordersComplete: true,
+  })
+
+  const busy = run([paid(21)])
+  assert.equal(busy.state, 'ok')
+  assert.equal(busy.state === 'ok' ? busy.requested[0]?.format : 'x', null)
+  // Con la formula precedente questo caso dava 0: la promessa sarebbe stata
+  // piu' corta della realta' proprio quando il formato e' ignoto.
+  assert.equal(busy.state === 'ok' ? busy.extraDays : null, 1)
+
+  // Controllo di non-vacuita': a giornata vuota lo stesso SKU resta +0.
+  const idle = run([])
+  assert.equal(idle.state === 'ok' ? idle.extraDays : null, 0)
+})

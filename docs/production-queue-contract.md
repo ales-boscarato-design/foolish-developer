@@ -154,13 +154,22 @@ type ProductionQueueEstimate =
       unknownSkus: string[]
       unknownPieces: number
       excludedOrders: Array<{ orderNumber: string | null; reason: 'payment_failed' | 'cancelled' }>
+      // Aggiunti dal lettore server-side (`production-queue-service.ts`), non dal calcolo puro:
+      catalogState: 'ok' | 'unavailable'  // 'unavailable' = ogni pezzo in unknownPieces
+      ordersWindowHours: number           // 96
+      ordersRead: number                  // documenti letti (deve valere totalDocs)
     }
   | {
       state: 'unavailable'
-      reason: 'invalid_payload' | 'incomplete_orders'
+      reason: 'invalid_payload' | 'incomplete_orders' | 'cms_unavailable'
       detail: string
     }
 ```
+
+`incomplete_orders` = il CMS ha risposto ma non si può dimostrare che l'elenco sia completo
+(`totalDocs` mancante, `docs.length < totalDocs`, `hasNextPage: true`). `cms_unavailable` = il
+CMS non ha risposto (rete, timeout, 401/5xx, corpo non JSON). In entrambi i casi la risposta
+**non contiene** `extraDays`: un chiamante che legge `extraDays ?? 0` sta sbagliando.
 
 Regole d'uso obbligatorie per chi consuma la risposta:
 
@@ -172,29 +181,47 @@ Regole d'uso obbligatorie per chi consuma la risposta:
 3. `extraDays` si somma a `productionDays` del prodotto (`ProductDetail.tsx:689-712` usa già
    `productionDays + shippingDays`); per un carrello con più formati si usa il massimo, mai la
    somma.
-4. Al cliente **non** si mostra il contatore: solo il tempo di consegna risultante.
-5. La promessa va ricalcolata **server-side** al checkout e congelata in
+4. Se lo SKU richiesto non ha un formato nel catalogo, `extraDays` è il **carico massimo della
+   giornata** (quel pezzo può finire in qualunque formato), non 0. È la correzione del
+   20/11/2026: con la formula precedente un carrello su uno SKU storico riceveva +0 anche con
+   una giornata carica, cioè una promessa più corta della realtà.
+5. Al cliente **non** si mostra il contatore: solo il tempo di consegna risultante.
+6. La promessa va ricalcolata **server-side** al checkout e congelata in
    `Orders.productionEtaDays`; il valore inviato dal client non è attendibile.
 
-### Lettura CMS (per la card di implementazione)
+### Lettura CMS e endpoint (implementati in `t_a00e9c1a`)
+
+Il lettore è `storefront/src/lib/production-queue-service.ts`; l'endpoint è
+`GET /api/produzione/coda?sku=<sku>[&sku=<sku>...]` (`storefront/src/app/api/produzione/coda/route.ts`).
 
 ```
 GET {CMS_URL}/api/orders
-    ?where[createdAt][greater_than_equal]=<ISO di 48h prima>
+    ?where[createdAt][greater_than_equal]=<ISO di 96h prima>
     &sort=-createdAt&depth=0&limit=500
-Header: x-storefront-secret: $PAYLOAD_API_SECRET
+Header: x-storefront-secret: $STOREFRONT_API_SECRET
 ```
 
-- Finestra di 48h come **superset** della giornata: il filtro vero è la chiave Europe/Rome
-  calcolata in codice, così non si costruiscono confini UTC a mano.
-- Completezza: la risposta Payload espone `totalDocs`. Se `docs.length < totalDocs` (o
-  `totalDocs > limit`) la lettura è troncata → `state: 'unavailable'`, `reason:
-  'incomplete_orders'`. Un elenco troncato usato come completo è la via più facile per una
-  stima ottimistica.
-- Errori di rete / 401 / 5xx → `state: 'unavailable'`, mai `0`.
-- Catalogo: stessa logica con `/api/products?limit=...&depth=0`; catalogo non leggibile →
-  indice vuoto → tutti i pezzi finiscono in `unknownPieces` (prudente), non a zero.
-- Cache: coerente con l'ISR del negozio (60 s). Nessuna scrittura.
+- **Finestra di 96h, non 48.** Sabato e domenica si riportano al lunedì (§5), quindi il lunedì
+  alle 12:00 il bucket contiene ordini da sabato 00:00 — circa 84 ore prima. Con 48 ore quegli
+  ordini non si leggono e la stima risulta più corta della realtà. Le 96 ore coprono anche il
+  cambio ora legale/solare. Il filtro vero resta la chiave Europe/Rome calcolata in codice.
+- Completezza: la risposta Payload espone `totalDocs`. `totalDocs` mancante, `docs.length <
+  totalDocs` o `hasNextPage: true` → `state: 'unavailable'`, `reason: 'incomplete_orders'`.
+- Errori di rete / timeout (5 s) / 401 / 5xx / corpo non JSON → `state: 'unavailable'`,
+  `reason: 'cms_unavailable'`. Mai `0`, e nessun errore messo in cache.
+- Catalogo: `/api/products?where[active][equals]=true&sort=order&depth=0&limit=500`. Catalogo
+  non leggibile → indice vuoto → tutti i pezzi in `unknownPieces` (prudente) e
+  `catalogState: 'unavailable'`, così un guasto non si legge come "catalogo senza formati".
+- Cache di processo 60 s, coerente con l'ISR: si salvano solo letture riuscite e complete,
+  chiaviate per giornata di produzione. Un errore non viene mai messo in cache.
+- Porta e secret sono parametri (`deps.cmsUrl`, `deps.secret`): i test usano uno stub HTTP su
+  porta effimera, mai il CMS di produzione.
+
+Per i chiamanti: uno SKU per la scheda prodotto (variante selezionata), tutti gli SKU del
+carrello per carrello e checkout. La risposta è la stessa nei tre casi; per il carrello
+`extraDays` è il massimo fra i formati, mai la somma. Lo stato HTTP è 200 anche quando la stima
+non è disponibile (è un valore del contratto); 400 solo per una richiesta malformata (nessuno
+SKU, più di 50 SKU, SKU vuoto o troppo lungo).
 
 ---
 
@@ -227,7 +254,19 @@ di produzione.
 | `format-from-dimensions` | 20/11 12:00 | `DBL-ROLL` 21, `FP-15` 20 | `180x60` +1, `15x15` +0 |
 | `invalid-quantity` / `invalid-line-items` | 20/11 12:00 | payload corrotto | `unavailable`, `invalid_payload` |
 
-Comando: `cd storefront && npx tsx --test src/lib/production-queue.test.ts` → **20/20 verdi**.
+Comandi:
+
+```
+cd storefront
+npm run test:production-queue          # calcolo puro + fixture -> 21/21
+npm run test:production-queue-server   # lettore CMS + endpoint, stub HTTP su porta effimera -> 24/24
+```
+
+Il lettore (`production-queue-service.test.ts`) copre la scala 19/20/21/40/41, la finestra del
+lunedì con un ordine di sabato, troncatura/`hasNextPage`/`totalDocs` mancante, CMS 500/401/corpo
+non JSON/rete chiusa/secret assente e catalogo giù. La rotta
+(`src/app/api/produzione/coda/route.test.ts`) copre 200 con stima, carrello misto, 400 per
+richiesta malformata e CMS giù → `unavailable` senza `extraDays`.
 
 ---
 
@@ -250,9 +289,17 @@ Comando: `cd storefront && npx tsx --test src/lib/production-queue.test.ts` → 
    invece di sottostimare. È voluto, ma va monitorato.
 7. Weekend riportato al lunedì: se il laboratorio produce anche il sabato, la regola va
    rivista (oggi non è dichiarato da nessuna parte nel codice).
-8. Il modulo non fa fetch né cache: la card `t_a00e9c1a` deve aggiungere il lettore CMS, la
-   gestione errori, il ricalcolo al checkout, lo snapshot in `productionEtaDays` e la
-   traduzione del messaggio «stima non disponibile» nelle cinque lingue.
+8. Il ricalcolo al checkout, lo snapshot in `productionEtaDays`, l'uso nella scheda prodotto e
+   l'avviso «stima non disponibile» nelle cinque lingue **non sono in questo contratto**: sono
+   la card `t_fa44775e`. Qui ci sono calcolo, lettura CMS, gestione errori ed endpoint.
+9. La cache del lettore è **di processo** (60 s): con più istanze non è condivisa e ogni
+   istanza fa la propria lettura. Non è una cache CDN e non serve risposte stantie fra istanze.
+10. La lettura ordini non pagina: oltre 500 ordini in 96 ore la stima diventa `unavailable`
+    (`incomplete_orders`). È una scelta fail-closed; se il volume crescesse serve la paginazione,
+    non un limite più alto.
+11. Nessun ordine reale è stato letto finora: il primo giro in produzione deve essere fatto con
+    `useCache: false` (o `resetProductionQueueReadCache()`) e riportare `unknownSkus`, `loads`,
+    `catalogState` e `ordersRead` prima di mostrare la stima ai clienti.
 
 ---
 
