@@ -42,13 +42,15 @@ type CmsQuery = 'session' | 'order' | 'other'
 interface CmsState {
   posts: Array<Record<string, unknown>>
   queries: string[]
+  refundTransitions: Array<Record<string, unknown>>
+  refundEndpointStatus: 'updated' | 'missing' | 'stale'
   /** Numero d'ordine da restituire per la chiave di sessione, se presente. */
   bySession: string | null
   /** Numero d'ordine da restituire per la ricerca per numero, se presente. */
   byOrderNumber: string | null
 }
 
-const state: CmsState = { posts: [], queries: [], bySession: null, byOrderNumber: null }
+const state: CmsState = { posts: [], queries: [], refundTransitions: [], refundEndpointStatus: 'updated', bySession: null, byOrderNumber: null }
 
 let server: ReturnType<typeof createServer>
 let baseUrl = ''
@@ -74,6 +76,22 @@ before(async () => {
         state.posts.push(JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>)
         json(201, { id: 1234, orderNumber: 'NON-DOVUTO' })
       })
+      return
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/orders/apply-refund-transition') {
+      const chunks: Buffer[] = []
+      req.on('data', (chunk: Buffer) => chunks.push(chunk))
+      req.on('end', () => {
+        state.refundTransitions.push(JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>)
+        json(200, { status: state.refundEndpointStatus })
+      })
+      return
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/affiliate-conversions/apply-refund-transition') {
+      req.on('data', () => undefined)
+      req.on('end', () => json(200, { status: 'updated' }))
       return
     }
 
@@ -107,6 +125,8 @@ after(async () => {
 beforeEach(() => {
   state.posts = []
   state.queries = []
+  state.refundTransitions = []
+  state.refundEndpointStatus = 'updated'
   state.bySession = null
   state.byOrderNumber = null
 })
@@ -154,6 +174,19 @@ function webhookRequest(payload: string, signature: string): NextRequest {
     body: payload,
     headers: { 'stripe-signature': signature },
   })
+}
+
+function refundEvent(charge: Partial<Stripe.Charge> = {}): { payload: string; signature: string } {
+  const object = {
+    id: 'ch_test_refund', object: 'charge', payment_intent: 'pi_test_refund', amount: 10_000,
+    amount_refunded: 10_000, currency: 'eur', refunded: true, metadata: {}, ...charge,
+  }
+  const payload = JSON.stringify({
+    id: 'evt_test_charge_refunded', object: 'event', api_version: '2025-01-27.acacia',
+    created: 1_700_000_123, livemode: false, pending_webhooks: 1,
+    request: { id: null, idempotency_key: null }, type: 'charge.refunded', data: { object },
+  })
+  return { payload, signature: Stripe.webhooks.generateTestHeaderString({ payload, secret: WEBHOOK_SECRET }) }
 }
 
 /** Raccoglie stderr/stdout del handler per poterli asserire. */
@@ -238,4 +271,120 @@ test('con order_ref nei metadata l ordine nuovo si crea con numero e chiave di s
   assert.equal(persisted.orderNumber, orderRef)
   assert.equal(persisted.stripeSessionId, 'cs_test_webhook_session')
   assert.match(lines.join('\n'), new RegExp(`CMS order created OK ${orderRef}`))
+})
+
+test('charge.refunded senza marker aggiorna l’ordine con lo stato cumulativo letto da Stripe', async () => {
+  const ChargeResource = Stripe.resources.Charges
+  const originalRetrieve = ChargeResource.prototype.retrieve
+  ChargeResource.prototype.retrieve = (async () => ({
+    id: 'ch_test_refund', object: 'charge', payment_intent: 'pi_test_refund', amount: 10_000,
+    amount_refunded: 10_000, currency: 'eur', refunded: true, metadata: {},
+    refunds: { data: [{ created: 1_700_000_120 }], has_more: false, object: 'list', url: '' },
+  })) as unknown as typeof ChargeResource.prototype.retrieve
+  try {
+    const { payload, signature } = refundEvent()
+    const response = await POST(webhookRequest(payload, signature))
+    assert.equal(response.status, 200)
+    assert.deepEqual(state.refundTransitions, [{
+      stripePaymentIntentId: 'pi_test_refund', chargeAmountCents: 10_000, amountRefundedCents: 10_000,
+      lastRefundedAt: new Date(1_700_000_120 * 1000).toISOString(),
+    }])
+  } finally {
+    ChargeResource.prototype.retrieve = originalRetrieve
+  }
+})
+
+async function submitRefundWithStripeCharge(charge: Record<string, unknown>) {
+  const ChargeResource = Stripe.resources.Charges
+  const originalRetrieve = ChargeResource.prototype.retrieve
+  ChargeResource.prototype.retrieve = (async () => charge) as unknown as typeof ChargeResource.prototype.retrieve
+  try {
+    const { payload, signature } = refundEvent()
+    return await POST(webhookRequest(payload, signature))
+  } finally {
+    ChargeResource.prototype.retrieve = originalRetrieve
+  }
+}
+
+test('charge.refunded parziale salva i centesimi cumulativi, non il solo refund corrente', async () => {
+  const response = await submitRefundWithStripeCharge({
+    id: 'ch_test_refund', object: 'charge', payment_intent: 'pi_test_refund', amount: 10_000,
+    amount_refunded: 2_500, currency: 'eur', refunded: false, metadata: {},
+    refunds: { data: [{ created: 1_700_000_120 }], has_more: false, object: 'list', url: '' },
+  })
+  assert.equal(response.status, 200)
+  assert.equal(state.refundTransitions[0]?.amountRefundedCents, 2_500)
+  assert.equal(state.refundTransitions[0]?.chargeAmountCents, 10_000)
+})
+
+test('ordine mancante resta retryable con 503', async () => {
+  state.refundEndpointStatus = 'missing'
+  const response = await submitRefundWithStripeCharge({
+    id: 'ch_test_refund', object: 'charge', payment_intent: 'pi_test_refund', amount: 10_000,
+    amount_refunded: 10_000, currency: 'eur', refunded: true, metadata: {}, refunds: { data: [], has_more: false, object: 'list', url: '' },
+  })
+  assert.equal(response.status, 503)
+})
+
+test('il ramo affiliate aggiorna ledger e ordine nello stesso retry Stripe', async () => {
+  const response = await submitRefundWithStripeCharge({
+    id: 'ch_test_refund', object: 'charge', payment_intent: 'pi_test_refund', amount: 10_000,
+    amount_refunded: 10_000, currency: 'eur', refunded: true,
+    metadata: { affiliate_promo_code: 'NESTOR' },
+    refunds: { data: [{ created: 1_700_000_120 }], has_more: false, object: 'list', url: '' },
+  })
+  assert.equal(response.status, 200)
+  assert.equal(state.refundTransitions.length, 1)
+})
+
+test('il replay o uno snapshot cumulativo fuori ordine non forza una risposta retryable', async () => {
+  state.refundEndpointStatus = 'stale'
+  const response = await submitRefundWithStripeCharge({
+    id: 'ch_test_refund', object: 'charge', payment_intent: 'pi_test_refund', amount: 10_000,
+    amount_refunded: 2_500, currency: 'eur', refunded: false, metadata: {}, refunds: { data: [], has_more: false, object: 'list', url: '' },
+  })
+  assert.equal(response.status, 200)
+})
+
+test('charge senza refunds completi non inventa lastRefundedAt da event.created', async () => {
+  const response = await submitRefundWithStripeCharge({
+    id: 'ch_test_refund', object: 'charge', payment_intent: 'pi_test_refund', amount: 10_000,
+    amount_refunded: 2_500, currency: 'eur', refunded: false, metadata: {},
+    refunds: { data: [], has_more: true, object: 'list', url: '' },
+  })
+  assert.equal(response.status, 200)
+  assert.equal('lastRefundedAt' in (state.refundTransitions[0] ?? {}), false)
+})
+
+test('rifare la stessa fotografia cumulativa può completare una data mancante senza arretrare importo', async () => {
+  const originalFetch = globalThis.fetch
+  const requests: Array<Record<string, unknown>> = []
+  let transitionNumber = 0
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input)
+    if (url.endsWith('/api/orders/apply-refund-transition')) {
+      requests.push(JSON.parse(String(init?.body)) as Record<string, unknown>)
+      transitionNumber += 1
+      return Response.json({ status: transitionNumber === 1 ? 'updated' : 'updated' })
+    }
+    return originalFetch(input, init)
+  }) as typeof globalThis.fetch
+  try {
+    const first = await submitRefundWithStripeCharge({
+      id: 'ch_test_refund', object: 'charge', payment_intent: 'pi_test_refund', amount: 10_000,
+      amount_refunded: 2_500, currency: 'eur', refunded: false, metadata: {},
+      refunds: { data: [], has_more: true, object: 'list', url: '' },
+    })
+    const second = await submitRefundWithStripeCharge({
+      id: 'ch_test_refund', object: 'charge', payment_intent: 'pi_test_refund', amount: 10_000,
+      amount_refunded: 2_500, currency: 'eur', refunded: false, metadata: {},
+      refunds: { data: [{ created: 1_700_000_120 }], has_more: false, object: 'list', url: '' },
+    })
+    assert.equal(first.status, 200)
+    assert.equal(second.status, 200)
+    assert.equal('lastRefundedAt' in requests[0]!, false)
+    assert.equal(requests[1]?.lastRefundedAt, new Date(1_700_000_120 * 1000).toISOString())
+  } finally {
+    globalThis.fetch = originalFetch
+  }
 })
