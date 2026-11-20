@@ -104,6 +104,11 @@ test('rotta: 200 con la stima per gli SKU richiesti', async () => {
   assert.equal(body.dayKey, '2026-11-20')
   assert.deepEqual(body.requested, [{ sku: 'DBL-A4', format: 'a4' }])
   assert.equal(body.catalogState, 'ok')
+
+  // La rotta e' pubblica: il dettaglio operativo non deve uscire.
+  for (const hidden of ['loads', 'extraDaysByFormat', 'unknownSkus', 'unknownPieces', 'excludedOrders', 'ordersRead']) {
+    assert.equal(hidden in body, false, `${hidden} non deve uscire dalla rotta pubblica`)
+  }
 })
 
 test('rotta: il carrello misto chiede tutti gli SKU e non somma i formati', async () => {

@@ -23,6 +23,7 @@ import {
   PRODUCTION_QUEUE_ORDERS_WINDOW_HOURS,
   readProductionQueueEstimate,
   resetProductionQueueReadCache,
+  toPublicProductionQueueEstimate,
   type ProductionQueueReadResult,
 } from '@/lib/production-queue-service'
 import type { ProductionQueueUnavailable } from '@/lib/production-queue'
@@ -380,4 +381,27 @@ test('lettore: elenco SKU non valido -> unavailable invalid_payload', async () =
     assert.equal(result.detail, 'skus_invalid')
   }
   assert.equal(state.ordersRequests.length, 0, 'una richiesta non valida non tocca il CMS')
+})
+
+test('proiezione pubblica: niente dettaglio operativo, unavailable invariato', async () => {
+  reset()
+  const current = scenario('payment-states')
+  state.orders = current.orders
+
+  const full = ok(await read(current.skus, current.now))
+  // Il dettaglio esiste nel risultato interno...
+  assert.ok(full.excludedOrders.length > 0)
+  assert.ok(full.unknownPieces >= 0)
+
+  // ...e non deve uscire dalla rotta pubblica.
+  const publicBody = toPublicProductionQueueEstimate(full) as Record<string, unknown>
+  for (const hidden of ['loads', 'extraDaysByFormat', 'unknownSkus', 'unknownPieces', 'excludedOrders', 'ordersRead', 'ordersWindowHours']) {
+    assert.equal(hidden in publicBody, false, `${hidden} non deve uscire dalla proiezione pubblica`)
+  }
+  assert.equal(publicBody.extraDays, full.extraDays)
+  assert.equal(publicBody.catalogState, 'ok')
+
+  reset('orders-500')
+  const failure = unavailable(await read(['DBL-A4'], '2026-11-20T12:00:00.000Z'))
+  assert.deepEqual(toPublicProductionQueueEstimate(failure), failure)
 })

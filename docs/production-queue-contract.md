@@ -138,7 +138,16 @@ Alessandro non dichiara capacità diverse (es. A5 vs XXL): il contratto espone
 
 ## 6. Contratto di risposta (storefront e checkout)
 
-Tipi esportati da `storefront/src/lib/production-queue.ts`:
+Tipi esportati da `storefront/src/lib/production-queue.ts` (calcolo puro). Il lettore server-side
+restituisce lo stesso oggetto arricchito con `catalogState`, `ordersWindowHours` e `ordersRead`
+(dati operativi, per diagnosi e monitoraggio).
+
+**Sulla rotta HTTP esce una proiezione** (`toPublicProductionQueueEstimate`): `state`, `dayKey`,
+`computedAt`, `batchSize`, `extraDays`, `requested`, `catalogState` e, in caso di guasto,
+`reason`/`detail`. Non escono `loads`, `extraDaysByFormat`, `unknownSkus`, `unknownPieces`,
+`excludedOrders` e `ordersRead`: la rotta è pubblica (carrello e checkout sono client-side,
+prima del login) e quei campi direbbero quanto lavoro c'è in laboratorio oggi e quali numeri
+d'ordine sono stati esclusi.
 
 ```ts
 type ProductionQueueEstimate =
@@ -259,7 +268,7 @@ Comandi:
 ```
 cd storefront
 npm run test:production-queue          # calcolo puro + fixture -> 21/21
-npm run test:production-queue-server   # lettore CMS + endpoint, stub HTTP su porta effimera -> 24/24
+npm run test:production-queue-server   # lettore CMS + endpoint, stub HTTP su porta effimera -> 25/25
 ```
 
 Il lettore (`production-queue-service.test.ts`) copre la scala 19/20/21/40/41, la finestra del

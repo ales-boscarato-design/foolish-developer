@@ -3,6 +3,7 @@ import {
   PRODUCTION_QUEUE_MAX_SKUS,
   normalizeQueueSkus,
   readProductionQueueEstimate,
+  toPublicProductionQueueEstimate,
 } from '@/lib/production-queue-service'
 
 /**
@@ -40,5 +41,8 @@ export async function GET(req: NextRequest) {
   if (normalizeQueueSkus(rawSkus) === null) return badRequest('sku_invalid')
 
   const estimate = await readProductionQueueEstimate({ skus: rawSkus })
-  return NextResponse.json(estimate, { headers: NO_STORE })
+  // Proiezione pubblica: la rotta e' raggiungibile da chiunque, quindi non esce
+  // il dettaglio operativo (pezzi per formato, SKU fuori catalogo, ordini
+  // esclusi con i loro numeri).
+  return NextResponse.json(toPublicProductionQueueEstimate(estimate), { headers: NO_STORE })
 }

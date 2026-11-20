@@ -83,6 +83,46 @@ export type ProductionQueueReadResult =
   | (ProductionQueueOk & ProductionQueueReadMetadata)
   | ProductionQueueUnavailable
 
+/**
+ * Proiezione pubblica: e' quello che esce dall'endpoint HTTP, raggiungibile da
+ * chiunque (carrello e checkout sono client-side, prima del login).
+ *
+ * Fuori restano `loads`, `extraDaysByFormat`, `unknownSkus`, `unknownPieces`,
+ * `excludedOrders` e i metadati di lettura: dicono quanto lavoro c'e' in
+ * laboratorio oggi, quali SKU sono fuori catalogo e — soprattutto — quali numeri
+ * d'ordine sono stati esclusi. Sono dati operativi, non del cliente che sta
+ * chiedendo la propria stima; `excludedOrders` porterebbe numeri d'ordine di
+ * terzi su una rotta pubblica.
+ */
+export type PublicProductionQueueEstimate =
+  | {
+      state: 'ok'
+      dayKey: string
+      computedAt: string
+      batchSize: number
+      extraDays: number
+      requested: ProductionQueueOk['requested']
+      catalogState: ProductionQueueReadMetadata['catalogState']
+    }
+  | ProductionQueueUnavailable
+
+export function toPublicProductionQueueEstimate(
+  result: ProductionQueueReadResult,
+): PublicProductionQueueEstimate {
+  if (result.state !== 'ok') {
+    return { state: 'unavailable', reason: result.reason, detail: result.detail }
+  }
+  return {
+    state: 'ok',
+    dayKey: result.dayKey,
+    computedAt: result.computedAt,
+    batchSize: result.batchSize,
+    extraDays: result.extraDays,
+    requested: result.requested,
+    catalogState: result.catalogState,
+  }
+}
+
 interface CachedDay {
   dayKey: string
   storedAt: number
