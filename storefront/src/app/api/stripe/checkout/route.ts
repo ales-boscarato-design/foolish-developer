@@ -28,6 +28,7 @@ import {
   buildStripeLineItems,
 } from '@/lib/checkout-session'
 import { generateOrderRef } from '@/lib/order-ref'
+import { buildAttributionMetadata } from '@/lib/attribution'
 import { estimateCartDelivery } from '@/lib/delivery-estimate'
 
 type StripeAllowedCountry = NonNullable<
@@ -118,6 +119,7 @@ export async function POST(req: NextRequest) {
     customer?: unknown
     promoCode?: unknown
     quoteToken?: unknown
+    attribution?: unknown
     deliveryEstimateDate?: unknown
   }
   if (
@@ -311,6 +313,8 @@ export async function POST(req: NextRequest) {
   // doganale di checkout e il collo quotato, cosi' la spedizione vera usa lo
   // stesso collo che ha prodotto il prezzo.
   const orderMetadata = { ...metadata, ...shippingMetadata }
+  const attributionJson = buildAttributionMetadata(request.attribution)
+  if (attributionJson) orderMetadata.attribution_json = attributionJson
   // Il country del cliente e' gia' validato: la zona c'e' sempre. La si scrive
   // solo se esiste, invece di inventarne una per riempire la chiave.
   if (deliveryEstimate.zone) orderMetadata.delivery_estimate_zone = deliveryEstimate.zone

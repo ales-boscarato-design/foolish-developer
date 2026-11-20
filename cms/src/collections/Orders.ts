@@ -6,6 +6,7 @@ import { sql, type PostgresAdapter } from '@payloadcms/db-postgres'
 import { PROMO_TYPES, PROMO_TYPE_LABELS, isPromoType } from './promoTypes'
 import { formatOrderLineTotal } from '../lib/order-line-amount'
 import { hasServiceAccess, resolveServiceScope } from '../lib/serviceAccess'
+import { sanitizeOrderAttribution } from '../lib/order-attribution'
 
 /** Formato di un codice promo: stessa regex di `PromoCodes.code`, normalizzato in uppercase. */
 const PROMO_CODE_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
@@ -191,6 +192,11 @@ const normalizePromoCodeField: CollectionBeforeChangeHook = ({ data }) => {
 
   const value = raw.trim().toUpperCase()
   return { ...data, promoCode: value || null }
+}
+
+const sanitizeAttributionField: CollectionBeforeChangeHook = ({ data }) => {
+  if (!data || typeof data !== 'object' || !('attribution' in data)) return data
+  return { ...data, attribution: sanitizeOrderAttribution(data.attribution) }
 }
 
 /**
@@ -802,7 +808,7 @@ export const Orders: CollectionConfig = {
     },
   ],
   hooks: {
-    beforeChange: [normalizePromoCodeField, normalizeCustomerTelegramId, refuseTelegramLinkTakeover, generatePageToken],
+    beforeChange: [normalizePromoCodeField, normalizeCustomerTelegramId, refuseTelegramLinkTakeover, sanitizeAttributionField, generatePageToken],
     afterChange: [sendOrderConfirmation, notifyAlfred, notifyAlessandroByEmail, syncCustomer, sendTrackingEmail],
   },
   admin: {
@@ -1009,6 +1015,34 @@ export const Orders: CollectionConfig = {
             value == null
             || (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0)
             || 'Lo sconto promo deve essere un intero positivo in centesimi',
+        },
+      ],
+    },
+
+    // ── Attribuzione marketing (snapshot senza dati personali) ────
+    {
+      name: 'attribution',
+      type: 'group',
+      label: 'Sorgente (attribution)',
+      fields: [
+        { name: 'landingPath', type: 'text', maxLength: 200 },
+        { name: 'referrerHost', type: 'text', maxLength: 100 },
+        { name: 'utmSource', type: 'text', maxLength: 100 },
+        { name: 'utmMedium', type: 'text', maxLength: 100 },
+        { name: 'utmCampaign', type: 'text', maxLength: 100 },
+        { name: 'utmTerm', type: 'text', maxLength: 100 },
+        { name: 'utmContent', type: 'text', maxLength: 100 },
+        {
+          name: 'refSlug', type: 'text', maxLength: 63,
+          validate: (value: unknown) => value == null || (typeof value === 'string' && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(value)) || 'Lo slug affiliato non è valido',
+        },
+        {
+          name: 'sourceClass', type: 'select', defaultValue: 'unknown',
+          options: [
+            { label: 'Direct', value: 'direct' }, { label: 'Organic search', value: 'organicSearch' },
+            { label: 'Paid ads', value: 'paidAds' }, { label: 'Organic social', value: 'organicSocial' },
+            { label: 'Referral', value: 'referral' }, { label: 'LLM', value: 'llm' }, { label: 'Unknown', value: 'unknown' },
+          ],
         },
       ],
     },

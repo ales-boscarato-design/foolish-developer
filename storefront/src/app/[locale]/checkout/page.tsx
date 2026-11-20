@@ -16,6 +16,7 @@ import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { cmsImageUrl } from '@/lib/cms'
+import { readAttribution } from '@/lib/attribution-client'
 import { deliveryEstimateAfterNetworkError, formatDeliveryDate } from '@/lib/delivery-estimate'
 
 // Postal code format per country
@@ -485,6 +486,7 @@ export default function CheckoutPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items,
+          attribution: readAttribution() ?? undefined,
           shippingCost: displayShippingCost,
           total: grandTotal,
           customer: {
