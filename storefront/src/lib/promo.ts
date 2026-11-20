@@ -537,6 +537,7 @@ export function buildCheckoutMetadata(args: {
   customer: CheckoutCustomer
   chargedProductLines: ChargedProductLine[]
   promo?: ValidatedPromo | null
+  deliveryEstimateDate?: string
 }): Record<string, string> | null {
   const metadata: Record<string, string> = {
     order_ref: args.orderRef,
@@ -562,6 +563,9 @@ export function buildCheckoutMetadata(args: {
   // una chiave con stringa vuota sarebbe un dato finto ("provincia: ''"), e
   // Stripe conserva i metadata vuoti come se fossero un valore.
   if (args.customer.province) metadata.customer_province = args.customer.province
+  if (args.deliveryEstimateDate && /^\d{4}-\d{2}-\d{2}$/.test(args.deliveryEstimateDate)) {
+    metadata.delivery_estimate_date = args.deliveryEstimateDate
+  }
 
   if (args.promo) {
     metadata.promo_code = args.promo.code

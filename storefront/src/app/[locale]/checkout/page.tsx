@@ -16,6 +16,7 @@ import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { cmsImageUrl } from '@/lib/cms'
+import { deliveryEstimateAfterNetworkError, formatDeliveryDate } from '@/lib/delivery-estimate'
 
 // Postal code format per country
 const POSTAL_CODE_RE: Record<string, RegExp> = {
@@ -49,6 +50,19 @@ interface AddressSuggestion {
   countryCode: string
 }
 
+/**
+ * Una stima vale per la destinazione e le righe che l'hanno prodotta: `key` e'
+ * quella coppia, e una risposta con un'altra chiave non e' una stima di questo
+ * carrello. `needsConfirmation` esiste solo per una promessa che si sta
+ * ritirando (nessuna data da mostrare), non per una data normale.
+ */
+interface DeliveryEstimateSnapshot {
+  key: string
+  date: string | null
+  productionDays: number | null
+  needsConfirmation?: boolean
+}
+
 export default function CheckoutPage() {
   const t = useTranslations('checkout')
   // Il badge della spedizione gratuita vive nel namespace della home: e' la
@@ -58,7 +72,11 @@ export default function CheckoutPage() {
   const { items, remove, updateQty, total } = useCart()
 
   // Shipping
-  const [country, setCountry] = useState('IT')
+  const [country, setCountry] = useState('')
+  // Destinazione + righe del carrello: e' l'identita' di un prezzo e di una
+  // data. Si calcola qui perche' la stima si ricarica SOLO quando cambia.
+  const cartLinesKey = JSON.stringify(items.map((item) => [item.sku, item.quantity, item.price]))
+  const deliveryKey = `${country}|${cartLinesKey}`
 
   // Shipping form
   // `name` resta per i paesi che raccolgono un'unica stringa; per l'Italia la
@@ -105,6 +123,83 @@ export default function CheckoutPage() {
 
   // Payment
   const [loading, setLoading] = useState(false)
+  // `shown` e' cio' che il cliente VEDE (e che parte verso il checkout);
+  // `pending` e' una stima diversa arrivata dopo, in attesa del suo consenso.
+  // Sono nello stesso stato perche' la decisione "mostro o chiedo?" e' una sola.
+  const [estimateState, setEstimateState] = useState<{
+    shown: DeliveryEstimateSnapshot | null
+    pending: DeliveryEstimateSnapshot | null
+  }>({ shown: null, pending: null })
+
+  /**
+   * Una sola richiesta per destinazione/carrello: niente polling. Una data gia'
+   * mostrata non viene mai sostituita in silenzio — se la risposta ne porta una
+   * diversa, si mette da parte e il cliente decide.
+   */
+  useEffect(() => {
+    // Niente `setState` qui: se il paese si svuota o le righe cambiano,
+    // `deliveryKey` cambia e il rendering scarta da solo la stima vecchia
+    // (`activeEstimate`/`pendingForCart` la confrontano con la chiave corrente).
+    // Un eventuale stato rimasto in memoria non viene letto ne' mostrato.
+    if (!country || items.length === 0) return
+    let cancelled = false
+    const key = deliveryKey
+    // Una richiesta che non risponde mai non deve lasciare il cliente senza
+    // uscita: dopo il timeout si passa dal percorso "nessuna data" e serve la
+    // conferma esplicita, esattamente come per un errore di rete.
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 9_000)
+    const refresh = async () => {
+      // Decisione pura: nessun `setState` dentro l'aggiornamento di un altro.
+      const keepOrConfirm = (next: DeliveryEstimateSnapshot | null) => setEstimateState((previous) => {
+        const shown = previous.shown && previous.shown.key === key ? previous.shown : null
+        if (next === null) {
+          // Guasto di rete: una promessa gia' mostrata resta valida, altrimenti
+          // il cliente deve confermare di proseguire senza data.
+          return shown && shown.date ? previous : { shown: deliveryEstimateAfterNetworkError(key), pending: null }
+        }
+        // Una data mostrata non si sostituisce in silenzio.
+        if (shown && shown.date && shown.date !== next.date) return { shown, pending: next }
+        // Nessuna data mostrata (null) non e' una promessa: qui non c'e' niente
+        // da ritirare, quindi la risposta puo' prendere il suo posto.
+        return { shown: { ...next, needsConfirmation: false }, pending: null }
+      })
+      try {
+        const response = await fetch('/api/stripe/delivery-estimate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ country, items }),
+          signal: controller.signal,
+        })
+        const result = await response.json() as { deliveryEstimateDate?: string | null; productionDays?: number | null }
+        if (cancelled) return
+        const dateValid = result.deliveryEstimateDate === null || typeof result.deliveryEstimateDate === 'string'
+        const productionValid = result.productionDays === null || typeof result.productionDays === 'number'
+        if (response.ok && dateValid && productionValid) {
+          keepOrConfirm({
+            key,
+            date: result.deliveryEstimateDate ?? null,
+            productionDays: result.productionDays ?? null,
+          })
+        } else {
+          keepOrConfirm(null)
+        }
+      } catch {
+        if (!cancelled) keepOrConfirm(null)
+      } finally {
+        clearTimeout(timeout)
+      }
+    }
+    void refresh()
+    return () => {
+      cancelled = true
+      controller.abort()
+      clearTimeout(timeout)
+    }
+    // `deliveryKey` raccoglie paese e righe: il carrello e' un array nuovo a
+    // ogni render e non deve rilanciare la richiesta.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deliveryKey])
 
   // Extra-UE: il prezzo della riga "spedizione e import" servito dal negozio
   // (quota live sulla Pi, tabella dei prezzi reali in casa, profilo prudenziale
@@ -138,7 +233,14 @@ export default function CheckoutPage() {
   // Extra-UE: la promo "spedizione gratuita" non si applica. Azzererebbe anche
   // dazi, IVA all'importazione e fee DDP, cioe' esattamente le voci che la
   // tariffa piatta non copriva.
-  const cartLinesKey = JSON.stringify(items.map((item) => [item.sku, item.quantity, item.price]))
+  // Quello che il cliente vede: una stima che parla di QUESTO carrello e di
+  // QUESTA destinazione. Una risposta vecchia non si mostra su righe nuove.
+  const activeEstimate = estimateState.shown && estimateState.shown.key === deliveryKey ? estimateState.shown : null
+  const productionDays = activeEstimate?.productionDays ?? 0
+  const activeEstimateDate = activeEstimate?.date ?? null
+  const estimateResolved = activeEstimate !== null
+  // Una data diversa da quella mostrata non entra da sola: aspetta un clic.
+  const pendingForCart = estimateState.pending && estimateState.pending.key === deliveryKey ? estimateState.pending : null
   const promoIsValidForCart = promoStatus === 'valid' && promoValidatedCartKey === cartLinesKey && promoValidatedCode === promoCode
   const freeShippingByPromo = promoIsValidForCart && promoType === 'free_shipping' && baseShipping.freeShippingPromoAllowed
   const shipping = freeShippingByPromo ? { ...baseShipping, cost: 0, isFree: true } : baseShipping
@@ -200,7 +302,10 @@ export default function CheckoutPage() {
   // Chiede al negozio il prezzo extra-UE della destinazione: la risposta e' la
   // stessa che il checkout ricalcola (o il gettone firmato di quel prezzo).
   useEffect(() => {
-    if (!isExtraEuDestination || items.length === 0) return
+    // Senza paese la zona non e' una destinazione: `getShippingZone('')` cade
+    // su EXTRA_EU e manderebbe una quota per un paese che non esiste. Il paese
+    // lo sceglie il cliente; prima non parte niente.
+    if (!country || !isExtraEuDestination || items.length === 0) return
     const controller = new AbortController()
     const timer = setTimeout(() => {
       fetch('/api/spedizione/quote', {
@@ -258,11 +363,27 @@ export default function CheckoutPage() {
 
   const canPay =
     !loading &&
+    !!country && estimateResolved &&
+    activeEstimate?.needsConfirmation !== true &&
+    // Una stima nuova in attesa di conferma blocca il pagamento: si parte con
+    // quella che il cliente ha accettato, non con una data appena cambiata.
+    pendingForCart === null &&
     !baseShipping.requiresQuote &&
     recipientNameComplete && !!form.email && !!form.address && !!form.city && !!form.postalCode &&
     !!form.phone && !phoneError && !provinceError &&
     emailStatus !== 'invalid' &&
     (!billingDifferent || (!!billing.name && !!billing.address && !!billing.city && !!billing.postalCode))
+
+  /**
+   * Il cliente accetta la stima arrivata dopo. Da qui in poi e' quella mostrata
+   * E quella inviata al checkout: le due cose sono lo stesso stato.
+   */
+  const acceptPendingEstimate = () => {
+    setEstimateState((previous) => {
+      if (!previous.pending || previous.pending.key !== deliveryKey) return previous
+      return { shown: { ...previous.pending, needsConfirmation: false }, pending: null }
+    })
+  }
 
   // ---- Promo ----
   const applyPromo = async () => {
@@ -383,6 +504,7 @@ export default function CheckoutPage() {
           // Il checkout non si fida di un prezzo mandato dal browser: o
           // riconosce il gettone di QUEL carrello, o risolve da capo.
           quoteToken: activeQuote?.token ?? undefined,
+          deliveryEstimateDate: activeEstimateDate ?? undefined,
           discountAmount: proDiscount > 0 ? proDiscount : undefined,
           discountLabel: promoType === 'percent_pro' && promoData?.discountPercent
             ? `Sconto Foolish Pro ${promoData.discountPercent}%`
@@ -398,6 +520,25 @@ export default function CheckoutPage() {
         track('checkout_started', { total: grandTotal, items: items.length, country })
         // Il redirect stronca la pagina prima che il beacon Umami parta: piccolo ritardo per farlo partire.
         setTimeout(() => window.location.assign(data.checkoutUrl), 150)
+      } else if (res.status === 409 && (data.error === 'delivery_estimate_changed' || data.error === 'delivery_estimate_unavailable') && (data.deliveryEstimateDate === null || typeof data.deliveryEstimateDate === 'string') && (data.productionDays === null || typeof data.productionDays === 'number')) {
+        // Il server ha ricalcolato: il valore che restituisce e' l'autorita'.
+        // Non e' una sostituzione silenziosa — il cliente lo legge qui sotto.
+        setEstimateState({
+          shown: {
+            key: deliveryKey,
+            date: data.deliveryEstimateDate,
+            productionDays: data.productionDays,
+            needsConfirmation: data.deliveryEstimateDate === null,
+          },
+          pending: null,
+        })
+        if (data.deliveryEstimateDate === null) {
+          alert(t('deliveryEstimateUnavailable'))
+        } else {
+          alert(t('deliveryEstimate', {
+            date: formatDeliveryDate(locale, new Date(`${data.deliveryEstimateDate}T00:00:00.000Z`)),
+          }))
+        }
       } else {
         alert(t('errorOrder'))
       }
@@ -516,7 +657,10 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {baseShipping.requiresQuote && (
+          {/* Nessun paese scelto = nessuna destinazione: senza destinazione il
+              profilo di spedizione non esiste (getShippingZone('') cade su
+              extra-UE) e «da quotare» descriverebbe un ordine che non c'e'. */}
+          {country && baseShipping.requiresQuote && (
             <div
               className="rounded-xl p-4 mb-6 border text-sm"
               style={{ backgroundColor: 'var(--surface-1)', borderColor: '#151515', color: 'var(--muted-fg)' }}
@@ -526,6 +670,55 @@ export default function CheckoutPage() {
           )}
 
           {/* Cart items */}
+          {estimateResolved && (
+            <div className="mb-4 rounded-lg border px-4 py-3 text-sm" style={{ borderColor: 'var(--accent)', color: 'var(--foreground)' }}>
+              {activeEstimateDate ? <>
+                <p className="font-medium">
+                  {t('deliveryEstimate', { date: formatDeliveryDate(locale, new Date(`${activeEstimateDate}T00:00:00.000Z`)) })}
+                </p>
+                <p className="mt-1 text-xs" style={{ color: 'var(--muted-fg)' }}>
+                  {t(baseShipping.zone === 'EXTRA_EU' ? 'deliveryTransitExtraEu' : 'deliveryTransitItEu')}
+                </p>
+                {productionDays > 0 && (
+                  <p className="mt-1 text-xs" style={{ color: 'var(--muted-fg)' }}>
+                    {t('deliveryProductionDays', { days: productionDays })}
+                  </p>
+                )}
+                {activeEstimate?.productionDays === null && (
+                  <p className="mt-1 text-xs" style={{ color: 'var(--muted-fg)' }}>{t('deliveryProductionUnknown')}</p>
+                )}
+              </> : <>
+                <p className="font-medium">{t('deliveryEstimateUnavailable')}</p>
+                {activeEstimate?.needsConfirmation && (
+                  <button
+                    type="button"
+                    className="mt-2 underline"
+                    onClick={() => setEstimateState((previous) => (
+                      previous.shown
+                        ? { ...previous, shown: { ...previous.shown, needsConfirmation: false } }
+                        : previous
+                    ))}
+                  >
+                    {t('deliveryEstimateConfirmWithoutDate')}
+                  </button>
+                )}
+              </>}
+            </div>
+          )}
+          {/* Una stima nuova non prende il posto di quella gia' mostrata se non
+              con un clic: fino ad allora il pagamento resta disabilitato. */}
+          {pendingForCart && (
+            <div className="mb-4 rounded-lg border px-4 py-3 text-sm" style={{ borderColor: 'var(--accent)', color: 'var(--foreground)' }}>
+              <p className="font-medium">
+                {pendingForCart.date
+                  ? t('deliveryEstimate', { date: formatDeliveryDate(locale, new Date(`${pendingForCart.date}T00:00:00.000Z`)) })
+                  : t('deliveryEstimateUnavailable')}
+              </p>
+              <button type="button" className="mt-2 underline" onClick={acceptPendingEstimate}>
+                {pendingForCart.date ? t('deliveryEstimateConfirmChangedDate') : t('deliveryEstimateConfirmWithoutDate')}
+              </button>
+            </div>
+          )}
           <div className="space-y-4">
             {items.map((item) => (
               <div key={item.sku} className="flex gap-4 p-4 rounded-lg border" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}>
@@ -604,6 +797,7 @@ export default function CheckoutPage() {
               className={inputBase}
               style={inputStyle('country', !!country)}
             >
+              <option value="" disabled>{t('shippingTitle')}</option>
               {ALLOWED_SHIPPING_COUNTRIES.map((code) => (
                 <option key={code} value={code}>{t(`countries.${code}`)}</option>
               ))}
@@ -911,9 +1105,13 @@ export default function CheckoutPage() {
               </div>
 
               <div className="flex justify-between py-2" style={{ borderBottom: '1px solid var(--surface-3)' }}>
-                <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>{t('labelShipping', { country })}</span>
+                <span className="text-sm" style={{ color: 'var(--muted-fg)' }}>{country ? t('labelShipping', { country }) : t('shippingTitle')}</span>
                 <span className="text-mono text-sm" style={{ color: shipping.isFree ? '#5a9c52' : 'var(--foreground)' }}>
-                  {baseShipping.requiresQuote
+                  {/* Senza paese non esiste una tariffa di zona da mostrare: un
+                      importo qui sarebbe il prezzo di una destinazione inventata. */}
+                  {!country
+                    ? '—'
+                    : baseShipping.requiresQuote
                     ? t('shippingQuoteRequired')
                     : shipping.isFree ? t('labelFree') : formatEuroCents(locale, shippingDisplayCents)}
                 </span>
