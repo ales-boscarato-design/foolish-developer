@@ -741,6 +741,40 @@ export type UncalibratedExtraEuPolicy = 'quote_required' | 'conservative_profile
 
 export const UNCALIBRATED_EXTRA_EU_POLICY: UncalibratedExtraEuPolicy = 'conservative_profile'
 
+/**
+ * Chi paga dazi e IVA all'importazione su una spedizione extra-UE.
+ *
+ *   DDP  (default, quello che il prezzo calcola oggi) gli oneri import sono
+ *        DENTRO il costo di spedizione addebitato al cliente — `calculateShipping`
+ *        e `landedCost` li sommano al prezzo, quindi il cliente non paga altro
+ *        alla consegna;
+ *   DAP  gli oneri import li paga il destinatario al corriere, e il prezzo
+ *        addebitato NON li contiene.
+ *
+ * Perche' e' un interruttore e non una frase scritta nella pagina: la scheda
+ * prodotto dichiara chi paga i dazi, e quella dichiarazione deve essere la
+ * stessa cosa che il prezzo fa. Con l'interruttore la scheda legge da qui, e
+ * finche' resta DDP la scheda dice «inclusi nel costo di spedizione» — che e'
+ * vero per il prezzo che il checkout incassa. Accendere il DAP senza spostare
+ * il calcolo del prezzo mostrerebbe al cliente «dazi a carico tuo» mentre il
+ * prezzo li include gia': per questo l'accensione e' una decisione separata e
+ * va presa insieme al percorso che calcola il prezzo (checkout/landed cost),
+ * non solo con questa riga.
+ *
+ * Si legge solo lato server: un componente client non vede le variabili
+ * d'ambiente non `NEXT_PUBLIC_`, e qui il default prudente e' comunque DDP.
+ */
+export const IMPORT_DUTIES_MODES = ['DDP', 'DAP'] as const
+export type ImportDutiesMode = (typeof IMPORT_DUTIES_MODES)[number]
+
+/** Nome della variabile che accende il DAP. Assente o diversa da `DAP` = DDP. */
+export const IMPORT_DUTIES_ENV_VAR = 'SHIPPING_IMPORT_DUTIES'
+
+export function importDutiesMode(): ImportDutiesMode {
+  const raw = (process.env.SHIPPING_IMPORT_DUTIES ?? '').trim().toUpperCase()
+  return raw === 'DAP' ? 'DAP' : 'DDP'
+}
+
 interface FlatZoneConfig {
   cost: number
   freeAbove: number

@@ -5,6 +5,7 @@ import { getLocale } from 'next-intl/server'
 import { getProductBySlug } from '@/lib/cms'
 import { ProductDetail } from '@/components/ProductDetail'
 import { getPublishedReviewsByProduct, getReviewSummary } from '@/lib/reviews-db'
+import { importDutiesMode } from '@/lib/shipping'
 
 const BASE = 'https://thefoolishbutcher.com'
 const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
@@ -101,7 +102,12 @@ export default async function ProductPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
-      <ProductDetail product={product} reviews={reviews} reviewSummary={reviewSummary} />
+      <ProductDetail
+        product={product}
+        reviews={reviews}
+        reviewSummary={reviewSummary}
+        importDuties={importDutiesMode()}
+      />
     </>
   )
 }
