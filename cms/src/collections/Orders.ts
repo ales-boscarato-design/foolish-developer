@@ -2,9 +2,10 @@ import { APIError } from 'payload'
 import type { CollectionConfig, CollectionAfterChangeHook, CollectionBeforeChangeHook, PayloadRequest } from 'payload'
 import crypto from 'crypto'
 import type { Order } from '../payload-types'
+import { sql, type PostgresAdapter } from '@payloadcms/db-postgres'
 import { PROMO_TYPES, PROMO_TYPE_LABELS, isPromoType } from './promoTypes'
 import { formatOrderLineTotal } from '../lib/order-line-amount'
-import { hasServiceAccess } from '../lib/serviceAccess'
+import { hasServiceAccess, resolveServiceScope } from '../lib/serviceAccess'
 
 /** Formato di un codice promo: stessa regex di `PromoCodes.code`, normalizzato in uppercase. */
 const PROMO_CODE_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
@@ -25,6 +26,101 @@ const ALFRED_PIPELINE_STATES = new Set<NonNullable<Order['pipelineState']>>([
 ])
 
 type AlfredOrderUpdate = Partial<Pick<Order, 'pipelineState' | 'trackingNumber' | 'trackingCarrier' | 'productionEtaDays' | 'customerTelegramId'>>
+
+const MAX_REFUND_CENTS = 100_000_000_000
+
+function validPaymentIntentId(value: unknown): value is string {
+  return typeof value === 'string' && /^pi_[A-Za-z0-9_]{1,127}$/.test(value)
+}
+
+/** Applica una fotografia cumulativa Stripe sotto lock sulla riga Orders. */
+async function applyOrderRefundTransition(req: PayloadRequest): Promise<Response> {
+  if (resolveServiceScope(req.headers) !== 'storefront' && !req.user) {
+    throw new APIError('Unauthorized', 401)
+  }
+
+  let body: unknown
+  try {
+    if (typeof req.json !== 'function') throw new Error('missing JSON parser')
+    body = await req.json()
+  } catch {
+    throw new APIError('Invalid JSON body', 400)
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) throw new APIError('Invalid refund transition', 400)
+  const input = body as Record<string, unknown>
+  const paymentIntentId = input.stripePaymentIntentId
+  const amountRefundedCents = input.amountRefundedCents
+  const chargeAmountCents = input.chargeAmountCents
+  const lastRefundedAt = input.lastRefundedAt
+  if (
+    !validPaymentIntentId(paymentIntentId)
+    || !Number.isSafeInteger(amountRefundedCents)
+    || (amountRefundedCents as number) < 1
+    || (amountRefundedCents as number) > MAX_REFUND_CENTS
+    || !Number.isSafeInteger(chargeAmountCents)
+    || (chargeAmountCents as number) < 1
+    || (chargeAmountCents as number) > MAX_REFUND_CENTS
+    || (amountRefundedCents as number) > (chargeAmountCents as number)
+    || (lastRefundedAt !== null && lastRefundedAt !== undefined
+      && (typeof lastRefundedAt !== 'string' || !Number.isFinite(Date.parse(lastRefundedAt))))
+  ) throw new APIError('Invalid refund transition', 400)
+
+  const amount = amountRefundedCents as number
+  const refundStatus = amount === chargeAmountCents ? 'full' : 'partial'
+  const paymentStatus = refundStatus === 'full' ? 'refunded' : 'paid'
+  const db = req.payload.db as unknown as PostgresAdapter
+  const result = await db.drizzle.transaction(async (tx) => {
+    const locked = await tx.execute(sql`
+      SELECT "id", "amount_refunded_cents", "refund_status", "last_refunded_at"
+      FROM "orders"
+      WHERE "stripe_payment_intent_id" = ${paymentIntentId}
+      FOR UPDATE
+    `)
+    if (locked.rows.length === 0) return { status: 'missing' as const }
+    if (locked.rows.length !== 1) throw new APIError('Order PaymentIntent is not unique', 500)
+
+    const current = locked.rows[0] as {
+      id?: unknown
+      amount_refunded_cents?: unknown
+      refund_status?: unknown
+      last_refunded_at?: unknown
+    }
+    const currentAmount = current.amount_refunded_cents
+    if (
+      !Number.isSafeInteger(current.id)
+      || (currentAmount !== null && currentAmount !== undefined && (!Number.isSafeInteger(Number(currentAmount)) || Number(currentAmount) < 0))
+      || (current.refund_status !== null && current.refund_status !== undefined && !['none', 'partial', 'full'].includes(String(current.refund_status)))
+    ) throw new APIError('Malformed order refund state', 500)
+
+    if (currentAmount !== null && currentAmount !== undefined && Number(currentAmount) >= amount) {
+      if (
+        Number(currentAmount) > amount
+        || (Number(currentAmount) === amount && (current.last_refunded_at !== null && current.last_refunded_at !== undefined
+          || lastRefundedAt === null || lastRefundedAt === undefined))
+      ) return { status: 'stale' as const }
+      const timestampUpdate = await tx.execute(sql`
+        UPDATE "orders"
+        SET "last_refunded_at" = ${new Date(lastRefundedAt as string).toISOString()}, "updated_at" = NOW()
+        WHERE "id" = ${current.id} AND "amount_refunded_cents" = ${amount} AND "last_refunded_at" IS NULL
+        RETURNING "id"
+      `)
+      return timestampUpdate.rows.length === 1 ? { status: 'updated' as const } : { status: 'stale' as const }
+    }
+    const updated = await tx.execute(sql`
+      UPDATE "orders"
+      SET "amount_refunded_cents" = ${amount},
+          "refund_status" = ${refundStatus}::"enum_orders_refund_status",
+          "payment_status" = ${paymentStatus}::"enum_orders_payment_status",
+          "last_refunded_at" = ${lastRefundedAt ? new Date(lastRefundedAt).toISOString() : null},
+          "updated_at" = NOW()
+      WHERE "id" = ${current.id}
+        AND ("amount_refunded_cents" IS NULL OR "amount_refunded_cents" < ${amount})
+      RETURNING "id"
+    `)
+    return updated.rows.length === 1 ? { status: 'updated' as const } : { status: 'stale' as const }
+  })
+  return Response.json(result)
+}
 
 function hasAlfredOrdersSecret(req: PayloadRequest): boolean {
   const expected = process.env.ALFRED_ORDERS_API_SECRET
@@ -665,6 +761,11 @@ export const Orders: CollectionConfig = {
   slug: 'orders',
   endpoints: [
     {
+      path: '/apply-refund-transition',
+      method: 'post',
+      handler: applyOrderRefundTransition,
+    },
+    {
       path: '/:id/alfred',
       method: 'patch',
       handler: async (req) => {
@@ -841,6 +942,35 @@ export const Orders: CollectionConfig = {
         readOnly: true,
         description: 'Risoluzione del webhook per sessione. Non è un numero d\'ordine.',
       },
+    },
+
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'amountRefundedCents',
+          type: 'number',
+          label: 'Rimborsato cumulativo (centesimi)',
+          admin: { readOnly: true, width: '33%' },
+        },
+        {
+          name: 'refundStatus',
+          type: 'select',
+          label: 'Stato rimborso',
+          admin: { readOnly: true, width: '33%' },
+          options: [
+            { label: 'Nessuno', value: 'none' },
+            { label: 'Parziale', value: 'partial' },
+            { label: 'Completo', value: 'full' },
+          ],
+        },
+        {
+          name: 'lastRefundedAt',
+          type: 'date',
+          label: 'Data ultimo rimborso',
+          admin: { readOnly: true, width: '34%' },
+        },
+      ],
     },
 
     // ── Promo ─────────────────────────────────────────────────────

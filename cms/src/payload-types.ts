@@ -494,6 +494,9 @@ export interface Order {
    * Risoluzione del webhook per sessione. Non è un numero d'ordine.
    */
   stripeSessionId?: string | null;
+  amountRefundedCents?: number | null;
+  refundStatus?: ('none' | 'partial' | 'full') | null;
+  lastRefundedAt?: string | null;
   /**
    * Salvato in uppercase, come su PromoCodes
    */
@@ -1191,6 +1194,9 @@ export interface OrdersSelect<T extends boolean = true> {
   paymentMethod?: T;
   stripePaymentIntentId?: T;
   stripeSessionId?: T;
+  amountRefundedCents?: T;
+  refundStatus?: T;
+  lastRefundedAt?: T;
   promoCode?: T;
   promoType?: T;
   promoDiscountCents?: T;

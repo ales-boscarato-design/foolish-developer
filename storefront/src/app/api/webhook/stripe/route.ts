@@ -27,6 +27,26 @@ const cmsHeaders = () => ({
   'x-storefront-secret': cmsServiceSecret(),
 })
 
+async function persistOrderRefund(input: {
+  stripePaymentIntentId: string
+  chargeAmountCents: number
+  amountRefundedCents: number
+  lastRefundedAt?: string
+}): Promise<'updated' | 'stale' | 'missing'> {
+  const response = await fetch(`${CMS_URL()}/api/orders/apply-refund-transition`, {
+    method: 'POST',
+    headers: cmsHeaders(),
+    body: JSON.stringify(input),
+    cache: 'no-store',
+  })
+  if (!response.ok) throw new Error(`CMS order refund update failed ${response.status}`)
+  const result = await response.json() as { status?: unknown }
+  if (result.status !== 'updated' && result.status !== 'stale' && result.status !== 'missing') {
+    throw new Error('CMS order refund response invalid')
+  }
+  return result.status
+}
+
 interface SubscriptionDoc {
   id: string
   customerEmail: string
@@ -122,6 +142,7 @@ async function orderExists(orderRef: string): Promise<boolean> {
 
 async function createRenewalOrder(params: {
   orderRef: string
+  stripePaymentIntentId?: string
   cycle: number
   plan: PlanKey
   zone: Zone
@@ -143,6 +164,7 @@ async function createRenewalOrder(params: {
     body: JSON.stringify({
       orderNumber: orderRef,
       source: 'subscription',
+      ...(params.stripePaymentIntentId ? { stripePaymentIntentId: params.stripePaymentIntentId } : {}),
       customerEmail,
       customerName: shippingAddress.name,
       lineItems,
@@ -175,31 +197,73 @@ export async function POST(req: NextRequest) {
   }
 
   if (event.type === 'charge.refunded') {
-    if (!hasAffiliateRefundMarker(event.data.object)) {
-      return NextResponse.json({ received: true })
-    }
-
+    let refundStage = 'charge_validation'
     try {
-      const result = await updateAffiliateConversionForStripeChargeRefund({
-        charge: event.data.object,
-        cms: createAffiliateAttributionCms(),
+      const eventCharge = event.data.object
+      if (typeof eventCharge.id !== 'string' || !/^ch_[A-Za-z0-9_]+$/.test(eventCharge.id)) {
+        throw new Error('Invalid charge identity')
+      }
+      refundStage = 'stripe_retrieve'
+      const charge = await stripe.charges.retrieve(eventCharge.id)
+      refundStage = 'charge_validation'
+      const paymentIntentId = typeof charge.payment_intent === 'string'
+        ? charge.payment_intent
+        : charge.payment_intent?.id
+      if (
+        !paymentIntentId
+        || !/^pi_[A-Za-z0-9_]{1,127}$/.test(paymentIntentId)
+        || !Number.isSafeInteger(charge.amount)
+        || charge.amount < 1
+        || !Number.isSafeInteger(charge.amount_refunded)
+        || charge.amount_refunded < 1
+        || charge.amount_refunded > charge.amount
+        || charge.currency.toLowerCase() !== 'eur'
+      ) throw new Error('Invalid cumulative Stripe refund')
+
+      const refundList = charge.refunds
+      const refundCreatedAt = refundList?.has_more === false
+        && refundList.data.length > 0
+        && refundList.data.every((refund) => Number.isSafeInteger(refund.created) && refund.created > 0)
+        ? Math.max(...refundList.data.map((refund) => refund.created))
+        : null
+      refundStage = 'order_persistence'
+      const orderResult = await persistOrderRefund({
+        stripePaymentIntentId: paymentIntentId,
+        chargeAmountCents: charge.amount,
+        amountRefundedCents: charge.amount_refunded,
+        ...(refundCreatedAt === null ? {} : { lastRefundedAt: new Date(refundCreatedAt * 1000).toISOString() }),
       })
-      if (result.status === 'missing') {
-        return NextResponse.json({ error: 'Affiliate conversion unavailable' }, { status: 503 })
+      if (orderResult === 'missing') {
+        return NextResponse.json({ error: 'Order unavailable' }, { status: 503 })
+      }
+
+      // Lo snapshot cumulativo dell'ordine e' gia' scritto: il ledger affiliate
+      // non puo' piu' impedire il rimborso. Se la conversione manca (marker
+      // scritto al checkout, attribuzione best-effort) o la scrittura fallisce,
+      // il 503 fa ritentare Stripe; il retry riscrive la stessa transizione
+      // ordine, che il CMS tratta come idempotente/stale.
+      if (hasAffiliateRefundMarker(charge)) {
+        refundStage = 'affiliate_persistence'
+        const affiliateResult = await updateAffiliateConversionForStripeChargeRefund({
+          charge,
+          cms: createAffiliateAttributionCms(),
+        })
+        if (affiliateResult.status === 'missing') {
+          return NextResponse.json({ error: 'Affiliate conversion unavailable' }, { status: 503 })
+        }
       }
     } catch {
-      // Keep the event retryable until the ledger is safely reconciled. Do not
-      // include payment, customer, or secret data in the log.
-      console.error('[webhook] affiliate refund status update failed')
-      return NextResponse.json({ error: 'Affiliate refund persistence failed' }, { status: 503 })
+      // Keep the event retryable until both the affiliate ledger (when marked)
+      // and the order snapshot are durable. Never log payment or customer data.
+      console.error(`[webhook] refund persistence failed stage=${refundStage}`)
+      return NextResponse.json({ error: 'Refund persistence failed' }, { status: 503 })
     }
     return NextResponse.json({ received: true })
   }
 
   if (event.type === 'refund.updated') {
-    // A Refund contains only its individual amount, not the charge's
-    // aggregate amount_refunded. Without retrieving the charge, mapping this
-    // event to a cumulative partial/full ledger state would require guessing.
+    // The cumulative amount is read from `stripe.charges.retrieve` while
+    // handling `charge.refunded`; this event contains only one refund amount.
     return NextResponse.json({ received: true })
   }
 
@@ -559,8 +623,19 @@ export async function POST(req: NextRequest) {
           country: destinationCountry ?? record.zone,
         }
 
+        const invoicePayments = invoice.payments
+        const paidInvoicePayment = invoicePayments?.has_more === false
+          ? invoicePayments.data.filter((payment) => payment.status === 'paid' && payment.payment.type === 'payment_intent')
+          : []
+        const invoicePaymentIntent = paidInvoicePayment.length === 1 ? paidInvoicePayment[0]?.payment.payment_intent : undefined
+        const invoicePaymentIntentId = typeof invoicePaymentIntent === 'string'
+          ? invoicePaymentIntent
+          : invoicePaymentIntent?.id
         await createRenewalOrder({
           orderRef,
+          ...(invoicePaymentIntentId && /^pi_[A-Za-z0-9_]{1,127}$/.test(invoicePaymentIntentId)
+            ? { stripePaymentIntentId: invoicePaymentIntentId }
+            : {}),
           cycle: newCycle,
           plan: record.plan,
           zone: record.zone,
