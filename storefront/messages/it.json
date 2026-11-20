@@ -134,7 +134,28 @@
     "sectionMerch": "Merch",
     "shipsIn": "Spedito in {days} giorni lavorativi",
     "madeToOrder": "Fatto su ordinazione",
-    "madeToOrderDesc": "Il tuo ordine viene lavorato personalmente dopo l'acquisto. Consegna stimata in {total} giorni lavorativi."
+    "madeToOrderDesc": "Il tuo ordine viene lavorato personalmente dopo l'acquisto. Consegna stimata in {total} giorni lavorativi.",
+    "delivery": {
+      "bandEu": "Italia e UE: 24–48 ore",
+      "bandExtraEu": "Extra-UE: 4–6 giorni lavorativi",
+      "productionExtra": "più {days} giorni lavorativi di produzione"
+    },
+    "shippingCost": {
+      "title": "Spedizione",
+      "italy": "Italia: {cost}€ · gratis sopra {threshold}€",
+      "eu": "Unione Europea: {cost}€ · gratis sopra {threshold}€",
+      "extraEuDdp": "Extra-UE: spedizione calcolata al checkout · dazi e IVA all'importazione inclusi nel costo di spedizione",
+      "extraEuDap": "Extra-UE: spedizione calcolata al checkout · dazi e IVA all'importazione a carico del destinatario"
+    },
+    "tech": {
+      "title": "Com'è fatto",
+      "stencil": "Stencil: la pelle siliconica assorbe il colore nei pori, quindi il colore resta dentro lo spessore e non in superficie.",
+      "discromie": "Discromie: il flock non è uniforme; leggere differenze di tono fanno parte del materiale.",
+      "thickness": "Spessore 4–8 mm, su due facce.",
+      "translucency": "Traslucenza: gli strati lasciano passare la luce. Traslucido non vuol dire trasparente."
+    },
+    "available": "Disponibile",
+    "onOrder": "Su ordinazione"
   },
   "sections": {
     "label": "Sezione",

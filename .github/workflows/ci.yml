@@ -131,6 +131,7 @@ jobs:
           npm run test:checkout-i18n --silent
           npm run test:security-secrets --silent
           npm run test:money --silent
+          npm run test:product-i18n --silent
       - name: Storefront — build
         working-directory: storefront
         run: npm run build

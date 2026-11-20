@@ -41,7 +41,8 @@
     "test:printful-shipping": "tsx --test src/lib/printful-shipping.test.ts",
     "test:printful-webhook": "tsx --test src/app/api/webhook/printful-fulfillment/route.test.ts",
     "test:security-secrets": "tsx --test src/lib/cms-service-secret.test.ts src/lib/admin-secret.test.ts",
-    "test:money": "tsx --test src/lib/money.test.ts"
+    "test:money": "tsx --test src/lib/money.test.ts",
+    "test:product-i18n": "tsx --test src/lib/product-i18n.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",

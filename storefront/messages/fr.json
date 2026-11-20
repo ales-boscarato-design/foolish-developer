@@ -134,7 +134,28 @@
     "sectionMerch": "Merch",
     "shipsIn": "Expédié en {days} jours ouvrés",
     "madeToOrder": "Fabriqué sur commande",
-    "madeToOrderDesc": "Votre pièce est travaillée personnellement après l'achat. Livraison estimée en {total} jours ouvrés."
+    "madeToOrderDesc": "Votre pièce est travaillée personnellement après l'achat. Livraison estimée en {total} jours ouvrés.",
+    "delivery": {
+      "bandEu": "Italie et UE : 24–48 heures",
+      "bandExtraEu": "Hors UE : 4–6 jours ouvrés",
+      "productionExtra": "+ {days} jours ouvrés de production"
+    },
+    "shippingCost": {
+      "title": "Livraison",
+      "italy": "Italie : {cost}€ · offerte dès {threshold}€",
+      "eu": "Union européenne : {cost}€ · offerte dès {threshold}€",
+      "extraEuDdp": "Hors UE : frais de port calculés au paiement · droits de douane et TVA à l'importation inclus dans les frais de port",
+      "extraEuDap": "Hors UE : frais de port calculés au paiement · droits de douane et TVA à l'importation à la charge du destinataire"
+    },
+    "tech": {
+      "title": "Comment c'est fait",
+      "stencil": "Stencil : la peau en silicone absorbe l'encre dans ses pores, elle reste dans l'épaisseur et pas en surface.",
+      "discromie": "Variations de teinte : le flock n'est pas parfaitement uniforme ; de légères différences de ton font partie du matériau.",
+      "thickness": "4–8 mm d'épaisseur, sur les deux faces.",
+      "translucency": "Translucidité : les couches laissent passer la lumière. Translucide ne veut pas dire transparent."
+    },
+    "available": "Disponible",
+    "onOrder": "Sur commande"
   },
   "sections": {
     "label": "Section",

@@ -134,7 +134,28 @@
     "sectionMerch": "Merch",
     "shipsIn": "Envío en {days} días hábiles",
     "madeToOrder": "Fabricado bajo pedido",
-    "madeToOrderDesc": "Tu pieza se trabaja personalmente tras la compra. Entrega estimada en {total} días hábiles."
+    "madeToOrderDesc": "Tu pieza se trabaja personalmente tras la compra. Entrega estimada en {total} días hábiles.",
+    "delivery": {
+      "bandEu": "Italia y UE: 24–48 horas",
+      "bandExtraEu": "Fuera de la UE: 4–6 días laborables",
+      "productionExtra": "más {days} días laborables de producción"
+    },
+    "shippingCost": {
+      "title": "Envío",
+      "italy": "Italia: {cost}€ · gratis desde {threshold}€",
+      "eu": "Unión Europea: {cost}€ · gratis desde {threshold}€",
+      "extraEuDdp": "Fuera de la UE: envío calculado en el pago · aranceles e IVA de importación incluidos en el coste del envío",
+      "extraEuDap": "Fuera de la UE: envío calculado en el pago · aranceles e IVA de importación a cargo del destinatario"
+    },
+    "tech": {
+      "title": "Cómo está hecho",
+      "stencil": "Stencil: la piel de silicona absorbe la tinta en sus poros, queda dentro del grosor y no en la superficie.",
+      "discromie": "Variaciones de tono: el flock no es uniforme; ligeras diferencias de tono forman parte del material.",
+      "thickness": "4–8 mm de grosor, por las dos caras.",
+      "translucency": "Translucidez: las capas dejan pasar la luz. Translúcido no significa transparente."
+    },
+    "available": "Disponible",
+    "onOrder": "Bajo pedido"
   },
   "sections": {
     "label": "Sección",

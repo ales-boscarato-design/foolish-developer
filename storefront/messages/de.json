@@ -134,7 +134,28 @@
     "sectionMerch": "Merch",
     "shipsIn": "Versand in {days} Werktagen",
     "madeToOrder": "Auf Bestellung gefertigt",
-    "madeToOrderDesc": "Ihr Stück wird nach dem Kauf persönlich gefertigt. Geschätzte Lieferzeit: {total} Werktage."
+    "madeToOrderDesc": "Ihr Stück wird nach dem Kauf persönlich gefertigt. Geschätzte Lieferzeit: {total} Werktage.",
+    "delivery": {
+      "bandEu": "Italien und EU: 24–48 Stunden",
+      "bandExtraEu": "Außerhalb der EU: 4–6 Werktage",
+      "productionExtra": "zzgl. {days} Werktage Produktionszeit"
+    },
+    "shippingCost": {
+      "title": "Versand",
+      "italy": "Italien: {cost}€ · kostenlos ab {threshold}€",
+      "eu": "Europäische Union: {cost}€ · kostenlos ab {threshold}€",
+      "extraEuDdp": "Außerhalb der EU: Versand wird an der Kasse berechnet · Zölle und Einfuhrumsatzsteuer im Versandpreis enthalten",
+      "extraEuDap": "Außerhalb der EU: Versand wird an der Kasse berechnet · Zölle und Einfuhrumsatzsteuer trägt der Empfänger"
+    },
+    "tech": {
+      "title": "So ist es gemacht",
+      "stencil": "Stencil: Die Silikonhaut nimmt die Farbe in ihren Poren auf, sie sitzt in der Dicke und nicht auf der Oberfläche.",
+      "discromie": "Farbabweichungen: Der Flock ist nicht gleichmäßig; leichte Tonunterschiede gehören zum Material.",
+      "thickness": "4–8 mm dick, auf beiden Seiten.",
+      "translucency": "Transluzenz: Die Schichten lassen Licht durch. Durchscheinend heißt nicht durchsichtig."
+    },
+    "available": "Verfügbar",
+    "onOrder": "Auf Bestellung"
   },
   "sections": {
     "label": "Abschnitt",
