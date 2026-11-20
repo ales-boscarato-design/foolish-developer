@@ -498,6 +498,10 @@ export interface Order {
   refundStatus?: ('none' | 'partial' | 'full') | null;
   lastRefundedAt?: string | null;
   /**
+   * Chiave di ordinamento delle transizioni di rimborso: Stripe non cancella i rimborsi, quindi non torna mai indietro mentre l’importo cumulativo può scendere (rimborso annullato).
+   */
+  refundCount?: number | null;
+  /**
    * Salvato in uppercase, come su PromoCodes
    */
   promoCode?: string | null;
@@ -895,6 +899,8 @@ export interface AffiliateConversion {
   paymentStatus: 'paid' | 'refunded' | 'partially_refunded' | 'cancelled';
   refundStatus: 'none' | 'partial' | 'full';
   amountRefundedCents: number;
+  refundCount?: number | null;
+  commissionPreRefundCents?: number | null;
   paidAt?: string | null;
   refundedAt?: string | null;
   updatedAt: string;
@@ -1197,6 +1203,7 @@ export interface OrdersSelect<T extends boolean = true> {
   amountRefundedCents?: T;
   refundStatus?: T;
   lastRefundedAt?: T;
+  refundCount?: T;
   promoCode?: T;
   promoType?: T;
   promoDiscountCents?: T;
@@ -1514,6 +1521,8 @@ export interface AffiliateConversionsSelect<T extends boolean = true> {
   paymentStatus?: T;
   refundStatus?: T;
   amountRefundedCents?: T;
+  refundCount?: T;
+  commissionPreRefundCents?: T;
   paidAt?: T;
   refundedAt?: T;
   updatedAt?: T;
