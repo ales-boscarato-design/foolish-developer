@@ -1,0 +1,1405 @@
+{
+  "note": "Fixture CMS-shaped per la coda produttiva. I documenti hanno la forma restituita da GET /api/orders (Payload) e i prodotti quella di GET /api/products. createdAt e' in UTC ISO 8601, come lo restituisce Payload. I dati sono sintetici ma strutturalmente rappresentativi; non sono ordini reali.",
+  "catalog": [
+    {
+      "id": 1,
+      "slug": "t-sheet-dbl",
+      "name": "T-Sheet Skin DBL",
+      "section": "tattoo",
+      "variants": [
+        {
+          "sku": "DBL-A5",
+          "label": "A5",
+          "dimensions": "20×15 cm"
+        },
+        {
+          "sku": "DBL-A4",
+          "label": "A4",
+          "dimensions": "30×20 cm"
+        },
+        {
+          "sku": "DBL-L",
+          "label": "L",
+          "dimensions": "60×40 cm"
+        },
+        {
+          "sku": "DBL-XXL",
+          "label": "XXL",
+          "dimensions": "80×60 cm"
+        },
+        {
+          "sku": "DBL-ROLL",
+          "label": "Rotolo",
+          "dimensions": "180×60 cm"
+        }
+      ],
+      "packs": [
+        {
+          "id": "3",
+          "name": "3 fogli -10%",
+          "quantity": 3,
+          "discountPercent": 10
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "slug": "t-sheet-duoskin",
+      "name": "T-Sheet Skin DUOSKIN",
+      "section": "tattoo",
+      "variants": [
+        {
+          "sku": "DUO-A5-PELLE",
+          "label": "A5 — Pelle",
+          "dimensions": "20×15 cm"
+        },
+        {
+          "sku": "DUO-A4-BIANCO",
+          "label": "A4 — Bianco",
+          "dimensions": "30×20 cm"
+        },
+        {
+          "sku": "DUO-A3-PELLE",
+          "label": "A3 — Pelle",
+          "dimensions": "40×30 cm"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "slug": "foglio-15",
+      "name": "Foglio pratica 15x15",
+      "section": "tattoo",
+      "variants": [
+        {
+          "sku": "FP-15",
+          "label": "15×15",
+          "dimensions": "15×15 cm"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "slug": "mano-iperrealistica-tattoo",
+      "name": "Mano Iperrealistica per Tattoo",
+      "section": "tattoo",
+      "variants": [
+        {
+          "sku": "MANO-TATTOO",
+          "label": "Standard",
+          "dimensions": null
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "slug": "kit-viso-pmu",
+      "name": "Kit Viso Iperrealistico per PMU",
+      "section": "pmu",
+      "variants": [
+        {
+          "sku": "KIT-VISO-PMU",
+          "label": "Kit completo",
+          "dimensions": null
+        }
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "zero",
+      "now": "2026-11-20T12:00:00.000Z",
+      "skus": [
+        "DBL-A4"
+      ],
+      "orders": []
+    },
+    {
+      "id": "19-a4",
+      "now": "2026-11-20T12:00:00.000Z",
+      "skus": [
+        "DBL-A4"
+      ],
+      "orders": [
+        {
+          "id": 1,
+          "orderNumber": "FOOLISH-20261120001",
+          "createdAt": "2026-11-20T08:10:00.000Z",
+          "updatedAt": "2026-11-20T08:10:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente1@example.test",
+          "customerName": "Cliente 1",
+          "total": 420.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_1",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 15,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 2,
+          "orderNumber": "FOOLISH-20261120002",
+          "createdAt": "2026-11-20T15:40:00.000Z",
+          "updatedAt": "2026-11-20T15:40:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente2@example.test",
+          "customerName": "Cliente 2",
+          "total": 112.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_2",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 4,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        }
+      ]
+    },
+    {
+      "id": "20-a4",
+      "now": "2026-11-20T12:00:00.000Z",
+      "skus": [
+        "DBL-A4"
+      ],
+      "orders": [
+        {
+          "id": 3,
+          "orderNumber": "FOOLISH-20261120003",
+          "createdAt": "2026-11-20T08:10:00.000Z",
+          "updatedAt": "2026-11-20T08:10:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente3@example.test",
+          "customerName": "Cliente 3",
+          "total": 420.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_3",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 15,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 4,
+          "orderNumber": "FOOLISH-20261120004",
+          "createdAt": "2026-11-20T15:40:00.000Z",
+          "updatedAt": "2026-11-20T15:40:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente4@example.test",
+          "customerName": "Cliente 4",
+          "total": 140.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_4",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 5,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        }
+      ]
+    },
+    {
+      "id": "21-a4",
+      "now": "2026-11-20T12:00:00.000Z",
+      "skus": [
+        "DBL-A4"
+      ],
+      "orders": [
+        {
+          "id": 5,
+          "orderNumber": "FOOLISH-20261120005",
+          "createdAt": "2026-11-20T08:10:00.000Z",
+          "updatedAt": "2026-11-20T08:10:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente5@example.test",
+          "customerName": "Cliente 5",
+          "total": 420.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_5",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 15,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 6,
+          "orderNumber": "FOOLISH-20261120006",
+          "createdAt": "2026-11-20T15:40:00.000Z",
+          "updatedAt": "2026-11-20T15:40:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente6@example.test",
+          "customerName": "Cliente 6",
+          "total": 168.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_6",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 6,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        }
+      ]
+    },
+    {
+      "id": "40-a4",
+      "now": "2026-11-20T12:00:00.000Z",
+      "skus": [
+        "DBL-A4"
+      ],
+      "orders": [
+        {
+          "id": 7,
+          "orderNumber": "FOOLISH-20261120007",
+          "createdAt": "2026-11-20T08:10:00.000Z",
+          "updatedAt": "2026-11-20T08:10:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente7@example.test",
+          "customerName": "Cliente 7",
+          "total": 700.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_7",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 25,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 8,
+          "orderNumber": "FOOLISH-20261120008",
+          "createdAt": "2026-11-20T15:40:00.000Z",
+          "updatedAt": "2026-11-20T15:40:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente8@example.test",
+          "customerName": "Cliente 8",
+          "total": 420.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_8",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 15,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        }
+      ]
+    },
+    {
+      "id": "41-a4",
+      "now": "2026-11-20T12:00:00.000Z",
+      "skus": [
+        "DBL-A4"
+      ],
+      "orders": [
+        {
+          "id": 9,
+          "orderNumber": "FOOLISH-20261120009",
+          "createdAt": "2026-11-20T08:10:00.000Z",
+          "updatedAt": "2026-11-20T08:10:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente9@example.test",
+          "customerName": "Cliente 9",
+          "total": 700.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_9",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 25,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 10,
+          "orderNumber": "FOOLISH-20261120010",
+          "createdAt": "2026-11-20T15:40:00.000Z",
+          "updatedAt": "2026-11-20T15:40:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente10@example.test",
+          "customerName": "Cliente 10",
+          "total": 448.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_10",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 16,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        }
+      ]
+    },
+    {
+      "id": "formats-separate",
+      "now": "2026-11-20T12:00:00.000Z",
+      "skus": [
+        "DBL-A4",
+        "DBL-A5",
+        "DBL-XXL"
+      ],
+      "orders": [
+        {
+          "id": 11,
+          "orderNumber": "FOOLISH-20261120011",
+          "createdAt": "2026-11-20T07:05:00.000Z",
+          "updatedAt": "2026-11-20T07:05:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente11@example.test",
+          "customerName": "Cliente 11",
+          "total": 560.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_11",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 20,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 12,
+          "orderNumber": "FOOLISH-20261120012",
+          "createdAt": "2026-11-20T09:20:00.000Z",
+          "updatedAt": "2026-11-20T09:20:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente12@example.test",
+          "customerName": "Cliente 12",
+          "total": 300.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_12",
+          "lineItems": [
+            {
+              "sku": "DBL-A5",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A5",
+              "quantity": 20,
+              "unitPrice": 15.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 13,
+          "orderNumber": "FOOLISH-20261120013",
+          "createdAt": "2026-11-20T11:45:00.000Z",
+          "updatedAt": "2026-11-20T11:45:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente13@example.test",
+          "customerName": "Cliente 13",
+          "total": 1329.05,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_13",
+          "lineItems": [
+            {
+              "sku": "DBL-XXL",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "XXL",
+              "quantity": 19,
+              "unitPrice": 69.95
+            }
+          ],
+          "pipelineState": "received"
+        }
+      ]
+    },
+    {
+      "id": "formats-not-summed",
+      "now": "2026-11-20T12:00:00.000Z",
+      "skus": [
+        "DBL-A4",
+        "DBL-A5"
+      ],
+      "orders": [
+        {
+          "id": 14,
+          "orderNumber": "FOOLISH-20261120014",
+          "createdAt": "2026-11-20T07:05:00.000Z",
+          "updatedAt": "2026-11-20T07:05:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente14@example.test",
+          "customerName": "Cliente 14",
+          "total": 700.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_14",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 25,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 15,
+          "orderNumber": "FOOLISH-20261120015",
+          "createdAt": "2026-11-20T09:20:00.000Z",
+          "updatedAt": "2026-11-20T09:20:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente15@example.test",
+          "customerName": "Cliente 15",
+          "total": 285.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_15",
+          "lineItems": [
+            {
+              "sku": "DBL-A5",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A5",
+              "quantity": 19,
+              "unitPrice": 15.0
+            }
+          ],
+          "pipelineState": "received"
+        }
+      ]
+    },
+    {
+      "id": "payment-states",
+      "now": "2026-11-20T12:00:00.000Z",
+      "skus": [
+        "DBL-A4"
+      ],
+      "orders": [
+        {
+          "id": 16,
+          "orderNumber": "FOOLISH-20261120016",
+          "createdAt": "2026-11-20T07:05:00.000Z",
+          "updatedAt": "2026-11-20T07:05:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente16@example.test",
+          "customerName": "Cliente 16",
+          "total": 504.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_16",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 18,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 17,
+          "orderNumber": "FOOLISH-20261120017",
+          "createdAt": "2026-11-20T08:05:00.000Z",
+          "updatedAt": "2026-11-20T08:05:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente17@example.test",
+          "customerName": "Cliente 17",
+          "total": 28.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "pending",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_17",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 1,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 18,
+          "orderNumber": "FOOLISH-20261120018",
+          "createdAt": "2026-11-20T09:05:00.000Z",
+          "updatedAt": "2026-11-20T09:05:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente18@example.test",
+          "customerName": "Cliente 18",
+          "total": 28.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "refunded",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_18",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 1,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 19,
+          "orderNumber": "FOOLISH-20261120019",
+          "createdAt": "2026-11-20T10:05:00.000Z",
+          "updatedAt": "2026-11-20T10:05:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente19@example.test",
+          "customerName": "Cliente 19",
+          "total": 840.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "failed",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_19",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 30,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 20,
+          "orderNumber": "FOOLISH-20261120020",
+          "createdAt": "2026-11-20T11:05:00.000Z",
+          "updatedAt": "2026-11-20T11:05:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente20@example.test",
+          "customerName": "Cliente 20",
+          "total": 840.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "cancelled",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_20",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 30,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        }
+      ]
+    },
+    {
+      "id": "refunded-stays-counted",
+      "now": "2026-11-20T12:00:00.000Z",
+      "skus": [
+        "DBL-A4"
+      ],
+      "orders": [
+        {
+          "id": 21,
+          "orderNumber": "FOOLISH-20261120021",
+          "createdAt": "2026-11-20T07:05:00.000Z",
+          "updatedAt": "2026-11-20T07:05:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente21@example.test",
+          "customerName": "Cliente 21",
+          "total": 532.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_21",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 19,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 22,
+          "orderNumber": "FOOLISH-20261120022",
+          "createdAt": "2026-11-20T09:05:00.000Z",
+          "updatedAt": "2026-11-20T09:05:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente22@example.test",
+          "customerName": "Cliente 22",
+          "total": 56.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "refunded",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_22",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 2,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        }
+      ]
+    },
+    {
+      "id": "excluded-only",
+      "now": "2026-11-20T12:00:00.000Z",
+      "skus": [
+        "DBL-A4"
+      ],
+      "orders": [
+        {
+          "id": 23,
+          "orderNumber": "FOOLISH-20261120023",
+          "createdAt": "2026-11-20T07:05:00.000Z",
+          "updatedAt": "2026-11-20T07:05:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente23@example.test",
+          "customerName": "Cliente 23",
+          "total": 280.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "failed",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_23",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 10,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 24,
+          "orderNumber": "FOOLISH-20261120024",
+          "createdAt": "2026-11-20T08:05:00.000Z",
+          "updatedAt": "2026-11-20T08:05:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente24@example.test",
+          "customerName": "Cliente 24",
+          "total": 280.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "cancelled",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_24",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 10,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        }
+      ]
+    },
+    {
+      "id": "other-day-ignored",
+      "now": "2026-11-20T12:00:00.000Z",
+      "skus": [
+        "DBL-A4"
+      ],
+      "orders": [
+        {
+          "id": 25,
+          "orderNumber": "FOOLISH-20261119025",
+          "createdAt": "2026-11-19T12:00:00.000Z",
+          "updatedAt": "2026-11-19T12:00:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente25@example.test",
+          "customerName": "Cliente 25",
+          "total": 1400.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_25",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 50,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        }
+      ]
+    },
+    {
+      "id": "midnight-before",
+      "now": "2026-11-20T22:30:00.000Z",
+      "skus": [
+        "DBL-A4"
+      ],
+      "orders": [
+        {
+          "id": 26,
+          "orderNumber": "FOOLISH-20261120026",
+          "createdAt": "2026-11-20T22:59:00.000Z",
+          "updatedAt": "2026-11-20T22:59:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente26@example.test",
+          "customerName": "Cliente 26",
+          "total": 560.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_26",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 20,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 27,
+          "orderNumber": "FOOLISH-20261120027",
+          "createdAt": "2026-11-20T23:01:00.000Z",
+          "updatedAt": "2026-11-20T23:01:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente27@example.test",
+          "customerName": "Cliente 27",
+          "total": 140.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_27",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 5,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        }
+      ]
+    },
+    {
+      "id": "midnight-after",
+      "now": "2026-11-21T08:00:00.000Z",
+      "skus": [
+        "DBL-A4"
+      ],
+      "orders": [
+        {
+          "id": 28,
+          "orderNumber": "FOOLISH-20261120028",
+          "createdAt": "2026-11-20T22:59:00.000Z",
+          "updatedAt": "2026-11-20T22:59:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente28@example.test",
+          "customerName": "Cliente 28",
+          "total": 560.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_28",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 20,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 29,
+          "orderNumber": "FOOLISH-20261120029",
+          "createdAt": "2026-11-20T23:01:00.000Z",
+          "updatedAt": "2026-11-20T23:01:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente29@example.test",
+          "customerName": "Cliente 29",
+          "total": 588.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_29",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 21,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        }
+      ]
+    },
+    {
+      "id": "dst-end",
+      "now": "2026-10-25T12:00:00.000Z",
+      "skus": [
+        "DBL-A4"
+      ],
+      "orders": [
+        {
+          "id": 30,
+          "orderNumber": "FOOLISH-20261024030",
+          "createdAt": "2026-10-24T22:30:00.000Z",
+          "updatedAt": "2026-10-24T22:30:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente30@example.test",
+          "customerName": "Cliente 30",
+          "total": 560.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_30",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 20,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 31,
+          "orderNumber": "FOOLISH-20261025031",
+          "createdAt": "2026-10-25T01:30:00.000Z",
+          "updatedAt": "2026-10-25T01:30:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente31@example.test",
+          "customerName": "Cliente 31",
+          "total": 28.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_31",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 1,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        }
+      ]
+    },
+    {
+      "id": "dst-start",
+      "now": "2026-03-29T12:00:00.000Z",
+      "skus": [
+        "DBL-A4"
+      ],
+      "orders": [
+        {
+          "id": 32,
+          "orderNumber": "FOOLISH-20260328032",
+          "createdAt": "2026-03-28T23:30:00.000Z",
+          "updatedAt": "2026-03-28T23:30:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente32@example.test",
+          "customerName": "Cliente 32",
+          "total": 560.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_32",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 20,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 33,
+          "orderNumber": "FOOLISH-20260329033",
+          "createdAt": "2026-03-29T22:30:00.000Z",
+          "updatedAt": "2026-03-29T22:30:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente33@example.test",
+          "customerName": "Cliente 33",
+          "total": 28.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_33",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 1,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        }
+      ]
+    },
+    {
+      "id": "weekend-roll",
+      "now": "2026-11-23T08:00:00.000Z",
+      "skus": [
+        "DBL-A4"
+      ],
+      "orders": [
+        {
+          "id": 34,
+          "orderNumber": "FOOLISH-20261121034",
+          "createdAt": "2026-11-21T12:00:00.000Z",
+          "updatedAt": "2026-11-21T12:00:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente34@example.test",
+          "customerName": "Cliente 34",
+          "total": 168.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_34",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 6,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 35,
+          "orderNumber": "FOOLISH-20261122035",
+          "createdAt": "2026-11-22T12:00:00.000Z",
+          "updatedAt": "2026-11-22T12:00:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente35@example.test",
+          "customerName": "Cliente 35",
+          "total": 196.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_35",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 7,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 36,
+          "orderNumber": "FOOLISH-20261123036",
+          "createdAt": "2026-11-23T07:00:00.000Z",
+          "updatedAt": "2026-11-23T07:00:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente36@example.test",
+          "customerName": "Cliente 36",
+          "total": 224.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_36",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 8,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        }
+      ]
+    },
+    {
+      "id": "unknown-sku",
+      "now": "2026-11-20T12:00:00.000Z",
+      "skus": [
+        "DBL-A4",
+        "LEGACY-XYZ"
+      ],
+      "orders": [
+        {
+          "id": 37,
+          "orderNumber": "FOOLISH-20261120037",
+          "createdAt": "2026-11-20T07:05:00.000Z",
+          "updatedAt": "2026-11-20T07:05:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente37@example.test",
+          "customerName": "Cliente 37",
+          "total": 560.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_37",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 20,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 9001,
+          "orderNumber": "FOOLISH-LEGACY",
+          "createdAt": "2026-11-20T09:30:00.000Z",
+          "updatedAt": "2026-11-20T09:30:00.000Z",
+          "source": "woocommerce",
+          "customerEmail": "legacy@example.test",
+          "customerName": "Legacy",
+          "total": 15.0,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "lineItems": [
+            {
+              "sku": "LEGACY-XYZ",
+              "name": "Prodotto storico",
+              "variantLabel": "",
+              "quantity": 1,
+              "unitPrice": 15.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pack-sku",
+      "now": "2026-11-20T12:00:00.000Z",
+      "skus": [
+        "DBL-A4"
+      ],
+      "orders": [
+        {
+          "id": 38,
+          "orderNumber": "FOOLISH-20261120038",
+          "createdAt": "2026-11-20T07:05:00.000Z",
+          "updatedAt": "2026-11-20T07:05:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente38@example.test",
+          "customerName": "Cliente 38",
+          "total": 588.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_38",
+          "lineItems": [
+            {
+              "sku": "DBL-A4-pack-3",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 21,
+              "unitPrice": 28.0
+            }
+          ],
+          "pipelineState": "received"
+        }
+      ]
+    },
+    {
+      "id": "subscription-pending",
+      "now": "2026-11-20T12:00:00.000Z",
+      "skus": [
+        "DBL-A4"
+      ],
+      "orders": [
+        {
+          "id": 9101,
+          "orderNumber": "SUB-FOOLISH-1",
+          "createdAt": "2026-11-20T06:00:00.000Z",
+          "updatedAt": "2026-11-20T06:00:00.000Z",
+          "source": "subscription",
+          "customerEmail": "sub@example.test",
+          "customerName": "Abbonato",
+          "total": 45.0,
+          "paymentStatus": null,
+          "paymentMethod": null,
+          "lineItems": [
+            {
+              "sku": "SUB-TATTOO",
+              "name": "Abbonamento Tattoo XXL",
+              "variantLabel": "Ciclo 1",
+              "quantity": 1,
+              "unitPrice": 45.0
+            },
+            {
+              "sku": "SUB-TATTOO-GIFT",
+              "name": "Omaggio abbonamento",
+              "variantLabel": "",
+              "quantity": 1,
+              "unitPrice": 0.0,
+              "isGift": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "format-from-dimensions",
+      "now": "2026-11-20T12:00:00.000Z",
+      "skus": [
+        "DBL-ROLL",
+        "FP-15"
+      ],
+      "orders": [
+        {
+          "id": 39,
+          "orderNumber": "FOOLISH-20261120039",
+          "createdAt": "2026-11-20T07:05:00.000Z",
+          "updatedAt": "2026-11-20T07:05:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente39@example.test",
+          "customerName": "Cliente 39",
+          "total": 3150.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_39",
+          "lineItems": [
+            {
+              "sku": "DBL-ROLL",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "Rotolo",
+              "quantity": 21,
+              "unitPrice": 150.0
+            }
+          ],
+          "pipelineState": "received"
+        },
+        {
+          "id": 40,
+          "orderNumber": "FOOLISH-20261120040",
+          "createdAt": "2026-11-20T08:05:00.000Z",
+          "updatedAt": "2026-11-20T08:05:00.000Z",
+          "source": "storefront",
+          "customerEmail": "cliente40@example.test",
+          "customerName": "Cliente 40",
+          "total": 180.0,
+          "shippingCost": 0,
+          "productionEtaDays": null,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "stripePaymentIntentId": "pi_fixture_40",
+          "lineItems": [
+            {
+              "sku": "FP-15",
+              "name": "Foglio pratica 15x15",
+              "variantLabel": "15×15",
+              "quantity": 20,
+              "unitPrice": 9.0
+            }
+          ],
+          "pipelineState": "received"
+        }
+      ]
+    },
+    {
+      "id": "invalid-quantity",
+      "now": "2026-11-20T12:00:00.000Z",
+      "skus": [
+        "DBL-A4"
+      ],
+      "orders": [
+        {
+          "id": 9201,
+          "orderNumber": "FOOLISH-BAD-QTY",
+          "createdAt": "2026-11-20T07:05:00.000Z",
+          "updatedAt": "2026-11-20T07:05:00.000Z",
+          "source": "storefront",
+          "customerEmail": "bad@example.test",
+          "customerName": "Bad",
+          "total": 0,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "lineItems": [
+            {
+              "sku": "DBL-A4",
+              "name": "T-Sheet Skin DBL",
+              "variantLabel": "A4",
+              "quantity": 0,
+              "unitPrice": 28.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "invalid-line-items",
+      "now": "2026-11-20T12:00:00.000Z",
+      "skus": [
+        "DBL-A4"
+      ],
+      "orders": [
+        {
+          "id": 9202,
+          "orderNumber": "FOOLISH-BAD-ITEMS",
+          "createdAt": "2026-11-20T07:05:00.000Z",
+          "updatedAt": "2026-11-20T07:05:00.000Z",
+          "source": "storefront",
+          "customerEmail": "bad2@example.test",
+          "customerName": "Bad 2",
+          "total": 0,
+          "paymentStatus": "paid",
+          "paymentMethod": "stripe",
+          "lineItems": "not-an-array"
+        }
+      ]
+    }
+  ]
+}
