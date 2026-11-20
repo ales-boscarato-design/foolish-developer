@@ -49,6 +49,61 @@ test('ignores stale client price and labels in favour of CMS values', async () =
   })
 })
 
+test('made-to-order production days come from the CMS product, never client fields', async () => {
+  const result = await resolveCheckoutCatalog([{
+    productId: 'product-1', sku: 'SKU-1', quantity: 1, madeToOrder: false, productionDays: 0,
+  }], { fetchProduct: fetchProduct(product({ madeToOrder: true, productionDays: 9 })) })
+  assert.equal(result.status, 'ok')
+  if (result.status === 'ok') {
+    assert.equal(result.items[0]?.madeToOrder, true)
+    assert.equal(result.items[0]?.productionDays, 9)
+  }
+})
+
+test('missing made-to-order duration stays unknown in catalog data', async () => {
+  const result = await resolveCheckoutCatalog([
+    { productId: 'product-1', sku: 'SKU-1', quantity: 1 },
+  ], { fetchProduct: fetchProduct(product({ madeToOrder: true, productionDays: null })) })
+  assert.equal(result.status, 'ok')
+  if (result.status === 'ok') assert.equal(result.items[0]?.productionDays, null)
+})
+
+test('a broken made-to-order duration becomes unknown instead of blocking the sale', async () => {
+  for (const productionDays of [-3, 'abc']) {
+    const result = await resolveCheckoutCatalog([
+      { productId: 'product-1', sku: 'SKU-1', quantity: 1 },
+    ], { fetchProduct: fetchProduct(product({ madeToOrder: true, productionDays })) })
+    assert.equal(result.status, 'ok', `productionDays ${String(productionDays)}: il prodotto resta vendibile`)
+    if (result.status === 'ok') {
+      assert.equal(result.items[0]?.productionDays, null, `productionDays ${String(productionDays)}: durata ignota`)
+    }
+  }
+
+  const known = await resolveCheckoutCatalog([
+    { productId: 'product-1', sku: 'SKU-1', quantity: 1 },
+  ], { fetchProduct: fetchProduct(product({ madeToOrder: true, productionDays: 5 })) })
+  assert.equal(known.status, 'ok')
+  if (known.status === 'ok') assert.equal(known.items[0]?.productionDays, 5)
+})
+
+test('available products ignore productionDays over 90 and made-to-order accepts durations over 90', async () => {
+  for (const [doc, expectedDays] of [
+    [product({ madeToOrder: false, productionDays: 120 }), undefined],
+    [product({ madeToOrder: true, productionDays: 120 }), 120],
+  ] as const) {
+    const result = await resolveCheckoutCatalog([{ productId: 'product-1', sku: 'SKU-1', quantity: 1 }], { fetchProduct: fetchProduct(doc) })
+    assert.equal(result.status, 'ok')
+    if (result.status === 'ok') assert.equal(result.items[0]?.productionDays, expectedDays)
+  }
+})
+
+test('fractional made-to-order production duration is accepted from CMS', async () => {
+  const result = await resolveCheckoutCatalog([{ productId: 'product-1', sku: 'SKU-1', quantity: 1 }], {
+    fetchProduct: fetchProduct(product({ madeToOrder: true, productionDays: 2.5 })),
+  })
+  assert.equal(result.status, 'ok')
+  if (result.status === 'ok') assert.equal(result.items[0]?.productionDays, 2.5)
+})
 test('uses SKU fallback only when productId is absent for a legacy item', async () => {
   let lookup: { productId?: string; sku?: string } | undefined
   const result = await resolveCheckoutCatalog([{

@@ -28,6 +28,7 @@ import {
   buildStripeLineItems,
 } from '@/lib/checkout-session'
 import { generateOrderRef } from '@/lib/order-ref'
+import { estimateCartDelivery } from '@/lib/delivery-estimate'
 
 type StripeAllowedCountry = NonNullable<
   Stripe.Checkout.SessionCreateParams['shipping_address_collection']
@@ -117,6 +118,14 @@ export async function POST(req: NextRequest) {
     customer?: unknown
     promoCode?: unknown
     quoteToken?: unknown
+    deliveryEstimateDate?: unknown
+  }
+  if (
+    request.deliveryEstimateDate !== undefined &&
+    request.deliveryEstimateDate !== null &&
+    typeof request.deliveryEstimateDate !== 'string'
+  ) {
+    return NextResponse.json({ error: 'Data di consegna non valida' }, { status: 400 })
   }
   const items = request.items
   if (!Array.isArray(items) || items.length === 0) {
@@ -136,7 +145,6 @@ export async function POST(req: NextRequest) {
   if (!normalizedItems) {
     return NextResponse.json({ error: 'Carrello non valido' }, { status: 400 })
   }
-
   // La pagina checkout raccoglie nome, cognome e provincia: qui un valore
   // presente ma malformato e' un errore del client. Negli altri percorsi (il
   // riordino di un ordine storico) gli stessi campi si derivano o si scartano.
@@ -212,6 +220,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Carrello non valido' }, { status: 400 })
   }
 
+  // La stima viene dalla STESSA funzione che ha servito la data alla pagina:
+  // massimo della produzione, margine prudente e zona non si ricalcolano qui.
+  const deliveryEstimate = estimateCartDelivery({ country: customer.country, items: catalogResult.items })
+  const deliveryEstimateDate = deliveryEstimate.date
+  // La sola promessa che il server puo' registrare e' una data che il cliente
+  // ha VISTO. Campo assente = nessuna data mostrata (per esempio un tab aperto
+  // prima del deploy): la vendita prosegue, senza data nei metadata. Campo
+  // presente e diverso da quello ricalcolato (o presente mentre il server non
+  // sa piu' calcolare) richiede una nuova conferma prima di aprire Stripe.
+  const requestedDeliveryEstimateDate = request.deliveryEstimateDate
+  if (requestedDeliveryEstimateDate !== undefined && requestedDeliveryEstimateDate !== deliveryEstimateDate) {
+    return NextResponse.json({
+      error: deliveryEstimateDate === null ? 'delivery_estimate_unavailable' : 'delivery_estimate_changed',
+      deliveryEstimateDate,
+      productionDays: deliveryEstimate.productionDays,
+    }, { status: 409 })
+  }
+  const promisedDeliveryEstimateDate = requestedDeliveryEstimateDate === undefined ? null : deliveryEstimateDate
+
   let serverShippingCostCents: number | null = null
   const shippingMetadata: Record<string, string> = {}
   if (getShippingZone(customer.country) === 'EXTRA_EU') {
@@ -264,6 +291,7 @@ export async function POST(req: NextRequest) {
     orderRef,
     customer,
     chargedProductLines,
+    ...(promisedDeliveryEstimateDate ? { deliveryEstimateDate: promisedDeliveryEstimateDate } : {}),
     // La promo "spedizione gratuita" non azzera una tariffa extra-UE: il
     // metadato registra cio' che e' successo davvero, non cio' che la promo
     // prometteva. Un documento che dichiara "spedizione gratuita" mentre la
@@ -283,6 +311,13 @@ export async function POST(req: NextRequest) {
   // doganale di checkout e il collo quotato, cosi' la spedizione vera usa lo
   // stesso collo che ha prodotto il prezzo.
   const orderMetadata = { ...metadata, ...shippingMetadata }
+  // Il country del cliente e' gia' validato: la zona c'e' sempre. La si scrive
+  // solo se esiste, invece di inventarne una per riempire la chiave.
+  if (deliveryEstimate.zone) orderMetadata.delivery_estimate_zone = deliveryEstimate.zone
+  orderMetadata.delivery_estimate_production_days = deliveryEstimate.productionDays === null
+    ? 'unknown'
+    : String(deliveryEstimate.productionDays)
+  if (!promisedDeliveryEstimateDate) delete orderMetadata.delivery_estimate_date
   const sessionMetadata = shouldMarkAffiliate && promo
     ? {
         ...orderMetadata,
