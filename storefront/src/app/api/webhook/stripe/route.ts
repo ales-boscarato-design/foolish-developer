@@ -659,9 +659,11 @@ export async function POST(req: NextRequest) {
             try {
               expandedInvoice = await stripe.invoices.retrieve(invoice.id, { expand: ['payments'] })
             } catch {
-              // Mai loggare corpo o dati: la classe dell'errore e' gia' stata
-              // registrata qui, e l'evento resta ritentabile.
-              console.error('[webhook] invoices.retrieve(expand=payments) failed: evento ritentabile')
+              // Mai loggare corpo o dati: gli identificativi interni bastano a
+              // ritrovare il rinnovo nei log, e l'evento resta ritentabile.
+              console.error(
+                `[webhook] invoices.retrieve(expand=payments) failed: evento ritentabile invoice=${invoice.id} subscription=${subscriptionId} orderRef=${orderRef}`,
+              )
               throw new RenewalPaymentIntentLookupError(invoice.id)
             }
             renewalPaymentIntent = resolveRenewalPaymentIntent(expandedInvoice.payments)
