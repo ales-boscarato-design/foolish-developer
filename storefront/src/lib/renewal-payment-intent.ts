@@ -24,9 +24,13 @@
 export type RenewalPaymentIntentGap =
   /** `invoice.payments` non c'e' (forma normale degli eventi `invoice.paid`). */
   | 'payments_absent'
-  /** `has_more !== false`: la lista e' troncata, il pagamento puo' essere oltre. */
+  /**
+   * `has_more !== false`: la lista e' troncata O non dichiara di essere completa
+   * (campo assente). Si resta dalla parte prudente: senza `has_more: false` non
+   * si puo' escludere che il pagamento sia oltre la prima pagina.
+   */
   | 'payments_paginated'
-  /** Lista completa ma senza esattamente un pagamento pagato valido. */
+  /** Lista completa ma senza esattamente un pagamento pagato con id valido. */
   | 'payments_ambiguous'
 
 export type RenewalPaymentIntent =

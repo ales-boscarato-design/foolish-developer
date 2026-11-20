@@ -59,6 +59,8 @@ interface CmsState {
   subscription: Record<string, unknown> | null
   /** Patch inviate a `/api/subscriptions/<id>` (avanzamento di `cyclesCompleted`). */
   subscriptionPatches: Array<Record<string, unknown>>
+  /** Status della creazione ordine (per provare il percorso di creazione fallita). */
+  orderPostStatus: number
 }
 
 const state: CmsState = {
@@ -72,6 +74,7 @@ const state: CmsState = {
   byOrderNumber: null,
   subscription: null,
   subscriptionPatches: [],
+  orderPostStatus: 201,
 }
 
 let server: ReturnType<typeof createServer>
@@ -96,7 +99,8 @@ before(async () => {
       req.on('data', (chunk: Buffer) => chunks.push(chunk))
       req.on('end', () => {
         state.posts.push(JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>)
-        json(201, { id: 1234, orderNumber: 'NON-DOVUTO' })
+        if (state.orderPostStatus >= 400) return json(state.orderPostStatus, { error: 'ordine rifiutato' })
+        json(state.orderPostStatus, { id: 1234, orderNumber: 'NON-DOVUTO' })
       })
       return
     }
@@ -176,6 +180,7 @@ beforeEach(() => {
   state.byOrderNumber = null
   state.subscription = null
   state.subscriptionPatches = []
+  state.orderPostStatus = 201
 })
 
 function sessionEvent(overrides: Partial<Stripe.Checkout.Session> = {}): {
@@ -621,6 +626,11 @@ test('invoice.paid senza `payments`: l ordine nasce senza PaymentIntent e il seg
     orderRef: RENEWAL_ORDER_REF,
     reason: 'payments_absent',
   })
+  assert.deepEqual(
+    state.subscriptionPatches,
+    [{ cyclesCompleted: 1 }],
+    'il contatore avanza una volta sola, e solo dopo la creazione riuscita dell ordine',
+  )
   const logged = lines.join('\n')
   assert.equal(
     logged.includes('renewal-test@example.invalid'),
@@ -705,4 +715,57 @@ test('controllo: con un solo pagamento pagato l ordine porta il PaymentIntent e 
     'con la lista completa e un solo pagamento l id deve finire sull ordine',
   )
   assert.deepEqual(renewalSignals(lines), [], 'nessun segnale quando il PaymentIntent c e')
+})
+
+test('controllo: un id che non e un PaymentIntent valido non finisce sull ordine e produce il segnale', async () => {
+  const { result, lines } = await submitInvoicePaid({
+    payments: {
+      has_more: false,
+      data: [{ status: 'paid', payment: { type: 'payment_intent', payment_intent: 'pi_bad-id!' } }],
+    },
+  })
+
+  assert.equal(result.status, 200)
+  assert.equal(
+    'stripePaymentIntentId' in state.posts[0]!,
+    false,
+    'un id che non rispetta il formato pi_… non va scritto sul CMS: il rimborso non lo troverebbe comunque',
+  )
+  const signals = renewalSignals(lines)
+  assert.equal(signals.length, 1)
+  assert.equal(signals[0]?.reason, 'payments_ambiguous')
+})
+
+test('redelivery dello stesso invoice con l ordine gia creato: nessun secondo ordine, nessun secondo segnale', async () => {
+  // L'ordine esiste gia': la ricerca per numero d'ordine lo trova e la rotta
+  // esce prima di creare (idempotenza su `invoice.id`).
+  state.subscription = renewalSubscription()
+  state.byOrderNumber = RENEWAL_ORDER_REF
+
+  const { payload, signature } = invoicePaidEvent()
+  const { result, lines } = await captureLogs(() => POST(webhookRequest(payload, signature)))
+
+  assert.equal(result.status, 200)
+  assert.equal(state.posts.length, 0, 'un redelivery non crea un secondo ordine')
+  assert.deepEqual(
+    renewalSignals(lines),
+    [],
+    'il segnale accompagna la creazione: su un rinnovo gia esistente non si ripete',
+  )
+  assert.deepEqual(state.subscriptionPatches, [], 'il contatore non avanza una seconda volta')
+})
+
+test('creazione ordine rifiutata: nessun segnale, contatore fermo (il rinnovo non e stato creato)', async () => {
+  state.orderPostStatus = 500
+
+  const { result, lines } = await submitInvoicePaid()
+
+  assert.equal(result.status, 200, 'il ramo invoice.paid non rende la risposta retryable: resta com e')
+  assert.equal(state.posts.length, 1, 'il tentativo di creazione c e stato')
+  assert.deepEqual(
+    renewalSignals(lines),
+    [],
+    'il segnale dichiara un rinnovo CREATO senza PaymentIntent, non un tentativo fallito',
+  )
+  assert.deepEqual(state.subscriptionPatches, [], 'nessun ordine, nessun avanzamento del ciclo')
 })
