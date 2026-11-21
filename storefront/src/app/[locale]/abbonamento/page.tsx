@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getTranslations, getLocale } from 'next-intl/server'
+import { getSubscriptionPlanConfig } from '@/lib/cms'
+import { listedSubscriptionCards } from '@/lib/unlisted-promotion'
 
 const BASE = 'https://thefoolishbutcher.com'
 const LOCALES = ['it', 'en', 'fr', 'es', 'de'] as const
@@ -20,10 +22,19 @@ export default async function AbbonamentoHubPage() {
   const t = await getTranslations('subscription.hub')
   const locale = await getLocale()
 
-  const cards = [
+  const allCards = [
     { plan: 'tattoo', title: t('cardTattooTitle'), desc: t('cardTattooDesc') },
     { plan: 'pmu', title: t('cardPmuTitle'), desc: t('cardPmuDesc') },
-  ]
+  ] as const
+  const configs = await Promise.allSettled([
+    getSubscriptionPlanConfig('tattoo', locale),
+    getSubscriptionPlanConfig('pmu', locale),
+  ])
+  const plans = {
+    tattoo: configs[0].status === 'fulfilled' ? configs[0].value : undefined,
+    pmu: configs[1].status === 'fulfilled' ? configs[1].value : undefined,
+  }
+  const cards = listedSubscriptionCards(allCards, plans)
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-16">

@@ -163,6 +163,7 @@ test('sku non piu a catalogo, variante unavailable o prodotto inactive: righe_no
       variants: [{ sku: 'SKU-1', label: 'A4', price: 12.5, stockStatus: 'unavailable' }],
     }))],
     ['prodotto inactive', catalogFetcher(product({ active: false }))],
+    ['prodotto unlisted anche se inactive', catalogFetcher(product({ active: false, unlisted: true }))],
   ]
 
   for (const [label, fetchProduct] of cases) {

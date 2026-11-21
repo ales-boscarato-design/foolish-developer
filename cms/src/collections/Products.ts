@@ -85,11 +85,36 @@ export const Products: CollectionConfig = {
       ],
     },
     {
-      name: 'active',
-      type: 'checkbox',
-      defaultValue: true,
-      label: 'Visibile nella vetrina',
-      admin: { description: 'Se disattivato, il prodotto non appare nelle griglie ma rimane accessibile via URL diretto e nei kit.' },
+      type: 'collapsible',
+      label: 'Visibilità',
+      admin: { position: 'sidebar', initCollapsed: false },
+      fields: [
+        {
+          name: 'active',
+          type: 'checkbox',
+          defaultValue: true,
+          label: 'Attivo (vetrina e checkout retail)',
+          admin: { description: 'Se disattivato, il prodotto viene escluso da home, categorie, sitemap e checkout retail. La scheda diretta resta raggiungibile; alcune recensioni e riferimenti nei kit possono ancora mostrarlo. Questo stato non equivale a nascondere il prodotto ovunque.' },
+        },
+        {
+          name: 'unlisted',
+          type: 'checkbox',
+          defaultValue: false,
+          index: true,
+          label: 'Non in vetrina',
+          admin: { description: 'Esclude il prodotto dalla vetrina e dal checkout; se indicato, reindirizza alla scheda successiva.' },
+        },
+        {
+          name: 'supersededBy',
+          type: 'text',
+          maxLength: 63,
+          label: 'Slug prodotto sostitutivo',
+          validate: (value: unknown) => value === undefined || value === null || value === '' || (
+            typeof value === 'string' && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(value)
+          ) || 'Inserisci uno slug valido (minuscole, numeri e trattini; massimo 63 caratteri).',
+          admin: { description: 'Slug del prodotto che sostituisce questo prodotto (opzionale).' },
+        },
+      ],
     },
     {
       name: 'limitedStock',

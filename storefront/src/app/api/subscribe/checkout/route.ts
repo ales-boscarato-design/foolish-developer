@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { SUBSCRIPTION_LADDER, ZONE_COUNTRIES, PLAN_NAMES, type PlanKey, type Zone } from '@/lib/subscription-plans'
+import { getSubscriptionPlanConfigForCheckout } from '@/lib/cms'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,6 +47,20 @@ export async function POST(req: NextRequest) {
   }
 
   const firstPhase = SUBSCRIPTION_LADDER[plan][zone].phases[0]
+  let planConfig
+  try {
+    planConfig = await getSubscriptionPlanConfigForCheckout(plan)
+  } catch {
+    return NextResponse.json({ error: 'Piano non disponibile' }, { status: 503 })
+  }
+  const productId = planConfig?.product?.id
+  const validProductId = (typeof productId === 'string' && productId.trim().length > 0)
+    || (typeof productId === 'number' && Number.isSafeInteger(productId))
+  if (!planConfig?.product || !validProductId || planConfig.product.unlisted === true) {
+    return NextResponse.json({ error: planConfig?.product?.unlisted === true ? 'product_unlisted' : 'Piano non disponibile' }, {
+      status: planConfig?.product?.unlisted === true ? 409 : 503,
+    })
+  }
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
   const session = await stripe.checkout.sessions.create({

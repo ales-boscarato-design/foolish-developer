@@ -16,7 +16,7 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, locale } = await params
   const product = await getProductBySlug(slug, locale)
-  if (!product) return {}
+  if (!product || product.unlisted) return {}
 
   const firstImage = product.images?.[0]?.image?.url
   const langs = Object.fromEntries(LOCALES.map(l => [l, `${BASE}/${l}/prodotto/${slug}`]))
@@ -44,7 +44,7 @@ export default async function ProductPage({ params }: Props) {
   const { slug } = await params
   const locale = await getLocale()
   const product = await getProductBySlug(slug, locale)
-  if (!product) notFound()
+  if (!product || product.unlisted) notFound()
 
   const [reviews, reviewSummary] = await Promise.all([
     getPublishedReviewsByProduct(slug, 5),

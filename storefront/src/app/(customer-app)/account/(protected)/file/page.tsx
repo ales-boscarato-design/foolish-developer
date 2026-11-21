@@ -2,6 +2,7 @@ import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/account-auth'
 import { getWishlist } from '@/lib/account-db'
+import { getVisibleWishlistItems } from '@/lib/account-wishlist-visibility'
 import { getAccountLocale, getT } from '@/lib/account-i18n'
 import { ownsCustomerFile, type CustomerFileRelation } from '@/lib/customer-files'
 import { WishlistItemActions } from './_components/WishlistItem'
@@ -22,10 +23,11 @@ export default async function FilePage() {
   const session = await getSession()
   if (!session) redirect('/account/login')
 
-  const [wishlist, locale] = await Promise.all([
+  const [savedWishlist, locale] = await Promise.all([
     getWishlist(session.email),
     getAccountLocale(),
   ])
+  const wishlist = await getVisibleWishlistItems(savedWishlist)
   const t = getT(locale)
 
   const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL ?? process.env.PAYLOAD_PUBLIC_URL

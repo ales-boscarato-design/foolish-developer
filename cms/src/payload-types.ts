@@ -169,9 +169,17 @@ export interface Product {
   printfulSyncProductId?: string | null;
   section: 'tattoo' | 'pmu' | 'kit' | 'merch';
   /**
-   * Se disattivato, il prodotto non appare nelle griglie ma rimane accessibile via URL diretto e nei kit.
+   * Se disattivato, il prodotto viene escluso da home, categorie, sitemap e checkout retail. La scheda diretta resta raggiungibile; alcune recensioni e riferimenti nei kit possono ancora mostrarlo. Questo stato non equivale a nascondere il prodotto ovunque.
    */
   active?: boolean | null;
+  /**
+   * Esclude il prodotto dalla vetrina e dal checkout; se indicato, reindirizza alla scheda successiva.
+   */
+  unlisted?: boolean | null;
+  /**
+   * Slug del prodotto che sostituisce questo prodotto (opzionale).
+   */
+  supersededBy?: string | null;
   limitedStock?: boolean | null;
   /**
    * Numero piu basso = appare prima
@@ -1066,6 +1074,8 @@ export interface ProductsSelect<T extends boolean = true> {
   printfulSyncProductId?: T;
   section?: T;
   active?: T;
+  unlisted?: T;
+  supersededBy?: T;
   limitedStock?: T;
   order?: T;
   madeToOrder?: T;

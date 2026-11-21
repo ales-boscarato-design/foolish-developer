@@ -132,6 +132,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Carrello non valido' }, { status: 400 })
   }
   const catalogResult = await resolveCheckoutCatalog(items)
+  if (catalogResult.status === 'unlisted') {
+    return NextResponse.json({ error: 'product_unlisted' }, { status: 409 })
+  }
   if (catalogResult.status === 'unavailable') {
     return NextResponse.json(
       { error: 'Catalogo temporaneamente non disponibile' },

@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { OfferCountdown } from './_components/OfferCountdown'
 import { CopyCode } from './_components/CopyCode'
 import { formatMoney } from '@/lib/money'
+import { offerProductIfListed } from '@/lib/unlisted-offer'
 
 export default async function OffertaPage() {
   const session = await getSession()
@@ -18,7 +19,7 @@ export default async function OffertaPage() {
   const offer = await getActiveCustomerOffer(session.email)
   let product = null
   if (offer) {
-    try { product = await getProductBySlug(offer.product_slug, locale) } catch { /* CMS unavailable */ }
+    try { product = offerProductIfListed(await getProductBySlug(offer.product_slug, locale)) } catch { /* CMS unavailable */ }
   }
 
   if (!offer || !product) {
