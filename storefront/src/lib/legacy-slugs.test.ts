@@ -6,12 +6,16 @@ import { canonicalLegacyPath, legacyRedirectUrl } from './legacy-slugs'
 // indirizzo interno e porta 8080, che non devono mai finire nel `Location`.
 const PROD_REQUEST = new URL('http://0.0.0.0:8080/es/prodotto/t-sheet-dbl%20-%20abbonamento')
 const PUBLIC = { hosts: ['thefoolishbutcher.com'], forwardedProto: 'https' }
-const CANONICAL = 'https://thefoolishbutcher.com/es/prodotto/t-sheet-dbl-abbonamento'
+const CANONICAL = 'https://thefoolishbutcher.com/es/prodotto/t-sheet-dbl'
 
 test('dirotta lo slug malformato codificato (%20) verso quello canonico', () => {
   assert.equal(
     canonicalLegacyPath('/es/prodotto/t-sheet-dbl%20-%20abbonamento'),
-    '/es/prodotto/t-sheet-dbl-abbonamento',
+    '/es/prodotto/t-sheet-dbl',
+  )
+  assert.equal(
+    canonicalLegacyPath('/es/prodotto/t-sheet-dbl-abbonamento'),
+    '/es/prodotto/t-sheet-dbl',
   )
   assert.equal(
     canonicalLegacyPath('/it/prodotto/skin-face-3d%20-%20abbonamento'),
@@ -22,23 +26,22 @@ test('dirotta lo slug malformato codificato (%20) verso quello canonico', () => 
 test('accetta il percorso gia decodificato e quello col + al posto dello spazio', () => {
   assert.equal(
     canonicalLegacyPath('/de/prodotto/t-sheet-dbl - abbonamento'),
-    '/de/prodotto/t-sheet-dbl-abbonamento',
+    '/de/prodotto/t-sheet-dbl',
   )
   assert.equal(
     canonicalLegacyPath('/fr/prodotto/t-sheet-dbl+-+abbonamento'),
-    '/fr/prodotto/t-sheet-dbl-abbonamento',
+    '/fr/prodotto/t-sheet-dbl',
   )
 })
 
 test('senza prefisso di lingua il dirottamento resta senza lingua', () => {
   assert.equal(
     canonicalLegacyPath('/prodotto/t-sheet-dbl%20-%20abbonamento'),
-    '/prodotto/t-sheet-dbl-abbonamento',
+    '/prodotto/t-sheet-dbl',
   )
 })
 
 test('lo slug corretto non viene toccato (niente anello di redirect)', () => {
-  assert.equal(canonicalLegacyPath('/es/prodotto/t-sheet-dbl-abbonamento'), null)
   assert.equal(canonicalLegacyPath('/es/prodotto/t-sheet-dbl'), null)
   assert.equal(canonicalLegacyPath('/es/prodotto/t-sheet-dbl-in-rotolo'), null)
 })
@@ -69,9 +72,9 @@ test('x-forwarded-proto a lista, maiuscolo o assente non fa fallire il dirottame
   assert.equal(withProto('https, http'), CANONICAL)
   assert.equal(withProto('https '), CANONICAL)
   assert.equal(withProto('HTTPS'), CANONICAL)
-  assert.equal(withProto('https://'), 'http://thefoolishbutcher.com/es/prodotto/t-sheet-dbl-abbonamento')
-  assert.equal(withProto(''), 'http://thefoolishbutcher.com/es/prodotto/t-sheet-dbl-abbonamento')
-  assert.equal(withProto('ftp'), 'http://thefoolishbutcher.com/es/prodotto/t-sheet-dbl-abbonamento')
+  assert.equal(withProto('https://'), 'http://thefoolishbutcher.com/es/prodotto/t-sheet-dbl')
+  assert.equal(withProto(''), 'http://thefoolishbutcher.com/es/prodotto/t-sheet-dbl')
+  assert.equal(withProto('ftp'), 'http://thefoolishbutcher.com/es/prodotto/t-sheet-dbl')
 })
 
 test('la query string del link storico resta nel dirottamento', () => {
@@ -111,8 +114,8 @@ test('gli indirizzi di rete privata non diventano un Location', () => {
     assert.equal(target(host), null, `${host} non deve finire in un Location`)
   }
   // Il resto della rete privata non e` privato: 172.15 e 172.32 sono pubblici.
-  assert.equal(target('172.15.0.1'), 'https://172.15.0.1/es/prodotto/t-sheet-dbl-abbonamento')
-  assert.equal(target('172.32.0.1'), 'https://172.32.0.1/es/prodotto/t-sheet-dbl-abbonamento')
+  assert.equal(target('172.15.0.1'), 'https://172.15.0.1/es/prodotto/t-sheet-dbl')
+  assert.equal(target('172.32.0.1'), 'https://172.32.0.1/es/prodotto/t-sheet-dbl')
 })
 
 test('le notazioni IPv4 alternative non aggirano il blocco (il parser le normalizza)', () => {
@@ -141,7 +144,7 @@ test('un host senza dominio (una sola etichetta) non diventa un Location', () =>
     assert.equal(target(host), null, `${host} non e' un host di questo sito`)
   }
   // Un sottodominio (due etichette) resta valido.
-  assert.equal(target('shop.thefoolishbutcher.com'), 'https://shop.thefoolishbutcher.com/es/prodotto/t-sheet-dbl-abbonamento')
+  assert.equal(target('shop.thefoolishbutcher.com'), 'https://shop.thefoolishbutcher.com/es/prodotto/t-sheet-dbl')
 })
 
 test('un host che porta percorso o credenziali non diventa un Location', () => {
@@ -168,7 +171,7 @@ test('la porta interna 8080 si scarta, le altre restano (sviluppo locale)', () =
   const target = (host: string) =>
     legacyRedirectUrl(PROD_REQUEST.pathname, { requestUrl: PROD_REQUEST, hosts: [host], forwardedProto: 'https' })
   assert.equal(target('thefoolishbutcher.com:8080'), CANONICAL)
-  assert.equal(target('staging.thefoolishbutcher.com:8443'), 'https://staging.thefoolishbutcher.com:8443/es/prodotto/t-sheet-dbl-abbonamento')
+  assert.equal(target('staging.thefoolishbutcher.com:8443'), 'https://staging.thefoolishbutcher.com:8443/es/prodotto/t-sheet-dbl')
   assert.equal(
     legacyRedirectUrl(PROD_REQUEST.pathname, {
       requestUrl: PROD_REQUEST,

@@ -104,6 +104,7 @@ jobs:
           npm run test:emails --silent
           npm run test:catalog --silent
           npm run test:legacy-slugs --silent
+          npm run test:proxy --silent
           npm run test:promo --silent
           npm run test:shipping --silent
           npm run test:delivery-estimate --silent
