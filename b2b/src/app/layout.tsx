@@ -1,19 +1,11 @@
 import type { Metadata } from 'next'
-import { Outfit, Cormorant_Garamond } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages, getTranslations } from 'next-intl/server'
 import { NavBar } from '@/components/NavBar'
 import { getServerSession } from '@/lib/auth'
 import Script from 'next/script'
 import './globals.css'
-
-const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' })
-const cormorant = Cormorant_Garamond({
-  weight: ['400', '500', '600'],
-  style: ['normal', 'italic'],
-  subsets: ['latin'],
-  variable: '--font-cormorant',
-})
+import './google-fonts.css'
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('Layout')
@@ -31,7 +23,30 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const umamiWebsiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID
 
   return (
-    <html lang={locale} className={`${outfit.variable} ${cormorant.variable}`}>
+    <html lang={locale}>
+      <head>
+        <link
+          rel="preload"
+          href="/fonts/google/1b99372b3eaef0c8-s.p.1gsd1jahc5dg_.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/google/8bd76523131fa0fc-s.p.1pvupmngxrt5z.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/google/01e4147cff8141ee-s.p.3huc2loe0ie8a.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)', minHeight: '100vh' }}>
         {umamiUrl && umamiWebsiteId && (
           <Script
