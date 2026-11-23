@@ -36,6 +36,10 @@ const PUBLIC_PATHS = [
   // catalogo e restituisce i prezzi correnti, non crea ordini ne'
   // PaymentIntent (vedi app/api/cart/prices/route.ts).
   '/api/cart/prices',
+  // Font self-hostati in public/fonts/google/: asset statici che il browser
+  // deve poter scaricare anche da ospite, altrimenti /login e /catalogo
+  // restano senza font e ogni richiesta paga un 307 -> /login.
+  '/fonts',
   '/api/vat',
   '/api/stripe',
   // /offerte era rimasta dietro l'auth mentre il banner che ci porta
