@@ -104,6 +104,7 @@ jobs:
           npm run test:emails --silent
           npm run test:catalog --silent
           npm run test:legacy-slugs --silent
+          npm run test:proxy --silent
           npm run test:promo --silent
           npm run test:shipping --silent
           npm run test:delivery-estimate --silent
@@ -136,6 +137,11 @@ jobs:
       - name: Storefront — build
         working-directory: storefront
         run: npm run build
+
+      # Reads .next output to verify emitted CSS and actual SSR preload links.
+      - name: Storefront — font output verification
+        working-directory: storefront
+        run: npm run verify:fonts
 
       - name: CMS — tipi
         working-directory: cms
@@ -175,3 +181,7 @@ jobs:
       - name: B2B — build
         working-directory: b2b
         run: npm run build
+
+      - name: B2B — font self-host
+        working-directory: b2b
+        run: npm run verify:fonts

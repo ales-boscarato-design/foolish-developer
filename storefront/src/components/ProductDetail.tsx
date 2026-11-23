@@ -29,6 +29,24 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] as const } },
 }
 
+export function ContentItem({ item }: { item: { label: string; description?: string } }) {
+  const description = item.description ?? ''
+
+  return (
+    <div className="flex items-start gap-4">
+      <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: 'var(--accent)' }}>
+        <Check size={12} color="black" />
+      </div>
+      <div>
+        <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>{item.label}</span>
+        {description.trim() && description.trim() !== item.label.trim() && (
+          <p className="text-sm mt-0.5" style={{ color: 'var(--muted-fg)' }}>{description}</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Skeleton shimmer ────────────────────────────────────────────────────────
 function ImageSkeleton() {
   return <div className="animate-pulse rounded-2xl absolute inset-0" style={{ backgroundColor: 'var(--muted)' }} />
@@ -147,15 +165,26 @@ const ICON_MAP: Record<FeatureHighlight['icon'], React.ReactNode> = {
   truck: <Truck size={20} style={{ color: 'var(--accent)' }} />,
 }
 
+// Riserva della sezione «Contenuto», conservata dal lato main: e' lo stato
+// revisionato e promosso da #80 (quattro test in `ProductDetail.test.tsx`,
+// compreso il caso «nessuna voce dal CMS»). Non e' un secondo racconto di
+// consegna: e' l'elenco di cosa c'e' nella confezione.
+const DEFAULT_WHATS_IN_THE_BOX = [
+  { label: 'Foglio sintetico', description: '1x foglio nelle dimensioni selezionate' },
+  { label: 'Scheda tecnica', description: 'Codice seriale, specifiche materiale, istruzioni utilizzo' },
+  { label: 'Certificato', description: 'Attestazione materiale atossico e origine italiana' },
+]
+
 /**
- * Niente contenuti di riserva scritti qui.
+ * Niente contenuti di riserva scritti qui, tranne quello della confezione.
  *
  * C'erano tre set italiani (vantaggi, passi d'uso, contenuto della confezione)
- * usati quando il CMS non manda il campo: contenevano una seconda promessa di
- * consegna («Prepariamo e spediamo entro 48h dall'ordine») che contraddiceva la
- * fascia dichiarata piu' sotto, e restavano in italiano in tutte e cinque le
- * lingue. Una sezione senza contenuto CMS ora non si mostra: meglio una pagina
- * piu' corta di una pagina che promette due tempi diversi.
+ * usati quando il CMS non manda il campo: due contenevano una seconda promessa
+ * di consegna («Prepariamo e spediamo entro 48h dall'ordine») che contraddiceva
+ * la fascia dichiarata piu' sotto, e restavano in italiano in tutte e cinque le
+ * lingue. Vantaggi e passi d'uso ora non si mostrano senza contenuto CMS; per
+ * «Contenuto» resta la riserva di #80, che non promette tempi di consegna e ha
+ * gia' una revisione indipendente alle spalle.
  */
 
 interface FeatureCardProps {
@@ -969,32 +998,28 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
           </motion.section>
         )}
 
-        {/* Cosa c'è nella confezione — solo contenuto CMS */}
-        {product.whatsInTheBox && product.whatsInTheBox.length > 0 && (
-          <motion.section variants={itemVariants} className="mb-14">
-            <h2 className="text-xl font-semibold mb-6 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
-              {t('box.title')}
-            </h2>
-            <div
-              className="rounded-2xl p-6 lg:p-8"
-              style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}
-            >
-              <div className="space-y-4">
-                {product.whatsInTheBox.map((item, i) => (
-                  <div key={i} className="flex items-start gap-4">
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: 'var(--accent)' }}>
-                      <Check size={12} color="black" />
-                    </div>
-                    <div>
-                      <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>{item.label}</span>
-                      <p className="text-sm mt-0.5" style={{ color: 'var(--muted-fg)' }}>{item.description}</p>
-                    </div>
-                  </div>
+        {/* Cosa c'è nella confezione.
+            Lato main (#80): sezione sempre presente, `DEFAULT_WHATS_IN_THE_BOX`
+            come riserva e `ContentItem` che stampa la descrizione una volta sola
+            (vuota o uguale alla label non si ripete). I quattro test di
+            `ProductDetail.test.tsx` in main pinnano esattamente questo stato,
+            quindi il riallineamento lo conserva: togliere la riserva qui
+            cambiarebbe un comportamento gia' revisionato e promosso. */}
+        <motion.section variants={itemVariants} className="mb-14">
+          <h2 className="text-xl font-semibold mb-6 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
+            Contenuto
+          </h2>
+          <div
+            className="rounded-2xl p-6 lg:p-8"
+            style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}
+          >
+            <div className="space-y-4">
+              {(product.whatsInTheBox?.length ? product.whatsInTheBox : DEFAULT_WHATS_IN_THE_BOX).map((item, i) => (
+                <ContentItem key={i} item={item} />
               ))}
             </div>
-            </div>
-          </motion.section>
-        )}
+          </div>
+        </motion.section>
 
         {/* Componenti acquistabili separatamente */}
         {product.components && product.components.length > 0 && (
