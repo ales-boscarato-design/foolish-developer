@@ -15,8 +15,8 @@ import ts from 'typescript'
  * Questo file tiene la promessa in un posto solo e la difende su due fronti:
  *
  *  1. nel catalogo dei messaggi — le chiavi esistono in tutte e cinque le
- *     lingue, portano i segnaposto giusti, e il vecchio intervallo «3–5» non
- *     deve ricomparire da nessuna parte;
+ *     lingue, portano i segnaposto giusti, e la vecchia promessa «3–5 giorni»
+ *     non deve ricomparire in nessuna delle sue varianti linguistiche;
  *  2. nel sorgente — ProductDetail.tsx non deve piu' contenere testo visibile
  *     scritto a mano: un letterale nel JSX resta italiano per tutti, anche
  *     quando i messaggi sono tradotti.
@@ -48,15 +48,14 @@ const REQUIRED_KEYS = [
 /** Le chiavi che la promessa vecchia usava: rimosse, e devono restare fuori. */
 const REMOVED_KEYS = ['product.shipsIn', 'product.madeToOrderDesc'] as const
 
-/**
- * Il vecchio intervallo, in tutte le forme in cui e' stato scritto: «3–5
- * giorni», «3-5 days», «3 à 5 jours», «3 a 5 días». Gli articoli doganali
- * (4–6) e la consegna (24–48) non ci somigliano, quindi non servono eccezioni.
- */
+/** Il vecchio range di produzione, comprese le varianti di lingua e unità. */
 const LEGACY_RANGE_PATTERNS = [
-  /3\s*[–-]\s*5\s*(?:giorni|jours|días|dias|Tage|days|Werktage|giorni lavorativi|jours ouvrés|días hábiles|días laborables)/i,
-  /3\s+(?:à|a|to|bis)\s+5/i,
+  /\b3\s*(?:[-–—]\s*5|(?:to|bis|à|a)\s+5)\s*(?:(?:business|working|work)\s+)?(?:days?|calendar\s+days?|giorni(?:\s+lavorativi)?|jours?(?:\s+ouvrés?)?|días?(?:\s+(?:hábiles|laborables))?|dias?(?:\s+laborables?)?|tage?|werktage)\b/iu,
 ]
+
+function findLegacyRange(text: string): boolean {
+  return LEGACY_RANGE_PATTERNS.some((pattern) => pattern.test(text))
+}
 
 // ─── Catalogo messaggi ──────────────────────────────────────────────────────
 
@@ -155,15 +154,38 @@ test('nessun messaggio promette piu il vecchio intervallo 3–5', () => {
   const found: string[] = []
   for (const locale of LOCALES) {
     for (const { key, text } of flattenValues(readCatalog(locale))) {
-      for (const pattern of LEGACY_RANGE_PATTERNS) {
-        if (pattern.test(text)) {
-          found.push(`${locale}.json ${key}: ${JSON.stringify(text)}`)
-          break
-        }
-      }
+      if (findLegacyRange(text)) found.push(`${locale}.json ${key}: ${JSON.stringify(text)}`)
     }
   }
   assert.deepEqual(found, [], `il vecchio intervallo e' ancora nel catalogo:\n  ${found.join('\n  ')}`)
+})
+
+test('la guardia avversariale intercetta il range in tutte le lingue e le unità equivalenti', () => {
+  const legacyVariants = [
+    '3–5 giorni',
+    '3-5 giorni lavorativi',
+    '3 to 5 days',
+    '3–5 business days',
+    '3-5 working days',
+    '3 bis 5 Werktage',
+    '3 à 5 jours ouvrés',
+    '3 a 5 días hábiles',
+    '3–5 días laborables',
+    '3–5 calendar days',
+  ]
+  for (const phrase of legacyVariants) {
+    assert.equal(findLegacyRange(phrase), true, `range non intercettato: ${phrase}`)
+  }
+
+  const nonLegacyVariants = [
+    '4–6 giorni lavorativi',
+    '24–48 ore lavorative',
+    'da 3 a 5 prodotti',
+    '3–5%',
+  ]
+  for (const phrase of nonLegacyVariants) {
+    assert.equal(findLegacyRange(phrase), false, `falso positivo: ${phrase}`)
+  }
 })
 
 test('la partenza e la consegna dichiarano la stessa finestra in ogni lingua', () => {
@@ -185,6 +207,17 @@ test('la partenza e la consegna dichiarano la stessa finestra in ogni lingua', (
     // I termini contengono entrambe le regole: dentro e fuori UE.
     const termini = String(resolveKey(catalog, 'termini.shippingText') ?? '')
     assert.ok(termini.includes('24–48'), `${locale}: termini.shippingText non dichiara 24–48`)
+  }
+})
+
+test('la home comunica la partenza, non una zona di consegna senza conoscere l\'indirizzo', () => {
+  for (const locale of LOCALES) {
+    const catalog = readCatalog(locale)
+    const title = String(resolveKey(catalog, 'home.badges.shippingSpeed.title') ?? '')
+    const body = String(resolveKey(catalog, 'home.badges.shippingSpeed.body') ?? '')
+    assert.match(title, /24/, `${locale}: la home deve limitarsi al tempo di partenza`)
+    assert.doesNotMatch(`${title} ${body}`, /24\s*[–-]\s*48|4\s*[–-]\s*6/, `${locale}: la home non conosce la zona di consegna`)
+    assert.match(body, /carrello|carrito|warenkorb|panier|cart/i, `${locale}: la data di consegna va rimandata al carrello`)
   }
 })
 
@@ -373,14 +406,34 @@ function collectTranslationKeys(fileName: string, source: string): Array<{ key: 
   return keys
 }
 
+/**
+ * I letterali che il componente scriveva a mano: il glifo e il testo stanno
+ * nella traduzione, e la guardia deve vederli anche se qualcuno li ricompone
+ * con un'entita' HTML o una stringa condizionale (per questo si cerca la
+ * sottostringa nel sorgente grezzo, non nel testo renderizzato).
+ */
+const HARDCODED_BADGE_LITERALS = ['✦ Su ordinazione', '● Disponibile'] as const
+
+/** I letterali scritti a mano presenti nel sorgente, nell'ordine dichiarato. */
+function findHardcodedBadge(source: string): string[] {
+  return HARDCODED_BADGE_LITERALS.filter((literal) => source.includes(literal))
+}
+
 test('ProductDetail non contiene piu il badge scritto a mano', () => {
   const source = fs.readFileSync(COMPONENT_FILE, 'utf8')
-  for (const literal of ['✦ Su ordinazione', '● Disponibile']) {
-    assert.ok(
-      !source.includes(literal),
-      `${COMPONENT} contiene ancora ${JSON.stringify(literal)}: il glifo e il testo stanno nella traduzione`,
-    )
-  }
+  assert.deepEqual(
+    findHardcodedBadge(source),
+    [],
+    `${COMPONENT} contiene ancora il badge italiano scritto a mano: il glifo e il testo stanno nella traduzione`,
+  )
+})
+
+test('la guardia sul badge vede il difetto quando c\'e\' e tace quando non c\'e\'', () => {
+  // La sottostringa grezza e' l'unica forma che intercetta il difetto vero: il
+  // test si prova su un sorgente che lo riproduce, non solo su quello sano.
+  assert.deepEqual(findHardcodedBadge('<span>● Disponibile</span>'), ['● Disponibile'])
+  assert.deepEqual(findHardcodedBadge('<span>✦ Su ordinazione</span>'), ['✦ Su ordinazione'])
+  assert.deepEqual(findHardcodedBadge('<span>{t(\'availableBadge\')}</span>'), [])
 })
 
 test('ProductDetail non ha testo visibile scritto a mano fuori da t(...)', () => {

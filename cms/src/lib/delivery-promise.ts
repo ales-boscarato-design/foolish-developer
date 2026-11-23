@@ -111,6 +111,18 @@ function isEmptyValue(value: unknown): boolean {
   return value === null || value === undefined || value === ''
 }
 
+/** Forma grezza del gruppo, sicura da invocare prima che Payload lo attraversi. */
+export function validateDeliveryPromiseShape(value: unknown): string | null {
+  if (value === null || value === undefined) return null
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    return 'deliveryPromise deve essere un oggetto'
+  }
+  const extras = unexpectedKeys(value as Record<string, unknown>)
+  return extras.length > 0
+    ? `deliveryPromise: campi non previsti (${extras.join(', ')})`
+    : null
+}
+
 /**
  * Esito della validazione del gruppo in ingresso.
  * `snapshot: null` + `error: null` = nessuno snapshot (assenza legittima).
@@ -119,17 +131,12 @@ export function validateDeliveryPromiseInput(value: unknown): {
   snapshot: StoredDeliveryPromise | null
   error: string | null
 } {
+  const shapeError = validateDeliveryPromiseShape(value)
+  if (shapeError) return { snapshot: null, error: shapeError }
   if (value === null || value === undefined) return { snapshot: null, error: null }
-  if (typeof value !== 'object' || Array.isArray(value)) {
-    return { snapshot: null, error: 'deliveryPromise deve essere un oggetto' }
-  }
   const raw = value as Record<string, unknown>
   if (PROMISE_FIELDS.every((field) => isEmptyValue(raw[field]))) {
     return { snapshot: null, error: null }
-  }
-  const extras = unexpectedKeys(raw)
-  if (extras.length > 0) {
-    return { snapshot: null, error: `deliveryPromise: campi non previsti (${extras.join(', ')})` }
   }
 
   if (raw.version !== DELIVERY_PROMISE_VERSION) {

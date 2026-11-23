@@ -70,6 +70,20 @@ test('un campo in piu\' non previsto fa fallire chiuso', () => {
   assert.match(result.error ?? '', /campi non previsti/)
 })
 
+test('un gruppo vuoto con chiavi sconosciute e valori scalari viene rifiutato', () => {
+  for (const value of [
+    { unexpected: 'X' },
+    { unexpected: null },
+    42,
+    'not-a-group',
+    ['unexpected'],
+  ]) {
+    const result = validateDeliveryPromiseInput(value)
+    assert.equal(result.snapshot, null, `non deve produrre snapshot per ${JSON.stringify(value)}`)
+    assert.notEqual(result.error, null, `deve rifiutare ${JSON.stringify(value)}`)
+  }
+})
+
 test('la data di calcolo si normalizza da stringa o da Date', () => {
   const base = {
     version: 1,

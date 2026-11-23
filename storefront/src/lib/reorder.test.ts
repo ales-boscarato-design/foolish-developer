@@ -136,15 +136,15 @@ test('prezzi uguali: ok con metadata canonici, items_json e riga Spedizione', as
   }
   assert.equal(metadata.order_ref, plan.orderRef)
   assert.equal(metadata.shipping_source, 'carrier_flat')
-  // Anche il riordino e' un ordine nuovo: porta la promessa di consegna
-  // calcolata server-side, cosi' l'ordine pagato ha la stessa data che il
-  // cliente legge nella conferma (e non resta senza snapshot).
+  // Il riordino non mostra una data prima di aprire Stripe: non deve registrare
+  // una promessa che il cliente non ha visto.
   const promise = parseDeliveryPromiseMetadataValue(metadata.delivery_promise)
   assert.notEqual(promise, null, 'il riordino deve portare lo snapshot della promessa')
-  assert.equal(promise?.promiseShown, true)
-  assert.equal(promise?.zone, 'IT_EU')
-  assert.match(promise?.departureDate ?? '', /^\d{4}-\d{2}-\d{2}$/)
-  assert.match(promise?.estimatedDeliveryDate ?? '', /^\d{4}-\d{2}-\d{2}$/)
+  assert.equal(promise?.promiseShown, false)
+  assert.equal(promise?.reason, 'not_shown')
+  assert.equal(promise?.zone, null)
+  assert.equal(promise?.departureDate, null)
+  assert.equal(promise?.estimatedDeliveryDate, null)
 
   assert.deepEqual(JSON.parse(metadata.items_json), [{
     sku: 'SKU-1',
