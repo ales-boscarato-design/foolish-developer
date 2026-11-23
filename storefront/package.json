@@ -15,6 +15,7 @@
     "test:emails": "tsx --test src/emails/copy.test.ts",
     "test:catalog": "tsx --test src/lib/catalog.test.ts",
     "test:legacy-slugs": "tsx --test src/lib/legacy-slugs.test.ts",
+    "test:proxy": "tsx --test src/proxy.test.ts && tsx --test src/app/sitemap.test.ts",
     "test:promo": "tsx --test src/lib/promo.test.ts",
     "test:shipping": "tsx --test src/lib/shipping.test.ts",
     "test:delivery-estimate": "tsx --test src/lib/delivery-estimate.test.ts src/app/api/stripe/delivery-estimate/route.test.ts",
@@ -44,7 +45,8 @@
     "test:money": "tsx --test src/lib/money.test.ts",
     "test:review-products-pagination": "tsx --test src/lib/review-products-pagination.test.ts",
     "test:account-home-wishlist": "tsx --test src/lib/account-home-wishlist.test.ts",
-    "test:unlisted": "npm run test:review-products-pagination --silent && tsx --test src/lib/unlisted-listing.test.ts src/lib/unlisted-product-redirect.test.ts src/lib/unlisted-next-router.test.ts src/lib/home-listed-reviews.test.ts src/lib/listed-components.test.ts src/lib/listed-reviews.test.ts src/lib/unlisted-promotion.test.ts src/app/api/stripe/checkout.unlisted.test.ts src/app/api/subscribe/checkout.unlisted.test.ts"
+    "test:unlisted": "npm run test:review-products-pagination --silent && tsx --test src/lib/unlisted-listing.test.ts src/lib/unlisted-product-redirect.test.ts src/lib/unlisted-next-router.test.ts src/lib/home-listed-reviews.test.ts src/lib/listed-components.test.ts src/lib/listed-reviews.test.ts src/lib/unlisted-promotion.test.ts src/app/api/stripe/checkout.unlisted.test.ts src/app/api/subscribe/checkout.unlisted.test.ts",
+    "test:product-detail": "tsx --test src/components/ProductDetail.test.tsx"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",

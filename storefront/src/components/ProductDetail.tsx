@@ -28,6 +28,24 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] as const } },
 }
 
+export function ContentItem({ item }: { item: { label: string; description?: string } }) {
+  const description = item.description ?? ''
+
+  return (
+    <div className="flex items-start gap-4">
+      <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: 'var(--accent)' }}>
+        <Check size={12} color="black" />
+      </div>
+      <div>
+        <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>{item.label}</span>
+        {description.trim() && description.trim() !== item.label.trim() && (
+          <p className="text-sm mt-0.5" style={{ color: 'var(--muted-fg)' }}>{description}</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Skeleton shimmer ────────────────────────────────────────────────────────
 function ImageSkeleton() {
   return <div className="animate-pulse rounded-2xl absolute inset-0" style={{ backgroundColor: 'var(--muted)' }} />
@@ -924,15 +942,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
           >
             <div className="space-y-4">
               {(product.whatsInTheBox?.length ? product.whatsInTheBox : DEFAULT_WHATS_IN_THE_BOX).map((item, i) => (
-                <div key={i} className="flex items-start gap-4">
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: 'var(--accent)' }}>
-                    <Check size={12} color="black" />
-                  </div>
-                  <div>
-                    <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>{item.label}</span>
-                    <p className="text-sm mt-0.5" style={{ color: 'var(--muted-fg)' }}>{item.description}</p>
-                  </div>
-                </div>
+                <ContentItem key={i} item={item} />
               ))}
             </div>
           </div>

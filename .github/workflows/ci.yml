@@ -104,6 +104,7 @@ jobs:
           npm run test:emails --silent
           npm run test:catalog --silent
           npm run test:legacy-slugs --silent
+          npm run test:proxy --silent
           npm run test:promo --silent
           npm run test:shipping --silent
           npm run test:delivery-estimate --silent
@@ -133,6 +134,7 @@ jobs:
           npm run test:money --silent
           npm run test:unlisted --silent
           npm run test:account-home-wishlist --silent
+          npm run test:product-detail --silent
       - name: Storefront — build
         working-directory: storefront
         run: npm run build
