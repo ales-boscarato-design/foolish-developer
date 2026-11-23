@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next'
-import { Outfit, Cormorant_Garamond } from 'next/font/google'
 import Script from 'next/script'
 import '../globals.css'
 import { NavWrapper } from '@/components/NavWrapper'
@@ -23,13 +22,11 @@ const descriptions: Record<string, string> = {
   de: 'Handgefertigte synthetische Übungshaut aus Italien. Jedes Blatt ist einzigartig — genau wie die Haut deiner Kunden.',
 }
 
-const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' })
-const cormorant = Cormorant_Garamond({
-  weight: ['300', '400', '500', '600', '700'],
-  style: ['normal', 'italic'],
-  subsets: ['latin'],
-  variable: '--font-cormorant',
-})
+const fontPreloads = [
+  '/fonts/google/1b99372b3eaef0c8-s.p.1gsd1jahc5dg_.woff2',
+  '/fonts/google/8bd76523131fa0fc-s.p.1pvupmngxrt5z.woff2',
+  '/fonts/google/01e4147cff8141ee-s.p.3huc2loe0ie8a.woff2',
+]
 
 export async function generateMetadata({
   params,
@@ -82,7 +79,12 @@ export default async function LocaleLayout({
   const messages = await getMessages()
 
   return (
-    <html lang={locale} className={`${outfit.variable} ${cormorant.variable}`} suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
+      <head>
+        {fontPreloads.map((href) => (
+          <link key={href} rel="preload" href={href} as="font" type="font/woff2" crossOrigin="anonymous" />
+        ))}
+      </head>
       <body className="min-h-screen flex flex-col" suppressHydrationWarning>
         <AttributionCapture />
         {process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID && (

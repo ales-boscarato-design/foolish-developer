@@ -1,23 +1,23 @@
 /**
  * URL di prodotto storicamente non recuperabili, pubblicati dal CMS.
  *
- * Due prodotti sono stati creati con uno slug che contiene spazi
+ * Un prodotto duplicato e' stato creato con uno slug che contiene spazi
  * (`t-sheet-dbl - abbonamento`). Lo slug finisce grezzo nell'`href` della scheda
  * prodotto, quindi il browser chiede `/prodotto/t-sheet-dbl%20-%20abbonamento`:
  * la richiesta arriva codificata e `where[slug][equals]` nel CMS non trova mai la
- * stringa, cosi' la pagina risponde 404 in tutte le lingue — pur essendo il
- * prodotto attivo, in griglia e nella sitemap.
+ * stringa, cosi' la pagina risponde 404 in tutte le lingue. Anche lo slug
+ * `t-sheet-dbl-abbonamento` del duplicato inattivo va ricondotto al prodotto base.
  *
- * Lo slug e' stato corretto nel CMS; questi URL restano nella sitemap, nei link
- * condivisi e nella cronologia dei clienti, quindi si dirottano sul percorso
- * canonico invece di lasciare un 404 a chi stava comprando.
+ * Questi URL storici possono restare in link condivisi e nella cronologia dei
+ * clienti, quindi si dirottano sul percorso canonico invece di lasciare un 404.
  *
  * La ricaduta e' impedita a monte: `cms/src/collections/Products.ts` rifiuta uno
  * slug che non sia minuscole/numeri/trattini.
  */
 
 export const LEGACY_PRODUCT_SLUGS: Record<string, string> = {
-  't-sheet-dbl - abbonamento': 't-sheet-dbl-abbonamento',
+  't-sheet-dbl-abbonamento': 't-sheet-dbl',
+  't-sheet-dbl - abbonamento': 't-sheet-dbl',
   'skin-face-3d - abbonamento': 'skin-face-3d-abbonamento',
 }
 

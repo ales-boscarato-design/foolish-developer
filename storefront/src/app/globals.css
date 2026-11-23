@@ -1,6 +1,9 @@
 @import "tailwindcss";
+@import "./google-fonts.css";
 
 :root {
+  --font-outfit: "Outfit", "Outfit Fallback";
+  --font-cormorant: "Cormorant Garamond", "Cormorant Garamond Fallback";
   --background: #080808;
   --foreground: #f0ede8;
   --accent: #c8a97e;
