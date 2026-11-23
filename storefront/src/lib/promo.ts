@@ -6,6 +6,7 @@ import {
 } from './shipping'
 import { prudentialExtraEuPriceCents } from './landed-cost-price'
 import { formatMachineMoneyCents } from './money'
+import { serializeDeliveryPromise, type DeliveryPromiseSnapshot } from './delivery-promise'
 
 export type PromoType = 'free_shipping' | 'percent_pro' | 'percent' | 'amount' | 'percent_tiered'
 
@@ -538,6 +539,13 @@ export function buildCheckoutMetadata(args: {
   chargedProductLines: ChargedProductLine[]
   promo?: ValidatedPromo | null
   deliveryEstimateDate?: string
+  /**
+   * Promessa di consegna calcolata per QUESTO carrello. Viaggia come una sola
+   * chiave JSON (`delivery_promise`): lo snapshot e' un dato unico, e
+   * spezzarlo in sei chiavi indipendenti lo renderebbe incompleto se una
+   * scrivesse e l'altra no.
+   */
+  deliveryPromise?: DeliveryPromiseSnapshot | null
 }): Record<string, string> | null {
   const metadata: Record<string, string> = {
     order_ref: args.orderRef,
@@ -565,6 +573,9 @@ export function buildCheckoutMetadata(args: {
   if (args.customer.province) metadata.customer_province = args.customer.province
   if (args.deliveryEstimateDate && /^\d{4}-\d{2}-\d{2}$/.test(args.deliveryEstimateDate)) {
     metadata.delivery_estimate_date = args.deliveryEstimateDate
+  }
+  if (args.deliveryPromise) {
+    metadata.delivery_promise = serializeDeliveryPromise(args.deliveryPromise)
   }
 
   if (args.promo) {

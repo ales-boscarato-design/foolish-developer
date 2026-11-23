@@ -79,6 +79,70 @@ test('a duplicated paid session creates one CMS order', async () => {
   }
 })
 
+/**
+ * La promessa di consegna che il cliente ha visto nel carrello arriva
+ * sull'ordine come snapshot, e resta quella: il webhook non conosce il
+ * calendario italiano e non deve conoscerlo. Se il dato manca, l'ordine pagato
+ * si crea lo stesso ma lo dichiara (`not_captured`) invece di inventare una data.
+ */
+const FROZEN_PROMISE = {
+  version: 1,
+  promiseShown: true,
+  zone: 'IT_EU',
+  departureDate: '2026-11-23',
+  estimatedDeliveryDate: '2026-11-25',
+  productionDays: 1,
+  marginDays: 2,
+  fallback: false,
+  reason: 'ok',
+  calculatedAt: '2026-11-20T09:00:00.000Z',
+}
+
+async function persistWithMetadata(
+  metadata: Record<string, string>,
+): Promise<Record<string, unknown>> {
+  const originalFetch = globalThis.fetch
+  let createBody: Record<string, unknown> | null = null
+  globalThis.fetch = async (_input, init) => {
+    if (init?.method === 'POST') {
+      createBody = JSON.parse(String(init.body)) as Record<string, unknown>
+      return jsonResponse({ id: 202, orderNumber: 'FOOLISH-ORDER-TEST' }, 201)
+    }
+    return jsonResponse({ docs: [] })
+  }
+  try {
+    const result = await createOrderInCMS(checkoutSession({
+      metadata: { ...checkoutSession().metadata, ...metadata },
+    }))
+    assert.equal(result.created, true, 'un ordine pagato si crea sempre')
+    assert.ok(createBody, 'CMS create payload was not captured')
+    return createBody as Record<string, unknown>
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+}
+
+test('lo snapshot della promessa arriva sul documento dell\'ordine', async () => {
+  const body = await persistWithMetadata({ delivery_promise: JSON.stringify(FROZEN_PROMISE) })
+  assert.deepEqual(body.deliveryPromise, FROZEN_PROMISE)
+})
+
+test('senza snapshot la promessa e\' dichiarata non catturata, mai inventata', async () => {
+  const body = await persistWithMetadata({})
+  const promise = body.deliveryPromise as Record<string, unknown>
+  assert.equal(promise.reason, 'not_captured')
+  assert.equal(promise.promiseShown, false)
+  assert.equal(promise.estimatedDeliveryDate, null)
+  assert.equal(promise.departureDate, null)
+})
+
+test('uno snapshot illeggibile non diventa una data: e\' non catturato', async () => {
+  const body = await persistWithMetadata({ delivery_promise: '{"version":2}' })
+  const promise = body.deliveryPromise as Record<string, unknown>
+  assert.equal(promise.reason, 'not_captured')
+  assert.equal(promise.estimatedDeliveryDate, null)
+})
+
 test('a webhook and reconciler create race resolves as already present', async () => {
   const originalFetch = globalThis.fetch
   let lookupCount = 0

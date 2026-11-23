@@ -503,6 +503,24 @@ export interface Order {
   promoCode?: string | null;
   promoType?: ('free_shipping' | 'percent_pro' | 'percent' | 'amount' | 'percent_tiered') | null;
   promoDiscountCents?: number | null;
+  deliveryPromise?: {
+    promiseShown?: boolean | null;
+    reason?: ('ok' | 'estimate_unavailable' | 'not_shown' | 'not_captured') | null;
+    version?: number | null;
+    zone?: ('IT_EU' | 'EXTRA_EU') | null;
+    /**
+     * Primo giorno lavorativo utile, calendario italiano.
+     */
+    departureDate?: string | null;
+    estimatedDeliveryDate?: string | null;
+    /**
+     * Massimo delle durate note; vuoto = almeno un articolo a durata ignota.
+     */
+    productionDays?: number | null;
+    marginDays?: number | null;
+    fallback?: boolean | null;
+    calculatedAt?: string | null;
+  };
   lineItems:
     | {
         [k: string]: unknown;
@@ -1200,6 +1218,20 @@ export interface OrdersSelect<T extends boolean = true> {
   promoCode?: T;
   promoType?: T;
   promoDiscountCents?: T;
+  deliveryPromise?:
+    | T
+    | {
+        promiseShown?: T;
+        reason?: T;
+        version?: T;
+        zone?: T;
+        departureDate?: T;
+        estimatedDeliveryDate?: T;
+        productionDays?: T;
+        marginDays?: T;
+        fallback?: T;
+        calculatedAt?: T;
+      };
   lineItems?: T;
   trackingNumber?: T;
   trackingCarrier?: T;

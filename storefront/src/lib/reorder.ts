@@ -37,6 +37,7 @@ import {
   buildStripeLineItems,
 } from '@/lib/checkout-session'
 import { generateOrderRef } from '@/lib/order-ref'
+import { noPromiseSnapshot } from '@/lib/delivery-promise'
 
 export type ReorderCode =
   | 'order_not_found'
@@ -332,11 +333,15 @@ export async function planReorder(args: {
   // di idempotenza dell'ordine: una collisione significa un cliente addebitato
   // senza ordine).
   const orderRef = generateOrderRef()
+  // Il riordino apre Stripe senza mostrare prima la stima di consegna. Registra
+  // l'assenza della promessa invece di inventare un consenso a una data.
+  const deliveryPromise = noPromiseSnapshot()
   const metadata = buildCheckoutMetadata({
     orderRef,
     customer,
     chargedProductLines,
     promo: null,
+    deliveryPromise,
   })
   if (!metadata) {
     // Con `promo: null` l'unico valore che puo` superare i 500 caratteri e`

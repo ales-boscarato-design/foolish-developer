@@ -3,6 +3,7 @@ import test from 'node:test'
 import type { CatalogProductFetcher } from './catalog'
 import type { ExtraEuShippingResolution } from './landed-cost'
 import { handleReorder, planReorder } from './reorder'
+import { parseDeliveryPromiseMetadataValue } from './delivery-promise'
 
 const SESSION_EMAIL = 'cliente@example.test'
 
@@ -135,6 +136,15 @@ test('prezzi uguali: ok con metadata canonici, items_json e riga Spedizione', as
   }
   assert.equal(metadata.order_ref, plan.orderRef)
   assert.equal(metadata.shipping_source, 'carrier_flat')
+  // Il riordino non mostra una data prima di aprire Stripe: non deve registrare
+  // una promessa che il cliente non ha visto.
+  const promise = parseDeliveryPromiseMetadataValue(metadata.delivery_promise)
+  assert.notEqual(promise, null, 'il riordino deve portare lo snapshot della promessa')
+  assert.equal(promise?.promiseShown, false)
+  assert.equal(promise?.reason, 'not_shown')
+  assert.equal(promise?.zone, null)
+  assert.equal(promise?.departureDate, null)
+  assert.equal(promise?.estimatedDeliveryDate, null)
 
   assert.deepEqual(JSON.parse(metadata.items_json), [{
     sku: 'SKU-1',

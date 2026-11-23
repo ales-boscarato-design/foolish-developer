@@ -6,6 +6,7 @@ import { Suspense } from 'react'
 import { OrderCompletedTracker } from '@/components/OrderCompletedTracker'
 import { telegramOrderLink } from '@/lib/order-ref'
 import { formatEuro } from '@/lib/money'
+import { formatDeliveryPromiseDate, parseDeliveryPromise } from '@/lib/delivery-promise'
 
 interface GraziePageProps {
   params: Promise<{ locale: string }>
@@ -44,6 +45,7 @@ async function OrderVerifier({ sessionId, locale }: { sessionId: string; locale:
   let customerName = ''
   let items: { name: string; quantity: number; unitAmount: number }[] = []
   let verified = false
+  let promisedDeliveryDate: string | null = null
 
   try {
     const res = await fetch(
@@ -57,6 +59,13 @@ async function OrderVerifier({ sessionId, locale }: { sessionId: string; locale:
         total = data.total ?? 0
         customerName = data.customerName ?? ''
         items = data.items ?? []
+        // La data promessa viene dallo SNAPSHOT dell'ordine (o, se il CMS non
+        // risponde, dai metadata congelati della sessione): non si ricalcola.
+        // Una promessa mai mostrata non produce nessuna riga.
+        const deliveryPromise = parseDeliveryPromise(data.deliveryPromise)
+        if (deliveryPromise?.promiseShown && deliveryPromise.estimatedDeliveryDate) {
+          promisedDeliveryDate = formatDeliveryPromiseDate(locale, deliveryPromise.estimatedDeliveryDate)
+        }
         verified = true
       }
     }
@@ -100,6 +109,11 @@ async function OrderVerifier({ sessionId, locale }: { sessionId: string; locale:
         <p className="text-sm" style={{ color: 'var(--muted-fg)' }}>
           Totale pagato: <span className="font-semibold" style={{ color: 'var(--foreground)' }}>{formatEuro(locale, total)}</span>
         </p>
+        {promisedDeliveryDate && (
+          <p className="text-sm mt-1" style={{ color: 'var(--accent)' }}>
+            {t('deliveryEstimate', { date: promisedDeliveryDate })}
+          </p>
+        )}
         {items.length > 0 && (
           <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
             {items.slice(0, 3).map((item, i) => (

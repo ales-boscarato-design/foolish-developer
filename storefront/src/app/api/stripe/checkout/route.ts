@@ -29,6 +29,7 @@ import {
 } from '@/lib/checkout-session'
 import { generateOrderRef } from '@/lib/order-ref'
 import { estimateCartDelivery } from '@/lib/delivery-estimate'
+import { buildDeliveryPromiseSnapshot, noPromiseSnapshot, serializeDeliveryPromise } from '@/lib/delivery-promise'
 
 type StripeAllowedCountry = NonNullable<
   Stripe.Checkout.SessionCreateParams['shipping_address_collection']
@@ -238,6 +239,14 @@ export async function POST(req: NextRequest) {
     }, { status: 409 })
   }
   const promisedDeliveryEstimateDate = requestedDeliveryEstimateDate === undefined ? null : deliveryEstimateDate
+  // Lo SNAPSHOT della promessa: e' la stessa stima appena ricalcolata, ma
+  // diventa un dato da conservare invece di una formula da rifare. Quando il
+  // cliente non ha mai visto una data, lo snapshot lo dichiara (`not_shown`)
+  // invece di inventarne una; quando il calcolo non produce una data, dichiara
+  // perche' (`estimate_unavailable`).
+  const deliveryPromise = requestedDeliveryEstimateDate === undefined
+    ? noPromiseSnapshot()
+    : buildDeliveryPromiseSnapshot({ estimate: deliveryEstimate })
 
   let serverShippingCostCents: number | null = null
   const shippingMetadata: Record<string, string> = {}
@@ -291,6 +300,7 @@ export async function POST(req: NextRequest) {
     orderRef,
     customer,
     chargedProductLines,
+    deliveryPromise,
     ...(promisedDeliveryEstimateDate ? { deliveryEstimateDate: promisedDeliveryEstimateDate } : {}),
     // La promo "spedizione gratuita" non azzera una tariffa extra-UE: il
     // metadato registra cio' che e' successo davvero, non cio' che la promo
@@ -313,11 +323,15 @@ export async function POST(req: NextRequest) {
   const orderMetadata = { ...metadata, ...shippingMetadata }
   // Il country del cliente e' gia' validato: la zona c'e' sempre. La si scrive
   // solo se esiste, invece di inventarne una per riempire la chiave.
-  if (deliveryEstimate.zone) orderMetadata.delivery_estimate_zone = deliveryEstimate.zone
-  orderMetadata.delivery_estimate_production_days = deliveryEstimate.productionDays === null
+  if (deliveryPromise.zone) orderMetadata.delivery_estimate_zone = deliveryPromise.zone
+  orderMetadata.delivery_estimate_production_days = deliveryPromise.productionDays === null
     ? 'unknown'
-    : String(deliveryEstimate.productionDays)
+    : String(deliveryPromise.productionDays)
   if (!promisedDeliveryEstimateDate) delete orderMetadata.delivery_estimate_date
+  // Lo snapshot e' la fonte unica: la chiave JSON si riscrive dallo stesso
+  // oggetto, cosi' le chiavi piatte (per la dashboard Stripe) non possono
+  // divergere da quella che l'ordine conservera'.
+  orderMetadata.delivery_promise = serializeDeliveryPromise(deliveryPromise)
   const sessionMetadata = shouldMarkAffiliate && promo
     ? {
         ...orderMetadata,

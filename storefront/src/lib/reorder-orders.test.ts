@@ -196,6 +196,12 @@ test('la sessione pagata del riordino crea un ordine CMS con righe, totale e spe
     })
     assert.equal(persisted.customerName, 'Mario Rossi')
     assert.equal(persisted.paymentStatus, 'paid')
+    const deliveryPromise = persisted.deliveryPromise as Record<string, unknown>
+    assert.equal(deliveryPromise.promiseShown, false)
+    assert.equal(deliveryPromise.reason, 'not_shown')
+    assert.equal(deliveryPromise.zone, null)
+    assert.equal(deliveryPromise.departureDate, null)
+    assert.equal(deliveryPromise.estimatedDeliveryDate, null)
   })
 })
 

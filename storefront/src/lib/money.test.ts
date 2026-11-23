@@ -111,7 +111,14 @@ test('ProductCard e ProductDetail conservano la posizione originale del simbolo 
   assert.match(productDetail, /\$\{formatMoney\(locale, firstVariant\.price\)\}€/)
   assert.match(productDetail, /\$\{formatMoney\(locale, component\.basePrice\)\}€/)
   assert.match(productDetail, /\{formatMoney\(locale, selectedVariant\.price\)\}€/)
-  assert.match(productDetail, /Risparmi €\{formatMoney\(locale,/)
+  // L'etichetta del risparmio e' una chiave i18n (`packs.save`), il simbolo
+  // resta dopo il testo e prima del numero: si pinna la riga che emette il
+  // valore, con l'indentazione vera, perche' un pin a sottostringa resta verde
+  // anche su una riga di commento.
+  assert.match(
+    productDetail,
+    /^ {28}\{t\('packs\.save'\)\} €\{formatMoney\(locale, \(selectedVariant\.price \* pack\.quantity\) \* \(pack\.discountPercent \/ 100\)\)\}$/m,
+  )
   assert.match(productDetail, /€\{formatMoney\(locale, selectedVariant\.price \* pack\.quantity\)\}/)
   assert.match(productDetail, /€\{formatMoney\(locale, selectedVariant\.price \* pack\.quantity \* \(1 - pack\.discountPercent \/ 100\)\)\}/)
 

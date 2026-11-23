@@ -14,6 +14,12 @@ const messages = {
     vatIncluded: 'VAT included',
     variantLabel: 'Variant',
     addToCart: 'Add to cart',
+    box: {
+      title: 'Contenuto',
+      sheet: { label: 'Synthetic sheet', description: 'Synthetic sheet description' },
+      techCard: { label: 'Synthetic tech card', description: 'Synthetic tech card description' },
+      certificate: { label: 'Synthetic certificate', description: 'Synthetic certificate description' },
+    },
   },
 }
 
@@ -93,14 +99,24 @@ test('ProductDetail Contenuto omits absent and whitespace-only descriptions', ()
 test('ProductDetail Contenuto fallback remains unchanged when no entries are supplied', () => {
   const section = contentSection(renderProduct([]))
 
-  for (const text of [
-    'Foglio sintetico',
-    '1x foglio nelle dimensioni selezionate',
-    'Scheda tecnica',
-    'Codice seriale, specifiche materiale, istruzioni utilizzo',
-    'Certificato',
-    'Attestazione materiale atossico e origine italiana',
-  ]) {
-    assert.equal((section.match(new RegExp(text, 'g')) ?? []).length, 1)
+  // Il fallback non è più testo scritto nel componente: arriva dalle chiavi `product.box.*`.
+  // Restano invariati i tre elementi, il loro ordine e il fatto che ognuno compaia una volta sola.
+  const expected = [
+    'Synthetic sheet',
+    'Synthetic sheet description',
+    'Synthetic tech card',
+    'Synthetic tech card description',
+    'Synthetic certificate',
+    'Synthetic certificate description',
+  ]
+
+  const positions = expected.map((text) => section.indexOf(text))
+  for (const [i, position] of positions.entries()) assert.ok(position >= 0, `manca "${expected[i]}" nel fallback`)
+  assert.deepEqual(positions, [...positions].sort((a, b) => a - b), 'ordine del fallback cambiato')
+
+  // Una volta sola, come testo di un elemento: le descrizioni contengono le etichette come sottostringa.
+  for (const text of expected) {
+    const occurrences = (section.match(new RegExp(`>${text}<`, 'g')) ?? []).length
+    assert.equal(occurrences, 1, `"${text}" compare ${occurrences} volte`)
   }
 })

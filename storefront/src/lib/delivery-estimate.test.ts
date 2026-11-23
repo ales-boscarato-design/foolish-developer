@@ -140,6 +140,7 @@ test('paese assente: nessuna zona, nessuna data, nessuna eccezione', () => {
       productionDays: null,
       marginDays: null,
       fallback: false,
+      departureDate: null,
       date: null,
       reason: 'zone_unknown',
     })
@@ -156,6 +157,7 @@ test('durata di produzione fuori dal limite: out_of_bounds, nessun ciclo, nessun
       productionDays: null,
       marginDays: null,
       fallback: false,
+      departureDate: null,
       date: null,
       reason: 'out_of_bounds',
     })
@@ -237,7 +239,11 @@ test('pin della pagina checkout: niente quota senza paese, niente stima appesa, 
   assert.match(canPay, /pendingForCart === null/, 'canPay blocca una stima in attesa')
 
   // La data che parte verso il checkout e' quella mostrata.
-  assert.match(page, /deliveryEstimateDate: activeEstimateDate/, 'si invia la data mostrata, non un ricalcolo')
+  assert.match(
+    page,
+    /deliveryEstimateDate: estimateResolved \? activeEstimateDate : undefined/,
+    'si invia la data mostrata (o null quando la stima non ne produce una), non un ricalcolo',
+  )
 
   // Una stima che non risponde non lascia il cliente appeso: abort dopo il
   // timeout e stesso percorso della stima assente (conferma esplicita).
@@ -246,4 +252,89 @@ test('pin della pagina checkout: niente quota senza paese, niente stima appesa, 
   const estimateCall = page.slice(estimateCallStart, estimateCallStart + 400)
   assert.match(estimateCall, /signal: controller\.signal/, 'la richiesta della stima deve poter essere annullata')
   assert.match(page, /setTimeout\(\(\) => controller\.abort\(\), 9_000\)/, 'la stima deve avere un timeout')
+})
+
+test("la partenza fa parte della stima: la data promessa si conta da li'", () => {
+  // Giovedi' 19/11/2026, ore 10:00 italiane: prima del cutoff, quindi si parte
+  // lo stesso giorno. Due giorni di produzione (ven 20, lun 23) piu' due di
+  // margine (mar 24, mer 25): la data promessa e' mercoledi' 25.
+  const estimate = estimateCartDelivery({
+    now: new Date('2026-11-19T09:00:00.000Z'),
+    country: 'IT',
+    items: [{ madeToOrder: true, productionDays: 2 }],
+  })
+  assert.equal(estimate.departureDate, '2026-11-19')
+  assert.equal(estimate.date, '2026-11-25')
+  assert.equal(estimate.marginDays, 2)
+})
+
+/**
+ * Pasquetta, anno per anno, letta da calendario (non calcolata da questa
+ * funzione: altrimenti il test direbbe solo che il codice e' d'accordo con se
+ * stesso).
+ */
+const EASTER_MONDAY_BY_YEAR: Record<number, string> = {
+  2026: '2026-04-06',
+  2027: '2027-03-29',
+  2028: '2028-04-17',
+  2029: '2029-04-02',
+  2030: '2030-04-22',
+  2031: '2031-04-14',
+  2032: '2032-03-29',
+  2033: '2033-04-18',
+}
+
+/** Feste fisse italiane, in forma MM-DD. */
+const FIXED_ITALIAN_HOLIDAYS_MMDD = [
+  '01-01', '01-06', '04-25', '05-01', '06-02', '08-15', '11-01', '12-08', '12-25', '12-26',
+] as const
+
+/**
+ * Giorni lavorativi italiani attesi nell'anno, contati a parte (lun-ven meno
+ * le undici feste). Se una festa nuova entra nel codice senza entrare qui, il
+ * conteggio non torna e il test lo dice.
+ */
+const WORKING_DAYS_BY_YEAR: Record<number, number> = {
+  2026: 254,
+  2027: 255,
+  2028: 250,
+  2029: 253,
+  2030: 253,
+  2031: 251,
+  2032: 256,
+  2033: 252,
+}
+
+const isoDay = (date: Date) => date.toISOString().slice(0, 10)
+
+test("festivita' italiane anno per anno: il calendario lavorativo non contiene ne' weekend ne' feste", () => {
+  for (const [yearText, easterMonday] of Object.entries(EASTER_MONDAY_BY_YEAR)) {
+    const year = Number(yearText)
+    const holidays = new Set(FIXED_ITALIAN_HOLIDAYS_MMDD.map((mmdd) => `${year}-${mmdd}`))
+    holidays.add(easterMonday)
+    assert.equal(holidays.size, 11, `${year}: le feste sono undici`)
+
+    // Il calendario si costruisce avanzando un giorno lavorativo alla volta:
+    // e' la stessa strada che percorre la stima, e ogni passo e' un caso reale.
+    const workingDays: string[] = []
+    let cursor = new Date(Date.UTC(year, 0, 1))
+    for (let step = 0; step < 400; step += 1) {
+      cursor = addItalianWorkingDays(cursor, 1)
+      const day = isoDay(cursor)
+      if (Number(day.slice(0, 4)) !== year) break
+      workingDays.push(day)
+    }
+
+    for (const day of workingDays) {
+      const weekday = new Date(`${day}T00:00:00.000Z`).getUTCDay()
+      assert.ok(weekday !== 0 && weekday !== 6, `${year}: ${day} e' un giorno del weekend`)
+      assert.ok(!holidays.has(day), `${year}: ${day} e' una festivita' e non puo' essere lavorativo`)
+    }
+
+    // Nessun buco: se ogni giorno elencato e' feriale e non festivo, il numero
+    // esatto dimostra che ci sono tutti e nessuno di troppo.
+    assert.equal(workingDays.length, WORKING_DAYS_BY_YEAR[year], `${year}: giorni lavorativi`)
+    assert.equal(new Set(workingDays).size, workingDays.length, `${year}: nessun giorno ripetuto`)
+    assert.ok(!workingDays.includes(`${year}-01-01`), `${year}: il 1 gennaio e' festa e resta fuori`)
+  }
 })

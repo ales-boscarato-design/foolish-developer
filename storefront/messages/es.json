@@ -107,7 +107,10 @@
     "promoInvalidExpired": "Código inválido o caducado",
     "promoRemove": "Quitar",
     "promoProDiscount": "Descuento Pro {percent}%",
-    "promoProActive": "✓ Descuento Pro {percent}% aplicado"
+    "promoProActive": "✓ Descuento Pro {percent}% aplicado",
+    "deliveryEstimate": "Entrega estimada: {date}",
+    "deliveryTransitItEu": "Italia y Unión Europea: mensajería exprés, 24–48 horas laborables desde la salida.",
+    "deliveryTransitExtraEu": "Fuera de la UE: mensajería exprés, 4–6 días laborables desde la salida."
   },
   "grazie": {
     "title": "Pedido recibido.",
@@ -116,6 +119,7 @@
     "telegramTitle": "Recibe actualizaciones directas por Telegram",
     "telegramBody": "Te aviso cuando las hojas estén listas, te envío fotos de lo que vas a recibir, y te envío el seguimiento en cuanto se envíe.",
     "telegramCta": "Conéctate en Telegram",
+    "deliveryEstimate": "Entrega estimada: {date}",
     "backToShop": "← Volver a la tienda"
   },
   "product": {
@@ -132,9 +136,81 @@
     "sectionTattoo": "Tatuaje",
     "sectionPmu": "PMU",
     "sectionMerch": "Merch",
-    "shipsIn": "Envío en {days} días hábiles",
+    "availableBadge": "● En stock",
+    "availableDelivery": "Sale de nuestro almacén en 24 horas laborables; entrega en 24–48 horas.",
+    "madeToOrderBadge": "✦ Bajo pedido",
+    "madeToOrderDelivery": "La fabricamos en el taller en {productionDays} días laborables y luego sale con mensajería exprés: 24–48 horas.",
+    "madeToOrderProductionUnknown": "Fabricada bajo pedido en nuestro taller; el plazo exacto depende del taller y te confirmamos la fecha antes de empezar.",
     "madeToOrder": "Fabricado bajo pedido",
-    "madeToOrderDesc": "Tu pieza se trabaja personalmente tras la compra. Entrega estimada en {total} días hábiles."
+    "highlights": {
+      "title": "Por qué elegirlo",
+      "handmade": {
+        "title": "Hecho a mano",
+        "description": "Cada hoja es única, fabricada artesanalmente en Italia"
+      },
+      "nonToxic": {
+        "title": "No tóxico",
+        "description": "Silicona sintética, segura para la piel"
+      },
+      "texture": {
+        "title": "Textura realista",
+        "description": "Flockado que reproduce fielmente la piel real"
+      },
+      "shipping": {
+        "title": "Envío rápido",
+        "description": "Sale de nuestro almacén en 24 horas laborables; entrega en 24–48 horas."
+      }
+    },
+    "usage": {
+      "title": "Cómo se usa",
+      "step1": {
+        "title": "Prepara la piel",
+        "description": "Limpia y seca la superficie de trabajo. Fíjala con cinta médica o pinzas."
+      },
+      "step2": {
+        "title": "Tatúa sin prisa",
+        "description": "Usa agujas clásicas. La textura flocada retiene la tinta como una piel real."
+      },
+      "step3": {
+        "title": "Conserva y reutiliza",
+        "description": "Después del uso, limpia con alcohol. Las hojas pueden usarse varias veces."
+      }
+    },
+    "box": {
+      "title": "Contenido",
+      "sheet": {
+        "label": "Hoja sintética",
+        "description": "1 hoja en la medida seleccionada"
+      },
+      "techCard": {
+        "label": "Ficha técnica",
+        "description": "Número de serie, especificaciones del material, instrucciones de uso"
+      },
+      "certificate": {
+        "label": "Certificado",
+        "description": "Certifica material no tóxico y origen italiano"
+      }
+    },
+    "components": {
+      "title": "Compra los componentes por separado",
+      "description": "¿Ya tienes algo? Puedes comprar solo las piezas que te faltan."
+    },
+    "descriptionTitle": "Descripción",
+    "quantity": "Cantidad",
+    "packs": {
+      "title": "Compra más, ahorra más",
+      "save": "Ahorras"
+    },
+    "addToCartAdded": "Añadido",
+    "addToCartAdd": "Añadir",
+    "addedToCart": "Añadido al carrito",
+    "lastPieces": "● Últimas piezas",
+    "lastPiecesShort": "Últimas",
+    "galleryVideo": "Vídeo {n}",
+    "galleryImage": "Imagen {n}",
+    "close": "Cerrar",
+    "previous": "Anterior",
+    "next": "Siguiente"
   },
   "sections": {
     "label": "Sección",
@@ -221,8 +297,8 @@
         "body": "Datos cifrados, nada almacenado"
       },
       "shippingSpeed": {
-        "title": "Envío en 24–48h",
-        "body": "Empaquetamos y enviamos el siguiente día hábil"
+        "title": "Sale en 24 horas laborables",
+        "body": "Desde nuestro almacén en Italia; la fecha de entrega la ves en el carrito"
       },
       "support": {
         "title": "Soporte directo",
@@ -363,7 +439,7 @@
     "pricing": "3. Precios y pagos",
     "pricingText": "Todos los precios están en Euros (€) IVA incluido. El pago se realiza a través de Stripe (tarjeta de crédito/débito, Apple Pay, Google Pay). El pedido se considera confirmado al completar el pago.",
     "shipping": "4. Envío",
-    "shippingText": "Los envíos se realizan desde Italia en un plazo de 3 a 5 días laborables desde la confirmación del pedido, excepto en períodos de alta demanda comunicados explícitamente.",
+    "shippingText": "Si todos los artículos están disponibles, salen de nuestro almacén en 24 horas laborables. En carritos mixtos el envío es único y sale cuando está listo el artículo con la producción más larga: la fecha estimada la ves en el carrito antes de pagar. En Italia y la Unión Europea la entrega es en 24–48 horas laborables desde la salida; fuera de la UE, en 4–6 días laborables desde la salida.",
     "shippingRates": {
       "italy": "Italia: {cost}€ · gratis a partir de {amount}€",
       "europe": "Unión Europea: {cost}€ · gratis a partir de {amount}€",

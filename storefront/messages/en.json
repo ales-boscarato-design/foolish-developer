@@ -107,7 +107,10 @@
     "promoInvalidExpired": "Invalid or expired code",
     "promoRemove": "Remove",
     "promoProDiscount": "Pro discount {percent}%",
-    "promoProActive": "✓ Pro discount {percent}% applied"
+    "promoProActive": "✓ Pro discount {percent}% applied",
+    "deliveryEstimate": "Estimated delivery: {date}",
+    "deliveryTransitItEu": "Italy and the European Union: express courier, 24–48 working hours from dispatch.",
+    "deliveryTransitExtraEu": "Outside the EU: express courier, 4–6 working days from dispatch."
   },
   "grazie": {
     "title": "Order received.",
@@ -116,6 +119,7 @@
     "telegramTitle": "Get direct updates on Telegram",
     "telegramBody": "I'll notify you when the sheets are ready, send you photos of what you're receiving, and send you tracking as soon as it's shipped.",
     "telegramCta": "Connect on Telegram",
+    "deliveryEstimate": "Estimated delivery: {date}",
     "backToShop": "← Back to shop"
   },
   "product": {
@@ -132,9 +136,81 @@
     "sectionTattoo": "Tattoo",
     "sectionPmu": "PMU",
     "sectionMerch": "Merch",
-    "shipsIn": "Ships in {days} business days",
+    "availableBadge": "● In stock",
+    "availableDelivery": "Leaves our warehouse within 24 working hours; delivery in 24–48 hours.",
+    "madeToOrderBadge": "✦ Made to order",
+    "madeToOrderDelivery": "We make it in our workshop in {productionDays} working days, then it ships by express courier: 24–48 hours.",
+    "madeToOrderProductionUnknown": "Made to order in our workshop; the exact lead time depends on the workshop and we confirm your date before we start.",
     "madeToOrder": "Made to order",
-    "madeToOrderDesc": "Your piece is crafted personally after purchase. Estimated delivery in {total} business days."
+    "highlights": {
+      "title": "Why choose it",
+      "handmade": {
+        "title": "Handmade",
+        "description": "Every sheet is unique, crafted by hand in Italy"
+      },
+      "nonToxic": {
+        "title": "Non-toxic",
+        "description": "Synthetic silicone, safe for the skin"
+      },
+      "texture": {
+        "title": "Realistic texture",
+        "description": "Flocking that reproduces real skin faithfully"
+      },
+      "shipping": {
+        "title": "Fast shipping",
+        "description": "Leaves our warehouse within 24 working hours; delivery in 24–48 hours."
+      }
+    },
+    "usage": {
+      "title": "How to use it",
+      "step1": {
+        "title": "Prepare the skin",
+        "description": "Clean and dry the work surface. Fix it with medical tape or clamps."
+      },
+      "step2": {
+        "title": "Tattoo without rushing",
+        "description": "Use standard needles. The flocked texture holds ink like real skin."
+      },
+      "step3": {
+        "title": "Store and reuse",
+        "description": "After use, clean with alcohol. The sheets can be used more than once."
+      }
+    },
+    "box": {
+      "title": "What's in the box",
+      "sheet": {
+        "label": "Synthetic sheet",
+        "description": "1x sheet in the selected size"
+      },
+      "techCard": {
+        "label": "Data sheet",
+        "description": "Serial number, material specifications, usage instructions"
+      },
+      "certificate": {
+        "label": "Certificate",
+        "description": "Certifies non-toxic material and Italian origin"
+      }
+    },
+    "components": {
+      "title": "Buy the components separately",
+      "description": "Already have some? You can buy only the parts you are missing."
+    },
+    "descriptionTitle": "Description",
+    "quantity": "Quantity",
+    "packs": {
+      "title": "Buy more, save more",
+      "save": "You save"
+    },
+    "addToCartAdded": "Added",
+    "addToCartAdd": "Add",
+    "addedToCart": "Added to cart",
+    "lastPieces": "● Last pieces",
+    "lastPiecesShort": "Last ones",
+    "galleryVideo": "Video {n}",
+    "galleryImage": "Image {n}",
+    "close": "Close",
+    "previous": "Previous",
+    "next": "Next"
   },
   "sections": {
     "label": "Section",
@@ -221,8 +297,8 @@
         "body": "Encrypted data, nothing stored"
       },
       "shippingSpeed": {
-        "title": "Ships in 24–48h",
-        "body": "We pack and ship the next business day"
+        "title": "Dispatched within 24 working hours",
+        "body": "From our warehouse in Italy; you see the delivery date in the cart"
       },
       "support": {
         "title": "Direct support",
@@ -363,7 +439,7 @@
     "pricing": "3. Prices and payments",
     "pricingText": "All prices are in Euro (€) VAT included. Payment is made via Stripe (credit/debit card, Apple Pay, Google Pay). The order is confirmed upon completion of payment.",
     "shipping": "4. Shipping",
-    "shippingText": "Shipments are made from Italy within 3–5 working days from order confirmation, except during high-demand periods communicated explicitly.",
+    "shippingText": "If every item is in stock, your order leaves our warehouse within 24 working hours. Mixed carts ship in a single parcel when the item with the longest production time is ready: you see the estimated date in the cart before paying. Delivery takes 24–48 working hours from dispatch in Italy and the European Union, and 4–6 working days from dispatch outside the EU.",
     "shippingRates": {
       "italy": "Italy: {cost}€ · free over {amount}€",
       "europe": "European Union: {cost}€ · free over {amount}€",

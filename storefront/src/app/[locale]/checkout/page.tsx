@@ -504,7 +504,12 @@ export default function CheckoutPage() {
           // Il checkout non si fida di un prezzo mandato dal browser: o
           // riconosce il gettone di QUEL carrello, o risolve da capo.
           quoteToken: activeQuote?.token ?? undefined,
-          deliveryEstimateDate: activeEstimateDate ?? undefined,
+          // La data mostrata viaggia cosi' com'e'. Quando la stima e' risolta
+          // ma non produce una data (il cliente ha accettato di proseguire) si
+          // manda `null`, non `undefined`: cosi' l'ordine registra «nessuna data
+          // promessa perche' il calcolo non la produceva», invece di confonderlo
+          // con «nessuna stima mai vista» (campo assente).
+          deliveryEstimateDate: estimateResolved ? activeEstimateDate : undefined,
           discountAmount: proDiscount > 0 ? proDiscount : undefined,
           discountLabel: promoType === 'percent_pro' && promoData?.discountPercent
             ? `Sconto Foolish Pro ${promoData.discountPercent}%`
@@ -1116,6 +1121,14 @@ export default function CheckoutPage() {
                     : shipping.isFree ? t('labelFree') : formatEuroCents(locale, shippingDisplayCents)}
                 </span>
               </div>
+
+              {/* Transito per zona: la riga sopra dice quanto costa, questa dice
+                  quando arriva. La data stimata la calcola un'altra card
+                  (`deliveryEstimate` esiste gia' nel catalogo): qui non si
+                  inventa nessun intervallo oltre a quello dichiarato. */}
+              <p className="text-xs pb-2" style={{ color: 'var(--muted-fg)' }}>
+                {isExtraEuDestination ? t('deliveryTransitExtraEu') : t('deliveryTransitItEu')}
+              </p>
 
               {showImportDutiesBadge && (
                 <>

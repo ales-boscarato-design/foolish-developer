@@ -6,6 +6,13 @@ import { sql, type PostgresAdapter } from '@payloadcms/db-postgres'
 import { PROMO_TYPES, PROMO_TYPE_LABELS, isPromoType } from './promoTypes'
 import { formatOrderLineTotal } from '../lib/order-line-amount'
 import { hasServiceAccess, resolveServiceScope } from '../lib/serviceAccess'
+import {
+  DELIVERY_PROMISE_REASONS,
+  DELIVERY_PROMISE_ZONES,
+  requiresDeliveryPromise,
+  validateDeliveryPromiseInput,
+  validateDeliveryPromiseShape,
+} from '../lib/delivery-promise'
 
 /** Formato di un codice promo: stessa regex di `PromoCodes.code`, normalizzato in uppercase. */
 const PROMO_CODE_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
@@ -285,10 +292,106 @@ const generatePageToken: CollectionBeforeChangeHook = async ({ data, operation }
   return data
 }
 
+const DELIVERY_PROMISE_REASON_LABELS: Record<(typeof DELIVERY_PROMISE_REASONS)[number], string> = {
+  ok: 'Data promessa (calcolo riuscito)',
+  estimate_unavailable: 'Stima non calcolabile al checkout',
+  not_shown: 'Nessuna data mostrata al cliente',
+  not_captured: 'Promessa non arrivata dalla sessione di pagamento',
+}
+
+const DELIVERY_PROMISE_ZONE_LABELS: Record<(typeof DELIVERY_PROMISE_ZONES)[number], string> = {
+  IT_EU: 'Italia / UE',
+  EXTRA_EU: 'Extra-UE',
+}
+
+function omitDeliveryPromise(data: Record<string, unknown>): Record<string, unknown> {
+  const normalized = { ...data }
+  delete normalized.deliveryPromise
+  return normalized
+}
+
+/**
+ * Lo snapshot della promessa e' un DATO STORICO, e si comporta come tale:
+ * - su create si valida (coerenza fra data, partenza, zona e margine) e, per un
+ *   ordine creato dal checkout Stripe, e' obbligatorio: e' l'unico percorso in
+ *   cui il cliente ha visto una data prima di pagare;
+ * - su update non si tocca. L'admin invia il documento intero a ogni
+ *   salvataggio, quindi rifiutare il patch romperebbe la modifica degli ordini:
+ *   il valore memorizzato viene ripristinato, e la data promessa al cliente non
+ *   si sposta perche' oggi il calcolo darebbe un altro numero.
+ */
+export const normalizeDeliveryPromise: CollectionBeforeChangeHook = ({ data, originalDoc, operation }) => {
+  if (!data || typeof data !== 'object') return data
+
+  if (operation !== 'create') {
+    // Un update che non nomina il campo non lo tocca: nessuna normalizzazione a
+    // sorpresa sui percorsi (Alfred, tracking, stato) che non c'entrano.
+    if (!('deliveryPromise' in data)) return data
+    const original = originalDoc as Record<string, unknown> | undefined
+    const stored = validateDeliveryPromiseInput(original?.deliveryPromise ?? null).snapshot
+    if (stored) return { ...data, deliveryPromise: stored }
+
+    // L'assenza sugli ordini storici e' anch'essa un fatto storico: un update
+    // non puo' trasformarla in una promessa, neppure inviando uno snapshot valido.
+    const incoming = (data as Record<string, unknown>).deliveryPromise
+    const { error } = validateDeliveryPromiseInput(incoming)
+    if (error) throw new APIError(error, 400)
+    return omitDeliveryPromise(data as Record<string, unknown>)
+  }
+
+  // Su create il campo puo' anche mancare del tutto: e' proprio il caso che
+  // l'obbligo deve intercettare, non una condizione per saltare il controllo.
+  const incoming = 'deliveryPromise' in data ? (data as Record<string, unknown>).deliveryPromise : null
+  const { snapshot, error } = validateDeliveryPromiseInput(
+    incoming,
+  )
+  if (error) throw new APIError(error, 400)
+
+  if (!snapshot && requiresDeliveryPromise({
+    source: typeof data.source === 'string' ? data.source : null,
+    paymentMethod: typeof data.paymentMethod === 'string' ? data.paymentMethod : null,
+    stripeSessionId: typeof data.stripeSessionId === 'string' ? data.stripeSessionId : null,
+  })) {
+    throw new APIError(
+      'deliveryPromise obbligatorio sugli ordini creati dal checkout: senza snapshot la data promessa non e\' ricostruibile',
+      400,
+    )
+  }
+
+  return snapshot
+    ? { ...data, deliveryPromise: snapshot }
+    : omitDeliveryPromise(data as Record<string, unknown>)
+}
+
+/**
+ * La data promessa, letta dallo SNAPSHOT e formattata nella lingua del cliente.
+ * `null` quando nessuna data e' stata promessa: la riga non compare invece di
+ * mostrare una data che il cliente non ha mai visto.
+ */
+function formatPromisedDeliveryDate(
+  locale: string,
+  promise: { promiseShown?: boolean | null; estimatedDeliveryDate?: string | null } | null | undefined,
+): string | null {
+  const iso = promise?.estimatedDeliveryDate
+  if (promise?.promiseShown !== true || typeof iso !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    return null
+  }
+  const date = new Date(`${iso}T00:00:00.000Z`)
+  if (Number.isNaN(date.getTime())) return null
+  try {
+    return new Intl.DateTimeFormat(locale, {
+      timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long',
+    }).format(date)
+  } catch {
+    return null
+  }
+}
+
 const ORDER_STRINGS: Record<string, {
   subject: string; heading: string; ref: string; greeting: string;
   body: string; product: string; qty: string; price: string;
   shipping: string; freeShipping: string; total: string;
+  delivery: string;
   trackOrder: string; trackOrderBody: string;
   telegramTitle: string; telegramBody: string; telegramCta: string;
   footer: string;
@@ -301,6 +404,7 @@ const ORDER_STRINGS: Record<string, {
     body: 'Abbiamo ricevuto il tuo ordine. Lo stiamo preparando personalmente.',
     product: 'Prodotto', qty: 'Qtà', price: 'Prezzo',
     shipping: 'Spedizione', freeShipping: 'Spedizione gratuita', total: 'Totale',
+    delivery: 'Consegna stimata',
     trackOrder: 'Segui il tuo ordine →',
     trackOrderBody: 'Puoi seguire lo stato del tuo ordine in tempo reale.',
     telegramTitle: 'Aggiornamenti in tempo reale su Telegram',
@@ -316,6 +420,7 @@ const ORDER_STRINGS: Record<string, {
     body: 'We have received your order. We are preparing it personally.',
     product: 'Product', qty: 'Qty', price: 'Price',
     shipping: 'Shipping', freeShipping: 'Free shipping', total: 'Total',
+    delivery: 'Estimated delivery',
     trackOrder: 'Track your order →',
     trackOrderBody: 'You can follow your order status in real time.',
     telegramTitle: 'Real-time updates on Telegram',
@@ -331,6 +436,7 @@ const ORDER_STRINGS: Record<string, {
     body: 'Wir haben Ihre Bestellung erhalten und bereiten sie persönlich vor.',
     product: 'Produkt', qty: 'Menge', price: 'Preis',
     shipping: 'Versand', freeShipping: 'Kostenloser Versand', total: 'Gesamt',
+    delivery: 'Voraussichtliche Lieferung',
     trackOrder: 'Bestellung verfolgen →',
     trackOrderBody: 'Sie können den Status Ihrer Bestellung in Echtzeit verfolgen.',
     telegramTitle: 'Echtzeit-Updates auf Telegram',
@@ -346,6 +452,7 @@ const ORDER_STRINGS: Record<string, {
     body: 'Nous avons bien reçu votre commande et la préparons personnellement.',
     product: 'Produit', qty: 'Qté', price: 'Prix',
     shipping: 'Livraison', freeShipping: 'Livraison gratuite', total: 'Total',
+    delivery: 'Livraison estimée',
     trackOrder: 'Suivre ma commande →',
     trackOrderBody: 'Vous pouvez suivre l\'état de votre commande en temps réel.',
     telegramTitle: 'Mises à jour en temps réel sur Telegram',
@@ -361,6 +468,7 @@ const ORDER_STRINGS: Record<string, {
     body: 'Hemos recibido tu pedido y lo estamos preparando personalmente.',
     product: 'Producto', qty: 'Cant.', price: 'Precio',
     shipping: 'Envío', freeShipping: 'Envío gratuito', total: 'Total',
+    delivery: 'Entrega estimada',
     trackOrder: 'Seguir mi pedido →',
     trackOrderBody: 'Puedes seguir el estado de tu pedido en tiempo real.',
     telegramTitle: 'Actualizaciones en tiempo real en Telegram',
@@ -387,6 +495,14 @@ const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation
     : 'https://t.me/the_foolish_butcher_bot'
 
   const firstName = (doc.customerName ?? '').split(' ')[0] || ''
+
+  // La data promessa arriva dallo SNAPSHOT dell'ordine: festivita', produzione e
+  // indirizzo di OGGI non c'entrano niente, e qui non si ricalcola nulla. Se il
+  // cliente non ha mai visto una data (promessa non mostrata) la riga non compare.
+  const promisedDeliveryDate = formatPromisedDeliveryDate(
+    ORDER_STRINGS[locale] ? locale : 'en',
+    doc.deliveryPromise,
+  )
 
   const itemsHtml = items.map((i) => `
     <tr>
@@ -450,6 +566,15 @@ const sendOrderConfirmation: CollectionAfterChangeHook = async ({ doc, operation
           </table>
         </td>
       </tr>
+
+      ${promisedDeliveryDate ? `
+      <!-- Promessa di consegna congelata al pagamento -->
+      <tr>
+        <td style="padding:18px 0 0">
+          <p style="margin:0;font-size:13px;color:#6b5f4a">${t.delivery}</p>
+          <p style="margin:4px 0 0;font-size:16px;font-weight:700;color:#c9a96e">${promisedDeliveryDate}</p>
+        </td>
+      </tr>` : ''}
 
       ${trackingUrl ? `
       <!-- Track order CTA -->
@@ -551,6 +676,9 @@ const notifyAlfred: CollectionAfterChangeHook = async ({ doc, previousDoc, opera
     trackingNumber: doc.trackingNumber ?? null,
     trackingCarrier: doc.trackingCarrier ?? null,
     productionEtaDays: doc.productionEtaDays ?? null,
+    // La promessa congelata viaggia con la notifica: chi scrive al cliente la
+    // legge da qui, non da un calcolo fatto oggi.
+    deliveryPromise: doc.deliveryPromise ?? null,
   })
   const timestamp = Math.floor(Date.now() / 1000).toString()
   const signature = `sha256=${crypto.createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex')}`
@@ -610,6 +738,7 @@ const notifyAlessandroByEmail: CollectionAfterChangeHook = async ({ doc, operati
     <tr><td style="padding:4px 0;color:#555">Email</td><td>${doc.customerEmail}</td></tr>
     <tr><td style="padding:4px 0;color:#555">Indirizzo</td><td>${addressText}</td></tr>
     <tr><td style="padding:4px 0;color:#555">Totale</td><td><strong>${Number(doc.total).toFixed(2)} €</strong>${doc.shippingCost > 0 ? ` (di cui ${Number(doc.shippingCost).toFixed(2)}€ spedizione)` : ' — spedizione gratuita'}</td></tr>
+    <tr><td style="padding:4px 0;color:#555">Consegna promessa</td><td>${formatPromisedDeliveryDate('it', doc.deliveryPromise) ?? '—'}</td></tr>
   </table>
 
   <p style="font-size:14px;margin:8px 0 4px"><strong>Prodotti:</strong></p>
@@ -802,7 +931,13 @@ export const Orders: CollectionConfig = {
     },
   ],
   hooks: {
-    beforeChange: [normalizePromoCodeField, normalizeCustomerTelegramId, refuseTelegramLinkTakeover, generatePageToken],
+    beforeChange: [
+      normalizePromoCodeField,
+      normalizeCustomerTelegramId,
+      refuseTelegramLinkTakeover,
+      generatePageToken,
+      normalizeDeliveryPromise,
+    ],
     afterChange: [sendOrderConfirmation, notifyAlfred, notifyAlessandroByEmail, syncCustomer, sendTrackingEmail],
   },
   admin: {
@@ -1009,6 +1144,128 @@ export const Orders: CollectionConfig = {
             value == null
             || (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0)
             || 'Lo sconto promo deve essere un intero positivo in centesimi',
+        },
+      ],
+    },
+
+    // ── Promessa di consegna ──────────────────────────────────────
+    // Snapshot scritto dal checkout al pagamento: e' la data che il cliente ha
+    // visto nel carrello, con i valori che l'hanno prodotta. E' immutabile (vedi
+    // `normalizeDeliveryPromise`) e assente sugli ordini storici, che nessuna
+    // data avevano promesso.
+    {
+      type: 'collapsible',
+      label: 'Promessa di consegna (snapshot)',
+      admin: {
+        initCollapsed: true,
+        description: 'Congelata al pagamento: conferma, pagina ordine e notifiche leggono questi valori e non ricalcolano la data.',
+      },
+      fields: [
+        {
+          name: 'deliveryPromise',
+          type: 'group',
+          label: 'Promessa congelata',
+          hooks: {
+            // Payload traverses named groups before collection beforeChange;
+            // validate the raw shape here before group traversal can coerce scalars to {}.
+            beforeValidate: [({ value }) => {
+              if (value === null) return {}
+              const error = validateDeliveryPromiseShape(value)
+              if (error) throw new APIError(error, 400)
+              return value
+            }],
+          },
+          fields: [
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'promiseShown',
+                  type: 'checkbox',
+                  label: 'Data promessa al cliente',
+                  admin: { readOnly: true, width: '30%' },
+                },
+                {
+                  name: 'reason',
+                  type: 'select',
+                  // Nome esplicito del tipo enum: Payload, per i select dentro
+                  // un gruppo, usa il solo nome del campo (`enum_orders_reason`)
+                  // e due gruppi con un campo omonimo colliderebbero. Il tipo
+                  // creato dalla migration e' questo, e qui e' dichiarato.
+                  enumName: 'enum_orders_delivery_promise_reason',
+                  label: 'Motivo',
+                  admin: { readOnly: true, width: '45%' },
+                  options: DELIVERY_PROMISE_REASONS.map((value) => ({
+                    label: DELIVERY_PROMISE_REASON_LABELS[value],
+                    value,
+                  })),
+                },
+                {
+                  name: 'version',
+                  type: 'number',
+                  label: 'Versione regola',
+                  admin: { readOnly: true, width: '25%' },
+                },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'zone',
+                  type: 'select',
+                  enumName: 'enum_orders_delivery_promise_zone',
+                  label: 'Zona applicata',
+                  admin: { readOnly: true, width: '34%' },
+                  options: DELIVERY_PROMISE_ZONES.map((value) => ({
+                    label: DELIVERY_PROMISE_ZONE_LABELS[value],
+                    value,
+                  })),
+                },
+                {
+                  name: 'departureDate',
+                  type: 'text',
+                  label: 'Partenza (ISO)',
+                  admin: { readOnly: true, width: '33%', description: 'Primo giorno lavorativo utile, calendario italiano.' },
+                },
+                {
+                  name: 'estimatedDeliveryDate',
+                  type: 'text',
+                  label: 'Consegna promessa (ISO)',
+                  admin: { readOnly: true, width: '33%' },
+                },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'productionDays',
+                  type: 'number',
+                  label: 'Produzione (giorni)',
+                  admin: { readOnly: true, width: '25%', description: 'Massimo delle durate note; vuoto = almeno un articolo a durata ignota.' },
+                },
+                {
+                  name: 'marginDays',
+                  type: 'number',
+                  label: 'Margine (giorni)',
+                  admin: { readOnly: true, width: '25%' },
+                },
+                {
+                  name: 'fallback',
+                  type: 'checkbox',
+                  label: 'Margine prudente',
+                  admin: { readOnly: true, width: '25%' },
+                },
+                {
+                  name: 'calculatedAt',
+                  type: 'date',
+                  label: 'Calcolata il',
+                  admin: { readOnly: true, width: '25%' },
+                },
+              ],
+            },
+          ],
         },
       ],
     },

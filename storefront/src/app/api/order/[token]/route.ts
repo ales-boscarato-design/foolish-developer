@@ -1,5 +1,6 @@
 import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { NextRequest, NextResponse } from 'next/server'
+import { parseDeliveryPromise } from '@/lib/delivery-promise'
 
 const CMS_URL = process.env.PAYLOAD_PUBLIC_URL || 'https://cms-production-1e56.up.railway.app'
 const API_SECRET = cmsServiceSecret()
@@ -43,6 +44,10 @@ export async function GET(
     customerLocale:    order.customerLocale,
     pipelineState:     order.pipelineState,
     productionEtaDays: order.productionEtaDays,
+    // Snapshot della promessa, gia' validato: la pagina pubblica mostra la data
+    // congelata al pagamento e non ricalcola niente. `null` per gli ordini
+    // storici e per quelli in cui nessuna data e' stata promessa.
+    deliveryPromise:   parseDeliveryPromise(order.deliveryPromise),
     trackingNumber:    order.trackingNumber,
     trackingCarrier:   order.trackingCarrier,
     shippedAt:         order.shippedAt,
