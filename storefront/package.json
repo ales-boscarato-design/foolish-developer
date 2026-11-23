@@ -15,6 +15,7 @@
     "test:emails": "tsx --test src/emails/copy.test.ts",
     "test:catalog": "tsx --test src/lib/catalog.test.ts",
     "test:legacy-slugs": "tsx --test src/lib/legacy-slugs.test.ts",
+    "test:proxy": "tsx --test src/proxy.test.ts && tsx --test src/app/sitemap.test.ts",
     "test:promo": "tsx --test src/lib/promo.test.ts",
     "test:shipping": "tsx --test src/lib/shipping.test.ts",
     "test:delivery-estimate": "tsx --test src/lib/delivery-estimate.test.ts src/app/api/stripe/delivery-estimate/route.test.ts",
@@ -41,7 +42,8 @@
     "test:printful-shipping": "tsx --test src/lib/printful-shipping.test.ts",
     "test:printful-webhook": "tsx --test src/app/api/webhook/printful-fulfillment/route.test.ts",
     "test:security-secrets": "tsx --test src/lib/cms-service-secret.test.ts src/lib/admin-secret.test.ts",
-    "test:money": "tsx --test src/lib/money.test.ts"
+    "test:money": "tsx --test src/lib/money.test.ts",
+    "test:product-detail": "tsx --test src/components/ProductDetail.test.tsx"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
