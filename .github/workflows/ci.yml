@@ -115,6 +115,7 @@ jobs:
           npm run test:spedizione-quote --silent
           npm run test:subscription --silent
           npm run test:subscription-zone --silent
+          npm run test:subscription-checkout --silent
           npm run test:affiliate-referral --silent
           npm run test:affiliate-route --silent
           npm run test:affiliate-i18n --silent
@@ -133,6 +134,8 @@ jobs:
           npm run test:security-secrets --silent
           npm run test:money --silent
           npm run test:product-i18n --silent
+          npm run test:unlisted --silent
+          npm run test:account-home-wishlist --silent
           npm run test:product-detail --silent
       - name: Storefront — build
         working-directory: storefront
@@ -158,6 +161,7 @@ jobs:
         working-directory: cms
         env:
           REFUND_TEST_DATABASE_URL: isolated-postgres-required
+          PG_TEST_DATABASE_URL: postgresql://refund_test@127.0.0.1:5432/refund_orders_isolated
           PGHOST: 127.0.0.1
           PGPORT: 5432
           PGUSER: refund_test

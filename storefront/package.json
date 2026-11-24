@@ -24,6 +24,7 @@
     "test:free-shipping-badge": "tsx --test src/lib/free-shipping-badge.test.ts",
     "test:subscription": "tsx --test src/lib/subscription-plans.test.ts",
     "test:subscription-zone": "tsx --test src/lib/subscription-zone-change.test.ts && tsx --test src/lib/subscription-renewal-zone.test.ts",
+    "test:subscription-checkout": "tsx --test src/lib/subscription-checkout-response.test.ts",
     "test:affiliate-referral": "tsx --test src/lib/affiliate-referral.test.ts",
     "test:affiliate-route": "tsx --test src/lib/affiliate-referral-route.test.ts",
     "test:affiliate-i18n": "tsx --test src/lib/affiliate-stats-i18n.test.ts",
@@ -45,6 +46,9 @@
     "test:security-secrets": "tsx --test src/lib/cms-service-secret.test.ts src/lib/admin-secret.test.ts",
     "test:money": "tsx --test src/lib/money.test.ts",
     "test:product-i18n": "tsx --test src/lib/product-i18n.test.ts",
+    "test:review-products-pagination": "tsx --test src/lib/review-products-pagination.test.ts",
+    "test:account-home-wishlist": "tsx --test src/lib/account-home-wishlist.test.ts",
+    "test:unlisted": "npm run test:review-products-pagination --silent && tsx --test src/lib/unlisted-listing.test.ts src/lib/unlisted-product-redirect.test.ts src/lib/unlisted-next-router.test.ts src/lib/home-listed-reviews.test.ts src/lib/listed-components.test.ts src/lib/listed-reviews.test.ts src/lib/unlisted-promotion.test.ts src/app/api/stripe/checkout.unlisted.test.ts src/app/api/subscribe/checkout.unlisted.test.ts",
     "test:product-detail": "tsx --test src/lib/product-detail-guards.test.ts && tsx --test src/components/ProductDetail.test.tsx"
   },
   "dependencies": {

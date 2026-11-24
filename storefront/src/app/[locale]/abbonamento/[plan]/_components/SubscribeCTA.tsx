@@ -1,12 +1,14 @@
 'use client'
 import { useState } from 'react'
 import type { PlanKey, Zone } from '@/lib/subscription-plans'
+import { parseSubscriptionCheckoutResponse } from '@/lib/subscription-checkout-response'
 
-export function SubscribeCTA({ plan, locale, ctaLabel, loadingLabel, zonePickerLabel, tabIt, tabEu }: {
+export function SubscribeCTA({ plan, locale, ctaLabel, loadingLabel, errorLabel, zonePickerLabel, tabIt, tabEu }: {
   plan: PlanKey
   locale: string
   ctaLabel: string
   loadingLabel: string
+  errorLabel: string
   zonePickerLabel: string
   tabIt: string
   tabEu: string
@@ -14,18 +16,31 @@ export function SubscribeCTA({ plan, locale, ctaLabel, loadingLabel, zonePickerL
   const [zone, setZone] = useState<Zone>('IT')
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function handleSubscribe() {
     if (!email) return
+    setError(null)
     setLoading(true)
-    const res = await fetch('/api/subscribe/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan, zone, email, locale }),
-    })
-    const data = await res.json()
-    setLoading(false)
-    if (data.checkoutUrl) window.location.href = data.checkoutUrl
+    try {
+      const res = await fetch('/api/subscribe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan, zone, email, locale }),
+      })
+      // Un proxy o un errore di rete possono restituire HTML: si legge il
+      // corpo una volta sola e si tollera il JSON malformato.
+      const raw = await res.text()
+      let body: unknown = null
+      try { body = raw ? JSON.parse(raw) : null } catch { body = null }
+      const result = parseSubscriptionCheckoutResponse(res.status, body)
+      if ('error' in result) setError(errorLabel)
+      else window.location.href = result.checkoutUrl
+    } catch {
+      setError(errorLabel)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -68,6 +83,9 @@ export function SubscribeCTA({ plan, locale, ctaLabel, loadingLabel, zonePickerL
       >
         {loading ? loadingLabel : ctaLabel}
       </button>
+      {error !== null && (
+        <p role="alert" aria-live="polite" style={{ marginTop: '10px', fontSize: '13px', color: '#c0392b' }}>{error}</p>
+      )}
     </div>
   )
 }

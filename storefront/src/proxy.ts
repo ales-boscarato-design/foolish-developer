@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import createNextIntlMiddleware from 'next-intl/middleware'
 import { routing } from './i18n/routing'
 import { legacyRedirectUrl } from './lib/legacy-slugs'
+import { unlistedProductRedirect } from './lib/unlisted-product-redirect'
 
 const intlMiddleware = createNextIntlMiddleware({
   ...routing,
   localeDetection: true,
 })
 
-export default function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const headers = new Headers(request.headers)
 
   // Gli host come sono arrivati: la normalizzazione qui sotto toglie la porta dagli
@@ -64,6 +65,22 @@ export default function proxy(request: NextRequest) {
   const url = new URL(request.url)
   if (url.port === '8080') {
     url.port = ''
+  }
+
+  const unlistedTarget = await unlistedProductRedirect(url.pathname)
+  if (unlistedTarget?.status === 'unavailable') {
+    return new NextResponse(null, { status: 503, headers: { 'Cache-Control': 'no-store' } })
+  }
+  if (unlistedTarget?.status === 'not-found') {
+    return new NextResponse(null, { status: 404, headers: { 'Cache-Control': 'no-store' } })
+  }
+  if (unlistedTarget?.status === 'redirect') {
+    const target = new URL(unlistedTarget.location)
+    target.search = url.search
+    return NextResponse.redirect(target.toString(), {
+      status: unlistedTarget.statusCode ?? 301,
+      headers: { 'Cache-Control': 'no-store' },
+    })
   }
 
   const cleanReq = new NextRequest(url.toString(), {

@@ -16,6 +16,7 @@ type CatalogProduct = {
   id?: unknown
   name?: unknown
   active?: unknown
+  unlisted?: unknown
   variants?: unknown
   packs?: unknown
   madeToOrder?: unknown
@@ -49,6 +50,7 @@ export type CatalogProductFetcher = (query: {
 
 export type CatalogResolution =
   | { status: 'ok'; items: Array<CheckoutCartItem & { madeToOrder?: boolean; productionDays?: number | null }> }
+  | { status: 'unlisted' }
   | { status: 'invalid' }
   | { status: 'unavailable' }
 
@@ -225,6 +227,7 @@ export async function resolveCheckoutCatalog(
     if (productIdStatus === 'invalid') return { status: 'invalid' }
     if (productIdStatus === 'unavailable') return { status: 'unavailable' }
 
+    if (product.unlisted === true) return { status: 'unlisted' }
     if (product.active === false) return { status: 'invalid' }
     if (product.active !== true) return { status: 'unavailable' }
     const productName = boundedCatalogString(product.name, 120)

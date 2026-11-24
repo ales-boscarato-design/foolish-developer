@@ -1,5 +1,6 @@
 import { getAllPublishedReviews } from '@/lib/reviews-db'
-import { getProducts, cmsImageUrl } from '@/lib/cms'
+import { getProducts, getReviewVisibleProducts, cmsImageUrl } from '@/lib/cms'
+import { collectListedReviewPage, listedReviewPageData } from '@/lib/listed-reviews'
 import { getLocale } from 'next-intl/server'
 import Image from 'next/image'
 import type { Metadata } from 'next'
@@ -48,14 +49,22 @@ export default async function RecensioniPage({ searchParams }: Props) {
   const locale = await getLocale()
   const { prodotto, stelle } = await searchParams
 
-  const [reviews, allProducts] = await Promise.all([
-    getAllPublishedReviews({
-      productSlug: prodotto,
-      rating: stelle ? parseInt(stelle) : undefined,
-      limit: 12,
-    }),
+  const [reviewVisibleProducts, activeProducts] = await Promise.all([
+    getReviewVisibleProducts(locale),
     getProducts(undefined, locale),
   ])
+  const { products: listedProducts } = listedReviewPageData([], activeProducts)
+  const listedReviewSlugs = new Set(reviewVisibleProducts.map(product => product.slug))
+  const reviews = await collectListedReviewPage(
+    (offset, limit) => getAllPublishedReviews({
+      productSlug: prodotto,
+      rating: stelle ? parseInt(stelle) : undefined,
+      limit,
+      offset,
+    }),
+    listedReviewSlugs,
+  )
+  const visibleProductFilter = prodotto && listedReviewSlugs.has(prodotto) ? prodotto : undefined
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-12">
@@ -68,12 +77,12 @@ export default async function RecensioniPage({ searchParams }: Props) {
 
       {/* Filtri */}
       <form method="GET" className="flex gap-3 flex-wrap mb-8">
-        <select name="prodotto" defaultValue={prodotto ?? ''}
+        <select name="prodotto" defaultValue={visibleProductFilter ?? ''}
           className="rounded-xl border px-3 py-2 text-sm"
           style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
         >
           <option value="">{locale === 'it' ? 'Tutti i prodotti' : 'All products'}</option>
-          {allProducts.map((p) => (
+          {listedProducts.map((p) => (
             <option key={p.slug} value={p.slug}>{p.name}</option>
           ))}
         </select>

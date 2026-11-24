@@ -540,7 +540,7 @@ export default function CheckoutPage() {
           }))
         }
       } else {
-        alert(t('errorOrder'))
+        alert(data.error === 'product_unlisted' ? t('errorProductUnlisted') : t('errorOrder'))
       }
     } catch {
       alert(t('errorNetwork'))

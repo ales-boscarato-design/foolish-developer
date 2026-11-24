@@ -57,11 +57,6 @@ const nextConfig: NextConfig = {
       destination: `/${locale}/laboratorio`,
       permanent: true,
     }))
-    const masterPackRedirects = LOCALES.map((locale) => ({
-      source: `/${locale}/prodotto/master-pack-20-fogli`,
-      destination: `/${locale}/prodotto/master-pack-20-fogli-di-pelle-formato-a5-2-a4-1-xxl`,
-      permanent: true,
-    }))
     // Old WooCommerce / WordPress URLs
     const legacyRedirects = [
       // Shop / product listings
@@ -122,7 +117,7 @@ const nextConfig: NextConfig = {
       },
     ])
 
-    return [...seboRedirects, ...frankRedirects, ...masterPackRedirects, ...legacyRedirects, ...productCategoryRedirects]
+    return [...seboRedirects, ...frankRedirects, ...legacyRedirects, ...productCategoryRedirects]
   },
   async headers() {
     return [
