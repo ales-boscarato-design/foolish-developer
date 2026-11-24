@@ -568,6 +568,7 @@
       "zonePickerLabel": "¿Dónde enviamos?",
       "subscribeCta": "Suscríbete ahora",
       "loading": "Un momento...",
+      "errorStart": "No se ha podido iniciar la suscripción. Inténtalo de nuevo en unos minutos.",
       "faqTitle": "Preguntas frecuentes",
       "faqQ1": "¿Cómo funciona la suscripción?",
       "faqA1": "Stripe cobra automáticamente el mismo producto cada mes — no hace falta ninguna acción después de suscribirte.",

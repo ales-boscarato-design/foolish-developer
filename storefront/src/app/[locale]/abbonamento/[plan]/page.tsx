@@ -56,6 +56,7 @@ export default async function AbbonamentoProductPage({ params }: Props) {
             locale={locale}
             ctaLabel={t('subscribeCta')}
             loadingLabel={t('loading')}
+            errorLabel={t('errorStart')}
             zonePickerLabel={t('zonePickerLabel')}
             tabIt={t('tabIt')}
             tabEu={t('tabEu')}

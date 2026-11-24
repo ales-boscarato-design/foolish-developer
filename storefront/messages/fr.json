@@ -568,6 +568,7 @@
       "zonePickerLabel": "Où livrons-nous ?",
       "subscribeCta": "S'abonner maintenant",
       "loading": "Un instant...",
+      "errorStart": "Impossible de démarrer l'abonnement. Réessayez dans un instant.",
       "faqTitle": "Questions fréquentes",
       "faqQ1": "Comment fonctionne l'abonnement ?",
       "faqA1": "Stripe prélève automatiquement le même produit chaque mois — aucune action requise après l'inscription.",
