@@ -41,6 +41,7 @@
     "securePayment": "Paiement sécurisé · Stripe · Carte · Apple Pay · Google Pay",
     "securePaymentNote": "Stripe · Paiement sécurisé · Données chiffrées",
     "errorOrder": "Erreur lors de la création de la commande. Veuillez réessayer.",
+    "errorProductUnlisted": "L'un de ces produits n'est plus disponible à l'achat. Retirez-le du panier et réessayez.",
     "deliveryEstimate": "Livraison estimée : {date}",
     "deliveryEstimateUnavailable": "Nous ne pouvons pas calculer une date fiable pour ce panier. Aucune date de livraison n'est promise.",
     "deliveryEstimateConfirmWithoutDate": "Confirmer et continuer sans date estimée",

@@ -11,6 +11,7 @@ import { DURATION, EASE } from '@/lib/motion'
 import type { Product, ProductVariant, ProductAttribute, ProductVariantCombination, FeatureHighlight, ProductComponent, ProductPack, ProductVideo } from '@/lib/cms'
 import { cmsImageUrl } from '@/lib/cms'
 import { useCart } from '@/lib/cart'
+import { addListedComponent, listedComponents } from '@/lib/listed-components'
 import { track } from '@/lib/analytics'
 import { RichText } from './RichText'
 import { ReviewList } from './ReviewList'
@@ -221,8 +222,8 @@ function ComponentCard({ component, locale }: { component: ProductComponent; loc
   const firstImage = component.images[0]?.image
 
   const handleAdd = () => {
-    if (!firstVariant) return
-    addToCart(component as unknown as Product, firstVariant, {})
+    if (!addListedComponent(component, firstVariant, (listed, variant, attrs) =>
+      addToCart(listed as unknown as Product, variant, attrs))) return
     setAdded(true)
     setTimeout(() => setAdded(false), 1800)
   }
@@ -948,7 +949,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
         </motion.section>
 
         {/* Componenti acquistabili separatamente */}
-        {product.components && product.components.length > 0 && (
+        {listedComponents(product.components).length > 0 && (
           <motion.section variants={itemVariants} className="mb-14">
             <h2 className="text-xl font-semibold mb-2 font-artisan text-2xl" style={{ color: 'var(--foreground)' }}>
               Acquista i componenti separatamente
@@ -957,7 +958,7 @@ export function ProductDetail({ product, reviews = [], reviewSummary = { average
               Hai già qualcosa? Puoi acquistare solo i pezzi che ti mancano.
             </p>
             <div className="space-y-3">
-              {product.components.map((component) => (
+              {listedComponents(product.components).map((component) => (
                 <ComponentCard key={component.id} component={component} locale={locale} />
               ))}
             </div>

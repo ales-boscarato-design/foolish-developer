@@ -18,14 +18,17 @@ export function SubscribeCTA({ plan, locale, ctaLabel, loadingLabel, zonePickerL
   async function handleSubscribe() {
     if (!email) return
     setLoading(true)
-    const res = await fetch('/api/subscribe/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan, zone, email, locale }),
-    })
-    const data = await res.json()
-    setLoading(false)
-    if (data.checkoutUrl) window.location.href = data.checkoutUrl
+    try {
+      const res = await fetch('/api/subscribe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan, zone, email, locale }),
+      })
+      const data = await res.json()
+      if (data.checkoutUrl) window.location.href = data.checkoutUrl
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

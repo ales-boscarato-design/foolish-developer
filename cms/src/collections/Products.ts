@@ -85,11 +85,36 @@ export const Products: CollectionConfig = {
       ],
     },
     {
-      name: 'active',
-      type: 'checkbox',
-      defaultValue: true,
-      label: 'Visibile nella vetrina',
-      admin: { description: 'Se disattivato, il prodotto non appare nelle griglie ma rimane accessibile via URL diretto e nei kit.' },
+      type: 'collapsible',
+      label: 'Visibilità',
+      admin: { position: 'sidebar', initCollapsed: false },
+      fields: [
+        {
+          name: 'active',
+          type: 'checkbox',
+          defaultValue: true,
+          label: 'Retail: griglie, sitemap e checkout retail',
+          admin: { description: 'Se disattivato, il prodotto esce da home, categorie, sitemap e checkout retail. La scheda diretta per slug resta raggiungibile e alcuni riferimenti nei kit o nelle recensioni possono ancora mostrarlo. Non è un interruttore del B2B né degli abbonamenti.' },
+        },
+        {
+          name: 'unlisted',
+          type: 'checkbox',
+          defaultValue: false,
+          index: true,
+          label: 'Ritirato dal retail (301/404) — non spegne B2B né abbonamenti che lo referenziano',
+          admin: { description: 'Ritira il prodotto dal retail: fuori da griglie e sitemap, con redirect 301 alla scheda sostitutiva (supersededBy) oppure 404. Non tocca il B2B, che dipende da resellerVisible, e non spegne un abbonamento: per fermare un abbonamento si disattiva il piano, non il prodotto.' },
+        },
+        {
+          name: 'supersededBy',
+          type: 'text',
+          maxLength: 63,
+          label: 'Slug prodotto sostitutivo',
+          validate: (value: unknown) => value === undefined || value === null || value === '' || (
+            typeof value === 'string' && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(value)
+          ) || 'Inserisci uno slug valido (minuscole, numeri e trattini; massimo 63 caratteri).',
+          admin: { description: 'Slug del prodotto che sostituisce questo prodotto (opzionale).' },
+        },
+      ],
     },
     {
       name: 'limitedStock',

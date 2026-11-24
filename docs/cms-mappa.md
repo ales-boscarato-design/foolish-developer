@@ -34,7 +34,21 @@ Fotografia del **codice** su `main` `7e164483c07c878a56b56e4d7155ade4bd8a7249`. 
 | `components` | relazioni a Products | `cms/src/collections/Products.ts:508`; `storefront/src/components/ProductDetail.tsx:960` | Mostra componenti di kit e consente aggiunta UI. | Il checkout retail rivalida i prodotti. |
 | `packs[].name`, `quantity`, `discountPercent`, `badgeText` | nome localizzato, quantità, percentuale, badge | `cms/src/collections/Products.ts:528`; `storefront/src/components/ProductDetail.tsx:823`; `storefront/src/lib/catalog.ts:275` | Proposta pack e calcolo server del prezzo. | Il checkout verifica pack, quantità e sconto dal CMS. |
 
-**Confine importante:** l'etichetta CMS dice che `active` nasconde dalle griglie e lascia l'URL accessibile (`cms/src/collections/Products.ts:88`). Il codice aggiunge un effetto diverso per canale: il checkout retail rifiuta `active:false` (`storefront/src/lib/catalog.ts:228`), il checkout B2B usa `resellerVisible` (`b2b/src/lib/cms.ts:103`). Non dedurre una regola universale di vendibilità dalla sola etichetta. Per sitemap, pagina e kit: `storefront/src/app/sitemap.ts:34`, `storefront/src/lib/cms.ts:200`, `storefront/src/components/ProductDetail.tsx:960`. Nessun campo verificato ritira interamente un prodotto dalla vetrina senza cancellarlo: la pagina per slug resta accessibile. Un redirect o una modifica di codice sono meccanismi diversi, non un campo CMS.
+**Confine importante:** l'etichetta CMS dice che `active` nasconde dalle griglie e lascia l'URL accessibile (`cms/src/collections/Products.ts:88`). Il codice aggiunge un effetto diverso per canale: il checkout retail rifiuta `active:false` (`storefront/src/lib/catalog.ts:228`), il checkout B2B usa `resellerVisible` (`b2b/src/lib/cms.ts:103`). Non dedurre una regola universale di vendibilità dalla sola etichetta. Per sitemap, pagina e kit: `storefront/src/app/sitemap.ts:34`, `storefront/src/lib/cms.ts:200`, `storefront/src/components/ProductDetail.tsx:960`. `unlisted` invece ritira il prodotto dal retail: fuori da griglie e sitemap, con redirect 301 alla scheda sostitutiva (`supersededBy`) oppure 404 sulla scheda per slug (`storefront/src/lib/unlisted-product-redirect.ts`); non tocca B2B e abbonamenti.
+
+## Canali: Retail, B2B, Abbonamenti
+
+I tre canali leggono campi diversi: un prodotto può essere ritirato dal retail e restare vendibile in B2B o in abbonamento.
+
+| Canale | Cosa decide | Campo o meccanismo |
+|---|---|---|
+| Retail (vetrina, griglie, sitemap, checkout retail) | Visibile e acquistabile se `active=true` **e** `unlisted` non è `true`. | `active` + `unlisted` (`cms/src/collections/Products.ts:93`; `cms/src/collections/Products.ts:100`). |
+| B2B | Deciso solo da `resellerVisible`. | `resellerVisible` (`cms/src/collections/Products.ts:239`; `b2b/src/lib/cms.ts:103`). |
+| Abbonamenti | Deciso dal piano attivo che referenzia il prodotto. | Collection `subscription-plans` con `where[active][equals]=true` e relazione `product` (`cms/src/collections/SubscriptionPlans.ts:20`; `storefront/src/lib/cms.ts:292`). `unlisted` non è un gate. |
+
+**Regola:** per fermare un abbonamento si disattiva il piano, non il prodotto.
+
+`unlisted` reindirizza il retail con un 301 verso la scheda sostitutiva (`supersededBy`) oppure risponde 404; non ha effetto su B2B e abbonamenti.
 
 ## Orders
 
@@ -106,4 +120,4 @@ Non esiste una collection Payload Reviews registrata nell'elenco `cms/src/payloa
 
 **Come lo tolgo dal catalogo rivenditori?** `resellerVisible=false` lo esclude sia dalle query di lista e pagina B2B sia dal catalogo del checkout (`b2b/src/lib/cms.ts:60`; `b2b/src/lib/cms.ts:68`; `b2b/src/lib/cms.ts:103`).
 
-**Come lo tolgo dalla vetrina senza cancellarlo?** Nel codice esaminato **nessun campo ritira interamente il prodotto dalla vetrina**: `active=false` elimina le griglie, non la pagina diretta per slug; un kit può mostrare componenti anche così (`storefront/src/lib/cms.ts:200`; `storefront/src/components/ProductDetail.tsx:960`). Per ritirare anche l'URL serve un intervento diverso, da progettare e verificare: non assumere che la sola disattivazione lo faccia.
+**Come lo tolgo dalla vetrina senza cancellarlo?** Imposta `unlisted=true`: il prodotto esce da griglie e sitemap e la scheda per slug fa redirect 301 alla scheda sostitutiva (`supersededBy`) oppure risponde 404 (`storefront/src/lib/unlisted-product-redirect.ts`). `active=false` elimina le griglie ma lascia la scheda diretta raggiungibile (`storefront/src/lib/cms.ts:200`; `storefront/src/components/ProductDetail.tsx:960`). Nessuno dei due ritira il prodotto da B2B (`resellerVisible`) o da un abbonamento con piano attivo.

@@ -41,6 +41,7 @@
     "securePayment": "Sichere Zahlung · Stripe · Karte · Apple Pay · Google Pay",
     "securePaymentNote": "Stripe · Sichere Zahlung · Verschlüsselte Daten",
     "errorOrder": "Fehler beim Erstellen der Bestellung. Bitte erneut versuchen.",
+    "errorProductUnlisted": "Eines dieser Produkte ist nicht mehr käuflich. Entferne es aus dem Warenkorb und versuche es erneut.",
     "deliveryEstimate": "Voraussichtliche Lieferung: {date}",
     "deliveryEstimateUnavailable": "Für diesen Warenkorb können wir kein verlässliches Datum berechnen. Es wird kein Lieferdatum zugesagt.",
     "deliveryEstimateConfirmWithoutDate": "Bestätigen und ohne geschätztes Datum fortfahren",

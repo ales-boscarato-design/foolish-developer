@@ -44,6 +44,9 @@
     "test:printful-webhook": "tsx --test src/app/api/webhook/printful-fulfillment/route.test.ts",
     "test:security-secrets": "tsx --test src/lib/cms-service-secret.test.ts src/lib/admin-secret.test.ts",
     "test:money": "tsx --test src/lib/money.test.ts",
+    "test:review-products-pagination": "tsx --test src/lib/review-products-pagination.test.ts",
+    "test:account-home-wishlist": "tsx --test src/lib/account-home-wishlist.test.ts",
+    "test:unlisted": "npm run test:review-products-pagination --silent && tsx --test src/lib/unlisted-listing.test.ts src/lib/unlisted-product-redirect.test.ts src/lib/unlisted-next-router.test.ts src/lib/home-listed-reviews.test.ts src/lib/listed-components.test.ts src/lib/listed-reviews.test.ts src/lib/unlisted-promotion.test.ts src/app/api/stripe/checkout.unlisted.test.ts src/app/api/subscribe/checkout.unlisted.test.ts",
     "test:product-detail": "tsx --test src/components/ProductDetail.test.tsx"
   },
   "dependencies": {
