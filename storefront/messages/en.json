@@ -568,6 +568,7 @@
       "zonePickerLabel": "Where do we ship?",
       "subscribeCta": "Subscribe now",
       "loading": "One moment...",
+      "errorStart": "We couldn't start your subscription. Please try again shortly.",
       "faqTitle": "Frequently asked questions",
       "faqQ1": "How does the subscription work?",
       "faqA1": "Stripe charges you automatically every month for the same product — no action needed after you sign up.",

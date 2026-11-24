@@ -568,6 +568,7 @@
       "zonePickerLabel": "Dove spediamo?",
       "subscribeCta": "Abbonati ora",
       "loading": "Un attimo...",
+      "errorStart": "Non è stato possibile avviare l'abbonamento. Riprova tra poco.",
       "faqTitle": "Domande frequenti",
       "faqQ1": "Come funziona l'abbonamento?",
       "faqA1": "Addebito mensile automatico via Stripe, stessa referenza ogni mese, nessuna azione richiesta dopo l'iscrizione.",
