@@ -103,6 +103,8 @@ jobs:
           npm run test:reorder-orders --silent
           npm run test:emails --silent
           npm run test:catalog --silent
+          npm run test:attribution --silent
+          npm run test:checkout-route --silent
           npm run test:legacy-slugs --silent
           npm run test:proxy --silent
           npm run test:promo --silent

@@ -315,6 +315,25 @@ export function buildCheckoutMetadata(args: { x: string }): Record<string, strin
   assert.deepEqual(keys, ['items_json', 'order_ref', 'promo_code'])
 })
 
+test('assegnazioni esplicite dei metadata checkout vengono estratte', () => {
+  assert.deepEqual(
+    extractCheckoutRouteMetadataKeys('orderMetadata.attribution_json = attributionJson'),
+    ['attribution_json'],
+  )
+})
+
+test('la forma letterale condizionale dei metadata checkout resta estratta', () => {
+  const source = 'const sessionMetadata = cond ? { ...orderMetadata, affiliate_id: x } : orderMetadata'
+  assert.deepEqual(extractCheckoutRouteMetadataKeys(source), ['affiliate_id'])
+})
+
+test('una chiave dei metadata solo letta continua a fallire il contratto', () => {
+  const written = extractCheckoutRouteMetadataKeys('const sessionMetadata = { order_ref: orderRef }')
+  const reads = extractSessionMetadataReadKeys(['session.metadata.solo_letta'])
+  const problems = compareMetadataContract(written, [{ rel: 'synthetic-reader.ts', keys: reads }])
+  assert.deepEqual(problems, ['solo_letta (letto da synthetic-reader.ts)'])
+})
+
 test('le chiavi aggiunte dalla route di checkout vengono lette', () => {
   const source = `
   const shouldMarkAffiliate = await shouldMarkAffiliateCheckoutPromo(promoRecord)

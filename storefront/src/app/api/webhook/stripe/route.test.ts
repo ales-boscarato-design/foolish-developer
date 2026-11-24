@@ -22,6 +22,7 @@ import type { AddressInfo } from 'node:net'
 import { after, before, beforeEach, test } from 'node:test'
 import Stripe from 'stripe'
 import { NextRequest } from 'next/server'
+import { buildAttributionMetadata } from '@/lib/attribution'
 
 const WEBHOOK_SECRET = 'whsec_test_webhook_secret'
 const STOREFRONT_SECRET = 'test-storefront-secret'
@@ -341,6 +342,102 @@ test('con order_ref nei metadata l ordine nuovo si crea con numero e chiave di s
   assert.equal(persisted.orderNumber, orderRef)
   assert.equal(persisted.stripeSessionId, 'cs_test_webhook_session')
   assert.match(lines.join('\n'), new RegExp(`CMS order created OK ${orderRef}`))
+})
+
+test('attribuzione Stripe valida viene persistita nel gruppo CMS', async () => {
+  const attribution = JSON.stringify({ landingPath: '/it/', referrerHost: null, utmSource: 'google', utmMedium: 'cpc', utmCampaign: null, utmTerm: null, utmContent: null, refSlug: null, sourceClass: 'paidAds' })
+  const { payload, signature } = sessionEvent({ metadata: { order_ref: RESOLVED_ORDER_NUMBER, items_json: '[]', customer_name: 'Webhook Test', customer_country: 'IT', attribution_json: attribution } })
+  const result = await POST(webhookRequest(payload, signature))
+  assert.equal(result.status, 200)
+  assert.equal(state.posts.length, 1)
+  assert.deepEqual(state.posts[0]?.attribution, JSON.parse(attribution))
+})
+
+test('attribuzione illeggibile produce snapshot unknown ma l ordine viene creato', async () => {
+  const invalidSnapshots = ['not json', '{}', JSON.stringify({ sourceClass: 'garbage' })]
+  for (const attribution_json of invalidSnapshots) {
+    const { payload, signature } = sessionEvent({ metadata: { order_ref: RESOLVED_ORDER_NUMBER, items_json: '[]', customer_name: 'Webhook Test', customer_country: 'IT', attribution_json } })
+    const result = await POST(webhookRequest(payload, signature))
+    assert.equal(result.status, 200)
+    assert.deepEqual(state.posts.at(-1)?.attribution, { landingPath: null, referrerHost: null, utmSource: null, utmMedium: null, utmCampaign: null, utmTerm: null, utmContent: null, refSlug: null, sourceClass: 'unknown' })
+  }
+  assert.equal(state.posts.length, invalidSnapshots.length)
+})
+
+test('replay di metadata storici tampered non inoltra identificatori al payload CMS', async () => {
+  const legacy = JSON.stringify({
+    landingPath: '/it/pro/card/PRO-CODE-123', referrerHost: 'https://evil.example/?email=buyer@example.com',
+    utmSource: 'buyer@example.com', utmMedium: 'Mario Rossi', utmCampaign: 'https://evil.example/?name=Buyer',
+    utmTerm: 'personal-customer-slug', utmContent: 'PRO-CODE-123', refSlug: 'buyer-private-slug', sourceClass: 'referral',
+  })
+  const { payload, signature } = sessionEvent({ metadata: {
+    order_ref: RESOLVED_ORDER_NUMBER, items_json: '[]', customer_name: 'Webhook Test', customer_country: 'IT', attribution_json: legacy,
+  } })
+  const result = await POST(webhookRequest(payload, signature))
+  assert.equal(result.status, 200)
+  assert.equal(state.posts.length, 1)
+  const cmsJson = JSON.stringify(state.posts[0]?.attribution)
+  for (const secret of ['PRO-CODE-123', 'buyer@example.com', 'Mario Rossi', 'personal-customer-slug', 'buyer-private-slug', 'evil.example']) {
+    assert.equal(cmsJson.includes(secret), false, `payload CMS non deve contenere ${secret}`)
+  }
+  assert.deepEqual(state.posts[0]?.attribution, {
+    landingPath: null, referrerHost: null, utmSource: null, utmMedium: null,
+    utmCampaign: null, utmTerm: null, utmContent: null, refSlug: null, sourceClass: 'unknown',
+  })
+})
+
+test('replay Stripe con sorgente scartata non diventa direct; direct autentico resta direct nel payload CMS', async () => {
+  const tampered = JSON.stringify({
+    landingPath: '/it/', referrerHost: null, utmSource: 'buyer@example.com', utmMedium: null,
+    utmCampaign: null, utmTerm: null, utmContent: null, refSlug: null, sourceClass: 'direct',
+  })
+  const tamperedEvent = sessionEvent({ metadata: {
+    order_ref: RESOLVED_ORDER_NUMBER, items_json: '[]', customer_name: 'Webhook Test', customer_country: 'IT', attribution_json: tampered,
+  } })
+  const rejectedResult = await POST(webhookRequest(tamperedEvent.payload, tamperedEvent.signature))
+  assert.equal(rejectedResult.status, 200)
+  assert.equal((state.posts[0]?.attribution as Record<string, unknown>).sourceClass, 'unknown')
+  assert.equal(JSON.stringify(state.posts[0]?.attribution).includes('buyer@example.com'), false)
+
+  const direct = buildAttributionMetadata({
+    landingPath: '/it/prodotto/example', referrerHost: null, utmSource: null, utmMedium: null,
+    utmCampaign: null, utmTerm: null, utmContent: null, refSlug: null, sourceClass: 'direct',
+  })
+  assert.ok(direct)
+  assert.equal(direct.includes('/it/prodotto/example'), false)
+  assert.equal((JSON.parse(direct) as Record<string, unknown>).sourceClass, 'direct')
+  const directEvent = sessionEvent({ metadata: {
+    order_ref: RESOLVED_ORDER_NUMBER, items_json: '[]', customer_name: 'Webhook Test', customer_country: 'IT', attribution_json: direct,
+  } })
+  const directResult = await POST(webhookRequest(directEvent.payload, directEvent.signature))
+  assert.equal(directResult.status, 200)
+  assert.deepEqual(state.posts[1]?.attribution, {
+    landingPath: null, referrerHost: null, utmSource: null, utmMedium: null,
+    utmCampaign: null, utmTerm: null, utmContent: null, refSlug: null, sourceClass: 'direct',
+  })
+})
+
+test('replay multi-boundary mantiene unknown quando un segnale scartato contraddice sorgenti ammesse', async () => {
+  const mixedSnapshots = [
+    JSON.stringify({
+      landingPath: '/it/', referrerHost: null, utmSource: 'bing', utmMedium: null,
+      utmCampaign: null, utmTerm: null, utmContent: null, refSlug: null, sourceClass: 'unknown',
+    }),
+    JSON.stringify({
+      landingPath: '/it/', referrerHost: 'google.com', utmSource: null, utmMedium: null,
+      utmCampaign: null, utmTerm: null, utmContent: null, refSlug: null, sourceClass: 'unknown',
+    }),
+  ]
+  for (const attribution of mixedSnapshots) {
+    const { payload, signature } = sessionEvent({ metadata: {
+      order_ref: RESOLVED_ORDER_NUMBER, items_json: '[]', customer_name: 'Webhook Test', customer_country: 'IT', attribution_json: attribution,
+    } })
+    const result = await POST(webhookRequest(payload, signature))
+    assert.equal(result.status, 200)
+    assert.equal((state.posts.at(-1)?.attribution as Record<string, unknown>).sourceClass, 'unknown')
+    assert.equal(JSON.stringify(state.posts.at(-1)?.attribution).includes('newsletter'), false)
+    assert.equal(JSON.stringify(state.posts.at(-1)?.attribution).includes('email'), false)
+  }
 })
 
 test('charge.refunded senza marker aggiorna l’ordine con lo stato cumulativo letto da Stripe', async () => {
