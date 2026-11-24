@@ -133,6 +133,7 @@ jobs:
           npm run test:checkout-i18n --silent
           npm run test:security-secrets --silent
           npm run test:money --silent
+          npm run test:product-i18n --silent
           npm run test:unlisted --silent
           npm run test:account-home-wishlist --silent
           npm run test:product-detail --silent
