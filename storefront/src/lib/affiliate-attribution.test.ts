@@ -508,13 +508,14 @@ test('full and partial charge refunds map safely to conversion payment patches',
     currency: 'eur',
     refunded: true,
     metadata: { affiliate_promo_code: 'NESTOR' },
-  }), {
+  }, 1), {
     paymentIntentId: 'pi_refund_test',
     hasAffiliateMarker: true,
     patch: {
       paymentStatus: 'refunded',
       refundStatus: 'full',
       amountRefundedCents: 10_000,
+      refundCount: 1,
       commissionAmountCents: 0,
     },
   })
@@ -526,11 +527,41 @@ test('full and partial charge refunds map safely to conversion payment patches',
     currency: 'eur',
     refunded: false,
     metadata: {},
-  })?.patch, {
+  }, 1)?.patch, {
     paymentStatus: 'partially_refunded',
     refundStatus: 'partial',
     amountRefundedCents: 2_500,
+    refundCount: 1,
   })
+})
+
+test('a fully cancelled refund maps back to a paid conversion with the refund counter', () => {
+  assert.deepEqual(mapStripeChargeRefund({
+    payment_intent: 'pi_refund_test',
+    amount: 10_000,
+    amount_refunded: 0,
+    currency: 'eur',
+    refunded: false,
+    metadata: { affiliate_promo_code: 'NESTOR' },
+  }, 2), {
+    paymentIntentId: 'pi_refund_test',
+    hasAffiliateMarker: true,
+    patch: {
+      paymentStatus: 'paid',
+      refundStatus: 'none',
+      amountRefundedCents: 0,
+      refundCount: 2,
+    },
+  }, 'un rimborso annullato riporta la conversione a pagata, con il conteggio come chiave')
+
+  assert.equal(mapStripeChargeRefund({
+    payment_intent: 'pi_refund_test',
+    amount: 10_000,
+    amount_refunded: 0,
+    currency: 'eur',
+    refunded: false,
+    metadata: {},
+  }, -1), null, 'un conteggio di rimborsi non valido non produce una transizione')
 })
 
 test('an unmarked charge refund is acknowledged by the refund helper', async () => {
@@ -544,6 +575,7 @@ test('an unmarked charge refund is acknowledged by the refund helper', async () 
       refunded: false,
       metadata: {},
     },
+    refundCount: 1,
     cms: fakeCms({
       updateConversionPaymentStatusByPaymentIntent: async () => {
         cmsCalls += 1
@@ -566,6 +598,7 @@ test('a marked refund-before-attribution returns missing for retry', async () =>
       refunded: false,
       metadata: { affiliate_promo_code: 'NESTOR' },
     },
+    refundCount: 1,
     cms: fakeCms({
       updateConversionPaymentStatusByPaymentIntent: async () => ({ status: 'missing' }),
     }),
@@ -585,6 +618,7 @@ test('marked CMS update failure is propagated for retryable webhook handling', a
         refunded: false,
         metadata: { affiliate_promo_code: 'NESTOR' },
       },
+      refundCount: 1,
       cms: fakeCms({
         updateConversionPaymentStatusByPaymentIntent: async () => {
           throw new Error('CMS unavailable')
@@ -605,6 +639,7 @@ test('charge refund handling preserves a missing result for a retryable webhook 
       refunded: false,
       metadata: { affiliate_promo_code: 'NESTOR' },
     },
+    refundCount: 1,
     cms: fakeCms({
       updateConversionPaymentStatusByPaymentIntent: async () => ({ status: 'missing' }),
     }),
@@ -621,6 +656,7 @@ test('the atomic refund transition contract preserves updated and stale results'
         paymentStatus: 'refunded',
         refundStatus: 'full',
         amountRefundedCents: 10_000,
+        refundCount: 1,
         commissionAmountCents: 0,
       },
       fakeCms({
@@ -651,12 +687,14 @@ test('the storefront refund client uses the protected atomic transition endpoint
         paymentStatus: 'partially_refunded',
         refundStatus: 'partial',
         amountRefundedCents: 2_500,
+        refundCount: 1,
       },
     )
     assert.deepEqual(result, { status: 'stale' })
     assert.deepEqual(requestBody, {
       stripePaymentIntentId: 'pi_refund_test',
       amountRefundedCents: 2_500,
+      refundCount: 1,
       refundStatus: 'partial',
     })
   } finally {
@@ -784,6 +822,7 @@ test('full refund transition zeroes ledger and order commission in the injected 
       refunded: true,
       metadata: { affiliate_promo_code: 'NESTOR' },
     },
+    refundCount: 1,
     cms: fakeCms({
       updateConversionPaymentStatusByPaymentIntent: async (_paymentIntentId, patch) => {
         if (patch.refundStatus === 'full') {

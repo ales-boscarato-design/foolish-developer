@@ -25,6 +25,7 @@ function requestForCurrentRow(current: Record<string, unknown>, calls: string[])
     stripePaymentIntentId: 'pi_refund_test',
     amountRefundedCents: 2_500,
     refundStatus: 'partial',
+    refundCount: 1,
   }, async () => {
     calls.push('select')
     return { rows: [current] }
@@ -85,6 +86,9 @@ test('refund transitions fail closed for cancelled and malformed current states'
       payment_status: paymentStatus,
       refund_status: paymentStatus === 'cancelled' ? 'none' : 'partial',
       amount_refunded_cents: paymentStatus === 'cancelled' ? 0 : 0,
+      commission_amount_cents: 0,
+      commission_pre_refund_cents: null,
+      refund_count: 1,
     }
 
     await assert.rejects(

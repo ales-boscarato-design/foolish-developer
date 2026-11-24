@@ -28,12 +28,26 @@ const ALFRED_PIPELINE_STATES = new Set<NonNullable<Order['pipelineState']>>([
 type AlfredOrderUpdate = Partial<Pick<Order, 'pipelineState' | 'trackingNumber' | 'trackingCarrier' | 'productionEtaDays' | 'customerTelegramId'>>
 
 const MAX_REFUND_CENTS = 100_000_000_000
+/** Tetto al numero di rimborsi per charge: oltre, il conteggio non e' una chiave affidabile. */
+const MAX_REFUND_OBJECTS = 10_000
 
 function validPaymentIntentId(value: unknown): value is string {
   return typeof value === 'string' && /^pi_[A-Za-z0-9_]{1,127}$/.test(value)
 }
 
-/** Applica una fotografia cumulativa Stripe sotto lock sulla riga Orders. */
+/**
+ * Applica una fotografia cumulativa Stripe sotto lock sulla riga Orders.
+ *
+ * L'ORDINAMENTO NON E' L'IMPORTO (card t_6f9c968d). `charge.amount_refunded`
+ * scende quando Stripe passa un rimborso a `failed`/`canceled`: se la guardia
+ * fosse monotona sull'importo, l'ordine resterebbe sovra-rimborsato e la coda di
+ * produzione escluderebbe pezzi che vanno prodotti. La chiave di ordinamento e'
+ * `refundCount`, il numero di rimborsi presenti sul charge: Stripe non li
+ * cancella, quindi cresce quando nasce un rimborso e non torna mai indietro.
+ * A parita' di conteggio un importo minore e' un rimborso annullato (da
+ * applicare) e uno maggiore e' uno snapshot consegnato fuori ordine (da
+ * rifiutare).
+ */
 async function applyOrderRefundTransition(req: PayloadRequest): Promise<Response> {
   if (resolveServiceScope(req.headers) !== 'storefront' && !req.user) {
     throw new APIError('Unauthorized', 401)
@@ -51,27 +65,33 @@ async function applyOrderRefundTransition(req: PayloadRequest): Promise<Response
   const paymentIntentId = input.stripePaymentIntentId
   const amountRefundedCents = input.amountRefundedCents
   const chargeAmountCents = input.chargeAmountCents
+  const refundCount = input.refundCount
   const lastRefundedAt = input.lastRefundedAt
   if (
     !validPaymentIntentId(paymentIntentId)
     || !Number.isSafeInteger(amountRefundedCents)
-    || (amountRefundedCents as number) < 1
+    || (amountRefundedCents as number) < 0
     || (amountRefundedCents as number) > MAX_REFUND_CENTS
     || !Number.isSafeInteger(chargeAmountCents)
     || (chargeAmountCents as number) < 1
     || (chargeAmountCents as number) > MAX_REFUND_CENTS
     || (amountRefundedCents as number) > (chargeAmountCents as number)
+    || !Number.isSafeInteger(refundCount)
+    || (refundCount as number) < 0
+    || (refundCount as number) > MAX_REFUND_OBJECTS
+    || ((amountRefundedCents as number) === 0 && (refundCount as number) === 0)
     || (lastRefundedAt !== null && lastRefundedAt !== undefined
       && (typeof lastRefundedAt !== 'string' || !Number.isFinite(Date.parse(lastRefundedAt))))
   ) throw new APIError('Invalid refund transition', 400)
 
   const amount = amountRefundedCents as number
-  const refundStatus = amount === chargeAmountCents ? 'full' : 'partial'
+  const count = refundCount as number
+  const refundStatus = amount === 0 ? 'none' : amount === chargeAmountCents ? 'full' : 'partial'
   const paymentStatus = refundStatus === 'full' ? 'refunded' : 'paid'
   const db = req.payload.db as unknown as PostgresAdapter
   const result = await db.drizzle.transaction(async (tx) => {
     const locked = await tx.execute(sql`
-      SELECT "id", "amount_refunded_cents", "refund_status", "last_refunded_at"
+      SELECT "id", "amount_refunded_cents", "refund_status", "last_refunded_at", "refund_count"
       FROM "orders"
       WHERE "stripe_payment_intent_id" = ${paymentIntentId}
       FOR UPDATE
@@ -84,20 +104,41 @@ async function applyOrderRefundTransition(req: PayloadRequest): Promise<Response
       amount_refunded_cents?: unknown
       refund_status?: unknown
       last_refunded_at?: unknown
+      refund_count?: unknown
     }
-    const currentAmount = current.amount_refunded_cents
     if (
       !Number.isSafeInteger(current.id)
-      || (currentAmount !== null && currentAmount !== undefined && (!Number.isSafeInteger(Number(currentAmount)) || Number(currentAmount) < 0))
+      || (current.amount_refunded_cents !== null && current.amount_refunded_cents !== undefined
+        && (!Number.isSafeInteger(Number(current.amount_refunded_cents)) || Number(current.amount_refunded_cents) < 0))
+      || (current.refund_count !== null && current.refund_count !== undefined
+        && (!Number.isSafeInteger(Number(current.refund_count)) || Number(current.refund_count) < 0))
       || (current.refund_status !== null && current.refund_status !== undefined && !['none', 'partial', 'full'].includes(String(current.refund_status)))
     ) throw new APIError('Malformed order refund state', 500)
 
-    if (currentAmount !== null && currentAmount !== undefined && Number(currentAmount) >= amount) {
-      if (
-        Number(currentAmount) > amount
-        || (Number(currentAmount) === amount && (current.last_refunded_at !== null && current.last_refunded_at !== undefined
-          || lastRefundedAt === null || lastRefundedAt === undefined))
-      ) return { status: 'stale' as const }
+    const currentAmount = current.amount_refunded_cents === null || current.amount_refunded_cents === undefined
+      ? null
+      : Number(current.amount_refunded_cents)
+    const currentCount = current.refund_count === null || current.refund_count === undefined
+      ? null
+      : Number(current.refund_count)
+    const amountBefore = currentAmount ?? 0
+
+    // 1. Il conteggio dei rimborsi non torna mai indietro: stato precedente.
+    if (currentCount !== null && count < currentCount) return { status: 'stale' as const }
+    // 2. Riga scritta da un codice che non registrava il conteggio: solo crescite.
+    if (currentCount === null && amountBefore > 0 && amount <= amountBefore) return { status: 'stale' as const }
+    // 3. Un cumulativo a zero non e' un fatto da scrivere su un ordine che non ha
+    //    mai avuto rimborsi: non e' uno dei nostri stati.
+    if (amount === 0 && amountBefore === 0) return { status: 'stale' as const }
+
+    const sameSnapshot = currentCount !== null && count === currentCount && amount === amountBefore
+    if (sameSnapshot) {
+      // Stessa fotografia: idempotente, con l'unica eccezione di una data prima
+      // ignota che lo snapshot ora sa dimostrare.
+      if ((current.last_refunded_at !== null && current.last_refunded_at !== undefined)
+        || lastRefundedAt === null || lastRefundedAt === undefined) {
+        return { status: 'stale' as const }
+      }
       const timestampUpdate = await tx.execute(sql`
         UPDATE "orders"
         SET "last_refunded_at" = ${new Date(lastRefundedAt as string).toISOString()}, "updated_at" = NOW()
@@ -106,15 +147,24 @@ async function applyOrderRefundTransition(req: PayloadRequest): Promise<Response
       `)
       return timestampUpdate.rows.length === 1 ? { status: 'updated' as const } : { status: 'stale' as const }
     }
+
+    // 4. A parita' di rimborsi l'importo puo' solo scendere (un rimborso e'
+    //    stato annullato); una crescita richiederebbe un rimborso in piu'.
+    if (currentCount !== null && count === currentCount && amount > amountBefore) {
+      return { status: 'stale' as const }
+    }
+
     const updated = await tx.execute(sql`
       UPDATE "orders"
       SET "amount_refunded_cents" = ${amount},
           "refund_status" = ${refundStatus}::"enum_orders_refund_status",
           "payment_status" = ${paymentStatus}::"enum_orders_payment_status",
           "last_refunded_at" = ${lastRefundedAt ? new Date(lastRefundedAt).toISOString() : null},
+          "refund_count" = ${count},
           "updated_at" = NOW()
       WHERE "id" = ${current.id}
-        AND ("amount_refunded_cents" IS NULL OR "amount_refunded_cents" < ${amount})
+        AND "amount_refunded_cents" IS NOT DISTINCT FROM ${currentAmount}::numeric
+        AND "refund_count" IS NOT DISTINCT FROM ${currentCount}::numeric
       RETURNING "id"
     `)
     return updated.rows.length === 1 ? { status: 'updated' as const } : { status: 'stale' as const }
@@ -971,6 +1021,13 @@ export const Orders: CollectionConfig = {
           admin: { readOnly: true, width: '34%' },
         },
       ],
+    },
+
+    {
+      name: 'refundCount',
+      type: 'number',
+      label: 'Numero di rimborsi sul charge',
+      admin: { readOnly: true, description: 'Chiave di ordinamento delle transizioni di rimborso: Stripe non cancella i rimborsi, quindi non torna mai indietro mentre l’importo cumulativo può scendere (rimborso annullato).' },
     },
 
     // ── Promo ─────────────────────────────────────────────────────

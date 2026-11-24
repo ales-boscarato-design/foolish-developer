@@ -15,6 +15,7 @@ import {
   updateAffiliateConversionForStripeChargeRefund,
 } from '@/lib/affiliate-attribution'
 import { attachScheduleToSubscription } from '@/lib/stripe-subscription-schedule'
+import { readChargeRefundSnapshot, validChargeId } from '@/lib/charge-refund-snapshot'
 import { getBenefitForCycle, type PlanKey, type Zone } from '@/lib/subscription-plans'
 import { detectRenewalZoneMismatch } from '@/lib/subscription-renewal-zone'
 import { reportRenewalZoneMismatch } from '@/lib/subscription-renewal-zone-alert'
@@ -48,6 +49,7 @@ async function persistOrderRefund(input: {
   stripePaymentIntentId: string
   chargeAmountCents: number
   amountRefundedCents: number
+  refundCount: number
   lastRefundedAt?: string
 }): Promise<'updated' | 'stale' | 'missing'> {
   const response = await fetch(`${CMS_URL()}/api/orders/apply-refund-transition`, {
@@ -62,6 +64,85 @@ async function persistOrderRefund(input: {
     throw new Error('CMS order refund response invalid')
   }
   return result.status
+}
+
+/**
+ * Eventi che possono cambiare il cumulativo dei rimborsi di un ordine.
+ *
+ * `charge.refunded` copre la nascita di un rimborso; `charge.refund.updated`,
+ * `refund.updated` e `refund.failed` coprono il cambio di stato di un rimborso
+ * esistente — ed e' proprio quel cambio a FAR SCENDERE `amount_refunded` (un
+ * rimborso `failed`/`canceled` non e' piu' denaro tornato al cliente). Trattarli
+ * come ACK lasciava l'ordine sovra-rimborsato (card t_6f9c968d).
+ */
+const REFUND_EVENT_TYPES = new Set<string>([
+  'charge.refunded',
+  'charge.refund.updated',
+  'refund.updated',
+  'refund.failed',
+])
+
+/** Il charge da riconciliare: charge.refunded lo porta sull'oggetto, gli altri eventi sul refund. */
+function refundEventChargeId(event: Stripe.Event): string | null {
+  if (event.type === 'charge.refunded') {
+    const charge = event.data.object as Stripe.Charge
+    return validChargeId(charge.id) ? charge.id : null
+  }
+  const refund = event.data.object as Stripe.Refund
+  const charge = refund.charge
+  const chargeId = typeof charge === 'string' ? charge : charge?.id
+  return validChargeId(chargeId) ? chargeId : null
+}
+
+/**
+ * Rilegge il charge (sola lettura), scrive lo snapshot cumulativo sull'ordine e —
+ * solo per i charge col marker affiliate — riconcilia il ledger conversioni.
+ * L'ordine si scrive per primo: il ledger non puo' piu' impedire un rimborso.
+ */
+async function reconcileStripeRefund(stripe: Stripe, chargeId: string): Promise<NextResponse> {
+  let refundStage = 'stripe_retrieve'
+  try {
+    const snapshot = await readChargeRefundSnapshot(stripe, chargeId)
+    refundStage = 'order_persistence'
+    const orderResult = await persistOrderRefund({
+      stripePaymentIntentId: snapshot.paymentIntentId,
+      chargeAmountCents: snapshot.chargeAmountCents,
+      amountRefundedCents: snapshot.amountRefundedCents,
+      refundCount: snapshot.refundCount,
+      ...(snapshot.lastRefundedAt === null ? {} : { lastRefundedAt: snapshot.lastRefundedAt }),
+    })
+    if (orderResult === 'missing') {
+      // Nessuna riga Orders per questo PaymentIntent (ordine non ancora creato,
+      // oppure charge che non nasce dal negozio: abbonamento legacy, prova,
+      // rimborso manuale). Resta ritentabile come prima, ma il log lo rende
+      // visibile invece di lasciare solo un 503 anonimo.
+      console.error('[webhook] refund event for a charge without an order row')
+      return NextResponse.json({ error: 'Order unavailable' }, { status: 503 })
+    }
+
+    // Lo snapshot cumulativo dell'ordine e' gia' scritto: il ledger affiliate
+    // non puo' piu' impedire il rimborso. Se la conversione manca (marker
+    // scritto al checkout, attribuzione best-effort) o la scrittura fallisce,
+    // il 503 fa ritentare Stripe; il retry riscrive la stessa transizione
+    // ordine, che il CMS tratta come idempotente/stale.
+    if (hasAffiliateRefundMarker(snapshot.charge)) {
+      refundStage = 'affiliate_persistence'
+      const affiliateResult = await updateAffiliateConversionForStripeChargeRefund({
+        charge: snapshot.charge,
+        refundCount: snapshot.refundCount,
+        cms: createAffiliateAttributionCms(),
+      })
+      if (affiliateResult.status === 'missing') {
+        return NextResponse.json({ error: 'Affiliate conversion unavailable' }, { status: 503 })
+      }
+    }
+  } catch {
+    // Keep the event retryable until both the affiliate ledger (when marked)
+    // and the order snapshot are durable. Never log payment or customer data.
+    console.error(`[webhook] refund persistence failed stage=${refundStage}`)
+    return NextResponse.json({ error: 'Refund persistence failed' }, { status: 503 })
+  }
+  return NextResponse.json({ received: true })
 }
 
 interface SubscriptionDoc {
@@ -213,75 +294,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
-  if (event.type === 'charge.refunded') {
-    let refundStage = 'charge_validation'
-    try {
-      const eventCharge = event.data.object
-      if (typeof eventCharge.id !== 'string' || !/^ch_[A-Za-z0-9_]+$/.test(eventCharge.id)) {
-        throw new Error('Invalid charge identity')
-      }
-      refundStage = 'stripe_retrieve'
-      const charge = await stripe.charges.retrieve(eventCharge.id)
-      refundStage = 'charge_validation'
-      const paymentIntentId = typeof charge.payment_intent === 'string'
-        ? charge.payment_intent
-        : charge.payment_intent?.id
-      if (
-        !paymentIntentId
-        || !/^pi_[A-Za-z0-9_]{1,127}$/.test(paymentIntentId)
-        || !Number.isSafeInteger(charge.amount)
-        || charge.amount < 1
-        || !Number.isSafeInteger(charge.amount_refunded)
-        || charge.amount_refunded < 1
-        || charge.amount_refunded > charge.amount
-        || charge.currency.toLowerCase() !== 'eur'
-      ) throw new Error('Invalid cumulative Stripe refund')
-
-      const refundList = charge.refunds
-      const refundCreatedAt = refundList?.has_more === false
-        && refundList.data.length > 0
-        && refundList.data.every((refund) => Number.isSafeInteger(refund.created) && refund.created > 0)
-        ? Math.max(...refundList.data.map((refund) => refund.created))
-        : null
-      refundStage = 'order_persistence'
-      const orderResult = await persistOrderRefund({
-        stripePaymentIntentId: paymentIntentId,
-        chargeAmountCents: charge.amount,
-        amountRefundedCents: charge.amount_refunded,
-        ...(refundCreatedAt === null ? {} : { lastRefundedAt: new Date(refundCreatedAt * 1000).toISOString() }),
-      })
-      if (orderResult === 'missing') {
-        return NextResponse.json({ error: 'Order unavailable' }, { status: 503 })
-      }
-
-      // Lo snapshot cumulativo dell'ordine e' gia' scritto: il ledger affiliate
-      // non puo' piu' impedire il rimborso. Se la conversione manca (marker
-      // scritto al checkout, attribuzione best-effort) o la scrittura fallisce,
-      // il 503 fa ritentare Stripe; il retry riscrive la stessa transizione
-      // ordine, che il CMS tratta come idempotente/stale.
-      if (hasAffiliateRefundMarker(charge)) {
-        refundStage = 'affiliate_persistence'
-        const affiliateResult = await updateAffiliateConversionForStripeChargeRefund({
-          charge,
-          cms: createAffiliateAttributionCms(),
-        })
-        if (affiliateResult.status === 'missing') {
-          return NextResponse.json({ error: 'Affiliate conversion unavailable' }, { status: 503 })
-        }
-      }
-    } catch {
-      // Keep the event retryable until both the affiliate ledger (when marked)
-      // and the order snapshot are durable. Never log payment or customer data.
-      console.error(`[webhook] refund persistence failed stage=${refundStage}`)
-      return NextResponse.json({ error: 'Refund persistence failed' }, { status: 503 })
+  if (REFUND_EVENT_TYPES.has(event.type)) {
+    const chargeId = refundEventChargeId(event)
+    if (chargeId === null) {
+      // Nessun charge raggiungibile: non c'e' uno stato cumulativo da scrivere.
+      // Un 503 farebbe ritentare per giorni un evento che non diventerà mai
+      // riconciliabile; il log dice a chi legge che c'e' un evento da guardare.
+      console.error('[webhook] refund event without charge: nothing cumulative to reconcile')
+      return NextResponse.json({ received: true })
     }
-    return NextResponse.json({ received: true })
-  }
-
-  if (event.type === 'refund.updated') {
-    // The cumulative amount is read from `stripe.charges.retrieve` while
-    // handling `charge.refunded`; this event contains only one refund amount.
-    return NextResponse.json({ received: true })
+    return reconcileStripeRefund(stripe, chargeId)
   }
 
   if (event.type === 'checkout.session.completed') {

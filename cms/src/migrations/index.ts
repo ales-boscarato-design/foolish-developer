@@ -45,6 +45,7 @@ import * as migration_20261109_100000_add_order_stripe_session_id from './202611
 import * as migration_20261111_100000_add_order_recipient_fields from './20261111_100000_add_order_recipient_fields';
 import * as migration_20261117_153805_payload_3_90_security_fields from './20261117_153805_payload_3_90_security_fields';
 import * as migration_20261120_100000_add_order_refund_fields from './20261120_100000_add_order_refund_fields';
+import * as migration_20261120_120000_add_refund_ordering_fields from './20261120_120000_add_refund_ordering_fields';
 import * as migration_20261121_100000_add_product_unlisted from './20261121_100000_add_product_unlisted';
 
 export const migrations = [
@@ -282,6 +283,11 @@ export const migrations = [
     up: migration_20261120_100000_add_order_refund_fields.up,
     down: migration_20261120_100000_add_order_refund_fields.down,
     name: '20261120_100000_add_order_refund_fields',
+  },
+  {
+    up: migration_20261120_120000_add_refund_ordering_fields.up,
+    down: migration_20261120_120000_add_refund_ordering_fields.down,
+    name: '20261120_120000_add_refund_ordering_fields',
   },
   {
     up: migration_20261121_100000_add_product_unlisted.up,

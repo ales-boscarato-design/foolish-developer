@@ -357,6 +357,7 @@ test('charge.refunded senza marker aggiorna l’ordine con lo stato cumulativo l
     assert.equal(response.status, 200)
     assert.deepEqual(state.refundTransitions, [{
       stripePaymentIntentId: 'pi_test_refund', chargeAmountCents: 10_000, amountRefundedCents: 10_000,
+      refundCount: 1,
       lastRefundedAt: new Date(1_700_000_120 * 1000).toISOString(),
     }])
   } finally {
@@ -391,9 +392,11 @@ test('ordine mancante resta retryable con 503', async () => {
   state.refundEndpointStatus = 'missing'
   const response = await submitRefundWithStripeCharge({
     id: 'ch_test_refund', object: 'charge', payment_intent: 'pi_test_refund', amount: 10_000,
-    amount_refunded: 10_000, currency: 'eur', refunded: true, metadata: {}, refunds: { data: [], has_more: false, object: 'list', url: '' },
+    amount_refunded: 10_000, currency: 'eur', refunded: true, metadata: {},
+    refunds: refundList([{ id: 're_missing_order', object: 'refund', amount: 10_000, currency: 'eur', status: 'succeeded', created: 1_700_000_120 }]),
   })
   assert.equal(response.status, 503)
+  assert.equal(state.refundTransitions.length, 1, 'il 503 viene dall ordine mancante, non da un rifiuto dello snapshot')
 })
 
 test('il ramo affiliate aggiorna ledger e ordine nello stesso retry Stripe', async () => {
@@ -411,49 +414,52 @@ test('il replay o uno snapshot cumulativo fuori ordine non forza una risposta re
   state.refundEndpointStatus = 'stale'
   const response = await submitRefundWithStripeCharge({
     id: 'ch_test_refund', object: 'charge', payment_intent: 'pi_test_refund', amount: 10_000,
-    amount_refunded: 2_500, currency: 'eur', refunded: false, metadata: {}, refunds: { data: [], has_more: false, object: 'list', url: '' },
-  })
-  assert.equal(response.status, 200)
-})
-
-test('charge senza refunds completi non inventa lastRefundedAt da event.created', async () => {
-  const response = await submitRefundWithStripeCharge({
-    id: 'ch_test_refund', object: 'charge', payment_intent: 'pi_test_refund', amount: 10_000,
     amount_refunded: 2_500, currency: 'eur', refunded: false, metadata: {},
-    refunds: { data: [], has_more: true, object: 'list', url: '' },
+    refunds: refundList([{ id: 're_out_of_order', object: 'refund', amount: 2_500, currency: 'eur', status: 'succeeded', created: 1_700_000_120 }]),
   })
   assert.equal(response.status, 200)
-  assert.equal('lastRefundedAt' in (state.refundTransitions[0] ?? {}), false)
 })
 
-test('rifare la stessa fotografia cumulativa può completare una data mancante senza arretrare importo', async () => {
+test('la data del rimborso viene dai refund riletti, mai da event.created', async () => {
+  // L'evento ha `created` 1_700_000_123: se comparisse nell'ISO la rotta starebbe
+  // inventando la data dal momento della consegna invece che dal rimborso.
+  const response = await submitEventWithStripe(
+    refundEvent(),
+    {
+      id: 'ch_test_refund', object: 'charge', payment_intent: 'pi_test_refund', amount: 10_000,
+      amount_refunded: 2_500, currency: 'eur', refunded: false, metadata: {},
+      refunds: refundList([{ id: 're_only', object: 'refund', amount: 2_500, currency: 'eur', status: 'succeeded', created: 1_699_999_000 }]),
+    },
+  )
+  assert.equal(response.status, 200)
+  assert.equal(state.refundTransitions[0]?.lastRefundedAt, new Date(1_699_999_000 * 1000).toISOString())
+  assert.equal(state.refundTransitions[0]?.refundCount, 1)
+})
+
+test('due consegne dello stesso charge producono la stessa fotografia cumulativa', async () => {
   const originalFetch = globalThis.fetch
   const requests: Array<Record<string, unknown>> = []
-  let transitionNumber = 0
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input)
     if (url.endsWith('/api/orders/apply-refund-transition')) {
       requests.push(JSON.parse(String(init?.body)) as Record<string, unknown>)
-      transitionNumber += 1
-      return Response.json({ status: transitionNumber === 1 ? 'updated' : 'updated' })
+      return Response.json({ status: 'stale' })
     }
     return originalFetch(input, init)
   }) as typeof globalThis.fetch
   try {
-    const first = await submitRefundWithStripeCharge({
+    const charge = {
       id: 'ch_test_refund', object: 'charge', payment_intent: 'pi_test_refund', amount: 10_000,
       amount_refunded: 2_500, currency: 'eur', refunded: false, metadata: {},
-      refunds: { data: [], has_more: true, object: 'list', url: '' },
-    })
-    const second = await submitRefundWithStripeCharge({
-      id: 'ch_test_refund', object: 'charge', payment_intent: 'pi_test_refund', amount: 10_000,
-      amount_refunded: 2_500, currency: 'eur', refunded: false, metadata: {},
-      refunds: { data: [{ created: 1_700_000_120 }], has_more: false, object: 'list', url: '' },
-    })
+      refunds: refundList([{ id: 're_only', object: 'refund', amount: 2_500, currency: 'eur', status: 'succeeded', created: 1_700_000_120 }]),
+    }
+    const first = await submitEventWithStripe(refundEvent(), charge)
+    const second = await submitEventWithStripe(refundEvent(), charge)
     assert.equal(first.status, 200)
     assert.equal(second.status, 200)
-    assert.equal('lastRefundedAt' in requests[0]!, false)
-    assert.equal(requests[1]?.lastRefundedAt, new Date(1_700_000_120 * 1000).toISOString())
+    assert.equal(requests.length, 2)
+    assert.deepEqual(requests[0], requests[1], 'il retry non deve produrre uno stato diverso')
+    assert.equal(requests[0]?.refundCount, 1)
   } finally {
     globalThis.fetch = originalFetch
   }
@@ -489,6 +495,7 @@ test('marker affiliate con conversione mancante: la transizione ordine parte com
     stripePaymentIntentId: 'pi_test_refund',
     chargeAmountCents: 10_000,
     amountRefundedCents: 10_000,
+    refundCount: 1,
     lastRefundedAt: new Date(1_700_000_120 * 1000).toISOString(),
   })
   assert.equal(response.status, 503, 'la conversione mancante resta ritentabile per Stripe')
@@ -526,6 +533,179 @@ test('il retry con ledger in errore resta 503 e riscrive lo stesso snapshot ordi
     'la transizione ordine e idempotente/stale: il retry non produce uno stato diverso',
   )
   assert.equal(state.posts.length, 0, 'il ramo refund non crea ordini')
+})
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * RIMBORSI ANNULLATI / FALLITI (card t_6f9c968d)
+ *
+ * `charge.amount_refunded` SCENDE quando Stripe passa un rimborso a
+ * `failed`/`canceled`. La rotta deve rileggere il charge (sola lettura) e
+ * riconciliare l'ordine con una sorgente di ordinamento diversa dall'importo:
+ * il numero di rimborsi presenti sul charge (`refundCount`), che Stripe non
+ * riduce mai. `refund.updated`/`refund.failed` non sono piu' un ACK muto.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+function refundList(data: Array<Record<string, unknown>>, hasMore = false): Record<string, unknown> {
+  return { object: 'list', url: '/v1/charges/ch_test_refund/refunds', has_more: hasMore, data }
+}
+
+function refundObjectEvent(
+  type: 'refund.updated' | 'refund.failed',
+  refund: Record<string, unknown> = {},
+): { payload: string; signature: string } {
+  const object = {
+    id: 're_test_refund', object: 'refund', amount: 2_500, currency: 'eur', status: 'failed',
+    charge: 'ch_test_refund', payment_intent: 'pi_test_refund', created: 1_700_000_120, metadata: {},
+    ...refund,
+  }
+  const payload = JSON.stringify({
+    id: `evt_test_${type.replace('.', '_')}`, object: 'event', api_version: '2025-01-27.acacia',
+    created: 1_700_000_500, livemode: false, pending_webhooks: 1,
+    request: { id: null, idempotency_key: null }, type, data: { object },
+  })
+  return { payload, signature: Stripe.webhooks.generateTestHeaderString({ payload, secret: WEBHOOK_SECRET }) }
+}
+
+/**
+ * Consegna un evento con un charge e, se serve, un elenco di rimborsi paginato
+ * (`stripe.refunds.list`) perche' il charge ne porta solo i primi dieci.
+ */
+async function submitEventWithStripe(
+  event: { payload: string; signature: string },
+  charge: Record<string, unknown>,
+  refundPages?: Array<{ data: Array<Record<string, unknown>>; has_more: boolean }>,
+): Promise<Response> {
+  const Charges = Stripe.resources.Charges
+  const Refunds = Stripe.resources.Refunds
+  const originalRetrieve = Charges.prototype.retrieve
+  const originalList = Refunds.prototype.list
+  Charges.prototype.retrieve = (async (chargeId: string) => {
+    assert.equal(chargeId, 'ch_test_refund', 'Stripe Charge.retrieve deve ricevere refund.charge, non refund.id')
+    return charge
+  }) as unknown as typeof Charges.prototype.retrieve
+  let page = 0
+  Refunds.prototype.list = (async () => {
+    if (!refundPages) throw new Error('stripe.refunds.list non deve essere chiamato: il charge porta l elenco completo')
+    const next = refundPages[Math.min(page, refundPages.length - 1)]
+    page += 1
+    return next
+  }) as unknown as typeof Refunds.prototype.list
+  try {
+    return await POST(webhookRequest(event.payload, event.signature))
+  } finally {
+    Charges.prototype.retrieve = originalRetrieve
+    Refunds.prototype.list = originalList
+  }
+}
+
+function chargeWithRefunds(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    id: 'ch_test_refund', object: 'charge', payment_intent: 'pi_test_refund', amount: 10_000,
+    amount_refunded: 1_000, currency: 'eur', refunded: false, metadata: {},
+    refunds: refundList([
+      { id: 're_succeeded', object: 'refund', amount: 2_500, currency: 'eur', status: 'succeeded', created: 1_700_000_100 },
+      { id: 're_failed', object: 'refund', amount: 2_000, currency: 'eur', status: 'failed', created: 1_700_000_200 },
+    ]),
+    ...overrides,
+  }
+}
+
+test('refund.updated di un rimborso fallito rilegge il charge e abbassa il cumulativo dell ordine', async () => {
+  const response = await submitEventWithStripe(refundObjectEvent('refund.updated'), chargeWithRefunds())
+
+  assert.equal(response.status, 200)
+  assert.deepEqual(state.refundTransitions, [{
+    stripePaymentIntentId: 'pi_test_refund',
+    chargeAmountCents: 10_000,
+    amountRefundedCents: 1_000,
+    refundCount: 2,
+    lastRefundedAt: new Date(1_700_000_200 * 1000).toISOString(),
+  }], 'il calo legittimo va scritto sull ordine insieme al conteggio dei rimborsi')
+})
+
+test('refund.failed riconcilia un ordine rimasto completamente rimborsato', async () => {
+  const response = await submitEventWithStripe(
+    refundObjectEvent('refund.failed'),
+    chargeWithRefunds({
+      amount_refunded: 0,
+      refunded: false,
+      refunds: refundList([
+        { id: 're_cancelled', object: 'refund', amount: 10_000, currency: 'eur', status: 'failed', created: 1_700_000_300 },
+      ]),
+    }),
+  )
+
+  assert.equal(response.status, 200)
+  assert.equal(state.refundTransitions[0]?.amountRefundedCents, 0)
+  assert.equal(state.refundTransitions[0]?.refundCount, 1)
+})
+
+test('un refund senza charge riconoscibile viene riconosciuto (ACK) ma non ritenta per sempre', async () => {
+  const { result, lines } = await captureLogs(() =>
+    submitEventWithStripe(refundObjectEvent('refund.updated', { charge: null, payment_intent: null }), chargeWithRefunds()),
+  )
+
+  assert.equal(result.status, 200)
+  assert.equal(state.refundTransitions.length, 0, 'senza charge non c e uno stato cumulativo da scrivere')
+  assert.match(lines.join('\n'), /refund event without charge/)
+})
+
+test('con piu di dieci rimborsi il conteggio viene paginato, non troncato alla prima pagina', async () => {
+  const firstPage = Array.from({ length: 10 }, (_, index) => ({
+    id: `re_page1_${index}`, object: 'refund', amount: 100, currency: 'eur', status: 'succeeded', created: 1_700_000_100 + index,
+  }))
+  const secondPage = [
+    { id: 're_page2_0', object: 'refund', amount: 500, currency: 'eur', status: 'succeeded', created: 1_700_000_400 },
+    { id: 're_page2_1', object: 'refund', amount: 400, currency: 'eur', status: 'failed', created: 1_700_000_500 },
+  ]
+  const response = await submitEventWithStripe(
+    refundObjectEvent('refund.updated'),
+    chargeWithRefunds({ amount_refunded: 1_500, refunds: refundList(firstPage, true) }),
+    [{ data: firstPage, has_more: true }, { data: secondPage, has_more: false }],
+  )
+
+  assert.equal(response.status, 200)
+  assert.equal(state.refundTransitions[0]?.refundCount, 12, 'il conteggio comprende anche i rimborsi falliti')
+  assert.equal(state.refundTransitions[0]?.amountRefundedCents, 1_500)
+  assert.equal(
+    state.refundTransitions[0]?.lastRefundedAt,
+    new Date(1_700_000_500 * 1000).toISOString(),
+    'la data piu recente sta nell ultima pagina',
+  )
+})
+
+test('se l elenco dei rimborsi resta incompleto la rotta non inventa un conteggio: 503 ritentabile', async () => {
+  const firstPage = Array.from({ length: 2 }, (_, index) => ({
+    id: `re_incomplete_${index}`, object: 'refund', amount: 100, currency: 'eur', status: 'succeeded', created: 1_700_000_100,
+  }))
+  const response = await submitEventWithStripe(
+    refundObjectEvent('refund.updated'),
+    chargeWithRefunds({ refunds: refundList(firstPage, true) }),
+    [{ data: firstPage, has_more: true }],
+  )
+
+  assert.equal(response.status, 503)
+  assert.equal(state.refundTransitions.length, 0, 'un conteggio parziale non entra nella transizione')
+})
+
+test('charge.refund.updated passa dallo stesso percorso di riconciliazione', async () => {
+  const charge = chargeWithRefunds()
+  const payload = JSON.stringify({
+    id: 'evt_test_charge_refund_updated', object: 'event', api_version: '2025-01-27.acacia',
+    created: 1_700_000_500, livemode: false, pending_webhooks: 1,
+    request: { id: null, idempotency_key: null }, type: 'charge.refund.updated', data: { object: {
+      id: 're_test_refund', object: 'refund', amount: 2_500, currency: 'eur', status: 'failed',
+      charge: 'ch_test_refund', payment_intent: 'pi_test_refund', created: 1_700_000_120, metadata: {},
+    } },
+  })
+  const response = await submitEventWithStripe(
+    { payload, signature: Stripe.webhooks.generateTestHeaderString({ payload, secret: WEBHOOK_SECRET }) },
+    charge,
+  )
+
+  assert.equal(response.status, 200)
+  assert.equal(state.refundTransitions.length, 1)
+  assert.equal(state.refundTransitions[0]?.refundCount, 2)
 })
 
 /*
