@@ -14,6 +14,7 @@ import { SplitText } from '@/components/SplitText'
 import { BentoGrid, BentoItem } from '@/components/BentoGrid'
 import { TrustBadge } from '@/components/TrustBadge'
 import { homeFreeShippingBadge } from '@/lib/free-shipping-badge'
+import { listedHomepageReviews as filterListedHomepageReviews } from '@/lib/home-listed-reviews'
 import { SubscriptionBanner } from '@/components/SubscriptionBanner'
 
 const BASE = 'https://thefoolishbutcher.com'
@@ -155,15 +156,10 @@ export default async function HomePage() {
     getHomepageReviews(10),
   ])
 
-  const productNamesMap: Record<string, string> = {}
-  for (const r of homepageReviews) {
-    if (!productNamesMap[r.product_slug]) {
-      try {
-        const p = await getProductBySlug(r.product_slug, locale)
-        if (p) productNamesMap[r.product_slug] = p.name
-      } catch { /* ignore */ }
-    }
-  }
+  const { reviews: listedHomepageReviews, productNames: productNamesMap } = await filterListedHomepageReviews(
+    homepageReviews,
+    slug => getProductBySlug(slug, locale),
+  )
 
   return (
     <div>
@@ -533,9 +529,9 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {homepageReviews.length > 0 && (
+      {listedHomepageReviews.length > 0 && (
         <ReviewQuote
-          reviews={homepageReviews.map(r => ({
+          reviews={listedHomepageReviews.map(r => ({
             rating: r.rating,
             body: r.body,
             reviewer_name: r.reviewer_name,

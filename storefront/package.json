@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "verify:fonts": "python3 scripts/test-font-contract.py && python3 scripts/verify-font-assets.py",
     "test:orders": "tsx --test src/lib/stripe-orders.test.ts",
     "test:order-ref": "tsx --test src/lib/order-ref.test.ts",
     "test:webhook-stripe": "tsx --test src/app/api/webhook/stripe/route.test.ts",
@@ -15,6 +16,7 @@
     "test:emails": "tsx --test src/emails/copy.test.ts",
     "test:catalog": "tsx --test src/lib/catalog.test.ts",
     "test:legacy-slugs": "tsx --test src/lib/legacy-slugs.test.ts",
+    "test:proxy": "tsx --test src/proxy.test.ts && tsx --test src/app/sitemap.test.ts",
     "test:promo": "tsx --test src/lib/promo.test.ts",
     "test:shipping": "tsx --test src/lib/shipping.test.ts",
     "test:delivery-estimate": "tsx --test src/lib/delivery-estimate.test.ts src/app/api/stripe/delivery-estimate/route.test.ts",
@@ -22,6 +24,7 @@
     "test:free-shipping-badge": "tsx --test src/lib/free-shipping-badge.test.ts",
     "test:subscription": "tsx --test src/lib/subscription-plans.test.ts",
     "test:subscription-zone": "tsx --test src/lib/subscription-zone-change.test.ts && tsx --test src/lib/subscription-renewal-zone.test.ts",
+    "test:subscription-checkout": "tsx --test src/lib/subscription-checkout-response.test.ts",
     "test:affiliate-referral": "tsx --test src/lib/affiliate-referral.test.ts",
     "test:affiliate-route": "tsx --test src/lib/affiliate-referral-route.test.ts",
     "test:affiliate-i18n": "tsx --test src/lib/affiliate-stats-i18n.test.ts",
@@ -42,7 +45,11 @@
     "test:printful-shipping": "tsx --test src/lib/printful-shipping.test.ts",
     "test:printful-webhook": "tsx --test src/app/api/webhook/printful-fulfillment/route.test.ts",
     "test:security-secrets": "tsx --test src/lib/cms-service-secret.test.ts src/lib/admin-secret.test.ts",
-    "test:money": "tsx --test src/lib/money.test.ts"
+    "test:money": "tsx --test src/lib/money.test.ts",
+    "test:review-products-pagination": "tsx --test src/lib/review-products-pagination.test.ts",
+    "test:account-home-wishlist": "tsx --test src/lib/account-home-wishlist.test.ts",
+    "test:unlisted": "npm run test:review-products-pagination --silent && tsx --test src/lib/unlisted-listing.test.ts src/lib/unlisted-product-redirect.test.ts src/lib/unlisted-next-router.test.ts src/lib/home-listed-reviews.test.ts src/lib/listed-components.test.ts src/lib/listed-reviews.test.ts src/lib/unlisted-promotion.test.ts src/app/api/stripe/checkout.unlisted.test.ts src/app/api/subscribe/checkout.unlisted.test.ts",
+    "test:product-detail": "tsx --test src/components/ProductDetail.test.tsx"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",

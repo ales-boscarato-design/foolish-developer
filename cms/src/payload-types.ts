@@ -169,9 +169,17 @@ export interface Product {
   printfulSyncProductId?: string | null;
   section: 'tattoo' | 'pmu' | 'kit' | 'merch';
   /**
-   * Se disattivato, il prodotto non appare nelle griglie ma rimane accessibile via URL diretto e nei kit.
+   * Se disattivato, il prodotto esce da home, categorie, sitemap e checkout retail. La scheda diretta per slug resta raggiungibile e alcuni riferimenti nei kit o nelle recensioni possono ancora mostrarlo. Non è un interruttore del B2B né degli abbonamenti.
    */
   active?: boolean | null;
+  /**
+   * Ritira il prodotto dal retail: fuori da griglie e sitemap, con redirect 301 alla scheda sostitutiva (supersededBy) oppure 404. Non tocca il B2B, che dipende da resellerVisible, e non spegne un abbonamento: per fermare un abbonamento si disattiva il piano, non il prodotto.
+   */
+  unlisted?: boolean | null;
+  /**
+   * Slug del prodotto che sostituisce questo prodotto (opzionale).
+   */
+  supersededBy?: string | null;
   limitedStock?: boolean | null;
   /**
    * Numero piu basso = appare prima
@@ -1072,6 +1080,8 @@ export interface ProductsSelect<T extends boolean = true> {
   printfulSyncProductId?: T;
   section?: T;
   active?: T;
+  unlisted?: T;
+  supersededBy?: T;
   limitedStock?: T;
   order?: T;
   madeToOrder?: T;

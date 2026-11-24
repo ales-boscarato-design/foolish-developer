@@ -106,6 +106,7 @@ export interface ProductComponent {
   basePrice: number
   images: ProductImage[]
   variants: ProductVariant[]
+  unlisted?: boolean
 }
 
 export interface Product {
@@ -114,6 +115,8 @@ export interface Product {
   slug: string
   section: 'tattoo' | 'pmu' | 'merch'
   active: boolean
+  unlisted?: boolean
+  supersededBy?: string | null
   limitedStock: boolean
   madeToOrder?: boolean
   productionDays?: number
@@ -150,14 +153,14 @@ export interface Product {
   packs?: ProductPack[]
 }
 
-async function fetchAPI<T>(path: string, params?: Record<string, string>, locale?: string, extraHeaders?: Record<string, string>): Promise<T> {
+async function fetchAPI<T>(path: string, params?: Record<string, string>, locale?: string, extraHeaders?: Record<string, string>, cacheMode: 'isr' | 'no-store' = 'isr'): Promise<T> {
   const url = new URL(`${CMS_API}${path}`)
   if (params) {
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
   }
   if (locale) url.searchParams.set('locale', locale)
   const res = await fetch(url.toString(), {
-    next: { revalidate: 60 }, // ISR — rivalidate ogni 60s
+    ...(cacheMode === 'no-store' ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }), // ISR — rivalidate ogni 60s
     headers: { 'Content-Type': 'application/json', ...extraHeaders },
   })
   if (!res.ok) {
@@ -177,6 +180,7 @@ async function fetchAPI<T>(path: string, params?: Record<string, string>, locale
 export async function getProducts(section?: 'tattoo' | 'pmu' | 'merch', locale = 'it'): Promise<Product[]> {
   const params: Record<string, string> = {
     'where[active][equals]': 'true',
+    'where[unlisted][not_equals]': 'true',
     sort: 'order',
     limit: '100',
   }
@@ -185,9 +189,57 @@ export async function getProducts(section?: 'tattoo' | 'pmu' | 'merch', locale =
   return data.docs
 }
 
+/** Review archive visibility preserves inactive products and hides only unlisted ones. */
+export async function getReviewVisibleProducts(locale = 'it'): Promise<Product[]> {
+  const products: Product[] = []
+  let page = 1
+  for (;;) {
+    const data = await fetchAPI<{
+      docs: Product[]
+      page: number
+      totalPages: number
+      hasNextPage: boolean
+      nextPage: number | null
+    }>('/products', {
+      'where[unlisted][not_equals]': 'true',
+      sort: 'order',
+      limit: '100',
+      page: String(page),
+    }, locale)
+    if (!Array.isArray(data.docs)) {
+      throw new Error(`CMS products returned invalid pagination at page ${page}`)
+    }
+    if (
+      data.docs.length === 0
+      && page === 1
+      && data.page === 1
+      && data.totalPages === 0
+      && data.hasNextPage === false
+      && data.nextPage === null
+    ) {
+      return products
+    }
+    if (
+      data.page !== page
+      || !Number.isInteger(data.totalPages)
+      || data.totalPages < 1
+      || data.totalPages > 10000
+      || typeof data.hasNextPage !== 'boolean'
+      || (data.hasNextPage && (data.nextPage !== page + 1 || data.nextPage > data.totalPages))
+      || (!data.hasNextPage && (data.nextPage !== null || page !== data.totalPages))
+    ) {
+      throw new Error(`CMS products returned invalid pagination at page ${page}`)
+    }
+    products.push(...data.docs)
+    if (!data.hasNextPage) return products
+    page = data.nextPage!
+  }
+}
+
 export async function getLimitedProducts(locale = 'it'): Promise<Product[]> {
   const data = await fetchAPI<{ docs: Product[] }>('/products', {
     'where[active][equals]': 'true',
+    'where[unlisted][not_equals]': 'true',
     'where[limitedStock][equals]': 'true',
     sort: 'order',
     limit: '20',
@@ -246,6 +298,18 @@ export async function getSubscriptionPlanConfig(key: 'tattoo' | 'pmu', locale = 
     { 'where[key][equals]': key, 'where[active][equals]': 'true', depth: '2', limit: '1' },
     locale,
     { 'x-storefront-secret': cmsServiceSecret() },
+  )
+  return data.docs[0] ?? null
+}
+
+/** Checkout must observe current visibility, not the 60-second page cache. */
+export async function getSubscriptionPlanConfigForCheckout(key: 'tattoo' | 'pmu'): Promise<SubscriptionPlanConfig | null> {
+  const data = await fetchAPI<{ docs: SubscriptionPlanConfig[] }>(
+    '/subscription-plans',
+    { 'where[key][equals]': key, 'where[active][equals]': 'true', depth: '2', limit: '1' },
+    'it',
+    { 'x-storefront-secret': cmsServiceSecret() },
+    'no-store',
   )
   return data.docs[0] ?? null
 }

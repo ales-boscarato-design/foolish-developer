@@ -2,19 +2,44 @@ import { NextRequest, NextResponse } from 'next/server'
 import createNextIntlMiddleware from 'next-intl/middleware'
 import { routing } from './i18n/routing'
 import { legacyRedirectUrl } from './lib/legacy-slugs'
+import { unlistedProductRedirect } from './lib/unlisted-product-redirect'
 
 const intlMiddleware = createNextIntlMiddleware({
   ...routing,
   localeDetection: true,
 })
 
-export default function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const headers = new Headers(request.headers)
 
   // Gli host come sono arrivati: la normalizzazione qui sotto toglie la porta dagli
   // header, e il dirottamento degli URL storici deve invece vedere i valori originali.
   const forwardedHostHeader = headers.get('x-forwarded-host')
   const hostHeader = headers.get('host')
+
+  // Resolve legacy product URLs before the generic www redirect, which uses the
+  // runtime origin and would otherwise preserve the malformed slug and scheme.
+  const legacyRequestUrl = new URL(request.url)
+  if (legacyRequestUrl.port === '8080') {
+    legacyRequestUrl.port = ''
+  }
+  const legacyTarget = legacyRedirectUrl(legacyRequestUrl.pathname, {
+    requestUrl: legacyRequestUrl,
+    hosts: [hostHeader, forwardedHostHeader],
+    forwardedProto: headers.get('x-forwarded-proto'),
+  })
+  if (legacyTarget) {
+    const targetUrl = new URL(legacyTarget)
+    // The legacy helper validates the request host; retain the site's existing
+    // www → apex canonicalization without deriving the origin from request.url.
+    if (targetUrl.hostname === 'www.thefoolishbutcher.com') {
+      targetUrl.hostname = 'thefoolishbutcher.com'
+    }
+    return NextResponse.redirect(targetUrl.toString(), {
+      status: 301,
+      headers: { 'Cache-Control': 'no-store' },
+    })
+  }
 
   // Redirect www → apex domain (canonical URL)
   const rawHost = headers.get('host') || headers.get('x-forwarded-host') || ''
@@ -42,24 +67,20 @@ export default function proxy(request: NextRequest) {
     url.port = ''
   }
 
-  // Uno slug di prodotto malformato (contiene spazi) non e' recuperabile: la
-  // richiesta arriva codificata e il CMS non trova mai la stringa, quindi la
-  // pagina risponde 404. Si dirotta sul percorso canonico invece di lasciare un
-  // 404 a chi stava comprando.
-  //
-  // L'URL assoluto e la scelta dell'host stanno in `lib/legacy-slugs.ts`, dove si
-  // possono provare: qui resta la sola chiamata.
-  const legacyTarget = legacyRedirectUrl(url.pathname, {
-    requestUrl: url,
-    // Il primo candidato utilizzabile vince: un `X-Forwarded-Host` scritto dal client
-    // decide solo se l'host della richiesta non e' utilizzabile.
-    hosts: [hostHeader, forwardedHostHeader],
-    forwardedProto: headers.get('x-forwarded-proto'),
-  })
-  if (legacyTarget) {
-    // `no-store`: il `Location` dipende da un header della richiesta, e un 301 e'
-    // cacheabile anche senza indicazioni esplicite (RFC 9111 §4.2.2).
-    return NextResponse.redirect(legacyTarget, { status: 301, headers: { 'Cache-Control': 'no-store' } })
+  const unlistedTarget = await unlistedProductRedirect(url.pathname)
+  if (unlistedTarget?.status === 'unavailable') {
+    return new NextResponse(null, { status: 503, headers: { 'Cache-Control': 'no-store' } })
+  }
+  if (unlistedTarget?.status === 'not-found') {
+    return new NextResponse(null, { status: 404, headers: { 'Cache-Control': 'no-store' } })
+  }
+  if (unlistedTarget?.status === 'redirect') {
+    const target = new URL(unlistedTarget.location)
+    target.search = url.search
+    return NextResponse.redirect(target.toString(), {
+      status: unlistedTarget.statusCode ?? 301,
+      headers: { 'Cache-Control': 'no-store' },
+    })
   }
 
   const cleanReq = new NextRequest(url.toString(), {

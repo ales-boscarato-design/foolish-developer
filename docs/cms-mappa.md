@@ -1,0 +1,123 @@
+# Mappa CMS: visibilità, vendita e consumatori
+
+Fotografia del **codice** su `main` `2975072c869dd49ef001730a5eaf3a10ebe895fe`. Perimetro: le collection richieste sotto; Subscriptions, OfferConfig e Announcements non sono mappate. Non è una verifica dei dati o del deploy live. Le righe sono riferite a quel commit; possono cambiare. I riferimenti indicano schema e almeno un consumatore verificato. «Nessun lettore verificato» significa che non ne è stato trovato nell'applicazione esaminata, non che non esistano API generiche, automazioni esterne o altri consumatori. I campi localizzati usano il locale richiesto e fallback italiano (`cms/src/payload.config.ts:32`). Le letture di pagina possono avere cache di 60 secondi (`storefront/src/lib/cms.ts:163`; `b2b/src/lib/cms.ts:61`); checkout legge il catalogo fresco.
+
+## Products
+
+| Campo | Tipo/valori | Dove letto (file:riga) | Effetto se cambia | Note |
+|---|---|---|---|---|
+| `name` | testo localizzato obbligatorio | `cms/src/collections/Products.ts:46`; `storefront/src/app/[locale]/prodotto/[slug]/page.tsx:25` | Nome in pagina e metadata. | Anche nome nel catalogo. |
+| `slug` | testo obbligatorio, unico | `cms/src/collections/Products.ts:53`; `storefront/src/lib/cms.ts:252` | Identifica URL e ricerca pagina. | Cambiarlo non crea di per sé un redirect. |
+| `section` | select tattoo/pmu/kit/merch | `cms/src/collections/Products.ts:76`; `storefront/src/lib/cms.ts:187`; `b2b/src/app/catalogo/page.tsx:89` | Assegna la sezione delle griglie. | B2B renderizza tattoo, pmu e kit. |
+| `active` | booleano, default true | `cms/src/collections/Products.ts:93`; `storefront/src/lib/cms.ts:182`; `storefront/src/lib/catalog.ts:231`; `b2b/src/lib/cms.ts:43` | false esclude dalle griglie retail e dalla sitemap basata su `getProducts`; il resolver checkout retail rifiuta la riga. | Pagina diretta per slug resta raggiungibile (`storefront/src/lib/cms.ts:252`). Non è filtro del checkout B2B. **Non è solo visibilità home.** |
+| `resellerVisible` | booleano, default false | `cms/src/collections/Products.ts:239`; `b2b/src/lib/cms.ts:60`; `b2b/src/lib/cms.ts:103` | false esclude da lista, pagina e catalogo autorevole checkout B2B. | Indipendente da `active`; non è gate della vetrina retail. |
+| `limitedStock` | booleano, default false | `cms/src/collections/Products.ts:120`; `storefront/src/lib/cms.ts:243`; `storefront/src/components/ProductCard.tsx:65` | Badge e selezione sezione stock limitato. | Non è quantità né blocco di vendita; pagina limited richiede anche `active`. |
+| `order` | numero, default 0 | `cms/src/collections/Products.ts:126`; `storefront/src/lib/cms.ts:184` | Ordina le griglie in ordine crescente. | Non cambia il prezzo. |
+| `madeToOrder` | booleano | `cms/src/collections/Products.ts:133`; `storefront/src/components/ProductDetail.tsx:600`; `storefront/src/lib/catalog.ts:235` | Cambia messaggi e trattamento della produzione nella stima. | Distinto da stock. |
+| `productionDays` | numero di giorni | `cms/src/collections/Products.ts:140`; `storefront/src/components/ProductDetail.tsx:722`; `storefront/src/lib/catalog.ts:241` | Influenza la durata mostrata e la stima se su ordinazione. | Il resolver normalizza valori non numerici, negativi o non finiti a ignoto (`storefront/src/lib/catalog.ts:125`); la scheda usa il valore direttamente (`storefront/src/components/ProductDetail.tsx:721`). Valori oltre 3650 possono rendere ignota la stima (`storefront/src/lib/delivery-estimate.ts:182`); una data mostrata non più coerente può produrre 409 (`storefront/src/app/api/stripe/checkout/route.ts:228`). |
+| `shippingDays` | numero, default 3 | `cms/src/collections/Products.ts:149`; `storefront/src/components/ProductDetail.tsx:728` | Contribuisce al messaggio di consegna in scheda sul codice esaminato. | Non prova la tariffa né una data garantita. |
+| `shortDescription`, `description`, `uniqueNote` | testi localizzati | `cms/src/collections/Products.ts:156`; `storefront/src/components/ProductDetail.tsx:579`; `b2b/src/app/catalogo/[slug]/page.tsx:157` | Testi di card e scheda; nota usata anche come fallback B2B. | Contenuti distinti dalla disponibilità. |
+| `metaTitle`, `metaDescription` | testi localizzati | `cms/src/collections/Products.ts:169`; `storefront/src/app/[locale]/prodotto/[slug]/page.tsx:25` | Titolo e descrizione metadata. | Non sono un gate di vendita. |
+| `images[].image`, `images[].alt`, `videos[].video` | upload e testo | `cms/src/collections/Products.ts:198`; `storefront/src/components/ProductDetail.tsx:399`; `b2b/src/lib/cms.ts:53` | Immagini e video visualizzati. | Retail legge alt del Media, B2B usa anche images[].alt (`storefront/src/components/ProductDetail.tsx:400`; `b2b/src/lib/cms.ts:52`). |
+| `basePrice` | numero obbligatorio | `cms/src/collections/Products.ts:230`; `b2b/src/app/catalogo/[slug]/page.tsx:90`; `storefront/src/components/ProductDetail.tsx:284` | Prezzo base/fallback di presentazione. | Il checkout retail usa e valida il prezzo variante, non il testo visualizzato. |
+| `resellerDescription` | testo localizzato | `cms/src/collections/Products.ts:249`; `b2b/src/app/catalogo/[slug]/page.tsx:157` | Descrizione B2B. | Lettore retail specifico non verificato. |
+| `resellerQtyPresets` | testo con quantità separate da virgola | `cms/src/collections/Products.ts:259`; `b2b/src/app/catalogo/[slug]/page.tsx:47` | Scelte rapide di quantità B2B. | Lettore retail specifico non verificato. |
+| `priceTiers[].minQty`, `maxQty`, `discountPercent` | fasce quantità e percentuali | `cms/src/collections/Products.ts:278`; `b2b/src/lib/b2b-pricing.ts:230` | Fasce prezzo B2B applicate e verificate sul server. | Non sono uno sconto quantità retail verificato. |
+| `variants[].sku`, `label`, `price` | SKU/testo/prezzo | `cms/src/collections/Products.ts:310`; `storefront/src/lib/catalog.ts:243`; `b2b/src/lib/b2b-pricing.ts:229` | Identificazione, scelta e prezzo autorevole della variante. | Checkout retail valida SKU e prezzo. |
+| `variants[].stockStatus` | select available/low/unavailable | `cms/src/collections/Products.ts:331`; `storefront/src/components/ProductDetail.tsx:597`; `storefront/src/lib/catalog.ts:261`; `b2b/src/lib/b2b-pricing.ts:213` | `unavailable` blocca checkout retail e B2B; retail accetta `available` e `low`. | Non ritira la pagina prodotto. B2B non applica lo stesso controllo fail-closed a valori assenti. |
+| `variants[].limitedQty` | numero opzionale | `cms/src/collections/Products.ts:342`; `storefront/src/components/ProductDetail.tsx:742`; `storefront/src/lib/catalog.ts:251` | Limita il selettore quantità e per riga nel resolver retail; con zero la UI parte comunque da 1 e consente aggiunta (`storefront/src/components/ProductDetail.tsx:297` e `storefront/src/components/ProductDetail.tsx:790`), ma il checkout rifiuta la riga (`storefront/src/lib/catalog.ts:264`). | Non è prenotazione atomica; applicazione B2B non verificata. |
+| `variants[].image`, `description` | upload e testo localizzato | `cms/src/collections/Products.ts:348`; `storefront/src/components/ProductDetail.tsx:398` | Contenuti legati alla variante. | Non sono blocchi di vendita verificati. |
+| `variants[].dimensions`, `thicknessMm` | testo/numero | `cms/src/collections/Products.ts:362` | Dati di variante. | Nessun rendering o lettore operativo verificato nella ricerca applicativa. |
+| `variants[].printfulSyncVariantId` e `printfulSyncProductId` (prodotto) | identificativi testo | `cms/src/collections/Products.ts:67`; `cms/src/collections/Products.ts:373`; `storefront/src/app/api/webhook/printful-fulfillment/route.ts:109`; `cms/src/endpoints/syncPrintful.ts:85` | Sincronizzazione e fulfillment Printful. | Non è disponibilità fisica; il sync può riscrivere varianti e basePrice (`cms/src/endpoints/syncPrintful.ts:124`). |
+| `variants[].validCombinations`, `attributes[].name`, `label`, `options` | liste di attributi e combinazioni | `cms/src/collections/Products.ts:383`; `cms/src/collections/Products.ts:421`; `storefront/src/components/ProductDetail.tsx:291` | Scelta e limiti delle opzioni nell'interfaccia. | Validazione server di tutte le combinazioni non verificata. |
+| `featureHighlights`, `usageSteps`, `whatsInTheBox` | array di testi e icone | `cms/src/collections/Products.ts:464`; `cms/src/collections/Products.ts:589`; `storefront/src/components/ProductDetail.tsx:900` | Blocchi descrittivi della scheda. | Se vuoti la scheda può usare default. |
+| `components` | relazioni a Products | `cms/src/collections/Products.ts:533`; `storefront/src/components/ProductDetail.tsx:961` | Mostra componenti di kit e consente aggiunta UI. | Il checkout retail rivalida i prodotti. |
+| `packs[].name`, `quantity`, `discountPercent`, `badgeText` | nome localizzato, quantità, percentuale, badge | `cms/src/collections/Products.ts:553`; `storefront/src/components/ProductDetail.tsx:824`; `storefront/src/lib/catalog.ts:278` | Proposta pack e calcolo server del prezzo. | Il checkout verifica pack, quantità e sconto dal CMS. |
+
+**Confine importante:** l'etichetta CMS dice che `active` nasconde dalle griglie e lascia l'URL accessibile (`cms/src/collections/Products.ts:93`). Il codice aggiunge un effetto diverso per canale: il checkout retail rifiuta `active:false` (`storefront/src/lib/catalog.ts:231`), il checkout B2B usa `resellerVisible` (`b2b/src/lib/cms.ts:103`). Non dedurre una regola universale di vendibilità dalla sola etichetta. Per sitemap, pagina e kit: `storefront/src/app/sitemap.ts:34`, `storefront/src/lib/cms.ts:252`, `storefront/src/components/ProductDetail.tsx:961`. `unlisted` invece ritira il prodotto dal retail: fuori da griglie e sitemap, con redirect 301 alla scheda sostitutiva (`supersededBy`) oppure 404 sulla scheda per slug (`storefront/src/lib/unlisted-product-redirect.ts`); non tocca B2B e abbonamenti.
+
+## Canali: Retail, B2B, Abbonamenti
+
+I tre canali leggono campi diversi: un prodotto può essere ritirato dal retail e restare vendibile in B2B o in abbonamento.
+
+| Canale | Cosa decide | Campo o meccanismo |
+|---|---|---|
+| Retail (vetrina, griglie, sitemap, checkout retail) | Visibile e acquistabile se `active=true` **e** `unlisted` non è `true`. | `active` + `unlisted` (`cms/src/collections/Products.ts:93`; `cms/src/collections/Products.ts:100`). |
+| B2B | Deciso solo da `resellerVisible`. | `resellerVisible` (`cms/src/collections/Products.ts:239`; `b2b/src/lib/cms.ts:103`). |
+| Abbonamenti | Deciso dal piano attivo che referenzia il prodotto. | Collection `subscription-plans` con `where[active][equals]=true` e relazione `product` (`cms/src/collections/SubscriptionPlans.ts:20`; `storefront/src/lib/cms.ts:292`). `unlisted` non è un gate. |
+
+**Regola:** per fermare un abbonamento si disattiva il piano, non il prodotto.
+
+`unlisted` reindirizza il retail con un 301 verso la scheda sostitutiva (`supersededBy`) oppure risponde 404; non ha effetto su B2B e abbonamenti.
+
+## Orders
+
+| Campo | Tipo/valori | Dove letto (file:riga) | Effetto se cambia | Note |
+|---|---|---|---|---|
+| `orderNumber`, `stripeSessionId`, `stripePaymentIntentId` | testo/identificativi | `cms/src/collections/Orders.ts:830`; `cms/src/collections/Orders.ts:935`; `storefront/src/lib/stripe-orders.ts:246` | Identità, riconciliazione, idempotenza e collegamento rimborso. | Non cambiare a mano per deduzione. |
+| `customerEmail`, `customerName`, `customerLocale`, `customerTelegramId`, `customerPhone` | testo e identificativo | `cms/src/collections/Orders.ts:865`; `cms/src/collections/Orders.ts:254`; `cms/src/collections/Orders.ts:377`; `storefront/src/lib/reorder.ts:262` | Sincronizzazione cliente, conferma e dati riordino/notifica. | Dati personali: non includerli nei report. |
+| `pipelineState`, `productionEtaDays`, `trackingNumber`, `trackingCarrier` | stato, numero, testi | `cms/src/collections/Orders.ts:838`; `cms/src/collections/Orders.ts:174`; `storefront/src/app/ordine/[token]/page.tsx:302`; `cms/src/collections/Orders.ts:729` | Stato/ETA e tracking visibili; cambio tracking può attivare email. | Scrittura può avere effetti esterni. |
+| `total`, `shippingCost`, `lineItems` | numeri e JSON | `cms/src/collections/Orders.ts:882`; `cms/src/collections/Orders.ts:400`; `storefront/src/app/ordine/[token]/page.tsx:421`; `storefront/src/lib/reorder.ts:191` | Importi e righe in ordine, conferma e riordino. | I campi monetari ordine sono in euro salvo quelli esplicitamente in centesimi. |
+| `paymentStatus`, `paymentMethod`, `amountRefundedCents`, `refundStatus`, `lastRefundedAt` | stati, metodo, centesimi, data | `cms/src/collections/Orders.ts:891`; `cms/src/collections/Orders.ts:905`; `b2b/src/lib/b2b-checkout.ts:383` | Stato pagamento, transizione cumulativa rimborso e controllo idempotenza B2B. | Scritture finanziarie spettano al commercialista. |
+| `promoCode`, `promoType`, `promoDiscountCents` | snapshot testo/tipo/centesimi, nullable | `cms/src/collections/Orders.ts:984`; `cms/src/collections/Orders.ts:996`; `cms/src/collections/Orders.ts:1004`; `storefront/src/lib/stripe-orders.ts:143` | Conserva codice normalizzato, tipo e sconto dell'ordine. | Non è un collegamento vivo al promo. |
+| `shippingAddress`, `billingAddress`, `billingSameAsShipping`, `billingCompanyName`, `billingVatNumber`, `billingSdiCode`, `notes` | gruppi indirizzo, booleano e testi | `cms/src/collections/Orders.ts:1038`; `cms/src/collections/Orders.ts:237`; `storefront/src/lib/reorder.ts:247`; `b2b/src/lib/b2b-checkout.ts:391` | Indirizzo/riordino e confronto idempotente dei dati B2B. | Non esporre dati personali. |
+| `sheetPhotos`, `contentBlocks` | array foto e blocchi con stato/scadenza | `cms/src/collections/Orders.ts:1128`; `cms/src/collections/Orders.ts:1147`; `storefront/src/app/api/order/[token]/route.ts:52`; `storefront/src/app/ordine/[token]/page.tsx:371` | Foto e blocchi compaiono nella pagina ordine; blocchi inattivi/scaduti sono filtrati. | Verificare accesso prima di condividere un token. |
+| `source`, `pageToken` | testo/token | `cms/src/collections/Orders.ts:1183`; `cms/src/collections/Orders.ts:282`; `b2b/src/lib/cms-orders.ts:240`; `storefront/src/app/api/order/[token]/route.ts:17` | Origine e accesso alla pagina ordine. | Token da trattare come riservato. |
+| `affiliatePromoCode`, `affiliateSlug`, `affiliateEligibleAmountCents`, `affiliateCommissionRateBps`, `affiliateCommissionCents` | snapshot affiliate/centesimi/basis points | `cms/src/collections/Orders.ts:1196`; `cms/src/collections/AffiliateConversions.ts:584`; `storefront/src/app/api/account/me/route.ts:29` | Attribuzione e commissione; rimborso totale può azzerare commissione. | Esclusi dalla risposta account citata. |
+| `revolutOrderId`, `revolutStatus` | testi | `cms/src/collections/Orders.ts:1226` | Campi esposti nello schema. | Nessun lettore applicativo specifico verificato. |
+
+## PromoCodes
+
+| Campo | Tipo/valori | Dove letto (file:riga) | Effetto se cambia | Note |
+|---|---|---|---|---|
+| `code`, `type`, `active`, `expiresAt` | testo, tipo, booleano, data | `cms/src/collections/PromoCodes.ts:50`; `cms/src/collections/PromoCodes.ts:105`; `storefront/src/lib/promo.ts:389` | Identificazione, tipo, validità e scadenza del promo. | Il codice viene normalizzato uppercase. |
+| `discountPercent`, `discountAmount`, `minSubtotalCents`, `tier2SubtotalCents`, `tier2DiscountPercent` | numeri / centesimi | `cms/src/collections/PromoCodes.ts:70`; `storefront/src/lib/promo.ts:409` | Determinano calcolo e soglie dello sconto secondo tipo. | I centesimi non sono euro interi; `percent_pro` usa la logica applicativa, non `discountPercent` (`storefront/src/lib/promo.ts:407`). |
+| `proMember` | relazione | `cms/src/collections/PromoCodes.ts:116`; `storefront/src/app/api/pro/register/route.ts:110` | Collegamento salvato alla registrazione Pro. | Nessun lettore applicativo specifico verificato. |
+| `usageCount` | numero, default 0 | `cms/src/collections/PromoCodes.ts:127` | Contatore storico mostrato nel CMS. | Non incrementato dal flusso descritto nello schema; non fonte affidabile degli usi. |
+
+## Affiliates e AffiliateConversions
+
+| Campo | Tipo/valori | Dove letto (file:riga) | Effetto se cambia | Note |
+|---|---|---|---|---|
+| Affiliates `name`, `contactEmail` | testi | `cms/src/collections/Affiliates.ts:68`; `cms/src/collections/Affiliates.ts:104` | Titolo/ricerca admin. | Nessun altro lettore applicativo verificato. |
+| Affiliates `slug`, `status`, `promoCode` | testo, stato, relazione | `cms/src/collections/Affiliates.ts:75`; `storefront/src/lib/affiliate-referral.ts:188`; `storefront/src/lib/affiliate-referral.ts:191` | Risoluzione referral e promo associato; stato influisce sull'ammissibilità. | Le condizioni reali del promo sono validate separatamente. |
+| Affiliates `commissionBaseRateBps`, `commissionStepRateBps`, `commissionStepThresholdCents`, `commissionMaxRateBps` | basis points e centesimi | `cms/src/collections/Affiliates.ts:120`; `cms/src/collections/AffiliateConversions.ts:262` | Calcolo progressivo e tetto della commissione. | Non sono pagamenti o payout. |
+| Affiliates `cookieWindowDays` | giorni | `cms/src/collections/Affiliates.ts:152`; `storefront/src/lib/affiliate-referral.ts:213`; `storefront/src/app/[locale]/a/[slug]/route.ts:101` | Durata cookie referral con limite applicativo. | Zero non imposta cookie. |
+| Affiliates `conversions` | join | `cms/src/collections/Affiliates.ts:162` | Mostra le conversioni collegate nell'admin. | La join non crea conversioni. |
+| Conversions `stripeSessionId`, `stripePaymentIntentId`, `orderNumber`, `affiliate` | identificativi e relazione | `cms/src/collections/AffiliateConversions.ts:635`; `cms/src/collections/AffiliateConversions.ts:237`; `cms/src/collections/AffiliateConversions.ts:413` | Idempotenza, attribuzione e ricerca per rimborso. | Registro distinto da `usageCount`. |
+| Conversions `promoCodeSnapshot`, `affiliateSlugSnapshot` | testi snapshot | `cms/src/collections/AffiliateConversions.ts:660`; `cms/src/collections/AffiliateConversions.ts:668`; `cms/src/collections/AffiliateConversions.ts:211` | Identità storica e verifica coerenza. | Non sostituiscono il record promo. |
+| Conversions `eligibleAmountCents`, `commissionRateBps`, `commissionAmountCents`, `currency` | centesimi, basis points, valuta | `cms/src/collections/AffiliateConversions.ts:675`; `cms/src/collections/AffiliateConversions.ts:682`; `storefront/src/lib/affiliate-referral.ts:390` | Importi per calcolo e statistiche. | Snapshot, non ordine di payout. |
+| Conversions `paymentStatus`, `refundStatus`, `amountRefundedCents`, `paidAt`, `refundedAt` | stati, centesimi e date | `cms/src/collections/AffiliateConversions.ts:704`; `cms/src/collections/AffiliateConversions.ts:716`; `storefront/src/lib/affiliate-referral.ts:409` | Rimborso totale azzera la commissione; report filtra e ordina le vendite. | Rimborso parziale non equivale a totale. |
+
+## SubscriptionPlans
+
+| Campo | Tipo/valori | Dove letto (file:riga) | Effetto se cambia | Note |
+|---|---|---|---|---|
+| `key`, `product`, `active` | chiave tattoo/pmu, relazione obbligatoria, booleano | `cms/src/collections/SubscriptionPlans.ts:20`; `storefront/src/lib/cms.ts:298`; `storefront/src/app/[locale]/abbonamento/[plan]/page.tsx:44` | Seleziona piano attivo e prodotto mostrato; se configurazione non trovata la pagina risponde not found. | Il checkout esaminato usa la scala nel codice (`storefront/src/lib/subscription-plans.ts:21`; `storefront/src/app/api/subscribe/checkout/route.ts:31`): non attribuire a questo campo un blocco checkout non verificato. |
+
+## CustomerFiles e Media
+
+| Campo | Tipo/valori | Dove letto (file:riga) | Effetto se cambia | Note |
+|---|---|---|---|---|
+| CustomerFiles `title`, `file`, `fileType` | testo, upload Media, guide/video/resource | `cms/src/collections/CustomerFiles.ts:98`; `storefront/src/app/(customer-app)/account/(protected)/file/page.tsx:81`; `storefront/src/lib/customer-files.ts:97` | Titolo/tipo nella lista e file scaricabile. | La rotta account richiede sessione e, per file assegnati, verifica la proprietà; il Media sottostante può essere pubblico e accessibile direttamente (`cms/src/collections/Media.ts:28`). |
+| CustomerFiles `customer`, `customerEmail`, `active` | relazione, email, booleano | `cms/src/collections/CustomerFiles.ts:111`; `storefront/src/lib/customer-files.ts:95`; `storefront/src/app/api/account/files/[id]/route.ts:31` | Proprietà e disponibilità in elenco/download. | Per file assegnati l'hook normalizza proprietario e rende privato il media; per file condivisi non forza private (`cms/src/collections/CustomerFiles.ts:58`); legame senza email verificabile viene negato. Se relazione ed email sono assenti, il file attivo è condiviso con tutti i clienti autenticati (`storefront/src/lib/customer-files.ts:46`). |
+| Media `alt`, `visibility` | testo; public/private | `cms/src/collections/Media.ts:59`; `cms/src/collections/Media.ts:54`; `cms/src/collections/Media.ts:28`; `storefront/src/app/cms-media/[...path]/route.ts:34` | Testo alternativo e accesso ai media; l'anonimo è limitato ai pubblici. | Un media privato non diventa pubblico rimuovendo il cliente da CustomerFiles. Il proxy memorizza risposte riuscite come pubbliche per un anno (`storefront/src/app/cms-media/[...path]/route.ts:72`): cambiare a private non prova revoca delle copie già in cache. |
+| Media upload / file | upload, filename e dimensioni derivate | `cms/src/collections/Media.ts:32`; `cms/src/collections/Products.ts:192`; `storefront/src/app/api/review/photo/route.ts:30` | Alimenta immagini prodotto e foto recensione. | Accesso diretto e proxy sono percorsi distinti. |
+
+## Reviews
+
+Non esiste una collection Payload Reviews registrata nell'elenco `cms/src/payload.config.ts:51`. Verifica di presenza: `git ls-files 'cms/src/collections/*Review*'`; nessun file restituito. Le recensioni qui mappate usano SQL `marketing.reviews` (`storefront/scripts/migrate-reviews.sql:1`); non è una verifica del database live.
+
+| Campo | Tipo/valori | Dove letto (file:riga) | Effetto se cambia | Note |
+|---|---|---|---|---|
+| `status` | pending/published/removed | `storefront/scripts/migrate-reviews.sql:10`; `storefront/src/lib/reviews-db.ts:59`; `storefront/src/app/api/review/moderate/route.ts:40` | Solo published entra nelle query pubbliche; moderazione gestisce pending. | Nessuna modifica effettuata. |
+| `rating`, `body`, `photo_urls`, `reviewer_name` | voto 1–5, testo, foto e nome | `storefront/scripts/migrate-reviews.sql:7`; `storefront/src/lib/reviews-db.ts:68`; `storefront/src/app/[locale]/prodotto/[slug]/page.tsx:50` | Testo, voto, foto e aggregati visibili. | Home seleziona un sottoinsieme (`storefront/src/lib/reviews-db.ts:91`). |
+| `order_id`, `product_id`, `product_slug`, `subscriber_id`, `created_at`, `published_at` | identificativi e date | `storefront/scripts/migrate-reviews.sql:3`; `storefront/src/app/api/review/submit/route.ts:30`; `storefront/src/lib/reviews-db.ts:47` | Collegamento ordine/prodotto e cronologia. | Non dedurre il contenuto di record reali. |
+
+## Domande frequenti
+
+**Come tolgo un prodotto dalla home?** Imposta `active=false`: lo esclude dalle griglie che usano `getProducts` e dalla sitemap che usa la stessa funzione (`storefront/src/lib/cms.ts:182`; `storefront/src/app/sitemap.ts:34`). La home può ancora mostrare nome/slug in recensioni pubblicate (`storefront/src/app/[locale]/page.tsx:159`; `storefront/src/components/ReviewQuote.tsx:54`); un piano attivo può mostrare il prodotto (`storefront/src/app/[locale]/abbonamento/[plan]/page.tsx:40`). Attenzione: il checkout retail rifiuta il prodotto (`storefront/src/lib/catalog.ts:231`), mentre l'URL diretto resta raggiungibile (`storefront/src/lib/cms.ts:252`).
+
+**Come lo tolgo dal catalogo rivenditori?** `resellerVisible=false` lo esclude sia dalle query di lista e pagina B2B sia dal catalogo del checkout (`b2b/src/lib/cms.ts:60`; `b2b/src/lib/cms.ts:68`; `b2b/src/lib/cms.ts:103`).
+
+**Come lo tolgo dalla vetrina senza cancellarlo?** Imposta `unlisted=true`: il prodotto esce da griglie e sitemap e la scheda per slug fa redirect 301 alla scheda sostitutiva (`supersededBy`) oppure risponde 404 (`storefront/src/lib/unlisted-product-redirect.ts`). `active=false` elimina le griglie ma lascia la scheda diretta raggiungibile (`storefront/src/lib/cms.ts:252`; `storefront/src/components/ProductDetail.tsx:961`). Nessuno dei due ritira il prodotto da B2B (`resellerVisible`) o da un abbonamento con piano attivo.

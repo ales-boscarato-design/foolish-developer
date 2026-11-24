@@ -186,3 +186,21 @@ test('cookie non valido: 307 verso /login e cookie di sessione cancellato', asyn
   const setCookie = res.headers.get('set-cookie') ?? ''
   assert.match(setCookie, /b2b_session=/, 'il cookie rotto va cancellato')
 })
+
+// --- font self-hostati: asset statici, pubblici anche da ospite --------------
+
+// Sorveglianza: se '/fonts' esce da PUBLIC_PATHS questi due test diventano
+// rossi. E' il loro scopo. Il browser di un ospite (pagina /login, /catalogo)
+// deve poter scaricare i font da /fonts/google/..., non ricevere un 307 -> /login.
+
+test('ospite: /fonts/google/1b99372b3eaef0c8-s.p.1gsd1jahc5dg_.woff2 non viene rediretto', async () => {
+  const pathname = '/fonts/google/1b99372b3eaef0c8-s.p.1gsd1jahc5dg_.woff2'
+  const res = await proxy(makeRequest(pathname))
+  assertNotRedirected(pathname, res)
+})
+
+test('ospite: /fonts/google/d8cddd76dbfeaef0-s.1mblz1wog092a.woff2 non viene rediretto', async () => {
+  const pathname = '/fonts/google/d8cddd76dbfeaef0-s.1mblz1wog092a.woff2'
+  const res = await proxy(makeRequest(pathname))
+  assertNotRedirected(pathname, res)
+})

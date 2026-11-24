@@ -2,6 +2,7 @@ import { cmsServiceSecret } from '@/lib/cms-service-secret'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/account-auth'
 import { getAccountSubscriber, getWishlist } from '@/lib/account-db'
+import { getVisibleWishlistItems } from '@/lib/account-wishlist-visibility'
 import { getAccountLocale, getT } from '@/lib/account-i18n'
 import Link from 'next/link'
 import { ReorderButton } from './_components/ReorderButton'
@@ -11,12 +12,13 @@ export default async function AccountHome() {
   const session = await getSession()
   if (!session) redirect('/account/login')
 
-  const [subscriber, wishlist, locale] = await Promise.all([
+  const [subscriber, savedWishlist, locale] = await Promise.all([
     getAccountSubscriber(session.email),
     getWishlist(session.email),
     getAccountLocale(),
   ])
   if (!subscriber) redirect('/account/login')
+  const wishlist = await getVisibleWishlistItems(savedWishlist)
 
   const t = getT(locale)
 
