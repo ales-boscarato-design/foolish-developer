@@ -1,9 +1,8 @@
 'use client'
 import { useState } from 'react'
 import type { PlanKey, Zone } from '@/lib/subscription-plans'
-import { subscriptionCheckoutError } from '@/lib/subscription-checkout-error'
 
-export function SubscribeCTA({ plan, locale, ctaLabel, loadingLabel, zonePickerLabel, tabIt, tabEu, productUnlistedError }: {
+export function SubscribeCTA({ plan, locale, ctaLabel, loadingLabel, zonePickerLabel, tabIt, tabEu }: {
   plan: PlanKey
   locale: string
   ctaLabel: string
@@ -11,17 +10,14 @@ export function SubscribeCTA({ plan, locale, ctaLabel, loadingLabel, zonePickerL
   zonePickerLabel: string
   tabIt: string
   tabEu: string
-  productUnlistedError: string
 }) {
   const [zone, setZone] = useState<Zone>('IT')
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   async function handleSubscribe() {
     if (!email) return
     setLoading(true)
-    setError(null)
     try {
       const res = await fetch('/api/subscribe/checkout', {
         method: 'POST',
@@ -29,9 +25,7 @@ export function SubscribeCTA({ plan, locale, ctaLabel, loadingLabel, zonePickerL
         body: JSON.stringify({ plan, zone, email, locale }),
       })
       const data = await res.json()
-      const checkoutError = subscriptionCheckoutError(data, productUnlistedError)
-      if (checkoutError) setError(checkoutError)
-      else if (data.checkoutUrl) window.location.href = data.checkoutUrl
+      if (data.checkoutUrl) window.location.href = data.checkoutUrl
     } finally {
       setLoading(false)
     }
@@ -77,7 +71,6 @@ export function SubscribeCTA({ plan, locale, ctaLabel, loadingLabel, zonePickerL
       >
         {loading ? loadingLabel : ctaLabel}
       </button>
-      {error && <p role="alert" className="mt-3 text-sm" style={{ color: 'var(--accent)' }}>{error}</p>}
     </div>
   )
 }

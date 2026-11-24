@@ -25,7 +25,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { plan, locale } = await params
   if (!isValidPlan(plan)) return {}
   const config = await getSubscriptionPlanConfig(plan, locale)
-  if (config?.product.unlisted === true) return {}
   const langs = Object.fromEntries(LOCALES.map((l) => [l, `${BASE}/${l}/abbonamento/${plan}`]))
   return {
     title: config?.product.name ?? plan,
@@ -39,7 +38,7 @@ export default async function AbbonamentoProductPage({ params }: Props) {
   if (!isValidPlan(plan)) notFound()
 
   const config = await getSubscriptionPlanConfig(plan, locale)
-  if (!config || config.product.unlisted === true) notFound()
+  if (!config) notFound()
 
   const t = await getTranslations('subscription.product')
   const product = config.product
@@ -60,7 +59,6 @@ export default async function AbbonamentoProductPage({ params }: Props) {
             zonePickerLabel={t('zonePickerLabel')}
             tabIt={t('tabIt')}
             tabEu={t('tabEu')}
-            productUnlistedError={t('productUnlistedError')}
           />
         </div>
       </div>

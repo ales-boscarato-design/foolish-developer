@@ -90,9 +90,9 @@ test('Next router applies CMS unlisted checks before the historic master-pack re
   }
   assert.equal(ready, true, `Next dev server did not become ready. Logs:\n${logs}`)
 
-  const hiddenSubscription = await fetch(`${origin}/it/abbonamento/tattoo`)
-  assert.equal(hiddenSubscription.status, 404)
-  assert.equal((await hiddenSubscription.text()).includes('Fixture subscription product'), false)
+  const unlistedSubscription = await fetch(`${origin}/it/abbonamento/tattoo`)
+  assert.equal(unlistedSubscription.status, 200, `unlisted subscription must stay reachable; CMS paths=${requestedPaths.join(',')}; logs=${logs}`)
+  assert.equal((await unlistedSubscription.text()).includes('Fixture subscription product'), true)
 
   const listedSubscription = await fetch(`${origin}/it/abbonamento/pmu`)
   const listedSubscriptionBody = await listedSubscription.text()

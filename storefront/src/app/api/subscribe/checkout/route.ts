@@ -56,10 +56,8 @@ export async function POST(req: NextRequest) {
   const productId = planConfig?.product?.id
   const validProductId = (typeof productId === 'string' && productId.trim().length > 0)
     || (typeof productId === 'number' && Number.isSafeInteger(productId))
-  if (!planConfig?.product || !validProductId || planConfig.product.unlisted === true) {
-    return NextResponse.json({ error: planConfig?.product?.unlisted === true ? 'product_unlisted' : 'Piano non disponibile' }, {
-      status: planConfig?.product?.unlisted === true ? 409 : 503,
-    })
+  if (!planConfig?.product || !validProductId) {
+    return NextResponse.json({ error: 'Piano non disponibile' }, { status: 503 })
   }
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 

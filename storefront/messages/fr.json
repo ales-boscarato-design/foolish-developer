@@ -568,7 +568,6 @@
       "zonePickerLabel": "Où livrons-nous ?",
       "subscribeCta": "S'abonner maintenant",
       "loading": "Un instant...",
-      "productUnlistedError": "Ce produit d’abonnement n’est plus disponible. Veuillez choisir une autre option.",
       "faqTitle": "Questions fréquentes",
       "faqQ1": "Comment fonctionne l'abonnement ?",
       "faqA1": "Stripe prélève automatiquement le même produit chaque mois — aucune action requise après l'inscription.",

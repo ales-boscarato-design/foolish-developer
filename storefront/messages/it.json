@@ -568,7 +568,6 @@
       "zonePickerLabel": "Dove spediamo?",
       "subscribeCta": "Abbonati ora",
       "loading": "Un attimo...",
-      "productUnlistedError": "Questo prodotto in abbonamento non è più disponibile. Scegli un'altra opzione.",
       "faqTitle": "Domande frequenti",
       "faqQ1": "Come funziona l'abbonamento?",
       "faqA1": "Addebito mensile automatico via Stripe, stessa referenza ogni mese, nessuna azione richiesta dopo l'iscrizione.",

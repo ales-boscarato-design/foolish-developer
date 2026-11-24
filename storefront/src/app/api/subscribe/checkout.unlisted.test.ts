@@ -9,7 +9,7 @@ const originalFetch = globalThis.fetch
 const originalPayloadUrl = process.env.PAYLOAD_PUBLIC_URL
 const originalStripeKey = process.env.STRIPE_SECRET_KEY
 
-test('subscription checkout requires a resolvable listed CMS plan product before Stripe', async () => {
+test('subscription checkout sells an unlisted plan product and fails closed when the CMS plan is unavailable', async () => {
   let productState: 'listed' | 'unlisted' | 'unavailable' = 'listed'
   let stripeSessions = 0
   const server = createServer((_req, res) => {
@@ -57,14 +57,14 @@ test('subscription checkout requires a resolvable listed CMS plan product before
 
     productState = 'unlisted'
     const unlisted = await POST(request())
-    assert.equal(unlisted.status, 409)
-    assert.deepEqual(await unlisted.json(), { error: 'product_unlisted' })
-    assert.equal(stripeSessions, 1, 'unlisted product must not create a Stripe session')
+    assert.equal(unlisted.status, 200)
+    assert.deepEqual(await unlisted.json(), { checkoutUrl: 'https://stripe.invalid/session' })
+    assert.equal(stripeSessions, 2, 'unlisted plan product must still create a Stripe session')
 
     productState = 'unavailable'
     const unavailable = await POST(request())
     assert.equal(unavailable.status, 503)
-    assert.equal(stripeSessions, 1, 'unresolvable product must fail closed before Stripe')
+    assert.equal(stripeSessions, 2, 'unresolvable product must fail closed before Stripe')
   } finally {
     sessionPrototype.create = originalCreate
     globalThis.fetch = originalFetch
