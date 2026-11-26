@@ -1,4 +1,9 @@
 {
+  "promoBar": {
+    "textShort": "20% off everything · code BLACK20",
+    "text": "Black Friday — 20% off everything with code BLACK20 · until Monday 30 November",
+    "note": "Discount calculated on the price applied over the last 30 days."
+  },
   "nav": {
     "openMenu": "Open menu",
     "closeMenu": "Close menu",

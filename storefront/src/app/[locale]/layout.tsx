@@ -10,6 +10,7 @@ import { getMessages } from 'next-intl/server'
 import { routing } from '@/i18n/routing'
 import { notFound } from 'next/navigation'
 import { Footer } from '@/components/Footer'
+import { PromoBar } from '@/components/PromoBar'
 
 const BASE_URL = 'https://thefoolishbutcher.com'
 
@@ -96,6 +97,7 @@ export default async function LocaleLayout({
           <NextIntlClientProvider messages={messages}>
             <CartProvider>
               <FluidCanvas />
+              <PromoBar />
               <NavWrapper />
               <main className="flex-1">{children}</main>
               <Footer />
