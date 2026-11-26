@@ -137,6 +137,7 @@ jobs:
           npm run test:unlisted --silent
           npm run test:account-home-wishlist --silent
           npm run test:product-detail --silent
+          npm run test:promo-bar --silent
       - name: Storefront — build
         working-directory: storefront
         run: npm run build

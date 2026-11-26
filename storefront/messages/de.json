@@ -1,4 +1,9 @@
 {
+  "promoBar": {
+    "textShort": "20 % auf alles · Code BLACK20",
+    "text": "Black Friday — 20 % auf alles mit dem Code BLACK20 · bis Montag, 30. November",
+    "note": "Rabatt berechnet auf den in den letzten 30 Tagen angewendeten Preis."
+  },
   "nav": {
     "openMenu": "Menü öffnen",
     "closeMenu": "Menü schließen",
